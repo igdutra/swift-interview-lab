@@ -158,30 +158,39 @@ counts").
 
 **6b. Say-Out-Loud Plan.** The verbal plan delivered before writing a single
 line of code, as a natural spoken monologue — not pseudocode, not a checklist.
-Five pillars, in order: name the pattern recognized and why it fits; name
-each data structure and why; state the governing conditions; only then walk
-the approach step by step at high level; and state expected time and space
-complexity upfront.
+Five pillars, in strict order:
 
-**The conditions come before the walk — mandatory.** The conditions determine
-the walk (which loop runs, when it stops, where the answer is recorded), so
-they are spoken first and the walk then references them. State them as
-precisely as they will be coded:
+1. **Pattern** — name the pattern recognized and why it fits this problem.
+2. **Conditions** — pin the governing conditions before naming any data
+   structure (see rule below).
+3. **Data structures** — name each structure and justify it in terms of the
+   conditions just stated ("I need matchedCount *because* comparing maps each
+   step would be O(k)").
+4. **Walk** — step through the approach at high level, referencing the
+   conditions by name.
+5. **Complexity** — state expected time and space upfront.
 
-- every loop's exact continue/stop condition and its direction — "I shrink
-  WHILE the window is valid (matchedCount equals the distinct count)", never
-  "I shrink when appropriate";
-- what makes the state valid vs invalid — "the window goes invalid the moment
-  a count drops below its requirement";
-- the invariant that condition maintains, and where the answer is recorded
-  relative to it — "every pass through that loop holds a valid window, so I
-  record at its top";
+**The conditions come before the data structures and the walk — mandatory.**
+The conditions determine what you need to track and how the loop runs, so
+stating them first lets every subsequent sentence be motivated rather than
+asserted. State them as precisely as they will be coded:
+
+- the validity condition — what "valid" means for this problem, stated as
+  exactly as it will appear in code — "the window contains every character of
+  t at its required multiplicity";
+- the invalid condition — "the window goes invalid the instant a count drops
+  below its requirement";
+- the loop's direction and the record placement that the conditions force —
+  "the loop runs *while valid*, record *inside* it before each eviction";
+- the invariant the loop structure maintains — "every pass through that loop
+  holds a valid window";
 - any transition/stop condition between phases or inputs — "I stop scanning
   the first array and jump to the second when ⟨condition⟩".
 
-A plan that names the pattern and the structures but not its conditions is
-incomplete: the while condition, the invalid condition, and the invariant are
-where sliding-window, stack, and two-array problems are actually won or lost.
+A plan that names the pattern and then jumps to data structures before stating
+its conditions is incomplete: the validity condition, the invalid condition,
+and the invariant are where sliding-window, stack, and two-array problems are
+actually won or lost — and they are what justify the structures chosen.
 
 > *Handled **well (half of it)** in the four Done/ files — LC76's "Step 1
 > Clarifying questions / Step 2 Framework questions" is the model for 6a, with
