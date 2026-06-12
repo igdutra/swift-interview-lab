@@ -1,0 +1,388 @@
+/* ============================================================
+   wiki.css — single source of truth for the study wiki.
+   Implements wiki/_standards/WIKI_CSS_STYLE_RESEARCH.md section by section.
+   Pages must not carry inline <style> beyond a 10-line override.
+   ============================================================ */
+
+/* ---------- §3 Color tokens ---------- */
+:root {
+  /* neutrals (Wikimedia Base) */
+  --text:        #202122;
+  --text2:       #54595d;
+  --text3:       #72777d;
+  --page-bg:     #f8f9fa;
+  --surface:     #ffffff;
+  --border:      #a2a9b1;
+  --border-lt:   #c8ccd1;
+  --border-xlt:  #eaecf0;
+  /* links */
+  --link:         #3366cc;
+  --link-visited: #6b4ba1;
+  /* semantic accents: one hue = one meaning */
+  --info:        #3366cc;  --info-bg:    #eaf3fb;
+  --tip:         #14866d;  --tip-bg:     #d5fdf4;
+  --caution:     #ac6600;  --caution-bg: #fef6e7;
+  --danger:      #b32424;  --danger-bg:  #fee7e6;
+  --insight:     #5b3ea8;  --insight-bg: #f3effe;
+  --idea:        #b08000;  --idea-bg:    #fffbe6;  --idea-border: #f0c030;
+  /* code canvases */
+  --pseudo-bg:   #f0f0ff;  --pseudo-border: #d4c5f9;
+  --swift-bg:    #fff8f0;  --swift-border:  #f5d9a8;
+  --dry-bg:      #f4f8ff;  --dry-border:    #c8ddf0;
+  --ascii-bg:    #f0f8f0;  --ascii-border:  #b3e8d8;
+  /* font stacks */
+  --serif: 'Linux Libertine O', Georgia, 'Times New Roman', serif;
+  --sans:  'Source Sans 3', -apple-system, sans-serif;
+  --mono:  'Source Code Pro', 'SF Mono', Menlo, monospace;
+}
+
+/* ---------- §2 Typography ---------- */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { font-size: 16px; background: var(--page-bg); color: var(--text); }
+body { font: 400 16px/1.65 var(--sans); text-align: left; }
+
+h1.page-title {
+  font: 400 30px/1.25 var(--serif);
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 4px; margin-bottom: 4px;
+}
+h2 {
+  font: 400 24px/1.25 var(--serif);
+  border-bottom: 1px solid var(--border-lt);
+  padding-bottom: 4px; margin: 48px 0 16px;
+}
+h3 { font: 700 18px/1.3 var(--sans); margin: 32px 0 12px; }
+h4 {
+  font: 700 13px/1.3 var(--sans);
+  text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text2); margin: 24px 0 8px;
+}
+section, [id] { scroll-margin-top: 16px; }
+
+p  { margin-bottom: 12px; max-width: 72ch; }
+ul, ol { margin: 0 0 12px 24px; max-width: 72ch; }
+li { margin-bottom: 4px; color: var(--text2); }
+li strong, p strong { color: var(--text); }
+
+.lead p { font: 400 18px/1.6 var(--serif); color: var(--text); }
+
+a { color: var(--link); }
+a:hover { text-decoration: underline; }
+
+code {
+  font: 400 13.5px var(--mono);
+  background: rgba(0,0,0,0.06);
+  padding: 1px 5px; border-radius: 2px;
+}
+
+.page-meta { font: 400 13px var(--sans); color: var(--text3); margin-bottom: 24px; }
+.page-meta span { margin-right: 12px; }
+
+/* ---------- §4 Layout & spacing ---------- */
+.page { display: flex; min-height: 100vh; }
+
+.content {
+  flex: 1; max-width: 880px;
+  padding: 32px 48px 64px 40px;
+  background: var(--surface);
+  border-left: 1px solid var(--border-xlt);
+  border-right: 1px solid var(--border-xlt);
+}
+
+hr.wiki-hr { border: none; border-top: 1px solid var(--border-xlt); margin: 48px 0; }
+
+.page-footer {
+  margin-top: 48px; padding-top: 16px;
+  border-top: 1px solid var(--border-lt);
+  font: 400 12.5px var(--sans); color: var(--text3);
+}
+
+/* ---------- top nav (built by nav.js from pages.js) ---------- */
+.topnav {
+  background: var(--surface);
+  border-bottom: 1px solid var(--border-lt);
+  padding: 8px 24px;
+  font: 600 13px var(--sans);
+}
+.topnav a { margin-right: 16px; text-decoration: none; }
+.topnav a.current { color: var(--text); border-bottom: 2px solid var(--link); }
+.topnav .nav-cat {
+  color: var(--text3); font-weight: 700; font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.06em; margin-right: 8px;
+}
+
+/* ---------- §5 TOC sidebar ---------- */
+.toc-col {
+  width: 240px; flex-shrink: 0;
+  padding: 32px 0 32px 24px;
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+}
+.toc-inner {
+  background: var(--page-bg);
+  border: 1px solid var(--border-lt);
+  border-radius: 4px; padding: 12px 16px;
+  font: 400 13px var(--sans);
+}
+.toc-title {
+  font-weight: 700; font-size: 11px;
+  text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text3);
+  margin-bottom: 8px; padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-xlt);
+}
+.toc-cat-theory      { color: var(--insight); }
+.toc-cat-walkthrough { color: var(--info); }
+.toc-link { display: block; padding: 2px 0; color: var(--link); text-decoration: none; font-weight: 600; }
+.toc-link:hover { text-decoration: underline; }
+.toc-sub { padding-left: 12px; }
+.toc-sub .toc-link { font-weight: 400; font-size: 12px; color: var(--text2); }
+.toc-num { color: var(--text3); margin-right: 4px; }
+
+/* ---------- §6 Infobox ---------- */
+.infobox {
+  float: right; clear: right; width: 280px;
+  margin: 0 0 16px 24px;
+  background: var(--page-bg);
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  font: 400 13px var(--sans);
+}
+.infobox-title {
+  background: #cee0f2; text-align: center;
+  font-weight: 700; padding: 6px 10px;
+}
+.infobox-row { display: flex; border-top: 1px solid var(--border-xlt); }
+.infobox-k { min-width: 110px; font-weight: 600; color: var(--text2); padding: 5px 8px; }
+.infobox-v { flex: 1; padding: 5px 8px; }
+.infobox-v.mono a { font: 400 12px var(--mono); }
+
+.tag {
+  display: inline-block; font: 700 11px var(--sans);
+  padding: 1px 7px; border-radius: 3px; margin-right: 3px;
+}
+.tag-E { color: var(--tip);     background: var(--tip-bg); }
+.tag-M { color: var(--caution); background: var(--caution-bg); }
+.tag-H { color: var(--danger);  background: var(--danger-bg); }
+
+/* ---------- §7 Code & trace blocks ---------- */
+.code-label { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.code-lang {
+  font: 700 11px var(--sans);
+  text-transform: uppercase; letter-spacing: 0.07em;
+  padding: 2px 9px; border-radius: 3px;
+}
+.lang-pseudo { color: var(--insight); background: var(--pseudo-bg); border: 1px solid var(--pseudo-border); }
+.lang-swift  { color: var(--caution); background: var(--swift-bg);  border: 1px solid var(--swift-border); }
+.lang-trace  { color: var(--info);    background: var(--dry-bg);    border: 1px solid var(--dry-border); }
+.lang-ascii  { color: var(--tip);     background: var(--ascii-bg);  border: 1px solid var(--ascii-border); }
+.code-desc { font: 400 12.5px var(--sans); color: var(--text3); }
+
+pre {
+  font: 400 13.5px/1.7 var(--mono);
+  border-radius: 3px; padding: 16px 20px;
+  overflow-x: auto; white-space: pre;
+  margin-bottom: 16px;
+}
+pre.pseudo { background: var(--pseudo-bg); border: 1px solid var(--pseudo-border); }
+pre.swift  { background: var(--swift-bg);  border: 1px solid var(--swift-border); }
+pre.dry    { background: var(--dry-bg);    border: 1px solid var(--dry-border); font-size: 12.5px; line-height: 1.85; }
+pre.ascii  { background: var(--ascii-bg);  border: 1px solid var(--ascii-border); line-height: 1.9; }
+.ascii-caption { font: italic 400 12.5px var(--sans); color: var(--text3); margin: -8px 0 16px; }
+
+/* syntax tokens — Xcode Classic Light */
+.kw { color: #9b2393; font-weight: 600; }
+.fn { color: #2d5bb9; }
+.tp { color: #2e7d32; }
+.st { color: #c41a16; }
+.nm { color: #1c63b7; }
+.cm { color: #707070; font-style: italic; }
+.pk { color: var(--insight); font-weight: 700; }
+.pc { color: #555555; font-style: italic; }
+/* trace tokens */
+.tr-var  { color: var(--info);    font-weight: 700; }
+.tr-ok   { color: var(--tip);     font-weight: 600; }
+.tr-bad  { color: var(--danger);  font-weight: 600; }
+.tr-aha  { color: var(--caution); font-weight: 700; }
+
+/* ---------- §7 Table family ---------- */
+table { border-collapse: collapse; font: 400 14px/1.55 var(--sans); margin-bottom: 24px; width: 100%; }
+th {
+  background: var(--border-xlt); border: 1px solid var(--border-lt);
+  font: 700 11px var(--sans); text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text2); padding: 6px 12px; text-align: left;
+}
+td { border: 1px solid var(--border-xlt); padding: 8px 12px; vertical-align: top; }
+tbody tr:hover td { background: var(--page-bg); }
+
+.t-decoder td:first-child { font-weight: 600; }
+.t-clue    td:first-child { font: 700 12px var(--mono); color: var(--danger); background: var(--danger-bg); }
+.t-versus  td:first-child { font-weight: 700; }
+.t-cmx .tc { font: 700 12px var(--mono); color: var(--info); }
+.t-cmx .sc { font: 700 12px var(--mono); color: var(--tip); }
+.t-cmx tr.bottleneck td { background: var(--caution-bg); }
+.t-edge td:first-child { font: 400 12px var(--mono); }
+.t-edge td:last-child  { font: 400 12px var(--mono); color: var(--text3); }
+.t-qmap td:first-child { font-style: italic; }
+.t-qmap td:last-child  { font: 400 12px var(--mono); }
+
+/* ---------- §7 Callout family ---------- */
+/* The variant classes carry the box styles themselves, so pages work
+   with either class="co co-insight" or just class="co-insight". */
+.co, .co-insight, .co-note, .co-tip, .co-when {
+  border-radius: 0 3px 3px 0; padding: 10px 16px; margin-bottom: 16px;
+  font: 400 14px/1.55 var(--sans);
+}
+.co strong:first-child { display: inline; }
+.co-insight { border-left: 4px solid var(--insight); background: var(--insight-bg); }
+.co-insight strong:first-child { color: var(--insight); }
+.co-note    { border-left: 4px solid var(--caution); background: var(--caution-bg); }
+.co-note strong:first-child { color: var(--caution); }
+.co-tip     { border-left: 4px solid var(--tip); background: var(--tip-bg); }
+.co-tip strong:first-child { color: var(--tip); }
+.co-when    { border-left: 4px solid var(--info); background: var(--info-bg); margin-top: 16px; }
+.co-when strong:first-child { color: var(--info); }
+
+.co-idea {
+  border: 2px solid var(--idea-border); background: var(--idea-bg);
+  border-radius: 6px; padding: 16px 20px; margin-bottom: 24px;
+  font: 400 15px/1.6 var(--sans);
+}
+.co-idea-title {
+  font: 700 11px var(--sans); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--idea); margin-bottom: 6px;
+}
+
+.co-pitfall { border-left: 4px solid var(--danger); background: var(--danger-bg);
+  border-radius: 0 3px 3px 0; padding: 12px 16px; margin-bottom: 16px; }
+.co-pitfall-title {
+  font: 700 12px var(--sans); text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--danger); margin-bottom: 8px;
+}
+.pitfall { display: flex; gap: 8px; font: 400 13px/1.6 var(--sans); margin-bottom: 6px; }
+.pitfall:last-child { margin-bottom: 0; }
+.pitfall-bullet { color: var(--danger); font-weight: 700; flex-shrink: 0; }
+
+/* ---------- §7 Pattern / solution blocks ---------- */
+.pattern-block, .solution-block {
+  border: 1px solid var(--border-lt); border-radius: 4px;
+  margin-bottom: 24px; overflow: hidden;
+}
+.block-header {
+  background: var(--border-xlt); padding: 10px 16px;
+  display: flex; align-items: center; gap: 12px;
+  border-bottom: 1px solid var(--border-lt);
+}
+.block-kicker {
+  font: 700 11px var(--sans); text-transform: uppercase;
+  letter-spacing: 0.08em; color: var(--text3);
+}
+.block-badge {
+  font: 700 11px var(--mono); color: var(--info);
+  background: var(--info-bg); border: 1px solid #c8ddf0;
+  padding: 2px 8px; border-radius: 3px;
+}
+.block-name { font: 700 16px var(--sans); flex: 1; }
+.block-pills { display: flex; gap: 6px; }
+.pill { font: 700 11px var(--mono); letter-spacing: 0.03em; padding: 2px 9px; border-radius: 3px; }
+.pill-t { color: var(--info); background: var(--info-bg); border: 1px solid #c8ddf0; }
+.pill-s { color: var(--tip);  background: var(--tip-bg);  border: 1px solid #b3e8d8; }
+.block-body { padding: 20px 24px; }
+
+.approach-box {
+  background: var(--tip-bg); border: 1px solid #b3e8d8;
+  border-radius: 3px; padding: 12px 16px; margin-bottom: 16px;
+  font: 400 13px/1.6 var(--sans);
+}
+.approach-title {
+  font: 700 11px var(--sans); text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--tip); margin-bottom: 6px;
+}
+
+/* ---------- §7 Interview simulation ---------- */
+.sim-block {
+  border: 1px solid var(--border-lt); border-left: 4px solid var(--info);
+  border-radius: 4px; margin-bottom: 24px; overflow: hidden;
+}
+.sim-header {
+  background: var(--info); color: #ffffff;
+  font: 700 11px var(--sans); text-transform: uppercase;
+  letter-spacing: 0.08em; padding: 8px 16px;
+}
+.sim-body { padding: 20px 24px; }
+.sim-q { font: 600 14px/1.55 var(--sans); color: var(--info); margin-bottom: 2px; }
+.sim-a { font: 400 14px/1.55 var(--sans); padding-left: 16px; margin-bottom: 12px; }
+.sim-a strong { font-weight: 600; }
+
+.speech {
+  font: italic 400 16px/1.8 Georgia, var(--serif);
+  background: #fffdf7; border: 1px solid var(--border-xlt);
+  border-radius: 3px; padding: 16px 20px; margin-bottom: 16px;
+}
+.speech-kicker {
+  font: 700 11px var(--sans); font-style: normal;
+  text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--info); margin-bottom: 8px;
+}
+.speech p { font: inherit; margin-bottom: 10px; }
+.speech p:last-child { margin-bottom: 0; }
+
+/* ---------- §7 Follow-up bank ---------- */
+.followup { padding: 12px 0; border-bottom: 1px solid var(--border-xlt); }
+.followup:last-child { border-bottom: none; }
+.followup-q { font: 700 14px var(--sans); color: var(--insight); margin-bottom: 4px; }
+.followup-a { font: 400 14px/1.55 var(--sans); max-width: 72ch; }
+
+/* ---------- §7 Graduated hints (zero-JS spoilers) ---------- */
+details.hint {
+  border: 1px dashed var(--caution); background: var(--caution-bg);
+  border-radius: 3px; padding: 8px 14px; margin-bottom: 8px;
+}
+details.hint summary { cursor: pointer; font: 600 13px var(--sans); color: var(--caution); }
+details.hint p { font: 400 13px/1.6 var(--sans); margin: 8px 0 0; }
+
+/* ---------- §7 Solo problem box ---------- */
+.solo-box {
+  border: 2px dashed var(--caution); background: var(--caution-bg);
+  border-radius: 4px; padding: 16px 20px; margin-bottom: 24px;
+  font: 400 14px/1.6 var(--sans);
+}
+.solo-banner {
+  font: 700 12px var(--sans); text-transform: uppercase;
+  letter-spacing: 0.07em; color: var(--caution); margin-bottom: 8px;
+}
+.checklist { list-style: none; margin-left: 0; }
+.checklist li { padding-left: 26px; position: relative; font-size: 13px; }
+.checklist li::before { content: "\2610"; position: absolute; left: 0; color: var(--caution); font-size: 15px; }
+
+/* ---------- §8 Cross-reference / back-reference cards ---------- */
+.ref-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+.xref-card, .backref-card {
+  display: block; border: 1px solid var(--border-lt); border-radius: 4px;
+  padding: 12px 16px; background: var(--surface); text-decoration: none;
+}
+.xref-card    { border-left: 4px solid var(--info); }
+.backref-card { border-left: 4px solid var(--insight); }
+.xref-card:hover, .backref-card:hover { background: var(--info-bg); text-decoration: none; }
+.ref-file  { font: 400 12px var(--mono); color: var(--text3); display: block; }
+.ref-title { font: 700 15px var(--sans); color: var(--link); display: block; margin: 2px 0; }
+.xref-card:visited .ref-title, .backref-card:visited .ref-title { color: var(--link-visited); }
+.ref-desc  { font: 400 13px/1.5 var(--sans); color: var(--text2); display: block; }
+.ref-meta  { display: flex; align-items: center; gap: 8px; margin: 2px 0 4px; }
+.ref-topics { font: 600 12px var(--sans); color: var(--text3); }
+
+/* ---------- hub (index.html) ---------- */
+.hub-section-title {
+  font: 700 13px var(--sans); text-transform: uppercase;
+  letter-spacing: 0.06em; color: var(--text2); margin: 32px 0 12px;
+}
+.hub-blurb { font: 400 13px/1.5 var(--sans); color: var(--text2); }
+
+/* ---------- §5 mobile ---------- */
+@media (max-width: 1100px) {
+  .page { display: block; }
+  .toc-col { position: static; width: auto; height: auto; padding: 16px 16px 0; }
+  .infobox { float: none; width: auto; margin: 0 0 16px; }
+  .content { padding: 24px 16px 48px; }
+  .ref-grid { grid-template-columns: 1fr; }
+}
