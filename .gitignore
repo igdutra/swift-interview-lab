@@ -1,0 +1,71 @@
+# ============================================================
+# Swift Package Manager
+# ============================================================
+
+.build/
+.swiftpm/
+*.o
+*.d
+
+# Generated Xcode project (if you ever run `swift package generate-xcodeproj`)
+*.xcodeproj
+
+# Swift Package resolved dependencies — commit this if you have dependencies,
+# leave ignored if the package has no external dependencies (which is likely here)
+# Package.resolved
+
+# ============================================================
+# Xcode
+# ============================================================
+
+# User-specific Xcode settings
+xcuserdata/
+*.xcuserstate
+*.xcscmblueprint
+
+# Xcode derived data (if you open the package in Xcode)
+DerivedData/
+
+# Xcode Previews
+*.xcpreviewdata
+
+# Playground generated files
+timeline.xctimeline
+playground.xcworkspace
+
+# ============================================================
+# macOS
+# ============================================================
+
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+Thumbs.db
+
+# ============================================================
+# Claude Code — keep these, they ARE the config
+# ============================================================
+# .claude/ is intentionally committed — it contains the
+# /leetcode slash command and the scaffold skill.
+# Do NOT add .claude/ here.
+
+# Local-only Claude overrides (personal preferences, not shared)
+CLAUDE.local.md
+
+# ============================================================
+# Study plans (local only)
+# ============================================================
+
+study-plans/
+
+# ============================================================
+# Editor
+# ============================================================
+
+.vscode/
+*.swp
+*.swo
+*~
