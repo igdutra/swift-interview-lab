@@ -23,6 +23,18 @@ right folder and register it in `wiki/_shared/pages.js` — the nav bar and hub
 index update automatically (full checklist in
 `wiki/_standards/HOW_TO_ADD_PAGES.md`).
 
+## Commit conventions
+
+Commits follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/):
+
+```text
+<type>(<scope>): <subject>
+```
+
+Common types: `feat`, `fix`, `refactor`, `test`, `chore`, `docs`.
+
+## Leetcode problem naming
+
 Each problem follows the same naming pattern:
 
 ```text
