@@ -27,13 +27,54 @@ import Playgrounds
 //   - s consists of English letters, digits, symbols and spaces
 // ============================================================
 
+// ============================================================
+
+/* PLAN
+ 
+ 1. HINT HINT - Longest Substring - Continuous, sliding window
+ 2.
+ - LOOP conditions - NO REPEATED character, count must not exceed 2. if it does, shrink till valid
+ - when to track valid - loop makes it valid, count after the loop
+ 3. My state: leftPointer, rightPointer, windowCharacterCount, longestRange, maxCharacterApperances
+ 
+ // UPDATE: to get O(n), no need to track maxCharacterApperances > 1, simply windowCharacterCount[character]! > 1
+
+ */
+
+
 #Playground {
     let input = "abcabcbb"
     
     func getLongestSubstringWithoutRepeatingCharacters(_ string: String) -> String {
-        var longestSubstring: String = .init()
+        let stringArray = Array(string)
+        var windowCharacterCount: [Character: Int] = [:]
+        var leftPointer = 0
+        var longestRange: ClosedRange<Int>? = nil
         
-        return longestSubstring
+        for (rightPointer, character) in stringArray.enumerated() {
+            windowCharacterCount[character, default: 0] += 1
+            
+            // While invalid - shrink
+            while windowCharacterCount[character, default: 0] > 1 {
+                let leftCharacter = stringArray[leftPointer]
+                windowCharacterCount[leftCharacter, default: 0] -= 1
+                leftPointer += 1
+            }
+            
+            let windowLength =  rightPointer - leftPointer + 1
+            if longestRange == nil || longestRange!.count < windowLength {
+                longestRange = leftPointer ... rightPointer
+                // 2nd print
+//                print(longestRange)
+            }
+        }
+       
+        // 1st print check assumptions before whileloop
+//        print(windowCharacterCount)
+//        print(currentCharacterMaxApperance)
+
+        guard let range = longestRange else { return "" }
+        return String(stringArray[range])
     }
     
     print(getLongestSubstringWithoutRepeatingCharacters(input))
