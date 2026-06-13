@@ -27,6 +27,15 @@ const WIKI_PAGES = [
   },
   {
     cat: "walkthrough",
+    path: "walkthroughs/LC3_master.html",
+    nav: "LC 3",
+    title: "LC 3 — Longest Substring Without Repeating Characters",
+    topics: ["Sliding Window", "Hash Map", "Strings"],
+    difficulty: "M",
+    blurb: "Grow-and-shrink-on-invalid window (variant 8.2). The classic count-map shrink plus the last-seen-index jump optimization.",
+  },
+  {
+    cat: "walkthrough",
     path: "walkthroughs/LC76_master.html",
     nav: "LC 76",
     title: "LC 76 — Minimum Window Substring",
