@@ -19,9 +19,25 @@ The local skill at `.claude/skills/leetcode/SKILL.md` is the source of truth for
 - If you are editing the currently checked-in example, follow its self-contained test-file style first.
 - Run tests from the package root: `cd SwiftInterviewLab && swift test`
 
+## Playground source files (Sources/)
+
+Each problem has two files: a playground in `Sources/` for live exploration, and a self-contained test in `Tests/` (see below).
+
+The playground file always opens with a `/* PLAN */` comment block **before any code**, written as the spoken plan you would give in a real interview. It covers:
+
+1. **Pattern** — why this technique (e.g. "sliding window — we want the longest contiguous subarray")
+2. **Condition** — when is the window valid / invalid, and where to record (inside the loop vs. after)
+3. **State** — the variables: pointers, counters, accumulators
+4. **(optional) Walk-through** — a mental trace confirming the logic before coding
+5. **(optional) Optimizations** — improvements noted after the baseline works
+
+The implementation goes inside `#Playground { }` and intentionally keeps `print()` statements — some live, some commented out. They document the debugging journey and are not noise to remove.
+
+The playground is exploratory and throwaway. The test file is the canonical, clean solution.
+
 ## Study wiki (wiki/)
 
 - `wiki/` is the static Wikipedia-style study wiki (theory pages + LeetCode walkthroughs).
-- Run it with: `cd wiki && python3 -m http.server 8080`, then open http://localhost:5050.
+- Run it with: `cd wiki && python3 -m http.server 5050`, then open http://localhost:5050.
 - To add a page: drop the HTML file in the right folder and add one line to `wiki/_shared/pages.js` — the nav bar and hub index update automatically. Full checklist: `wiki/_standards/HOW_TO_ADD_PAGES.md`.
 - Page conventions live in the three standards docs in `wiki/_standards/`: `THEORY_MASTERFILE_STANDARD.md`, `WALKTHROUGH_MASTERFILE_STANDARD.md`, `WIKI_CSS_STYLE_RESEARCH.md`.
