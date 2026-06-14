@@ -43,4 +43,13 @@ const WIKI_PAGES = [
     difficulty: "H",
     blurb: "Shrink-while-valid sliding window with the matchedCount trick. Full interview simulation inside.",
   },
+  {
+    cat: "walkthrough",
+    path: "walkthroughs/LC209_master.html",
+    nav: "LC 209",
+    title: "LC 209 — Minimum Size Subarray Sum",
+    topics: ["Sliding Window", "Arrays"],
+    difficulty: "M",
+    blurb: "Shrink-while-valid at its simplest — one running sum, no maps. Includes the Int.max init gotcha and full interview simulation.",
+  },
 ];
