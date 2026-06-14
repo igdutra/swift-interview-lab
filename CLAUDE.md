@@ -2,6 +2,12 @@ Use this repo as a Swift LeetCode practice workspace.
 
 The local skill at `.claude/skills/leetcode/SKILL.md` is the source of truth for `/leetcode` scaffolding.
 
+## Repo layout
+
+- `SwiftInterviewLab/` — the Swift package (`Package.swift`, `Sources/`, `Tests/`). Open this folder in Xcode.
+- `wiki/` — static study wiki (theory + walkthroughs).
+- Everything else (study plans, assets, this file) lives at the repo root and is never seen by Xcode.
+
 ## Test file pattern
 
 - One problem, one self-contained test file.
@@ -11,6 +17,7 @@ The local skill at `.claude/skills/leetcode/SKILL.md` is the source of truth for
 - Use Swift Testing only: `import Testing`, `@Suite`, `@Test`, `#expect`.
 - Do not use `Solution` classes or XCTest.
 - If you are editing the currently checked-in example, follow its self-contained test-file style first.
+- Run tests from the package root: `cd SwiftInterviewLab && swift test`
 
 ## Study wiki (wiki/)
 

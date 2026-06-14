@@ -51,11 +51,12 @@ Open Claude Code in this repo and run:
 /leetcode 3
 ```
 
-Claude fetches the problem and creates `Tests/LeetCodeSwiftTests/3_Longest_Substring_Without_Repeating_Characters.swift`. If LeetCode blocks the request, paste the problem description from the browser.
+Claude fetches the problem and creates `SwiftInterviewLab/Tests/SwiftInterviewLabTests/3_Longest_Substring_Without_Repeating_Characters.swift`. If LeetCode blocks the request, paste the problem description from the browser.
 
 ### 3. Run the tests
 
 ```bash
+cd SwiftInterviewLab
 swift test --filter "3"   # single problem
 swift test                # all problems
 ```
