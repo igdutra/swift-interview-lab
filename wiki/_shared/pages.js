@@ -3,12 +3,12 @@
 // RULE: only finished, existing files are listed here — the hub
 // and nav must never show anything that isn't done.
 //
-// To add a page: drop the HTML file in theory/ or walkthroughs/
+// To add a page: drop the HTML file in the right subfolder
 // and add ONE entry here. Top nav and the hub index update
 // automatically. Nothing else to edit.
 //
 // Fields:
-//   cat        "theory" | "walkthrough"
+//   cat        "theory" | "walkthrough" | "tips"
 //   path       relative to the wiki/ root
 //   nav        short label for the top nav bar
 //   title      full title for hub cards
@@ -51,5 +51,29 @@ const WIKI_PAGES = [
     topics: ["Sliding Window", "Arrays"],
     difficulty: "M",
     blurb: "Shrink-while-valid at its simplest — one running sum, no maps. Includes the Int.max init gotcha and full interview simulation.",
+  },
+  {
+    cat: "tips",
+    path: "tips/interview_stages.html",
+    nav: "Interview Stages",
+    title: "Stages of an Interview",
+    topics: ["Process", "Soft Skills"],
+    blurb: "7-stage breakdown of a technical interview round with a condensed cheat sheet.",
+  },
+  {
+    cat: "tips",
+    path: "tips/sort_complexity.html",
+    nav: "Sort Complexity",
+    title: "Sorting Algorithm Complexity",
+    topics: ["Complexity", "Sorting"],
+    blurb: "Timsort vs Heapsort vs Counting Sort — when theory and practice diverge.",
+  },
+  {
+    cat: "tips",
+    path: "tips/cheatsheet.html",
+    nav: "Big-O Cheatsheet",
+    title: "Big-O & DS/A Cheatsheet",
+    topics: ["Complexity", "DS&A", "Reference"],
+    blurb: "Time/space complexity by data structure, input-size heuristics, and the Big-O chart.",
   },
 ];

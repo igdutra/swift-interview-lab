@@ -12,7 +12,7 @@
 (function () {
   // Depth of the current page relative to the wiki root.
   var path = location.pathname.replace(/\/+$/, "");
-  var fromRoot = /\/(theory|walkthroughs)\//.test(path) ? "../" : "./";
+  var fromRoot = /\/(theory|walkthroughs|tips)\//.test(path) ? "../" : "./";
 
   function isCurrent(pagePath) {
     return path.indexOf(pagePath.split("/").pop()) !== -1;
@@ -23,7 +23,7 @@
   if (nav) {
     // Home links to the directory root, not index.html — some static
     // servers only serve the hub at "/", and "./" works everywhere.
-    var isHub = !/\/(theory|walkthroughs)\//.test(path);
+    var isHub = !/\/(theory|walkthroughs|tips)\//.test(path);
     var html = '<a href="' + fromRoot + '"' +
       (isHub ? ' class="current"' : "") +
       ">Home</a>";
@@ -36,6 +36,12 @@
           (isCurrent(p.path) ? ' class="current"' : "") + ">" + p.nav + "</a>";
       });
     });
+    var hasTips = WIKI_PAGES.some(function (p) { return p.cat === "tips"; });
+    if (hasTips) {
+      var tipsActive = /\/tips\//.test(path);
+      html += '<span class="nav-cat">Tips</span>';
+      html += '<a href="' + fromRoot + 'tips/"' + (tipsActive ? ' class="current"' : "") + ">All Tips</a>";
+    }
     nav.innerHTML = html;
   }
 
