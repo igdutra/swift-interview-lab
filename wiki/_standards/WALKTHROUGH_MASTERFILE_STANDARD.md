@@ -320,11 +320,21 @@ theory standard's rule: the argument, not just the big-O label.
 
 ### 14. Follow-up question bank
 
-The interviewer's second act: 3–6 realistic follow-ups ("what if the input
-streams?", "make it O(1) space", "what breaks at 10⁹ elements?") each with a
+The interviewer's second act: 3–6 realistic follow-ups, each with a
 two-to-four-sentence spoken answer and, where the follow-up is itself a known
 problem, a link to that walkthrough. LC341's "Bridge to LC 251" shows the
 instinct; it should be a standard section, not an inlined essay.
+
+**Ordering rule — optimization first, always.** The first follow-up must be
+phrased as: *"Before you push this to production — can you see any improvements
+you'd make?"* This is the interviewer's most reliable first move after a
+working solution: a nudge toward constant-factor or asymptotic optimizations
+("drop the dictionary for a fixed-size array", "reduce to O(1) space", "avoid
+the second pass"). Framing it as a production-readiness question rather than
+an abstract "make it faster" prompt is more realistic and trains the reflex of
+immediately scanning for space/time tradeoffs once correctness is reached.
+Subsequent follow-ups may then address constraint changes, generalization, and
+alternate techniques in any order.
 
 > *Handled **not at all** as a section — zero files have one; LC341 §6 is the
 > only embryo and it duplicates LC251's file instead of linking it.*
