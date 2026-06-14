@@ -53,7 +53,7 @@ import Playgrounds
     let target = 7
     let nums = [2,3,1,2,4,3]
     
-    func findMinimumSubarray(target: Int, in nums: [Int]) -> Int {
+    func findMinimumSubarrayLENGHT(target: Int, in nums: [Int]) -> Int {
         var leftPointer = 0
         var currentSum = 0
         var minimumLeght = Int.max
@@ -75,6 +75,76 @@ import Playgrounds
         return minimumLeght == Int.max ? 0 : minimumLeght
     }
     
+    // ❌ FIRST ATTEMPT — broken range update logic
+    // Two bugs:
+    // 1. Line `minRange = minRange == nil ? currentRange : minRange` sets minRange once and never
+    //    updates it again on the else branch — it just falls through to the if.
+    // 2. The if condition `minimumLeght <= currentRange.count` is ALWAYS true: minimumLeght was
+    //    just set to min(minimumLeght, currentRange.count) one line above, so it is always <=.
+    //    Result: minRange gets overwritten on every shrink step — you always keep the LAST valid
+    //    window, not the SMALLEST.
+//    func findMinimumSubarrayRANGE(target: Int, in nums: [Int]) -> [Int] {
+//        var leftPointer = 0
+//        var currentSum = 0
+//        var minimumLeght = Int.max
+//        var minRange: ClosedRange<Int>? = nil
+//
+//        for (rightPointer, num) in nums.enumerated() {
+//            currentSum += num
+//
+//            while currentSum >= target {
+//                minimumLeght = min(minimumLeght, rightPointer - leftPointer + 1)
+//                let currentRange = leftPointer ... rightPointer
+//                print("before", minRange)
+//                minRange = minRange == nil ? currentRange : minRange
+//                print("after", minRange)
+//
+//                print("minimumLeght", minimumLeght, "range count", currentRange.count)
+//                print("conditon", minimumLeght < currentRange.count)
+//                if minimumLeght <= currentRange.count {
+//                    minRange = leftPointer ... rightPointer
+//                }
+//
+//                let leftNumber = nums[leftPointer]
+//                currentSum -= leftNumber
+//                leftPointer += 1
+//            }
+//        }
+//        print(minRange)
+//        guard let range = minRange else { return [] }
+//        return Array(nums[range])
+//    }
+
+    // ✅ FIX — length and range updated together, atomically
+    // Key insight: don't update length and range separately. Check if the current window is
+    // strictly smaller than the best, and if so update BOTH in the same if-block.
+    // This avoids the split-brain where minimumLeght and minRange can refer to different windows.
+    func findMinimumSubarrayRANGE(target: Int, in nums: [Int]) -> [Int] {
+        var leftPointer = 0
+        var currentSum = 0
+        var minimumLength = Int.max
+        var minRange: ClosedRange<Int>? = nil
+
+        for (rightPointer, num) in nums.enumerated() {
+            currentSum += num
+
+            while currentSum >= target {
+                let currentLength = rightPointer - leftPointer + 1
+                print("leftPointer", leftPointer, "rightPointer", rightPointer, "sum", currentSum, "currentLength", currentLength, "bestLength", minimumLength)
+                if currentLength < minimumLength {
+                    minimumLength = currentLength
+                    minRange = leftPointer ... rightPointer
+                    print("→ new best range", minRange!)
+                }
+                currentSum -= nums[leftPointer]
+                leftPointer += 1
+            }
+        }
+        print("final minRange", minRange as Any)
+        guard let range = minRange else { return [] }
+        return Array(nums[range])
+    }
     
-    print(findMinimumSubarray(target: target, in: nums))
+    
+    print(findMinimumSubarrayRANGE(target: target, in: nums))
 }
