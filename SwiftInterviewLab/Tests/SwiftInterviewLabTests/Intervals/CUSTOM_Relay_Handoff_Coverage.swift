@@ -51,7 +51,7 @@ import Testing
 //
 // Constraints:
 //   - `startDay <= endDay`
-//   - Team availability lists may be unsorted and may contain duplicates
+//   - Team availability lists is sorted and do not contain duplicated days.
 //   - A valid pair must use two different teams
 //   - If no valid pair exists, return an empty array
 // ============================================================

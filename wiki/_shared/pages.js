@@ -26,6 +26,14 @@ const WIKI_PAGES = [
     blurb: "Arrays & Hashing hub — overview, hash map, two pointers, and sliding window masterfiles.",
   },
   {
+    cat: "theory",
+    path: "theory/intervals/intervals_overview_master.html",
+    nav: "Intervals",
+    title: "Intervals",
+    topics: ["Arrays", "Sorting", "Sweep"],
+    blurb: "Sort-then-sweep interval technique — merge, overlap, insert, gap-find, and split/handoff coverage variants.",
+  },
+  {
     cat: "walkthrough",
     path: "walkthroughs/LC3_master.html",
     nav: "LC 3",
