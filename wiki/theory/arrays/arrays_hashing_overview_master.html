@@ -17,25 +17,26 @@
 <nav class="toc-col">
   <div class="toc-inner">
     <div class="toc-title toc-cat-theory">Theory · Contents</div>
-    <a href="#lead"         class="toc-link"><span class="toc-num">1</span> Definition</a>
-    <a href="#signals"      class="toc-link"><span class="toc-num">2</span> Recognition Signals</a>
-    <a href="#terminology"  class="toc-link"><span class="toc-num">3</span> Terminology Decoder</a>
-    <a href="#mental-model" class="toc-link"><span class="toc-num">4</span> Mental Model</a>
-    <a href="#pseudocode"   class="toc-link"><span class="toc-num">5</span> Pseudocode Primer</a>
-    <a href="#iterative"    class="toc-link"><span class="toc-num">6</span> Iterative-Only Pattern</a>
-    <a href="#swift"        class="toc-link"><span class="toc-num">7</span> Swift Translation</a>
-    <a href="#variants"     class="toc-link"><span class="toc-num">8</span> Variant Catalog</a>
+    <a href="#hashmap-def"  class="toc-link"><span class="toc-num">1</span> HashMap — Definition &amp; Swift</a>
+    <a href="#lead"         class="toc-link"><span class="toc-num">2</span> Definition</a>
+    <a href="#signals"      class="toc-link"><span class="toc-num">3</span> Recognition Signals</a>
+    <a href="#terminology"  class="toc-link"><span class="toc-num">4</span> Terminology Decoder</a>
+    <a href="#mental-model" class="toc-link"><span class="toc-num">5</span> Mental Model</a>
+    <a href="#pseudocode"   class="toc-link"><span class="toc-num">6</span> Pseudocode Primer</a>
+    <a href="#iterative"    class="toc-link"><span class="toc-num">7</span> Iterative-Only Pattern</a>
+    <a href="#swift"        class="toc-link"><span class="toc-num">8</span> Swift Translation</a>
+    <a href="#variants"     class="toc-link"><span class="toc-num">9</span> Variant Catalog</a>
     <div class="toc-sub">
-      <a href="#v-hashmap"   class="toc-link">8.1 Hash Map / Hash Set</a>
-      <a href="#v-twoptr"    class="toc-link">8.2 Two Pointers</a>
-      <a href="#v-window"    class="toc-link">8.3 Sliding Window</a>
+      <a href="#v-hashmap"   class="toc-link">9.1 Hash Map / Hash Set</a>
+      <a href="#v-twoptr"    class="toc-link">9.2 Two Pointers</a>
+      <a href="#v-window"    class="toc-link">9.3 Sliding Window</a>
     </div>
-    <a href="#complexity"   class="toc-link"><span class="toc-num">9</span> Complexity Analysis</a>
-    <a href="#pitfalls"     class="toc-link"><span class="toc-num">10</span> Common Pitfalls</a>
-    <a href="#edge-cases"   class="toc-link"><span class="toc-num">11</span> Edge Cases</a>
-    <a href="#cheatsheet"   class="toc-link"><span class="toc-num">12</span> Cheat Sheet</a>
-    <a href="#practice"     class="toc-link"><span class="toc-num">13</span> Demonstrated in Practice</a>
-    <a href="#solo"         class="toc-link"><span class="toc-num">14</span> Solo Problem</a>
+    <a href="#complexity"   class="toc-link"><span class="toc-num">10</span> Complexity Analysis</a>
+    <a href="#pitfalls"     class="toc-link"><span class="toc-num">11</span> Common Pitfalls</a>
+    <a href="#edge-cases"   class="toc-link"><span class="toc-num">12</span> Edge Cases</a>
+    <a href="#cheatsheet"   class="toc-link"><span class="toc-num">13</span> Cheat Sheet</a>
+    <a href="#practice"     class="toc-link"><span class="toc-num">14</span> Demonstrated in Practice</a>
+    <a href="#solo"         class="toc-link"><span class="toc-num">15</span> Solo Problem</a>
   </div>
 </nav>
 
@@ -49,7 +50,81 @@
     <span>Hash Map · Two Pointers · Sliding Window</span>
   </div>
 
-  <!-- 1. Definition -->
+  <!-- 1. HashMap — Definition & Swift -->
+  <section id="hashmap-def">
+    <h2>1 &nbsp; HashMap — Definition &amp; Swift</h2>
+
+    <div class="co-idea">
+      <div class="co-idea-title">By-the-book definition</div>
+      A <strong>hash map</strong> (also called a hash table or dictionary) is a data structure that maps <em>keys</em> to <em>values</em> using a <strong>hash function</strong>. The hash function converts each key into an integer index — the <em>bucket</em> — where the value is stored in an underlying array. Lookup, insert, and delete are all <strong>O(1) amortised</strong>: you hash the key once, jump directly to the bucket, and read or write. No linear scan is ever needed.
+    </div>
+
+    <p>Three internal mechanics make it work:</p>
+    <table class="t-decoder">
+      <thead><tr><th>Mechanic</th><th>What it does</th><th>Why it matters</th></tr></thead>
+      <tbody>
+        <tr><td>Hash function</td><td>Converts any key into a fixed-size integer (the bucket index)</td><td>Makes the O(1) jump possible — no search, just arithmetic</td></tr>
+        <tr><td>Collision resolution</td><td>Two keys may hash to the same bucket; resolved by chaining (linked list per bucket) or open addressing (probe to next empty slot)</td><td>Worst-case O(n) if all keys collide, but rare with a good hash function and load factor ≤ 0.75</td></tr>
+        <tr><td>Rehashing</td><td>When the table exceeds its load factor, it allocates a larger array and re-inserts all entries</td><td>Keeps average bucket length short — this is the "amortised" in O(1)</td></tr>
+      </tbody>
+    </table>
+
+    <div class="co-insight"><strong>The interview answer in one sentence:</strong> "A hash map uses a hash function to turn each key into a direct array index, giving O(1) average-case lookup, insert, and delete at the cost of O(n) extra space and an unordered iteration order."</div>
+
+    <h3 style="margin-top:24px;margin-bottom:8px;font-size:1.05rem">Hash Set — same structure, no value</h3>
+    <p>A <strong>hash set</strong> is a hash map where the key <em>is</em> the value — there is nothing else stored in the bucket. Same hash function, same collision resolution, same O(1) amortised operations. In Swift, <code>Set&lt;Element&gt;</code> is the hash set. It is marginally faster than <code>Dictionary</code> for pure membership tests because each bucket stores only one thing instead of a key-value pair, which means less memory touched per lookup. The rule of thumb: if you only need to answer "have I seen this?" with no associated data, use <code>Set</code> — the code is cleaner and the intent is clearer. If you need to store or retrieve a value alongside the key, use <code>Dictionary</code>.</p>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Set vs Dictionary — when to reach for each</span></div>
+<pre class="swift"><span class="kw">var</span> seen = <span class="tp">Set</span>&lt;<span class="tp">Int</span>&gt;()          <span class="cm">// membership only — "have I seen this number?"</span>
+seen.insert(<span class="nm">42</span>)
+seen.contains(<span class="nm">42</span>)              <span class="cm">// true — O(1)</span>
+
+<span class="kw">var</span> freq: [<span class="tp">Int</span>: <span class="tp">Int</span>] = [:]    <span class="cm">// membership + count — "how many times?"</span>
+freq[<span class="nm">42</span>, <span class="kw">default</span>: <span class="nm">0</span>] += <span class="nm">1</span></pre>
+
+    <h3 style="margin-top:24px;margin-bottom:8px;font-size:1.05rem">HashMap in Swift — <code>Dictionary&lt;Key, Value&gt;</code></h3>
+    <p>Swift's <code>Dictionary</code> is the standard hash map. Keys must conform to <code>Hashable</code> (and therefore <code>Equatable</code>). The literal syntax, subscript, and <code>default:</code> subscript cover 95% of LeetCode usage.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">constructing and using a Dictionary — the four essential patterns</span></div>
+<pre class="swift"><span class="cm">// ── 1. Construction ──────────────────────────────────────────────────────</span>
+<span class="kw">var</span> freq: [<span class="tp">Character</span>: <span class="tp">Int</span>] = [:]        <span class="cm">// empty dict, explicit types</span>
+<span class="kw">var</span> map  = [<span class="tp">String</span>: [<span class="tp">Int</span>]]()            <span class="cm">// empty dict, inferred from init</span>
+<span class="kw">let</span> fixed: [<span class="tp">String</span>: <span class="tp">Int</span>] = [<span class="st">"a"</span>: <span class="nm">1</span>, <span class="st">"b"</span>: <span class="nm">2</span>]  <span class="cm">// dictionary literal</span>
+
+<span class="cm">// ── 2. Read / write via subscript ─────────────────────────────────────────</span>
+freq[<span class="st">"x"</span>] = <span class="nm">5</span>                            <span class="cm">// insert or overwrite — O(1) avg</span>
+<span class="kw">let</span> v = freq[<span class="st">"x"</span>]                       <span class="cm">// returns Optional&lt;Int&gt; — nil if absent</span>
+freq[<span class="st">"x"</span>] = <span class="kw">nil</span>                         <span class="cm">// remove the key</span>
+
+<span class="cm">// ── 3. Default subscript — the LeetCode workhorse ─────────────────────────</span>
+<span class="cm">//    Reads the stored value; if the key is absent, returns `default`</span>
+<span class="cm">//    AND inserts it so the next read is consistent.</span>
+<span class="kw">for</span> c <span class="kw">in</span> s {
+    freq[c, <span class="kw">default</span>: <span class="nm">0</span>] += <span class="nm">1</span>           <span class="cm">// count character frequencies — one line</span>
+}
+
+<span class="cm">// ── 4. Common operations ───────────────────────────────────────────────────</span>
+freq.keys                               <span class="cm">// LazyMapCollection — O(n) to iterate</span>
+freq.values                             <span class="cm">// same</span>
+freq.count                              <span class="cm">// O(1)</span>
+freq.isEmpty                            <span class="cm">// O(1)</span>
+freq[<span class="st">"z"</span>] != <span class="kw">nil</span>                       <span class="cm">// key membership check</span>
+freq.removeValue(forKey: <span class="st">"z"</span>)          <span class="cm">// returns Optional of removed value</span>
+
+<span class="cm">// ── Grouping values (also common in LeetCode) ──────────────────────────────</span>
+<span class="kw">var</span> groups: [<span class="tp">String</span>: [<span class="tp">String</span>]] = [:]
+groups[key, <span class="kw">default</span>: []].append(value) <span class="cm">// create-or-append in one step</span></pre>
+
+    <div class="co-pitfall" style="margin-top:12px">
+      <div class="co-pitfall-title">Swift-specific gotchas</div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Subscript returns Optional.</strong> <code>freq["x"]</code> is <code>Int?</code>, not <code>Int</code>. Always unwrap or use the <code>default:</code> subscript — forgetting this is the #1 compile error.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Iteration order is undefined.</strong> <code>Dictionary</code> does not preserve insertion order. If order matters, keep a parallel array of keys or use a sorted traversal.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Mutating through subscript requires <code>var</code>.</strong> <code>let</code> dictionaries are fully immutable — you cannot even call <code>default:</code> to insert a first value.</span></div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Definition -->
   <section id="lead">
     <div class="infobox">
       <div class="infobox-title">At a Glance</div>
@@ -73,9 +148,9 @@
 
   <hr class="wiki-hr">
 
-  <!-- 2. Recognition signals -->
+  <!-- 3. Recognition signals -->
   <section id="signals">
-    <h2>2 &nbsp; Recognition Signals — which tool to reach for</h2>
+    <h2>3 &nbsp; Recognition Signals — which tool to reach for</h2>
     <p>These three tools are often confused because they all run in O(n) and all operate on arrays. The signal words that separate them:</p>
     <table class="t-clue">
       <thead><tr><th>When the problem says…</th><th>Reach for…</th><th>Why</th></tr></thead>
@@ -96,9 +171,9 @@
 
   <hr class="wiki-hr">
 
-  <!-- 3. Terminology decoder -->
+  <!-- 4. Terminology decoder -->
   <section id="terminology">
-    <h2>3 &nbsp; Terminology Decoder</h2>
+    <h2>4 &nbsp; Terminology Decoder</h2>
     <table class="t-decoder">
       <thead><tr><th>Term</th><th>Plain meaning</th><th>Example</th></tr></thead>
       <tbody>
@@ -117,9 +192,9 @@
 
   <hr class="wiki-hr">
 
-  <!-- 4. Mental model -->
+  <!-- 5. Mental model -->
   <section id="mental-model">
-    <h2>4 &nbsp; Mental Model — three tools, one family</h2>
+    <h2>5 &nbsp; Mental Model — three tools, one family</h2>
 
     <div class="co-idea">
       <div class="co-idea-title">The one idea</div>
@@ -144,9 +219,9 @@ O(n) space                  O(1) space                  O(k) space</pre>
 
   <hr class="wiki-hr">
 
-  <!-- 5. Pseudocode primer -->
+  <!-- 6. Pseudocode primer -->
   <section id="pseudocode">
-    <h2>5 &nbsp; Pseudocode Primer</h2>
+    <h2>6 &nbsp; Pseudocode Primer</h2>
     <p>One template per tool — the skeleton that never changes regardless of the specific problem.</p>
 
     <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">hash map — complement lookup (LC1 shape)</span></div>
@@ -186,9 +261,9 @@ O(n) space                  O(1) space                  O(k) space</pre>
 
   <hr class="wiki-hr">
 
-  <!-- 6. Iterative-only -->
+  <!-- 7. Iterative-only -->
   <section id="iterative">
-    <h2>6 &nbsp; Iterative-Only Pattern</h2>
+    <h2>7 &nbsp; Iterative-Only Pattern</h2>
     <p>All three tools are inherently iterative. There is no recursive formulation worth writing for any of them:</p>
     <ul>
       <li><strong>Hash map:</strong> a single forward pass storing and querying a map. A recursive version would just be a manual call-stack simulation of the same loop.</li>
@@ -200,9 +275,9 @@ O(n) space                  O(1) space                  O(k) space</pre>
 
   <hr class="wiki-hr">
 
-  <!-- 7. Swift translation -->
+  <!-- 8. Swift translation -->
   <section id="swift">
-    <h2>7 &nbsp; Swift Translation</h2>
+    <h2>8 &nbsp; Swift Translation</h2>
     <p>The canonical Swift idiom for each tool's starting point:</p>
 
     <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">hash map — set membership skeleton</span></div>
@@ -236,13 +311,13 @@ O(n) space                  O(1) space                  O(k) space</pre>
 
   <hr class="wiki-hr">
 
-  <!-- 8. Variant catalog -->
+  <!-- 9. Variant catalog -->
   <section id="variants">
-    <h2>8 &nbsp; Variant Catalog</h2>
+    <h2>9 &nbsp; Variant Catalog</h2>
 
     <div class="pattern-block" id="v-hashmap">
       <div class="block-header">
-        <span class="block-kicker">Variant 8.1</span>
+        <span class="block-kicker">Variant 9.1</span>
         <span class="block-name">Hash Map / Hash Set</span>
         <div class="block-pills"><span class="pill pill-t">O(n)</span><span class="pill pill-s">O(n)</span></div>
       </div>
@@ -254,7 +329,7 @@ O(n) space                  O(1) space                  O(k) space</pre>
 
     <div class="pattern-block" id="v-twoptr">
       <div class="block-header">
-        <span class="block-kicker">Variant 8.2</span>
+        <span class="block-kicker">Variant 9.2</span>
         <span class="block-name">Two Pointers (converging)</span>
         <div class="block-pills"><span class="pill pill-t">O(n)</span><span class="pill pill-s">O(1)</span></div>
       </div>
@@ -266,7 +341,7 @@ O(n) space                  O(1) space                  O(k) space</pre>
 
     <div class="pattern-block" id="v-window">
       <div class="block-header">
-        <span class="block-kicker">Variant 8.3</span>
+        <span class="block-kicker">Variant 9.3</span>
         <span class="block-name">Sliding Window</span>
         <div class="block-pills"><span class="pill pill-t">O(n)</span><span class="pill pill-s">O(k)</span></div>
       </div>
@@ -280,9 +355,9 @@ O(n) space                  O(1) space                  O(k) space</pre>
 
   <hr class="wiki-hr">
 
-  <!-- 9. Complexity -->
+  <!-- 10. Complexity -->
   <section id="complexity">
-    <h2>9 &nbsp; Complexity Analysis</h2>
+    <h2>10 &nbsp; Complexity Analysis</h2>
     <table class="t-cmx">
       <thead><tr><th>Tool</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
       <tbody>
@@ -297,9 +372,9 @@ O(n) space                  O(1) space                  O(k) space</pre>
 
   <hr class="wiki-hr">
 
-  <!-- 10. Pitfalls -->
+  <!-- 11. Pitfalls -->
   <section id="pitfalls">
-    <h2>10 &nbsp; Common Pitfalls</h2>
+    <h2>11 &nbsp; Common Pitfalls</h2>
     <div class="co-pitfall">
       <div class="co-pitfall-title">Pitfalls — the most common mistakes across all three tools</div>
       <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Using a hash map when a hash set suffices.</strong> If you only need to check membership (not store associated data), a <code>Set</code> is cleaner and makes intent explicit. LC217 needs a set, not a map.</span></div>
@@ -312,9 +387,9 @@ O(n) space                  O(1) space                  O(k) space</pre>
 
   <hr class="wiki-hr">
 
-  <!-- 11. Edge cases -->
+  <!-- 12. Edge cases -->
   <section id="edge-cases">
-    <h2>11 &nbsp; Edge Cases to Verbalize</h2>
+    <h2>12 &nbsp; Edge Cases to Verbalize</h2>
     <table class="t-edge">
       <thead><tr><th>Input</th><th>Expected behavior</th><th>Which tool is most affected</th></tr></thead>
       <tbody>
@@ -330,9 +405,9 @@ O(n) space                  O(1) space                  O(k) space</pre>
 
   <hr class="wiki-hr">
 
-  <!-- 12. Cheat sheet -->
+  <!-- 13. Cheat sheet -->
   <section id="cheatsheet">
-    <h2>12 &nbsp; Cheat Sheet — pick the right tool</h2>
+    <h2>13 &nbsp; Cheat Sheet — pick the right tool</h2>
     <table class="t-versus">
       <thead><tr><th>You see…</th><th>Use…</th><th>Because…</th></tr></thead>
       <tbody>
@@ -350,9 +425,9 @@ O(n) space                  O(1) space                  O(k) space</pre>
 
   <hr class="wiki-hr">
 
-  <!-- 13. Cross-reference -->
+  <!-- 14. Cross-reference -->
   <section id="practice">
-    <h2>13 &nbsp; Demonstrated in Practice — the deep dives</h2>
+    <h2>14 &nbsp; Demonstrated in Practice — the deep dives</h2>
     <p>Each deep dive below follows the same 14-section standard. Recognition signals, variant catalog, Swift code, and pitfalls are all written around the specific problems in each subcategory.</p>
     <div class="ref-grid">
       <a class="xref-card" href="hash_map_deep_dive_master.html">
@@ -375,9 +450,9 @@ O(n) space                  O(1) space                  O(k) space</pre>
 
   <hr class="wiki-hr">
 
-  <!-- 14. Solo problem -->
+  <!-- 15. Solo problem -->
   <section id="solo">
-    <h2>14 &nbsp; Solo Problem — no solution on this page</h2>
+    <h2>15 &nbsp; Solo Problem — no solution on this page</h2>
     <div class="solo-box">
       <div class="solo-banner">Solo problem — no solution on this page</div>
       <p><strong>LC 217 — Contains Duplicate (Easy).</strong> Given an integer array, return <code>true</code> if any value appears at least twice, and <code>false</code> if every element is distinct. This is the simplest possible hash set problem — it uses one line of the set membership pattern and nothing else. Rebuild it cold before opening anything.</p>

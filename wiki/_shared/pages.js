@@ -34,6 +34,14 @@ const WIKI_PAGES = [
     blurb: "Sort-then-sweep interval technique — merge, overlap, insert, gap-find, and split/handoff coverage variants.",
   },
   {
+    cat: "theory",
+    path: "theory/strings/index.html",
+    nav: "Strings & Simulation",
+    title: "Strings & Simulation",
+    topics: ["Strings", "Simulation", "Stack", "Parsing"],
+    blurb: "Strings & Simulation hub — overview, text-formatting/simulation, and string-parsing masterfiles.",
+  },
+  {
     cat: "walkthrough",
     path: "walkthroughs/LC3_master.html",
     nav: "LC 3",
