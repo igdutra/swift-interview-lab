@@ -58,7 +58,7 @@
       <div class="infobox-row"><div class="infobox-k">Tools</div><div class="infobox-v">One frequency map (classic) <em>or</em> one last-seen index map (optimized)</div></div>
       <div class="infobox-row"><div class="infobox-k">Key insight</div><div class="infobox-v">"Longest" → shrink only WHILE invalid, record AFTER the shrink</div></div>
       <div class="infobox-row"><div class="infobox-k">Time / Space</div><div class="infobox-v">O(n) / O(k)</div></div>
-      <div class="infobox-row"><div class="infobox-k">Theory</div><div class="infobox-v mono"><a href="../theory/sliding_window_master.html">sliding_window_master.html</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Theory</div><div class="infobox-v mono"><a href="../theory/arrays/sliding_window_master.html">sliding_window_master.html</a></div></div>
     </div>
 
     <div class="lead">
@@ -584,11 +584,11 @@ RESULT
     <table class="t-decoder">
       <thead><tr><th>General concept</th><th>Instantiated in this solution as</th><th>General form</th></tr></thead>
       <tbody>
-        <tr><td>Grow-and-shrink-on-invalid window</td><td>The <code>while windowCounts[rightCharacter]! &gt; 1</code> repair loop, with the record placed <em>after</em> it</td><td><a href="../theory/sliding_window_master.html#v-longest">theory §8.2</a></td></tr>
-        <tr><td>The inversion rule</td><td>"Longest" → loop moves toward validity → record <em>after</em>; the exact opposite of LC 76's minimum-window placement</td><td><a href="../theory/sliding_window_master.html#variants">theory §8</a></td></tr>
-        <tr><td>Window state, incrementally updated</td><td><code>windowCounts</code> (classic) or <code>lastSeenIndex</code> (optimized) — never rebuilt from scratch</td><td><a href="../theory/sliding_window_master.html#terminology">theory §3</a></td></tr>
-        <tr><td>Amortized O(n) argument</td><td>Each character enters once; the left pointer only moves forward, never backward (the <code>max</code> guard), so total left movement ≤ n</td><td><a href="../theory/sliding_window_master.html#complexity">theory §9</a></td></tr>
-        <tr><td>The hidden-O(n²) pitfall</td><td>Testing only the just-added character (<code>&gt; 1</code>) instead of scanning the whole window each step</td><td><a href="../theory/sliding_window_master.html#complexity">theory §9 (hidden trap row)</a></td></tr>
+        <tr><td>Grow-and-shrink-on-invalid window</td><td>The <code>while windowCounts[rightCharacter]! &gt; 1</code> repair loop, with the record placed <em>after</em> it</td><td><a href="../theory/arrays/sliding_window_master.html#v-longest">theory §8.2</a></td></tr>
+        <tr><td>The inversion rule</td><td>"Longest" → loop moves toward validity → record <em>after</em>; the exact opposite of LC 76's minimum-window placement</td><td><a href="../theory/arrays/sliding_window_master.html#variants">theory §8</a></td></tr>
+        <tr><td>Window state, incrementally updated</td><td><code>windowCounts</code> (classic) or <code>lastSeenIndex</code> (optimized) — never rebuilt from scratch</td><td><a href="../theory/arrays/sliding_window_master.html#terminology">theory §3</a></td></tr>
+        <tr><td>Amortized O(n) argument</td><td>Each character enters once; the left pointer only moves forward, never backward (the <code>max</code> guard), so total left movement ≤ n</td><td><a href="../theory/arrays/sliding_window_master.html#complexity">theory §9</a></td></tr>
+        <tr><td>The hidden-O(n²) pitfall</td><td>Testing only the just-added character (<code>&gt; 1</code>) instead of scanning the whole window each step</td><td><a href="../theory/arrays/sliding_window_master.html#complexity">theory §9 (hidden trap row)</a></td></tr>
       </tbody>
     </table>
   </section>
@@ -600,8 +600,8 @@ RESULT
     <h2>15 &nbsp; Parent Theory</h2>
     <p>This walkthrough instantiates one variant of a larger pattern. The parent page is not free-form — it follows the theory masterfile standard, so here is exactly what you land on:</p>
     <div class="ref-grid">
-      <a class="backref-card" href="../theory/sliding_window_master.html">
-        <span class="ref-file">theory/sliding_window_master.html</span>
+      <a class="backref-card" href="../theory/arrays/sliding_window_master.html">
+        <span class="ref-file">theory/arrays/sliding_window_master.html</span>
         <span class="ref-title">Sliding Window — Theory Masterfile</span>
         <span class="ref-desc">The canonical reference: terminology decoder (§3), the grow-and-shrink primer this solution specializes (§5), the full three-variant catalog — this problem is the headline example of variant 8.2 (§8) — the amortized O(n) argument and its hidden-O(n²) trap (§9), pitfalls and edge cases (§10–11), and a cheat sheet (§12). Its own cross-reference section (§13) links back to this walkthrough.</span>
       </a>
@@ -610,7 +610,7 @@ RESULT
 
   <div class="page-footer">
     LC 3 — Longest Substring Without Repeating Characters · Walkthrough Masterfile · Parent theory:
-    <a href="../theory/sliding_window_master.html">Sliding Window</a> ·
+    <a href="../theory/arrays/sliding_window_master.html">Sliding Window</a> ·
     Structure per <code>wiki/_standards/WALKTHROUGH_MASTERFILE_STANDARD.md</code>
   </div>
 

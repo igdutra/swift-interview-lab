@@ -19,11 +19,11 @@
 const WIKI_PAGES = [
   {
     cat: "theory",
-    path: "theory/sliding_window_master.html",
-    nav: "Sliding Window",
-    title: "Sliding Window",
-    topics: ["Arrays", "Strings", "Two Pointers"],
-    blurb: "Two monotonic pointers over a contiguous range — longest/shortest subarray and substring problems in O(n).",
+    path: "theory/arrays/index.html",
+    nav: "Arrays & Hashing",
+    title: "Arrays & Hashing",
+    topics: ["Arrays", "Hash Map", "Two Pointers", "Sliding Window"],
+    blurb: "Arrays & Hashing hub — overview, hash map, two pointers, and sliding window masterfiles.",
   },
   {
     cat: "walkthrough",

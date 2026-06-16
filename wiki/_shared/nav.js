@@ -12,7 +12,14 @@
 (function () {
   // Depth of the current page relative to the wiki root.
   var path = location.pathname.replace(/\/+$/, "");
-  var fromRoot = /\/(theory|walkthroughs|tips)\//.test(path) ? "../" : "./";
+  var depth = (path.match(/\//g) || []).length;
+  // Strip trailing-slash directory URLs count one fewer slash than file URLs.
+  // /tips/         → stripped to /tips      → depth 1 → but we want "../"
+  // /tips/index.html                        → depth 2 → "../"
+  // /theory/arrays/index.html               → depth 3 → "../../"
+  // So: check if path contains a known first-level folder with no further slash.
+  var isFirstLevel = /^\/(theory|walkthroughs|tips)$/.test(path);
+  var fromRoot = (depth <= 1 && !isFirstLevel) ? "./" : depth === 2 || isFirstLevel ? "../" : "../../";
 
   function isCurrent(pagePath) {
     return path.indexOf(pagePath.split("/").pop()) !== -1;

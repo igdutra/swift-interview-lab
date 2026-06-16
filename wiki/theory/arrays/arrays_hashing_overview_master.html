@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Arrays &amp; Hashing Overview · Theory Masterfile</title>
+<link rel="stylesheet" href="../../_shared/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="theory">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── TOC ── -->
+<nav class="toc-col">
+  <div class="toc-inner">
+    <div class="toc-title toc-cat-theory">Theory · Contents</div>
+    <a href="#lead"         class="toc-link"><span class="toc-num">1</span> Definition</a>
+    <a href="#signals"      class="toc-link"><span class="toc-num">2</span> Recognition Signals</a>
+    <a href="#terminology"  class="toc-link"><span class="toc-num">3</span> Terminology Decoder</a>
+    <a href="#mental-model" class="toc-link"><span class="toc-num">4</span> Mental Model</a>
+    <a href="#pseudocode"   class="toc-link"><span class="toc-num">5</span> Pseudocode Primer</a>
+    <a href="#iterative"    class="toc-link"><span class="toc-num">6</span> Iterative-Only Pattern</a>
+    <a href="#swift"        class="toc-link"><span class="toc-num">7</span> Swift Translation</a>
+    <a href="#variants"     class="toc-link"><span class="toc-num">8</span> Variant Catalog</a>
+    <div class="toc-sub">
+      <a href="#v-hashmap"   class="toc-link">8.1 Hash Map / Hash Set</a>
+      <a href="#v-twoptr"    class="toc-link">8.2 Two Pointers</a>
+      <a href="#v-window"    class="toc-link">8.3 Sliding Window</a>
+    </div>
+    <a href="#complexity"   class="toc-link"><span class="toc-num">9</span> Complexity Analysis</a>
+    <a href="#pitfalls"     class="toc-link"><span class="toc-num">10</span> Common Pitfalls</a>
+    <a href="#edge-cases"   class="toc-link"><span class="toc-num">11</span> Edge Cases</a>
+    <a href="#cheatsheet"   class="toc-link"><span class="toc-num">12</span> Cheat Sheet</a>
+    <a href="#practice"     class="toc-link"><span class="toc-num">13</span> Demonstrated in Practice</a>
+    <a href="#solo"         class="toc-link"><span class="toc-num">14</span> Solo Problem</a>
+  </div>
+</nav>
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">Arrays &amp; Hashing — Overview</h1>
+  <div class="page-meta">
+    <span>Theory Masterfile</span><span>·</span>
+    <span>Language: Swift</span><span>·</span>
+    <span>Hash Map · Two Pointers · Sliding Window</span>
+  </div>
+
+  <!-- 1. Definition -->
+  <section id="lead">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Array / string traversal family</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v">Three single-pass O(n) tools: trade space for lookup, exploit sorted order, or maintain an incremental range</div></div>
+      <div class="infobox-row"><div class="infobox-k">Time</div><div class="infobox-v">O(n) — each element visited once (or O(n log n) when a sort is required first)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Space</div><div class="infobox-v">O(n) for hash maps · O(1) for two pointers · O(k) for sliding window state</div></div>
+      <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"duplicate", "pair that sums to", "longest substring", "contiguous subarray"</div></div>
+      <div class="infobox-row"><div class="infobox-k">Deep dives</div><div class="infobox-v mono">
+        <a href="hash_map_deep_dive_master.html">hash_map_deep_dive_master.html</a><br>
+        <a href="two_pointers_deep_dive_master.html">two_pointers_deep_dive_master.html</a><br>
+        <a href="sliding_window_master.html">sliding_window_master.html</a>
+      </div></div>
+    </div>
+
+    <div class="lead">
+      <p><strong>Arrays &amp; Hashing</strong> is the foundational interview block: three single-pass techniques that together solve the vast majority of array and string problems. Hash maps trade O(n) space for O(1) lookup, turning "have we seen this before?" into a constant-time question. Two pointers exploit the sorted order of an array to converge from both ends, eliminating the O(n²) brute-force pair search. Sliding windows maintain an incremental summary of a contiguous range, finding optimal subarrays in a single pass without ever examining all O(n²) subarrays.</p>
+      <p>The three techniques share one property: each element is visited at most a constant number of times. That amortized linearity — not any particular data structure — is what they have in common. Recognizing which tool a problem calls for is the core skill of this block.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Recognition signals -->
+  <section id="signals">
+    <h2>2 &nbsp; Recognition Signals — which tool to reach for</h2>
+    <p>These three tools are often confused because they all run in O(n) and all operate on arrays. The signal words that separate them:</p>
+    <table class="t-clue">
+      <thead><tr><th>When the problem says…</th><th>Reach for…</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>"have we seen this value before?" / "contains duplicate"</td><td>Hash set membership</td><td>O(1) lookup vs O(n) scan</td></tr>
+        <tr><td>"find a pair that sums to target" (unsorted)</td><td>Complement map</td><td>store <code>target − x</code>, look it up in one pass</td></tr>
+        <tr><td>"duplicate within distance k" / "index of last seen"</td><td>Sliding index map</td><td>hash map keyed by value, storing last index</td></tr>
+        <tr><td>"detect a cycle" / "have we visited this state?"</td><td>Hash set of seen states</td><td>O(1) membership check per step</td></tr>
+        <tr><td>"pair/triplet that sums to" + <em>sorted or sortable</em></td><td>Two pointers (converging)</td><td>sorted order lets you steer left or right</td></tr>
+        <tr><td>"is it a palindrome?" / "two walls, maximize area"</td><td>Two pointers (converging)</td><td>problem symmetry → shrink from both ends</td></tr>
+        <tr><td>"longest/shortest <em>contiguous</em> subarray/substring"</td><td>Sliding window</td><td>contiguous = range, range = two rightward pointers</td></tr>
+        <tr><td>"every window of size k"</td><td>Sliding window (fixed)</td><td>left trails right by exactly k − 1</td></tr>
+      </tbody>
+    </table>
+    <div class="co-when"><strong>The key disqualifier for two pointers:</strong> the array must be sorted (or sortable without destroying information). If the problem forbids sorting, reach for a hash map or sliding window instead.</div>
+    <div class="co-when"><strong>The key disqualifier for sliding window:</strong> the answer must be <em>contiguous</em>. Non-adjacent elements (subsequences, subsets) have no range to slide — reach for DP or greedy.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Terminology decoder -->
+  <section id="terminology">
+    <h2>3 &nbsp; Terminology Decoder</h2>
+    <table class="t-decoder">
+      <thead><tr><th>Term</th><th>Plain meaning</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td>Hash map</td><td>A key-value store with O(1) amortized lookup, insert, and delete</td><td><code>var map: [Int: Int] = [:]</code></td></tr>
+        <tr><td>Hash set</td><td>A collection of unique keys with O(1) membership test; no associated values</td><td><code>var seen: Set&lt;Int&gt; = []</code></td></tr>
+        <tr><td>Complement</td><td>The value you need to complete a pair: <code>target − current</code></td><td>target=9, current=2 → complement=7</td></tr>
+        <tr><td>Converging pointers</td><td>Two indices starting at opposite ends of a sorted array, moving toward each other</td><td><code>var l = 0, r = n − 1; while l &lt; r</code></td></tr>
+        <tr><td>Invariant</td><td>A condition that is true before and after every loop iteration; the core proof that the algorithm is correct</td><td>"the answer, if it exists, lies within [l, r]"</td></tr>
+        <tr><td>Window</td><td>A contiguous range [left, right] in the array currently under consideration</td><td><code>nums[left...right]</code></td></tr>
+        <tr><td>Window state</td><td>The incremental summary of the window's contents — a sum, a count map, a budget</td><td><code>var windowSum = 0</code></td></tr>
+        <tr><td>Amortized O(1)</td><td>An operation that occasionally costs more but averages O(1) across many calls</td><td>hash map insert: usually O(1), rarely O(n) on resize</td></tr>
+        <tr><td>Single-pass</td><td>The algorithm visits each element at most a constant number of times, giving O(n) total</td><td>each element enters and exits the window once</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Mental model -->
+  <section id="mental-model">
+    <h2>4 &nbsp; Mental Model — three tools, one family</h2>
+
+    <div class="co-idea">
+      <div class="co-idea-title">The one idea</div>
+      All three tools are the same idea at different levels of structure: instead of re-examining the full array for each element (O(n²)), each tool maintains a small piece of state that makes each element's "question" answerable in O(1). The state is a hash table, a pair of indices, or a window summary — but the principle is identical.
+    </div>
+
+    <p>Here is how each tool answers the same core question — "does this element's answer depend on something we've seen before?" — differently:</p>
+
+    <div class="code-label"><span class="code-lang lang-ascii">Diagram</span><span class="code-desc">the three tools side by side</span></div>
+    <pre class="ascii">HASH MAP                    TWO POINTERS               SLIDING WINDOW
+────────────────────        ──────────────────────     ──────────────────────
+[2, 7, 11, 15]              [-4, -1, 0, 3, 5, 8]      [2, 3, 1, 2, 4, 3]
+ ↑                           l              r            l→→→→  r→→→→→→
+ store 7 (=9−2) in map       sorted → steer by sum       contiguous range
+ next: see 7 → found!        sum too big → move r←       grow right, shrink left
+                             sum too small → move l→
+
+"have we seen it?"          "exploit sorted order"      "maintain a range"
+O(n) space                  O(1) space                  O(k) space</pre>
+    <p class="ascii-caption">Same input structure, three different questions. The state each tool maintains (map / two indices / window summary) is exactly what lets it answer in O(1) per element.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Pseudocode primer -->
+  <section id="pseudocode">
+    <h2>5 &nbsp; Pseudocode Primer</h2>
+    <p>One template per tool — the skeleton that never changes regardless of the specific problem.</p>
+
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">hash map — complement lookup (LC1 shape)</span></div>
+    <pre class="pseudo"><span class="pk">FUNCTION</span> hashMapSolve(input, target):
+    seen ← empty map          <span class="pc">// key: value seen; value: its index</span>
+    <span class="pk">FOR</span> i <span class="pk">FROM</span> 0 <span class="pk">TO</span> length(input) − 1:
+        complement ← target − input[i]
+        <span class="pk">IF</span> complement <span class="pk">IN</span> seen:
+            <span class="pk">RETURN</span> answer using seen[complement] and i
+        seen[input[i]] ← i
+    <span class="pk">RETURN</span> not found</pre>
+
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">two pointers — converging (LC11 shape)</span></div>
+    <pre class="pseudo"><span class="pk">FUNCTION</span> twoPointers(input):
+    sort(input)               <span class="pc">// required for convergence to be meaningful</span>
+    l ← 0,  r ← length(input) − 1
+    best ← 0
+    <span class="pk">WHILE</span> l &lt; r:
+        candidate ← evaluate(input[l], input[r])
+        best ← max(best, candidate)
+        <span class="pk">IF</span> should move left pointer:   l ← l + 1
+        <span class="pk">ELSE</span>:                          r ← r − 1
+    <span class="pk">RETURN</span> best</pre>
+
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">sliding window — longest valid range (LC3 shape)</span></div>
+    <pre class="pseudo"><span class="pk">FUNCTION</span> slidingWindow(input):
+    state ← empty
+    left ← 0,  best ← 0
+    <span class="pk">FOR</span> right <span class="pk">FROM</span> 0 <span class="pk">TO</span> length(input) − 1:
+        add input[right] <span class="pk">TO</span> state
+        <span class="pk">WHILE</span> state is invalid:
+            remove input[left] <span class="pk">FROM</span> state
+            left ← left + 1
+        best ← max(best, right − left + 1)
+    <span class="pk">RETURN</span> best</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. Iterative-only -->
+  <section id="iterative">
+    <h2>6 &nbsp; Iterative-Only Pattern</h2>
+    <p>All three tools are inherently iterative. There is no recursive formulation worth writing for any of them:</p>
+    <ul>
+      <li><strong>Hash map:</strong> a single forward pass storing and querying a map. A recursive version would just be a manual call-stack simulation of the same loop.</li>
+      <li><strong>Two pointers:</strong> a <code>while l &lt; r</code> convergence loop. Recursion would add call-stack overhead with no structural benefit — the invariant "answer lies in [l, r]" is clearest as an explicit loop condition.</li>
+      <li><strong>Sliding window:</strong> a <code>for right</code> loop with an inner <code>while left</code>. A recursive substring enumeration is exactly the O(n²) brute force the window exists to replace.</li>
+    </ul>
+    <div class="co-insight"><strong>Why this matters in an interview:</strong> if you feel the urge to recurse on any of these three patterns, you have likely misidentified the tool. Recurse for trees, graphs, and divide-and-conquer. Iterate for single-pass array techniques.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Swift translation -->
+  <section id="swift">
+    <h2>7 &nbsp; Swift Translation</h2>
+    <p>The canonical Swift idiom for each tool's starting point:</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">hash map — set membership skeleton</span></div>
+    <pre class="swift"><span class="kw">var</span> seen = <span class="tp">Set</span>&lt;<span class="tp">Int</span>&gt;()
+<span class="kw">for</span> value <span class="kw">in</span> nums {
+    <span class="kw">if</span> seen.contains(value) { <span class="kw">return true</span> }
+    seen.insert(value)
+}
+<span class="kw">return false</span></pre>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">two pointers — converging skeleton</span></div>
+    <pre class="swift"><span class="kw">var</span> l = <span class="nm">0</span>, r = nums.count - <span class="nm">1</span>
+<span class="kw">while</span> l &lt; r {
+    <span class="cm">// evaluate nums[l] and nums[r]</span>
+    <span class="kw">if</span> <span class="cm">/* move left */</span> <span class="kw">false</span> { l += <span class="nm">1</span> } <span class="kw">else</span> { r -= <span class="nm">1</span> }
+}</pre>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">sliding window — longest valid skeleton</span></div>
+    <pre class="swift"><span class="kw">var</span> left = <span class="nm">0</span>, best = <span class="nm">0</span>
+<span class="kw">var</span> state: [<span class="tp">Character</span>: <span class="tp">Int</span>] = [:]
+<span class="kw">for</span> (right, item) <span class="kw">in</span> <span class="tp">Array</span>(s).enumerated() {
+    state[item, <span class="kw">default</span>: <span class="nm">0</span>] += <span class="nm">1</span>
+    <span class="kw">while</span> <span class="cm">/* invalid */</span> <span class="kw">false</span> {
+        <span class="kw">let</span> lc = <span class="tp">Array</span>(s)[left]; state[lc]! -= <span class="nm">1</span>; left += <span class="nm">1</span>
+    }
+    best = <span class="fn">max</span>(best, right - left + <span class="nm">1</span>)
+}</pre>
+
+    <div class="co-note"><strong>Swift-specific costs to say out loud:</strong> <code>Set.contains</code> and <code>Dictionary</code> subscript are O(1) amortized — not guaranteed O(1). <code>Array(s)</code> converts a String once for O(1) indexing; never subscript a Swift String inside a loop. <code>nums.sorted()</code> is O(n log n) and must be called before two-pointer convergence.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 8. Variant catalog -->
+  <section id="variants">
+    <h2>8 &nbsp; Variant Catalog</h2>
+
+    <div class="pattern-block" id="v-hashmap">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.1</span>
+        <span class="block-name">Hash Map / Hash Set</span>
+        <div class="block-pills"><span class="pill pill-t">O(n)</span><span class="pill pill-s">O(n)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> the problem asks whether a value has been seen before, whether a complement exists, or whether an element appeared within a certain index distance. The array does not need to be sorted. You are trading O(n) space for O(1) lookup.</div>
+        <p>Four sub-patterns, each covered in the deep dive: <strong>set membership</strong> (LC217), <strong>seen-state tracking</strong> (LC202), <strong>complement map</strong> (LC1), <strong>sliding index map</strong> (LC219). See <a href="hash_map_deep_dive_master.html">hash_map_deep_dive_master.html</a> §8.</p>
+      </div>
+    </div>
+
+    <div class="pattern-block" id="v-twoptr">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.2</span>
+        <span class="block-name">Two Pointers (converging)</span>
+        <div class="block-pills"><span class="pill pill-t">O(n)</span><span class="pill pill-s">O(1)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> the array is sorted (or can be sorted without destroying the answer), and the problem asks for a pair, triple, or boundary condition that can be steered by comparing the two ends. O(1) extra space — no auxiliary structure.</div>
+        <p>Four sub-patterns: <strong>converging sum</strong> (LC11), <strong>fixed-anchor + inner window</strong> (LC15 / 3Sum), <strong>palindrome compare</strong> (LC125), <strong>left/right-max accumulator</strong> (LC42). See <a href="two_pointers_deep_dive_master.html">two_pointers_deep_dive_master.html</a> §8.</p>
+      </div>
+    </div>
+
+    <div class="pattern-block" id="v-window">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.3</span>
+        <span class="block-name">Sliding Window</span>
+        <div class="block-pills"><span class="pill pill-t">O(n)</span><span class="pill pill-s">O(k)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> the problem asks for the longest, shortest, or counted <em>contiguous</em> subarray or substring satisfying a constraint. Both pointers move rightward only — unlike two pointers, the array need not be sorted.</div>
+        <p>Three sub-patterns: <strong>fixed window</strong> (size k given), <strong>longest / grow on expand</strong> (LC3, LC1004), <strong>shortest / shrink while valid</strong> (LC76, LC209). See <a href="sliding_window_master.html">sliding_window_master.html</a> §8.</p>
+      </div>
+    </div>
+
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 9. Complexity -->
+  <section id="complexity">
+    <h2>9 &nbsp; Complexity Analysis</h2>
+    <table class="t-cmx">
+      <thead><tr><th>Tool</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Hash map / set</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td>One pass; each operation is O(1) amortized. Space: up to n entries in the map.</td></tr>
+        <tr><td>Two pointers</td><td class="tc">O(n log n)</td><td class="sc">O(1)</td><td>Sort dominates; pointer walk is O(n). No auxiliary structure — only two indices.</td></tr>
+        <tr><td>Two pointers (no sort)</td><td class="tc">O(n)</td><td class="sc">O(1)</td><td>When the array is already sorted or sorted order is given (palindrome, rain water).</td></tr>
+        <tr><td>Sliding window</td><td class="tc">O(n)</td><td class="sc">O(k)</td><td>Each element enters and exits at most once (amortized ≤ 2n moves). State holds at most k distinct elements.</td></tr>
+        <tr class="bottleneck"><td>Hidden O(n²) trap</td><td class="tc">O(n²)</td><td class="sc">—</td><td>Scanning the full array inside a loop (brute force pair check), or any per-iteration full-map comparison, silently destroys the bound.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 10. Pitfalls -->
+  <section id="pitfalls">
+    <h2>10 &nbsp; Common Pitfalls</h2>
+    <div class="co-pitfall">
+      <div class="co-pitfall-title">Pitfalls — the most common mistakes across all three tools</div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Using a hash map when a hash set suffices.</strong> If you only need to check membership (not store associated data), a <code>Set</code> is cleaner and makes intent explicit. LC217 needs a set, not a map.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Forgetting to sort before two-pointer convergence.</strong> Converging pointers only work correctly on a sorted array. If you skip the sort, the "steer left or right" decision has no meaning and the algorithm produces garbage.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Applying sliding window to a non-contiguous problem.</strong> If the problem allows skipping elements (a subsequence), there is no contiguous range to maintain. The window's add/remove logic has nothing to summarize.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Reaching for DP when a hash map does the job in O(n).</strong> Any "have we seen this?" question is a hash set lookup, not a recurrence. Two Sum (LC1) is O(n) with a map; misidentifying it as DP costs you an interview.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Subscripting a Swift String inside a loop.</strong> <code>String[index]</code> is O(n) per access. Always convert with <code>Array(s)</code> before any loop over characters.</span></div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 11. Edge cases -->
+  <section id="edge-cases">
+    <h2>11 &nbsp; Edge Cases to Verbalize</h2>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected behavior</th><th>Which tool is most affected</th></tr></thead>
+      <tbody>
+        <tr><td>empty array</td><td>return sentinel (0, false, −1); loop body never runs</td><td>all three — check initialization</td></tr>
+        <tr><td>single element</td><td>no pair possible; window of size 1 is the answer</td><td>two pointers, sliding window</td></tr>
+        <tr><td>all elements identical</td><td>hash set: first duplicate immediately; two pointers: all pairs equal; window: depends on constraint</td><td>all three differently</td></tr>
+        <tr><td>array already sorted</td><td>two pointers: skip the sort (O(n) total)</td><td>two pointers</td></tr>
+        <tr><td>no valid answer exists</td><td>return the problem's sentinel — never a partial or default-zero answer</td><td>all three</td></tr>
+        <tr><td>target not achievable (LC1)</td><td>return [] or signal — the map will be fully populated with no hit</td><td>hash map</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 12. Cheat sheet -->
+  <section id="cheatsheet">
+    <h2>12 &nbsp; Cheat Sheet — pick the right tool</h2>
+    <table class="t-versus">
+      <thead><tr><th>You see…</th><th>Use…</th><th>Because…</th></tr></thead>
+      <tbody>
+        <tr><td>"duplicate" / "have we seen this?"</td><td>Hash set</td><td>O(1) membership, no extra data needed</td></tr>
+        <tr><td>"pair sums to target" (unsorted)</td><td>Complement map</td><td>store and look up <code>target − x</code></td></tr>
+        <tr><td>"duplicate within distance k"</td><td>Sliding index map</td><td>map value → last seen index</td></tr>
+        <tr><td>"pair/triple sums to" (sortable)</td><td>Two pointers</td><td>sort first, then steer l/r by sum</td></tr>
+        <tr><td>"is palindrome" / "max area"</td><td>Two pointers</td><td>symmetry → converge from both ends</td></tr>
+        <tr><td>"trap water" / "left/right boundary"</td><td>Two pointers + l/r max</td><td>each side bounded by its running max</td></tr>
+        <tr><td>"longest/shortest contiguous…"</td><td>Sliding window</td><td>contiguous = range; grow right, shrink left</td></tr>
+        <tr><td>"every window of size k"</td><td>Sliding window (fixed)</td><td>left = right − k + 1, no while loop</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13. Cross-reference -->
+  <section id="practice">
+    <h2>13 &nbsp; Demonstrated in Practice — the deep dives</h2>
+    <p>Each deep dive below follows the same 14-section standard. Recognition signals, variant catalog, Swift code, and pitfalls are all written around the specific problems in each subcategory.</p>
+    <div class="ref-grid">
+      <a class="xref-card" href="hash_map_deep_dive_master.html">
+        <span class="ref-file">theory/hash_map_deep_dive_master.html</span>
+        <span class="ref-title">Hash Map / Hash Set Deep Dive</span>
+        <span class="ref-desc">Four patterns — set membership (LC217), seen-state cycle detection (LC202), complement map (LC1), sliding index map (LC219) — each as a named variant with pseudocode, Swift, and pitfalls.</span>
+      </a>
+      <a class="xref-card" href="two_pointers_deep_dive_master.html">
+        <span class="ref-file">theory/two_pointers_deep_dive_master.html</span>
+        <span class="ref-title">Two Pointers Deep Dive</span>
+        <span class="ref-desc">Four patterns — converging sum (LC11), fixed-anchor 3Sum (LC15), palindrome check (LC125), left/right-max accumulator (LC42) — with the "steer by min-side" rule and full Swift templates.</span>
+      </a>
+      <a class="xref-card" href="sliding_window_master.html">
+        <span class="ref-file">theory/sliding_window_master.html</span>
+        <span class="ref-title">Sliding Window</span>
+        <span class="ref-desc">Fixed window, longest (grow/shrink-on-invalid), and shortest (shrink-while-valid) — the three variants with the inversion rule for record placement and full amortized O(n) proof.</span>
+      </a>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 14. Solo problem -->
+  <section id="solo">
+    <h2>14 &nbsp; Solo Problem — no solution on this page</h2>
+    <div class="solo-box">
+      <div class="solo-banner">Solo problem — no solution on this page</div>
+      <p><strong>LC 217 — Contains Duplicate (Easy).</strong> Given an integer array, return <code>true</code> if any value appears at least twice, and <code>false</code> if every element is distinct. This is the simplest possible hash set problem — it uses one line of the set membership pattern and nothing else. Rebuild it cold before opening anything.</p>
+      <ul class="checklist">
+        <li>Which of the three tools does this problem call for, and why? (What question is being asked?)</li>
+        <li>Do you need a hash map or a hash set? What's the difference here?</li>
+        <li>What do you insert, and what do you check, and in which order?</li>
+        <li>What is the time complexity, and what is the space complexity?</li>
+        <li>What does the correct answer look like on an empty array?</li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="page-footer">
+    Arrays &amp; Hashing Overview · Theory Masterfile · Deep dives:
+    <a href="hash_map_deep_dive_master.html">Hash Map</a> ·
+    <a href="two_pointers_deep_dive_master.html">Two Pointers</a> ·
+    <a href="sliding_window_master.html">Sliding Window</a> ·
+    Structure per <code>wiki/_standards/THEORY_MASTERFILE_STANDARD.md</code>
+  </div>
+
+</main>
+</div>
+
+<script src="../../_shared/pages.js"></script>
+<script src="../../_shared/nav.js"></script>
+</body>
+</html>

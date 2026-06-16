@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sliding Window · Theory Masterfile</title>
-<link rel="stylesheet" href="../_shared/wiki.css">
+<link rel="stylesheet" href="../../_shared/wiki.css">
 <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
 <body data-category="theory">
@@ -59,7 +59,7 @@
       <div class="infobox-row"><div class="infobox-k">Space</div><div class="infobox-v">O(k) window state; O(1) for bounded alphabets</div></div>
       <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"longest", "shortest", "substring", "contiguous subarray"</div></div>
       <div class="infobox-row"><div class="infobox-k">Requires sorted?</div><div class="infobox-v">No — unlike two pointers</div></div>
-      <div class="infobox-row"><div class="infobox-k">Walkthroughs</div><div class="infobox-v mono"><a href="../walkthroughs/LC3_master.html">LC3_master.html</a> · <a href="../walkthroughs/LC76_master.html">LC76_master.html</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Walkthroughs</div><div class="infobox-v mono"><a href="../../walkthroughs/LC3_master.html">LC3_master.html</a> · <a href="../../walkthroughs/LC76_master.html">LC76_master.html</a></div></div>
     </div>
 
     <div class="lead">
@@ -236,7 +236,7 @@
       </div>
       <div class="block-body">
         <div class="co-when"><strong>When to use:</strong> "longest substring/subarray such that…". The while loop moves you <em>toward</em> validity, so the answer is recorded <em>after</em> it. This is the §5 primer verbatim.</div>
-        <p>Examples: Longest Substring Without Repeating Characters (<a href="../walkthroughs/LC3_master.html">LC 3</a>), Longest Repeating Character Replacement (LC 424), Max Consecutive Ones III (LC 1004).</p>
+        <p>Examples: Longest Substring Without Repeating Characters (<a href="../../walkthroughs/LC3_master.html">LC 3</a>), Longest Repeating Character Replacement (LC 424), Max Consecutive Ones III (LC 1004).</p>
       </div>
     </div>
 
@@ -254,7 +254,7 @@
         record(right − left + 1)      <span class="pc">← inside: window is valid right now</span>
         remove input[left]
         left ← left + 1</pre>
-        <div class="co-insight"><strong>The inversion rule:</strong> ask "does my while loop move me toward validity or away from it?" Toward → record after the loop (8.2). Away → record inside the loop (8.3). Getting this placement wrong is the #1 sliding window bug, and it is the entire difficulty of <a href="../walkthroughs/LC76_master.html">LC 76</a>.</div>
+        <div class="co-insight"><strong>The inversion rule:</strong> ask "does my while loop move me toward validity or away from it?" Toward → record after the loop (8.2). Away → record inside the loop (8.3). Getting this placement wrong is the #1 sliding window bug, and it is the entire difficulty of <a href="../../walkthroughs/LC76_master.html">LC 76</a>.</div>
       </div>
     </div>
   </section>
@@ -346,17 +346,17 @@
     <h2>13 &nbsp; Demonstrated in Practice</h2>
     <p>The walkthroughs below are not free-form: each follows the walkthrough masterfile standard — problem restatement, constraint insights, edge-case inventory, a full interview simulation (clarifying questions + the spoken plan), pseudocode dry run, iterative Swift, complexity table, and follow-up bank. Each card says what you land on.</p>
     <div class="ref-grid">
-      <a class="xref-card" href="../walkthroughs/LC3_master.html">
+      <a class="xref-card" href="../../walkthroughs/LC3_master.html">
         <span class="ref-file">walkthroughs/LC3_master.html</span>
         <span class="ref-title">LC 3 — Longest Substring Without Repeating Characters (Medium)</span>
         <span class="ref-desc">The headline example of variant 8.2: grow greedily, shrink only while a character repeats, record after the repair. Shows both the classic count-map shrink and the last-seen-index jump optimization (with the "abba" backward-move trap), plus a full dry run on "abcabcbb". Its Theory Decoder maps every line back to §8.2.</span>
       </a>
-      <a class="xref-card" href="../walkthroughs/LC76_master.html">
+      <a class="xref-card" href="../../walkthroughs/LC76_master.html">
         <span class="ref-file">walkthroughs/LC76_master.html</span>
         <span class="ref-title">LC 76 — Minimum Window Substring (Hard)</span>
         <span class="ref-desc">Variant 8.3 shrink-while-valid at full difficulty: frequency-map validity, the matchedCount trick, and a complete dry run on "ADOBECODEBANC". Its Theory Decoder maps every solution line back to §8.3 of this page.</span>
       </a>
-      <a class="xref-card" href="../walkthroughs/LC209_master.html">
+      <a class="xref-card" href="../../walkthroughs/LC209_master.html">
         <span class="ref-file">walkthroughs/LC209_master.html</span>
         <span class="ref-title">LC 209 — Minimum Size Subarray Sum (Medium)</span>
         <span class="ref-desc">Variant 8.3 at its simplest: a single running-sum integer is the entire window state. Includes the Int.max initialization gotcha (and why init-to-0 silently corrupts every answer), a full dry run on [2,3,1,2,4,3], and a complete interview simulation spoken plan.</span>
@@ -384,15 +384,15 @@
 
   <div class="page-footer">
     Sliding Window · Theory Masterfile · Demonstrated in practice:
-    <a href="../walkthroughs/LC76_master.html">LC 76 — Minimum Window Substring</a> ·
-    <a href="../walkthroughs/LC209_master.html">LC 209 — Minimum Size Subarray Sum</a> ·
+    <a href="../../walkthroughs/LC76_master.html">LC 76 — Minimum Window Substring</a> ·
+    <a href="../../walkthroughs/LC209_master.html">LC 209 — Minimum Size Subarray Sum</a> ·
     Structure per <code>wiki/_standards/THEORY_MASTERFILE_STANDARD.md</code>
   </div>
 
 </main>
 </div>
 
-<script src="../_shared/pages.js"></script>
-<script src="../_shared/nav.js"></script>
+<script src="../../_shared/pages.js"></script>
+<script src="../../_shared/nav.js"></script>
 </body>
 </html>

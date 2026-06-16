@@ -58,7 +58,7 @@
       <div class="infobox-row"><div class="infobox-k">Tools</div><div class="infobox-v">Two frequency maps + a matchedCount integer</div></div>
       <div class="infobox-row"><div class="infobox-k">Key insight</div><div class="infobox-v">"Minimum" → shrink WHILE valid, record INSIDE the shrink loop</div></div>
       <div class="infobox-row"><div class="infobox-k">Time / Space</div><div class="infobox-v">O(n + m) / O(k)</div></div>
-      <div class="infobox-row"><div class="infobox-k">Theory</div><div class="infobox-v mono"><a href="../theory/sliding_window_master.html">sliding_window_master.html</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Theory</div><div class="infobox-v mono"><a href="../theory/arrays/sliding_window_master.html">sliding_window_master.html</a></div></div>
     </div>
 
     <div class="lead">
@@ -609,7 +609,7 @@ RESULT
 
     <div class="followup">
       <div class="followup-q">Follow-up: "How would the code change for 'longest substring with at most k distinct characters'?"</div>
-      <div class="followup-a">That flips the variant: the while loop becomes "while distinct count &gt; k" (shrinking toward validity), and the record moves after the loop. Saying this out loud — that I'd switch from shrink-while-valid to shrink-on-invalid and move the record — shows I own the pattern, not just this problem. See variant 8.2 in the <a href="../theory/sliding_window_master.html#variants">theory page's catalog</a>.</div>
+      <div class="followup-a">That flips the variant: the while loop becomes "while distinct count &gt; k" (shrinking toward validity), and the record moves after the loop. Saying this out loud — that I'd switch from shrink-while-valid to shrink-on-invalid and move the record — shows I own the pattern, not just this problem. See variant 8.2 in the <a href="../theory/arrays/sliding_window_master.html#variants">theory page's catalog</a>.</div>
     </div>
   </section>
 
@@ -621,10 +621,10 @@ RESULT
     <table class="t-decoder">
       <thead><tr><th>General concept</th><th>Instantiated in this solution as</th><th>General form</th></tr></thead>
       <tbody>
-        <tr><td>Shrink-while-valid window</td><td>The <code>while matchedCount == targetCounts.count</code> loop with the record as its first line</td><td><a href="../theory/sliding_window_master.html#v-shortest">theory §8.3</a></td></tr>
-        <tr><td>Window state</td><td><code>windowCounts</code> + <code>matchedCount</code> — incrementally updated, never rebuilt</td><td><a href="../theory/sliding_window_master.html#terminology">theory §3</a></td></tr>
-        <tr><td>Amortized O(n) argument</td><td>Each character of s is counted once on entry, decremented at most once on eviction</td><td><a href="../theory/sliding_window_master.html#complexity">theory §9</a></td></tr>
-        <tr><td>The inversion rule</td><td>"Minimum" → loop runs while valid → record inside; the exact opposite of the longest-window template</td><td><a href="../theory/sliding_window_master.html#variants">theory §8</a></td></tr>
+        <tr><td>Shrink-while-valid window</td><td>The <code>while matchedCount == targetCounts.count</code> loop with the record as its first line</td><td><a href="../theory/arrays/sliding_window_master.html#v-shortest">theory §8.3</a></td></tr>
+        <tr><td>Window state</td><td><code>windowCounts</code> + <code>matchedCount</code> — incrementally updated, never rebuilt</td><td><a href="../theory/arrays/sliding_window_master.html#terminology">theory §3</a></td></tr>
+        <tr><td>Amortized O(n) argument</td><td>Each character of s is counted once on entry, decremented at most once on eviction</td><td><a href="../theory/arrays/sliding_window_master.html#complexity">theory §9</a></td></tr>
+        <tr><td>The inversion rule</td><td>"Minimum" → loop runs while valid → record inside; the exact opposite of the longest-window template</td><td><a href="../theory/arrays/sliding_window_master.html#variants">theory §8</a></td></tr>
       </tbody>
     </table>
   </section>
@@ -636,8 +636,8 @@ RESULT
     <h2>15 &nbsp; Parent Theory</h2>
     <p>This walkthrough instantiates one variant of a larger pattern. The parent page is not free-form — it follows the theory masterfile standard, so here is exactly what you land on:</p>
     <div class="ref-grid">
-      <a class="backref-card" href="../theory/sliding_window_master.html">
-        <span class="ref-file">theory/sliding_window_master.html</span>
+      <a class="backref-card" href="../theory/arrays/sliding_window_master.html">
+        <span class="ref-file">theory/arrays/sliding_window_master.html</span>
         <span class="ref-title">Sliding Window — Theory Masterfile</span>
         <span class="ref-desc">The canonical reference: terminology decoder (§3), the pseudocode primer this solution specializes (§5), the full three-variant catalog with the inversion rule (§8), the amortized O(n) argument (§9), pitfalls and edge cases (§10–11), and a cheat sheet (§12). Its own cross-reference section (§13) links back to this walkthrough.</span>
       </a>
@@ -646,7 +646,7 @@ RESULT
 
   <div class="page-footer">
     LC 76 — Minimum Window Substring · Walkthrough Masterfile · Parent theory:
-    <a href="../theory/sliding_window_master.html">Sliding Window</a> ·
+    <a href="../theory/arrays/sliding_window_master.html">Sliding Window</a> ·
     Structure per <code>wiki/_standards/WALKTHROUGH_MASTERFILE_STANDARD.md</code>
   </div>
 
