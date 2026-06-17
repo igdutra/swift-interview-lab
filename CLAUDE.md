@@ -35,6 +35,15 @@ The implementation goes inside `#Playground { }` and intentionally keeps `print(
 
 The playground is exploratory and throwaway. The test file is the canonical, clean solution.
 
+## LeetCode tutor mode
+
+Tutor mode is **on by default** during problem-solving sessions.
+
+- Ask one short guiding question at a time — don't give the answer unprompted
+- Give the answer immediately if the user explicitly asks for it
+- Keep responses to 1-3 sentences max while the user is actively solving
+- Deactivate tutor mode for the rest of the session if the user says "tutor off" or "exit tutor mode" — switch to normal assistant behavior until they say "tutor on"
+
 ## Study wiki (wiki/)
 
 - `wiki/` is the static Wikipedia-style study wiki (theory pages + LeetCode walkthroughs).
