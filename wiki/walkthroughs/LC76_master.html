@@ -62,7 +62,17 @@
     </div>
 
     <div class="lead">
-      <p>You are given two strings: a haystack <code>s</code> and a requirement list <code>t</code>. Find the shortest contiguous piece of <code>s</code> that contains every character of <code>t</code> — counting duplicates, so <code>t = "AAB"</code> demands two A's — and return it. If no such piece exists, return the empty string.</p>
+      <p>You are given two strings: a haystack <code>s</code> and a requirement list <code>t</code>. Find the shortest contiguous piece of <code>s</code> that contains every character of <code>t</code> — counting duplicates — and return it. If no such piece exists, return the empty string.</p>
+
+      <table class="t-example">
+        <thead><tr><th>Input</th><th>Output</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><code>s = "ADOBECODEBANC", t = "ABC"</code></td><td><code>"BANC"</code></td><td>Shortest window containing A, B, and C</td></tr>
+          <tr><td><code>s = "a", t = "a"</code></td><td><code>"a"</code></td><td>Entire string is the only valid window</td></tr>
+          <tr><td><code>s = "a", t = "aa"</code></td><td><code>""</code></td><td>t needs two A's; s only has one — no valid window exists</td></tr>
+        </tbody>
+      </table>
+
       <p>The twist that makes it Hard: every other sliding window you have practiced shrinks when the window <em>breaks</em>. This one shrinks when the window <em>works</em> — you squeeze each valid window down to its smallest form before letting the right pointer move on. That single inversion is the whole problem.</p>
     </div>
   </section>

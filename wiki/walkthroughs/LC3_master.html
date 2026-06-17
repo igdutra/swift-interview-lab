@@ -62,7 +62,16 @@
     </div>
 
     <div class="lead">
-      <p>You are given a string <code>s</code>. Find the length of the longest contiguous slice of it that has no character appearing twice. For <code>"abcabcbb"</code> the answer is <code>3</code> — the slice <code>"abc"</code>; the moment a fourth character would repeat one already inside, the slice can grow no further from that left edge.</p>
+      <p>You are given a string <code>s</code>. Find the length of the longest contiguous slice of it that has no character appearing twice.</p>
+
+      <table class="t-example">
+        <thead><tr><th>Input</th><th>Output</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><code>s = "abcabcbb"</code></td><td><code>3</code></td><td>"abc" — the 4th char repeats 'a', so the window can't grow past length 3</td></tr>
+          <tr><td><code>s = "bbbbb"</code></td><td><code>1</code></td><td>Every char is the same; the longest unique slice is any single "b"</td></tr>
+        </tbody>
+      </table>
+
       <p>The twist that defines this problem: the window is variable and you are chasing the <em>largest</em> valid one, not the smallest. That single word — "longest" — flips the entire control structure relative to the minimum-window family: you only shrink when the window is <em>broken</em>, and you record the best <em>after</em> the shrink, never inside it.</p>
     </div>
   </section>

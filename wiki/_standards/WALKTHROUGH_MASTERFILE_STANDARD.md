@@ -103,13 +103,24 @@ file. It is the ten-second re-load for a reader returning before an interview.
 
 ### 2. Problem restatement (plain language)
 
-A lead of one to two paragraphs restating the problem in the author's own
-words — never copied from LeetCode — followed by the one twist that defines
-the problem's difficulty (LC1928: "you optimize cost but are constrained by
-time"). Wikipedia's lead-section rule applies: it must stand alone.
+One paragraph restating the problem in the author's own words — never copied
+from LeetCode — followed immediately by a `t-example` I/O table (at least two
+rows; three when a "no answer" edge case is meaningful), then the one twist
+sentence that defines the problem's difficulty. Wikipedia's lead-section rule
+applies: it must stand alone.
 
-> *Handled **well** in all twelve — the leads are genuinely original and the
-> "twist" sentence is usually present.*
+**I/O table format** (`class="t-example"`):
+
+| Input | Output | Why |
+|-------|--------|-----|
+| `exact input` | `exact output` | one-line explanation of which rule produces it |
+
+Include at least: the canonical example, a minimal/degenerate case, and (where
+applicable) the "no answer" case. The table lives between the opening prose and
+the twist sentence — not after it.
+
+> *Updated standard — all four active walkthrough files now carry the I/O
+> table. The CSS class `t-example` is defined in `wiki/_shared/wiki.css`.*
 
 ### 3. Reading the Problem — insights from the constraints
 

@@ -52,6 +52,15 @@ const WIKI_PAGES = [
   },
   {
     cat: "walkthrough",
+    path: "walkthroughs/LC11_master.html",
+    nav: "LC 11",
+    title: "LC 11 — Container With Most Water",
+    topics: ["Two Pointers", "Arrays"],
+    difficulty: "M",
+    blurb: "Converging two pointers with min-side steering. Full proof of why moving the taller wall is provably suboptimal, with dry run and interview simulation.",
+  },
+  {
+    cat: "walkthrough",
     path: "walkthroughs/LC76_master.html",
     nav: "LC 76",
     title: "LC 76 — Minimum Window Substring",

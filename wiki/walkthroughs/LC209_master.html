@@ -62,7 +62,17 @@
     </div>
 
     <div class="lead">
-      <p>You are given an array of positive integers and a target. Find the length of the shortest contiguous subarray whose sum is greater than or equal to the target — and return <code>0</code> if no such subarray exists. For <code>target = 7, nums = [2,3,1,2,4,3]</code>, the answer is <code>2</code>: the subarray <code>[4,3]</code> is the tightest fit.</p>
+      <p>You are given an array of positive integers and a target. Find the length of the shortest contiguous subarray whose sum is greater than or equal to the target — and return <code>0</code> if no such subarray exists.</p>
+
+      <table class="t-example">
+        <thead><tr><th>Input</th><th>Output</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><code>target = 7, nums = [2,3,1,2,4,3]</code></td><td><code>2</code></td><td>[4,3] sums to 7 — the tightest valid subarray</td></tr>
+          <tr><td><code>target = 4, nums = [1,4,4]</code></td><td><code>1</code></td><td>[4] alone already meets the target</td></tr>
+          <tr><td><code>target = 11, nums = [1,1,1,1,1,1,1,1]</code></td><td><code>0</code></td><td>Entire array sums to 8 — no valid subarray exists</td></tr>
+        </tbody>
+      </table>
+
       <p>This is the purest form of the minimum-window sliding window: the window state is a single running sum, validity is a single integer comparison, and no frequency maps or auxiliary structures are needed at all. What it does share with its harder siblings — LC 76 especially — is the inversion that trips people up: you shrink the window <em>while it is valid</em>, recording at each step, rather than after it breaks. That word "minimum" is the entire signal.</p>
     </div>
   </section>

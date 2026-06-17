@@ -225,6 +225,9 @@ tbody tr:hover td { background: var(--page-bg); }
 .t-edge td:last-child  { font: 400 12px var(--mono); color: var(--text3); }
 .t-qmap td:first-child { font-style: italic; }
 .t-qmap td:last-child  { font: 400 12px var(--mono); }
+.t-example td:first-child { font: 400 13px var(--mono); }
+.t-example td:nth-child(2) { font: 700 13px var(--mono); color: var(--info); }
+.t-example td:last-child  { color: var(--text2); font-size: 13px; }
 
 /* ---------- §7 Callout family ---------- */
 /* The variant classes carry the box styles themselves, so pages work
