@@ -15,6 +15,11 @@
 //   topics     short topic list shown on the hub card
 //   difficulty "E" | "M" | "H"  (walkthroughs only)
 //   blurb      one line for the hub card description
+//
+// ORDERING RULE — walkthroughs:
+//   Always insert new walkthrough entries in ascending LC number order.
+//   The nav bar renders entries in the order they appear here — a
+//   misordered entry produces a misordered nav. No exceptions.
 // ============================================================
 const WIKI_PAGES = [
   {
@@ -41,42 +46,7 @@ const WIKI_PAGES = [
     topics: ["Strings", "Simulation", "Stack", "Parsing"],
     blurb: "Strings & Simulation hub — overview, text-formatting/simulation, and string-parsing masterfiles.",
   },
-  {
-    cat: "walkthrough",
-    path: "walkthroughs/LC56_master.html",
-    nav: "LC 56",
-    title: "LC 56 — Merge Intervals",
-    topics: ["Intervals", "Sorting", "Arrays"],
-    difficulty: "M",
-    blurb: "Sort + sweep merge (Variant 8.1). The sort-once invariant that lets every step look only at result.last, the ≤ vs < overlap gotcha, and the in-place end-extension pattern.",
-  },
-  {
-    cat: "walkthrough",
-    path: "walkthroughs/LC986_master.html",
-    nav: "LC 986",
-    title: "LC 986 — Interval List Intersections",
-    topics: ["Intervals", "Two Pointers", "Arrays"],
-    difficulty: "M",
-    blurb: "Two-pointer interval overlap (Variant 8.2). Walk two sorted lists simultaneously — the overlap formula, why advancing the smaller-end pointer is the only correct move, and full dry run.",
-  },
-  {
-    cat: "walkthrough",
-    path: "walkthroughs/LC57_master.html",
-    nav: "LC 57",
-    title: "LC 57 — Insert Interval",
-    topics: ["Intervals", "Arrays"],
-    difficulty: "M",
-    blurb: "Three-region split (Variant 8.3). The only O(n) interval variant — before / overlapping / after regions, the strict vs non-strict boundary gotcha, and the must-not-forget Region 3 tail.",
-  },
-  {
-    cat: "walkthrough",
-    path: "walkthroughs/LC759_master.html",
-    nav: "LC 759",
-    title: "LC 759 — Employee Free Time",
-    topics: ["Intervals", "Sorting", "Arrays"],
-    difficulty: "H",
-    blurb: "Flatten + merge + gap-find (Variant 8.4). Free time = complement of the merged union. Recognizing the two-phase reduction is the whole problem; the gap formula and off-by-one pitfalls covered in full.",
-  },
+  // ── Walkthroughs — INSERT IN ASCENDING LC NUMBER ORDER ──────────────────
   {
     cat: "walkthrough",
     path: "walkthroughs/LC3_master.html",
@@ -97,6 +67,24 @@ const WIKI_PAGES = [
   },
   {
     cat: "walkthrough",
+    path: "walkthroughs/LC56_master.html",
+    nav: "LC 56",
+    title: "LC 56 — Merge Intervals",
+    topics: ["Intervals", "Sorting", "Arrays"],
+    difficulty: "M",
+    blurb: "Sort + sweep merge (Variant 8.1). The sort-once invariant that lets every step look only at result.last, the ≤ vs < overlap gotcha, and the in-place end-extension pattern.",
+  },
+  {
+    cat: "walkthrough",
+    path: "walkthroughs/LC57_master.html",
+    nav: "LC 57",
+    title: "LC 57 — Insert Interval",
+    topics: ["Intervals", "Arrays"],
+    difficulty: "M",
+    blurb: "Three-region split (Variant 8.3). The only O(n) interval variant — before / overlapping / after regions, the strict vs non-strict boundary gotcha, and the must-not-forget Region 3 tail.",
+  },
+  {
+    cat: "walkthrough",
     path: "walkthroughs/LC76_master.html",
     nav: "LC 76",
     title: "LC 76 — Minimum Window Substring",
@@ -112,6 +100,24 @@ const WIKI_PAGES = [
     topics: ["Sliding Window", "Arrays"],
     difficulty: "M",
     blurb: "Shrink-while-valid at its simplest — one running sum, no maps. Includes the Int.max init gotcha and full interview simulation.",
+  },
+  {
+    cat: "walkthrough",
+    path: "walkthroughs/LC759_master.html",
+    nav: "LC 759",
+    title: "LC 759 — Employee Free Time",
+    topics: ["Intervals", "Sorting", "Arrays"],
+    difficulty: "H",
+    blurb: "Flatten + merge + gap-find (Variant 8.4). Free time = complement of the merged union. Recognizing the two-phase reduction is the whole problem; the gap formula and off-by-one pitfalls covered in full.",
+  },
+  {
+    cat: "walkthrough",
+    path: "walkthroughs/LC986_master.html",
+    nav: "LC 986",
+    title: "LC 986 — Interval List Intersections",
+    topics: ["Intervals", "Two Pointers", "Arrays"],
+    difficulty: "M",
+    blurb: "Two-pointer interval overlap (Variant 8.2). Walk two sorted lists simultaneously — the overlap formula, why advancing the smaller-end pointer is the only correct move, and full dry run.",
   },
   {
     cat: "tips",

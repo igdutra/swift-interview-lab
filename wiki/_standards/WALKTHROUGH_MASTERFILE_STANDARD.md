@@ -97,6 +97,21 @@ line, and a right-floating **"Problem at a Glance"** infobox: difficulty,
 pattern, tools, key insight in one sentence, and a link to the parent theory
 file. It is the ten-second re-load for a reader returning before an interview.
 
+**Required infobox rows (in order):** Difficulty · Pattern · Tools · Key insight · Time / Space · Theory.
+
+The **Theory row is mandatory and must be a clickable hyperlink** — not plain text. It is the fastest navigation path back to the parent theory page and the first thing a reader sees on reload. Format:
+
+```html
+<div class="infobox-row">
+  <div class="infobox-k">Theory</div>
+  <div class="infobox-v mono">
+    <a href="../theory/{folder}/{filename}.html">{filename}.html</a>
+  </div>
+</div>
+```
+
+This is the reciprocal of the theory page's **Walkthroughs infobox row**, which must also be clickable links (not plain text). Together they form the fastest bidirectional entry point between theory and walkthrough — visible before the reader scrolls at all.
+
 > *Existing files: handled **well** visually in all twelve, but the title is
 > inconsistent ("Problem at a Glance" ×5 vs "Quick Reference" ×7) and no
 > infobox links its parent theory page.*
