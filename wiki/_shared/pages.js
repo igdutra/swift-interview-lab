@@ -46,7 +46,16 @@ const WIKI_PAGES = [
     topics: ["Strings", "Simulation", "Stack", "Parsing"],
     blurb: "Strings & Simulation hub — overview, text-formatting/simulation, and string-parsing masterfiles.",
   },
-  // ── Walkthroughs — INSERT IN ASCENDING LC NUMBER ORDER ──────────────────
+  // ── Walkthroughs — CUSTOM problems first, then ascending LC number order ─
+  {
+    cat: "walkthrough",
+    path: "walkthroughs/CUSTOM1_Relay_Handoff_Coverage_master.html",
+    nav: "CUSTOM 1",
+    title: "CUSTOM 1 — Relay Handoff Coverage",
+    topics: ["Intervals", "Prefix-Suffix", "Arrays"],
+    difficulty: "M",
+    blurb: "Split/handoff coverage with raw day sets (Variant 8.5). Prefix-suffix precompute reduces pair-checking from O(t²·d) to O(t·d). Covers the ≤ vs == valid-pair condition gotcha.",
+  },
   {
     cat: "walkthrough",
     path: "walkthroughs/LC3_master.html",

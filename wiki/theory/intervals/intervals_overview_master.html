@@ -330,28 +330,30 @@ gaps ← []
         </ul>
 
         <p><strong>Valid pair condition:</strong> pair (A, B) is valid if and only if:</p>
-        <pre class="pseudo">prefixEnd[A] + 1 == suffixStart[B]</pre>
-        <p>A hands off at <code>prefixEnd[A]</code>; B picks up at <code>suffixStart[B]</code>. They must be adjacent with no gap and no overlap.</p>
+        <pre class="pseudo">suffixStart[B] &lt;= prefixEnd[A] + 1</pre>
+        <p>B's contiguous-to-endDay reach starts at or before the handoff point — meaning B already covers day <code>prefixEnd[A] + 1</code> and everything through <code>endDay</code> contiguously. Note: the condition is <code>&lt;=</code>, not <code>==</code>. A team may cover a wider suffix than strictly needed (e.g. B covers days 3–8, so it can serve as the second team for any A that hands off on day 3, 4, 5, 6, or 7).</p>
 
-        <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">prefix-suffix precompute + O(1) pair lookup</span></div>
+        <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">prefix-suffix precompute + pair lookup</span></div>
         <pre class="pseudo"><span class="pc">Step 1 — precompute for each team</span>
 <span class="pk">FOR</span> each team:
-    prefixEnd[team]   ← computePrefixEnd(team.days, startDay)
-    suffixStart[team] ← computeSuffixStart(team.days, endDay)
+    prefixEnd[team]   ← walk startDay→endDay; stop at first gap; nil if startDay not covered
+    suffixStart[team] ← walk endDay→startDay; stop at first gap; nil if endDay not covered
 
 <span class="pc">Step 2 — build lookup: suffixStart value → list of team names</span>
 suffixMap ← Dictionary(suffixStart value → [team names])
 
-<span class="pc">Step 3 — for each valid first team, check if a matching second team exists</span>
+<span class="pc">Step 3 — for each valid first team, collect matching second teams</span>
 <span class="pk">FOR</span> each team A where prefixEnd[A] is defined:
-    handoff ← prefixEnd[A] + 1
-    <span class="pk">IF</span> handoff <span class="pk">IN</span> suffixMap:
-        <span class="pk">FOR</span> each team B <span class="pk">IN</span> suffixMap[handoff] where B ≠ A:
-            result.append((A, B))</pre>
+    handoffPoint ← prefixEnd[A] + 1
+    candidates ← all teams B where suffixStart[B] ≤ handoffPoint
+    <span class="pc">↑ B's suffix covers from suffixStart[B] to endDay — if suffixStart[B] ≤ handoffPoint,</span>
+    <span class="pc">  B covers [handoffPoint…endDay] contiguously</span>
+    <span class="pk">FOR</span> each B <span class="pk">IN</span> candidates where B ≠ A:
+        result.append((A, B))</pre>
 
         <div class="co-insight"><strong>Why prefix + suffix, not just sweep?</strong> The sweep variants (8.1–8.4) work on interval <em>objects</em> with explicit start/end fields. Here the teams provide raw day sets, and the "interval" — the contiguous segment each team can anchor — must be derived. The prefix/suffix precompute is that derivation: it extracts the only interval that matters for each team's role (left anchor or right anchor) before any pair comparison happens.</div>
 
-        <p>Motivating problem: Relay Handoff Coverage (custom) — given teams with availability day sets, find all ordered pairs (A, B) that together cover [startDay, endDay] contiguously.</p>
+        <p>Motivating problem: Relay Handoff Coverage (custom) — given teams with availability day sets, find all ordered pairs (A, B) that together cover [startDay, endDay] contiguously. See <a href="../../walkthroughs/CUSTOM_Relay_Handoff_Coverage_master.html">CUSTOM_Relay_Handoff_Coverage_master.html</a> for the brute-force and optimal Swift implementations.</p>
       </div>
     </div>
 
@@ -468,6 +470,11 @@ suffixMap ← Dictionary(suffixStart value → [team names])
         <span class="ref-title">LC 759 — Employee Free Time (Hard)</span>
         <span class="ref-desc">Variant 8.4 — flatten nested schedules, merge (8.1), then return the gaps. Shows how nested input structure maps to a flatten step, and why the gap formula is merged[i−1].end+1 to merged[i].start−1. Walkthrough coming.</span>
       </a>
+      <a class="xref-card" href="../../walkthroughs/CUSTOM1_Relay_Handoff_Coverage_master.html">
+        <span class="ref-file">walkthroughs/CUSTOM1_Relay_Handoff_Coverage_master.html</span>
+        <span class="ref-title">CUSTOM 1 — Relay Handoff Coverage (Medium)</span>
+        <span class="ref-desc">Variant 8.5 — split/handoff coverage with raw day sets. Prefix-suffix precompute derives one number per team per role; the ≤ vs == valid-pair condition is the key gotcha. Full brute-force and optimal Swift solutions with traces.</span>
+      </a>
     </div>
   </section>
 
@@ -495,6 +502,7 @@ suffixMap ← Dictionary(suffixStart value → [team names])
     <a href="../../walkthroughs/LC986_master.html">LC 986 — Interval List Intersections</a> ·
     <a href="../../walkthroughs/LC57_master.html">LC 57 — Insert Interval</a> ·
     <a href="../../walkthroughs/LC759_master.html">LC 759 — Employee Free Time</a> ·
+    <a href="../../walkthroughs/CUSTOM1_Relay_Handoff_Coverage_master.html">CUSTOM 1 — Relay Handoff Coverage</a> ·
     Structure per <code>wiki/_standards/THEORY_MASTERFILE_STANDARD.md</code>
   </div>
 

@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CUSTOM 1 — Relay Handoff Coverage · Walkthrough Masterfile</title>
+<link rel="stylesheet" href="../_shared/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="walkthrough">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── TOC ── -->
+<nav class="toc-col">
+  <div class="toc-inner">
+    <div class="toc-title toc-cat-walkthrough">Walkthrough · Contents</div>
+    <a href="#lead"         class="toc-link"><span class="toc-num">1</span> The Problem</a>
+    <a href="#reading"      class="toc-link"><span class="toc-num">2</span> Reading the Problem</a>
+    <a href="#edge-cases"   class="toc-link"><span class="toc-num">3</span> Edge Case Inventory</a>
+    <a href="#hints"        class="toc-link"><span class="toc-num">4</span> Try It Yourself First</a>
+    <a href="#simulation"   class="toc-link"><span class="toc-num">5</span> Interview Simulation</a>
+    <div class="toc-sub">
+      <a href="#sim-questions" class="toc-link">5.1 Clarifying questions</a>
+      <a href="#sim-plan"      class="toc-link">5.2 The plan, spoken</a>
+    </div>
+    <a href="#approach"     class="toc-link"><span class="toc-num">6</span> Why This Approach</a>
+    <a href="#structures"   class="toc-link"><span class="toc-num">7</span> Data Structures</a>
+    <a href="#dryrun"       class="toc-link"><span class="toc-num">8</span> Pseudocode Dry Run</a>
+    <a href="#swift"        class="toc-link"><span class="toc-num">9</span> Swift Solution</a>
+    <a href="#code-dry-run" class="toc-link"><span class="toc-num">10</span> Code Dry Run</a>
+    <a href="#qmap"         class="toc-link"><span class="toc-num">11</span> Question → Code Map</a>
+    <a href="#complexity"   class="toc-link"><span class="toc-num">12</span> Complexity</a>
+    <a href="#followups"    class="toc-link"><span class="toc-num">13</span> Follow-Up Bank</a>
+    <a href="#decoder"      class="toc-link"><span class="toc-num">14</span> Theory Decoder</a>
+    <a href="#parent"       class="toc-link"><span class="toc-num">15</span> Parent Theory</a>
+  </div>
+</nav>
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">CUSTOM 1 — Relay Handoff Coverage</h1>
+  <div class="page-meta">
+    <span>Walkthrough Masterfile</span><span>·</span>
+    <span>Language: Swift</span><span>·</span>
+    <span>Medium · Split/handoff coverage · Variant 8.5</span>
+  </div>
+
+  <!-- 1. Restatement -->
+  <section id="lead">
+    <div class="infobox">
+      <div class="infobox-title">Problem at a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Difficulty</div><div class="infobox-v"><span class="tag tag-M">Medium</span></div></div>
+      <div class="infobox-row"><div class="infobox-k">Pattern</div><div class="infobox-v">Split/handoff coverage — prefix-suffix precompute (Variant 8.5)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Tools</div><div class="infobox-v">prefixEnd per team · suffixStart per team · suffix lookup map</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key insight</div><div class="infobox-v">Derive each team's contiguous left-anchor (prefixEnd) and right-anchor (suffixStart) once; a pair (A,B) is valid when <code>suffixStart[B] ≤ prefixEnd[A] + 1</code></div></div>
+      <div class="infobox-row"><div class="infobox-k">Time / Space</div><div class="infobox-v">O(t · d) / O(t) — t teams, d = window length</div></div>
+      <div class="infobox-row"><div class="infobox-k">Theory</div><div class="infobox-v mono"><a href="../theory/intervals/intervals_overview_master.html">intervals_overview_master.html</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p>A mission window spans <code>[startDay, endDay]</code> inclusive. You are given a map of teams, each with a set of available days. Find every ordered pair <code>(A, B)</code> of distinct teams where A covers a contiguous left segment and B covers the remaining contiguous right segment, together covering every day in the window with no gap. Order matters: <code>(A, B)</code> and <code>(B, A)</code> are different pairs.</p>
+
+      <table class="t-example">
+        <thead><tr><th>Input</th><th>Output</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>startDay=3, endDay=11<br>North:[3,4,5,6,7,10,11,12]<br>East:[10,11,12,13]<br>South:[5,8,9,10,11,15,20]</td>
+            <td><code>[["North","South"]]</code></td>
+            <td>North covers [3,4,5,6,7] contiguously (gap at 8 stops it); South covers [8,9,10,11] contiguously back to endDay=11 — handoff at 7→8 works</td>
+          </tr>
+          <tr>
+            <td>startDay=1, endDay=8<br>Red:[1,2,3,4]<br>Blue:[5,6,7,8]<br>Green:[3,4,5,6,7,8]</td>
+            <td><code>[["Red","Blue"],["Red","Green"]]</code></td>
+            <td>Red covers [1–4]; Blue covers [5–8] exactly; Green covers [3–8] so also valid as second team for Red's handoff at 4→5</td>
+          </tr>
+          <tr>
+            <td>startDay=5, endDay=5</td>
+            <td><code>[]</code></td>
+            <td>Single-day window cannot be split between two teams</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>The twist: teams provide raw day <em>sets</em>, not interval objects. The brute force tries every split point for every ordered pair — O(t² · d). The insight is that you only need to extract one number per team per role: how far it reaches contiguously from <code>startDay</code> (its <em>prefixEnd</em>), and from where it can start while still reaching <code>endDay</code> contiguously (its <em>suffixStart</em>). These two numbers per team reduce pair-checking from O(d) to O(1).</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Reading the problem -->
+  <section id="reading">
+    <h2>2 &nbsp; Reading the Problem — insights from the constraints</h2>
+
+    <div class="co-insight"><strong>"Exactly two teams":</strong> the split is binary — one left segment, one right segment. You are not finding a minimum cover or merging k schedules. Every valid answer is a single handoff point between exactly two teams.</div>
+
+    <div class="co-insight"><strong>"Contiguous segment":</strong> team A must cover every day from <code>startDay</code> to some <code>splitDay</code> with no gaps. Team B must cover every day from <code>splitDay + 1</code> to <code>endDay</code> with no gaps. A team that covers, say, days {3,4,6} cannot anchor the left segment past day 4 even though it also has day 6.</div>
+
+    <div class="co-insight"><strong>"Order matters":</strong> <code>(A, B)</code> is distinct from <code>(B, A)</code>. A is always the left team; B is always the right team. This means a team that can serve as either a left or right anchor may appear in pairs in both roles.</div>
+
+    <div class="co-insight"><strong>Raw day sets, not intervals:</strong> the input is a dictionary of <code>[String: [Int]]</code>, not <code>[String: [(start, end)]]</code>. The interval objects in Variants 8.1–8.4 don't exist here. You must derive the effective interval for each team's role — that derivation is the prefix/suffix precompute.</div>
+
+    <div class="co-insight"><strong><code>startDay &lt; endDay</code> required for a valid split:</strong> a single-day window cannot be divided between two teams. Guard this at the top and return empty immediately.</div>
+
+    <table class="t-clue">
+      <thead><tr><th>Phrase / constraint</th><th>What it forces</th></tr></thead>
+      <tbody>
+        <tr><td>"Exactly two teams"</td><td>One handoff point; binary split; no k-way cover</td></tr>
+        <tr><td>"Contiguous segment"</td><td>Walk from anchor; stop at first gap — the gap defines the team's reach</td></tr>
+        <tr><td>"Order matters"</td><td>Enumerate ordered pairs; (A,B) ≠ (B,A); A ≠ B</td></tr>
+        <tr><td>Raw day sets</td><td>Derive prefixEnd and suffixStart per team before comparing pairs</td></tr>
+        <tr><td>startDay &lt; endDay</td><td>Guard at top — single-day window always returns []</td></tr>
+        <tr><td>Sorted output (lex by A then B)</td><td>Iterate sortedTeamNames for A; sort candidate Bs within each A bucket</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Edge cases -->
+  <section id="edge-cases">
+    <h2>3 &nbsp; Edge Case Inventory</h2>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected</th><th>Handled by</th></tr></thead>
+      <tbody>
+        <tr><td>startDay == endDay</td><td><code>[]</code></td><td><code>guard startDay &lt; endDay</code> at the top — returns immediately</td></tr>
+        <tr><td>No team covers startDay</td><td><code>[]</code></td><td>prefixEnd computation: team not in prefixEnd dict → skipped in Step 3</td></tr>
+        <tr><td>No team covers endDay</td><td><code>[]</code></td><td>suffixStart computation: no team enters suffixMap → Step 3 finds no candidates</td></tr>
+        <tr><td>One team covers the full window alone</td><td>Still requires two distinct teams — may produce pairs where both use the full-cover team in different roles</td><td>A ≠ B check in Step 3; a team covering the full window has both prefixEnd and suffixStart defined and participates in all valid pairs</td></tr>
+        <tr><td>Team covers startDay but has a gap immediately after</td><td>prefixEnd = startDay; valid as first team only for splits at startDay (handoff to day startDay+1)</td><td>prefixEnd walk stops at first gap; team enters prefixEnd dict with value startDay</td></tr>
+        <tr><td>Team with wider suffix than needed (e.g. covers days 3–8, window [1,8])</td><td>Valid as second team for any first team handing off on days 3–7</td><td>suffixStart[B] ≤ prefixEnd[A]+1 condition; the ≤ not == is essential here</td></tr>
+        <tr><td>Duplicate days in availability list</td><td>Same result as without duplicates</td><td>Input converted to <code>Set</code> — duplicates collapsed before any lookup</td></tr>
+        <tr><td>GOTCHA: == instead of <= in valid-pair condition</td><td>Misses pairs where B covers a wider suffix than strictly needed</td><td>Use <code>suffixStart[B] &lt;= prefixEnd[A] + 1</code>, not <code>==</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Hints -->
+  <section id="hints">
+    <h2>4 &nbsp; Try It Yourself First</h2>
+    <p>Attempt the problem before reading on. Open hints one at a time.</p>
+    <details class="hint"><summary>Hint 1 — the brute force</summary><p>For each ordered pair (A, B), try every possible split point in [startDay, endDay). For each split, verify A covers [startDay…split] and B covers [split+1…endDay]. This is O(t² · d). It works — but can you avoid repeating the coverage walk for every pair?</p></details>
+    <details class="hint"><summary>Hint 2 — the key observation</summary><p>Each team's usefulness as a first team is fully captured by one number: the furthest day it reaches contiguously from startDay (its prefixEnd). Its usefulness as a second team is fully captured by one number: the earliest day it can start while still reaching endDay contiguously (its suffixStart). Compute these once per team, not once per pair.</p></details>
+    <details class="hint"><summary>Hint 3 — the valid pair condition</summary><p>Pair (A, B) is valid when B's contiguous reach to endDay starts at or before the handoff point: <code>suffixStart[B] &lt;= prefixEnd[A] + 1</code>. Note: it's ≤ not ==. A team covering a wider suffix than needed is still a valid second team.</p></details>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Interview simulation -->
+  <section id="simulation">
+    <h2>5 &nbsp; Interview Simulation</h2>
+    <p>The interviewer has stated the problem. The script starts with your first words — practice it out loud.</p>
+
+    <div class="sim-block" id="sim-questions">
+      <div class="sim-header">Step 1 — Clarifying questions</div>
+      <div class="sim-body">
+        <div class="sim-q">Q: "Does 'contiguous' mean no gaps — every single day between startDay and the split must be covered?"</div>
+        <div class="sim-a">A: Yes, every day. <strong>→ I need to walk each team's day set and stop at the first missing day. One gap kills the contiguity.</strong></div>
+
+        <div class="sim-q">Q: "Does order matter — is (A, B) a different answer from (B, A)?"</div>
+        <div class="sim-a">A: Yes, order matters. <strong>→ I enumerate ordered pairs. A team may appear in both roles across different pairs.</strong></div>
+
+        <div class="sim-q">Q: "Can a single-day window startDay == endDay be split?"</div>
+        <div class="sim-a">A: No — two teams can't both cover a single day as separate segments. <strong>→ Guard startDay &lt; endDay at the top and return empty.</strong></div>
+
+        <div class="sim-q">Q: "Can the availability lists have duplicates?"</div>
+        <div class="sim-a">A: Possibly. <strong>→ Convert each list to a Set immediately — deduplication is free and makes membership lookup O(1).</strong></div>
+
+        <div class="sim-q">Q: "Should the output be sorted?"</div>
+        <div class="sim-a">A: Lexicographically by first team name, then second. <strong>→ Iterate sorted team names for A; sort the candidate B list within each A bucket.</strong></div>
+      </div>
+    </div>
+
+    <div class="sim-block" id="sim-plan">
+      <div class="sim-header">Step 2 — The plan, before any code</div>
+      <div class="sim-body">
+        <div class="speech">
+          <div class="speech-kicker">The plan, spoken</div>
+          <p>"This is a split/handoff coverage problem — Variant 8.5. The input is raw day sets, not interval objects, so I can't directly apply the sweep variants. The key observation is that each team's role is fully determined by one number per role. As a first team, the only thing that matters is how far it reaches contiguously from startDay — I'll call this prefixEnd. As a second team, the only thing that matters is the earliest day it can start while still covering contiguously to endDay — I'll call this suffixStart."</p>
+          <p>"The conditions. prefixEnd[A] is defined only if the team covers startDay. I walk forward from startDay, stopping at the first gap. suffixStart[B] is defined only if the team covers endDay. I walk backward from endDay, stopping at the first gap. The valid pair condition is: <code>suffixStart[B] &lt;= prefixEnd[A] + 1</code>. This means B's contiguous reach to endDay starts at or before the handoff point — B already covers day prefixEnd[A]+1 and everything through endDay. Critically, the condition is ≤ not == — a team covering a wider suffix than needed is still valid."</p>
+          <p>"The algorithm is three steps. Step 1: compute prefixEnd and suffixStart for every team — O(t · d). Step 2: build a lookup from suffixStart values to team names — O(t). Step 3: for each team A with a prefixEnd, collect all teams B where suffixStart[B] ≤ prefixEnd[A]+1, filter out B==A, and append sorted pairs."</p>
+          <p>"Data structures: two dictionaries of size t (prefixEnd and suffixStart), one grouping dictionary for the suffix lookup (also size t), one result array. No sort of the full team list needed beyond the initial name sort. Time: O(t · d). Space: O(t). I'll trace Example 2 now."</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. Approach rationale -->
+  <section id="approach">
+    <h2>6 &nbsp; Why This Approach — and not the others</h2>
+    <table class="t-versus">
+      <thead><tr><th>Candidate</th><th>Cost</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>Brute force: every ordered pair × every split point</td><td>O(t² · d)</td><td>Correct and simple to reason about. For t=10 teams and d=365 days: ~13,000 operations — fine in practice. But it recomputes coverage walks for the same team against every partner. Name it, implement it first, then explain the optimization.</td></tr>
+        <tr><td>Convert to interval objects, apply sweep variants</td><td>O(t · d) convert + O(t log t) sort</td><td>Not directly applicable — each team has potentially many disjoint intervals (not one), and the question is about two-team handoff, not merging. You'd have to derive the same prefix/suffix numbers anyway.</td></tr>
+        <tr><td><strong>Prefix-suffix precompute (Variant 8.5)</strong></td><td>O(t · d)</td><td><strong>Chosen.</strong> Compute one number per team per role (O(t · d) total), then pair-check in O(t) using a suffix lookup. Eliminates the per-pair coverage walk entirely.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-when"><strong>The deciding signal:</strong> "two teams cover the window" + raw day sets. You can't sort-and-sweep because there are no interval objects. The prefix/suffix precompute derives the one interval that matters per team (its effective left-anchor or right-anchor reach) before any pair comparison.</div>
+    <div class="co-note"><strong>Why this isn't the same as the merge variants (8.1–8.4).</strong> In 8.1–8.4, the input is already a list of <code>[start, end]</code> interval objects. Here, the "interval" each team represents must be derived from a raw set of days. The derivation is the prefix/suffix walk — once done, the pair-checking logic is simple index arithmetic.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Data structures -->
+  <section id="structures">
+    <h2>7 &nbsp; Data Structures — choice and justification</h2>
+    <table class="t-decoder">
+      <thead><tr><th>Structure</th><th>Holds</th><th>Why this and not weaker/stronger</th></tr></thead>
+      <tbody>
+        <tr><td><code>availability: [String: Set&lt;Int&gt;]</code></td><td>Each team's days as a set for O(1) membership lookup</td><td>Array lookup would be O(n) per day check — O(d) per walk becomes O(d · a) where a is list length. Set gives O(1) contains, making each walk O(d).</td></tr>
+        <tr><td><code>prefixEnd: [String: Int]</code></td><td>For teams that cover startDay: the furthest day reachable contiguously from startDay</td><td>Only teams covering startDay are valid first-team candidates. Teams not in this dict are skipped in Step 3.</td></tr>
+        <tr><td><code>suffixStart: [String: Int]</code></td><td>For teams that cover endDay: the earliest day from which they cover contiguously to endDay</td><td>Only teams covering endDay are valid second-team candidates. Teams not in this dict never enter suffixMap.</td></tr>
+        <tr><td><code>suffixMap: [Int: [String]]</code></td><td>Groups teams by their suffixStart value for range-query in Step 3</td><td>Lets Step 3 collect all Bs with suffixStart ≤ handoffPoint in one iteration over the map's keys — avoids rescanning all teams for each A.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-insight"><strong>Why Set for availability.</strong> The core operation in both the prefix and suffix walks is "does this team cover day X?" on potentially thousands of days. A Set gives O(1) for that lookup; an Array would require O(a) binary search (even if sorted) or O(a) linear scan. The Set construction is a one-time O(a) cost per team — amortized away across d lookups per walk.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 8. Pseudocode dry run -->
+  <section id="dryrun">
+    <h2>8 &nbsp; Pseudocode Dry Run</h2>
+
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">prefix-suffix precompute + pair lookup (Variant 8.5)</span></div>
+    <pre class="pseudo"><span class="pk">IF</span> startDay >= endDay: <span class="pk">RETURN</span> []
+
+<span class="pc">Step 1 — derive the one interval that matters per team per role</span>
+<span class="pk">FOR</span> each team:
+    days ← Set(team.availability)
+
+    <span class="pk">IF</span> days contains startDay:
+        reachDay ← startDay
+        <span class="pk">WHILE</span> reachDay &lt; endDay AND days contains (reachDay + 1):
+            reachDay += 1
+        prefixEnd[team] ← reachDay
+
+    <span class="pk">IF</span> days contains endDay:
+        reachDay ← endDay
+        <span class="pk">WHILE</span> reachDay &gt; startDay AND days contains (reachDay - 1):
+            reachDay -= 1
+        suffixStart[team] ← reachDay
+
+<span class="pc">Step 2 — build suffix lookup: suffixStart value → [team names]</span>
+<span class="pk">FOR</span> each (team, startValue) in suffixStart:
+    suffixMap[startValue].append(team)
+
+<span class="pc">Step 3 — collect valid pairs in lex order</span>
+<span class="pk">FOR</span> each firstTeam in sortedTeamNames:
+    <span class="pk">IF</span> prefixEnd[firstTeam] undefined: <span class="pk">CONTINUE</span>
+    handoffPoint ← prefixEnd[firstTeam] + 1
+    candidates  ← all teams B where suffixStart[B] ≤ handoffPoint   <span class="pc">← ≤ not ==</span>
+    <span class="pk">FOR</span> each secondTeam in sorted(candidates) where secondTeam ≠ firstTeam:
+        result.append([firstTeam, secondTeam])
+
+<span class="pk">RETURN</span> result</pre>
+
+    <p>Trace on startDay=1, endDay=8, Red:[1,2,3,4], Blue:[5,6,7,8], Green:[3,4,5,6,7,8]:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">milestone steps</span></div>
+    <pre class="dry"><span class="tr-var">Step 1 — precompute</span>
+
+Blue  days={5,6,7,8}  contains startDay(1)? NO → no prefixEnd
+                      contains endDay(8)?   YES → walk back: 8→7→6→5, stop (4∉set)
+                      suffixStart["Blue"] = 5
+
+Green days={3,4,5,6,7,8}  contains startDay(1)? NO → no prefixEnd
+                           contains endDay(8)?   YES → walk back: 8→7→6→5→4→3, stop (2∉set)
+                           suffixStart["Green"] = 3
+
+Red   days={1,2,3,4}  contains startDay(1)? YES → walk fwd: 1→2→3→4, stop (5∉set)
+                       prefixEnd["Red"] = 4
+                       contains endDay(8)?  NO  → no suffixStart
+
+<span class="tr-var">Step 2 — suffixMap</span>
+suffixMap = { 5: ["Blue"], 3: ["Green"] }
+
+<span class="tr-var">Step 3 — collect pairs</span>
+sortedTeamNames = ["Blue", "Green", "Red"]
+
+  "Blue":  prefixEnd undefined → <span class="tr-bad">skip</span>
+  "Green": prefixEnd undefined → <span class="tr-bad">skip</span>
+  "Red":   prefixEnd=4, handoffPoint=5
+           candidates: suffixStart["Blue"](5) ≤ 5 → <span class="tr-ok">Blue</span>
+                       suffixStart["Green"](3) ≤ 5 → <span class="tr-ok">Green</span>
+           sorted candidates = ["Blue","Green"], both ≠ "Red"
+           append ["Red","Blue"]
+           append ["Red","Green"]
+
+<span class="tr-ok">RETURN [["Red","Blue"],["Red","Green"]]</span></pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 9. Swift solution -->
+  <section id="swift">
+    <h2>9 &nbsp; Swift Solution — iterative</h2>
+
+    <div class="solution-block">
+      <div class="block-header">
+        <span class="block-badge">A.1</span>
+        <span class="block-name">Brute force — every pair × every split point</span>
+        <div class="block-pills"><span class="pill pill-t">O(t²·d)</span><span class="pill pill-s">O(t·a)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="approach-box">
+          <div class="approach-title">Plan</div>
+          For every ordered pair (A, B), try every split point in [startDay, endDay). Verify A covers [startDay…split] and B covers [split+1…endDay]. Correct and simple — establish this baseline before the optimization.
+        </div>
+        <pre class="swift"><span class="kw">func</span> <span class="fn">relayPairsBruteForce</span>(startDay: <span class="tp">Int</span>, endDay: <span class="tp">Int</span>, teams: [<span class="tp">String</span>: [<span class="tp">Int</span>]]) -&gt; [[<span class="tp">String</span>]] {
+    <span class="kw">guard</span> startDay &lt; endDay <span class="kw">else</span> { <span class="kw">return</span> [] }
+    <span class="kw">let</span> sortedNames  = teams.keys.sorted()
+    <span class="kw">let</span> availability = <span class="tp">Dictionary</span>(uniqueKeysWithValues: teams.map { ($<span class="nm">0</span>.key, <span class="tp">Set</span>($<span class="nm">0</span>.value)) })
+    <span class="kw">var</span> result: [[<span class="tp">String</span>]] = []
+
+    <span class="kw">for</span> firstTeam <span class="kw">in</span> sortedNames {
+        <span class="kw">for</span> secondTeam <span class="kw">in</span> sortedNames <span class="kw">where</span> secondTeam != firstTeam {
+            <span class="kw">guard let</span> firstDays  = availability[firstTeam],
+                  <span class="kw">let</span> secondDays = availability[secondTeam] <span class="kw">else</span> { <span class="kw">continue</span> }
+
+            <span class="kw">for</span> splitDay <span class="kw">in</span> startDay..&lt;endDay {
+                <span class="kw">let</span> firstCovers  = (startDay...splitDay).allSatisfy { firstDays.contains($<span class="nm">0</span>) }
+                <span class="kw">let</span> secondCovers = ((splitDay+<span class="nm">1</span>)...endDay).allSatisfy { secondDays.contains($<span class="nm">0</span>) }
+                <span class="kw">if</span> firstCovers &amp;&amp; secondCovers { result.append([firstTeam, secondTeam]); <span class="kw">break</span> }
+            }
+        }
+    }
+    <span class="kw">return</span> result
+}</pre>
+      </div>
+    </div>
+
+    <div class="solution-block">
+      <div class="block-header">
+        <span class="block-badge">A.2</span>
+        <span class="block-name">Optimal — prefix-suffix precompute (Variant 8.5)</span>
+        <div class="block-pills"><span class="pill pill-t">O(t·d)</span><span class="pill pill-s">O(t)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="approach-box">
+          <div class="approach-title">Plan</div>
+          Compute prefixEnd (how far A reaches from startDay) and suffixStart (from where B reaches endDay) once per team. Pair (A,B) is valid when suffixStart[B] ≤ prefixEnd[A]+1. Build a suffix lookup for efficient candidate collection.
+        </div>
+        <pre class="swift"><span class="kw">func</span> <span class="fn">relayPairs</span>(startDay: <span class="tp">Int</span>, endDay: <span class="tp">Int</span>, teams: [<span class="tp">String</span>: [<span class="tp">Int</span>]]) -&gt; [[<span class="tp">String</span>]] {
+    <span class="kw">guard</span> startDay &lt; endDay <span class="kw">else</span> { <span class="kw">return</span> [] }
+
+    <span class="kw">let</span> sortedTeamNames = teams.keys.sorted()
+    <span class="kw">var</span> prefixEnd:   [<span class="tp">String</span>: <span class="tp">Int</span>] = [:]
+    <span class="kw">var</span> suffixStart: [<span class="tp">String</span>: <span class="tp">Int</span>] = [:]
+
+    <span class="cm">// Step 1 — precompute one number per team per role.</span>
+    <span class="kw">for</span> teamName <span class="kw">in</span> sortedTeamNames {
+        <span class="kw">let</span> days = <span class="tp">Set</span>(teams[teamName] ?? [])
+
+        <span class="kw">if</span> days.contains(startDay) {
+            <span class="kw">var</span> reachDay = startDay
+            <span class="kw">while</span> reachDay &lt; endDay &amp;&amp; days.contains(reachDay + <span class="nm">1</span>) { reachDay += <span class="nm">1</span> }
+            prefixEnd[teamName] = reachDay
+        }
+
+        <span class="kw">if</span> days.contains(endDay) {
+            <span class="kw">var</span> reachDay = endDay
+            <span class="kw">while</span> reachDay &gt; startDay &amp;&amp; days.contains(reachDay - <span class="nm">1</span>) { reachDay -= <span class="nm">1</span> }
+            suffixStart[teamName] = reachDay
+        }
+    }
+
+    <span class="cm">// Step 2 — group teams by suffixStart value.</span>
+    <span class="kw">var</span> suffixMap: [<span class="tp">Int</span>: [<span class="tp">String</span>]] = [:]
+    <span class="kw">for</span> (teamName, startValue) <span class="kw">in</span> suffixStart {
+        suffixMap[startValue, default: []].append(teamName)
+    }
+    <span class="kw">for</span> key <span class="kw">in</span> suffixMap.keys { suffixMap[key]?.sort() }
+
+    <span class="cm">// Step 3 — for each valid first team, collect Bs where suffixStart[B] ≤ handoffPoint.</span>
+    <span class="kw">var</span> result: [[<span class="tp">String</span>]] = []
+    <span class="kw">for</span> firstTeam <span class="kw">in</span> sortedTeamNames {
+        <span class="kw">guard let</span> handoffDay = prefixEnd[firstTeam] <span class="kw">else</span> { <span class="kw">continue</span> }
+        <span class="kw">let</span> handoffPoint = handoffDay + <span class="nm">1</span>
+
+        <span class="kw">var</span> candidates: [<span class="tp">String</span>] = []
+        <span class="kw">for</span> (startValue, bucket) <span class="kw">in</span> suffixMap <span class="kw">where</span> startValue &lt;= handoffPoint {
+            candidates.append(contentsOf: bucket)
+        }
+        candidates.sort()
+
+        <span class="kw">for</span> secondTeam <span class="kw">in</span> candidates <span class="kw">where</span> secondTeam != firstTeam {
+            result.append([firstTeam, secondTeam])
+        }
+    }
+    <span class="kw">return</span> result
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 10. Code dry run -->
+  <section id="code-dry-run">
+    <h2>10 &nbsp; Code Dry Run — the optimal solution, traced</h2>
+    <p>Full debugger-style trace of A.2 on Example 1: startDay=3, endDay=11, North:[3,4,5,6,7,10,11,12], East:[10,11,12,13], South:[5,8,9,10,11,15,20] → expected <code>[["North","South"]]</code>.</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">full execution trace — /code-dry-run format</span></div>
+    <pre class="dry">────────────────────────────────
+/code-dry-run
+Problem: CUSTOM 1 — Relay Handoff Coverage
+Input:   startDay=3, endDay=11
+         North:[3,4,5,6,7,10,11,12]  East:[10,11,12,13]  South:[5,8,9,10,11,15,20]
+────────────────────────────────
+
+relayPairs
+  guard 3 < 11 → passes
+  sortedTeamNames = ["East","North","South"]
+  prefixEnd   = [:]
+  suffixStart = [:]
+
+────────────────────────────────
+STEP 1 — PRECOMPUTE
+────────────────────────────────
+
+  "East"  days = {10,11,12,13}
+    contains startDay(3)? NO → no prefixEnd entry
+    contains endDay(11)?  YES → walk back from 11:
+      11→10 (10∈set), 10→9? NO (9∉set) → stop
+      suffixStart["East"] = 10
+
+  "North" days = {3,4,5,6,7,10,11,12}
+    contains startDay(3)? YES → walk fwd from 3:
+      3→4 (4∈set), 4→5, 5→6, 6→7, 7→8? NO (8∉set) → stop
+      prefixEnd["North"] = 7
+    contains endDay(11)?  YES → walk back from 11:
+      11→10 (10∈set), 10→9? NO (9∉set) → stop
+      suffixStart["North"] = 10
+
+  "South" days = {5,8,9,10,11,15,20}
+    contains startDay(3)? NO → no prefixEnd entry
+    contains endDay(11)?  YES → walk back from 11:
+      11→10 (10∈set), 10→9 (9∈set), 9→8 (8∈set), 8→7? NO (7∉set) → stop
+      suffixStart["South"] = 8
+
+  State:
+    prefixEnd   = ["North": 7]
+    suffixStart = ["East": 10, "North": 10, "South": 8]
+
+────────────────────────────────
+STEP 2 — BUILD suffixMap
+────────────────────────────────
+
+  suffixMap[10] = ["East","North"]  (sorted)
+  suffixMap[8]  = ["South"]
+
+────────────────────────────────
+STEP 3 — COLLECT PAIRS
+────────────────────────────────
+
+  firstTeam="East":  prefixEnd undefined → skip
+  firstTeam="North": prefixEnd=7, handoffPoint=8
+    suffixMap[10]: 10 <= 8? NO → skip
+    suffixMap[8]:  8  <= 8? YES → candidates += ["South"]
+    candidates = ["South"]  ("North" excluded: secondTeam ≠ firstTeam check skips itself)
+    append ["North","South"]
+
+  firstTeam="South": prefixEnd undefined → skip
+
+────────────────────────────────
+RESULT
+────────────────────────────────
+
+  result = [["North","South"]]
+  return [["North","South"]]</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 11. Q→Code map -->
+  <section id="qmap">
+    <h2>11 &nbsp; Question → Code Map</h2>
+    <table class="t-qmap">
+      <thead><tr><th>What you asked / planned</th><th>What it became</th></tr></thead>
+      <tbody>
+        <tr><td>"Single-day window can't be split"</td><td><code>guard startDay &lt; endDay else { return [] }</code></td></tr>
+        <tr><td>"O(1) day membership — convert to Set"</td><td><code>let days = Set(teams[teamName] ?? [])</code></td></tr>
+        <tr><td>"prefixEnd: walk forward from startDay, stop at first gap"</td><td><code>while reachDay &lt; endDay &amp;&amp; days.contains(reachDay + 1) { reachDay += 1 }</code></td></tr>
+        <tr><td>"suffixStart: walk backward from endDay, stop at first gap"</td><td><code>while reachDay &gt; startDay &amp;&amp; days.contains(reachDay - 1) { reachDay -= 1 }</code></td></tr>
+        <tr><td>"Valid pair condition: suffixStart[B] ≤ handoffPoint (not ==)"</td><td><code>for (startValue, bucket) in suffixMap where startValue &lt;= handoffPoint</code></td></tr>
+        <tr><td>"B ≠ A — distinct teams only"</td><td><code>for secondTeam in candidates where secondTeam != firstTeam</code></td></tr>
+        <tr><td>"Output sorted lex by A then B"</td><td>Outer loop uses <code>sortedTeamNames</code>; <code>candidates.sort()</code> before inner loop</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 12. Complexity -->
+  <section id="complexity">
+    <h2>12 &nbsp; Complexity</h2>
+    <table class="t-cmx">
+      <thead><tr><th>Solution</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>A.1 Brute force</td><td class="tc">O(t² · d)</td><td class="sc">O(t · a)</td><td>t² ordered pairs × up to d split points × O(1) set lookup per day check. Space: t availability sets of average size a.</td></tr>
+        <tr><td>A.2 Optimal — Step 1 precompute</td><td class="tc">O(t · d)</td><td class="sc">O(t)</td><td>t teams × up to d steps per walk (forward + backward). Each step is one O(1) set lookup.</td></tr>
+        <tr><td>A.2 Optimal — Step 2 suffixMap</td><td class="tc">O(t log t)</td><td class="sc">O(t)</td><td>t insertions into the map + sort within each bucket — total O(t log t).</td></tr>
+        <tr><td>A.2 Optimal — Step 3 pair collection</td><td class="tc">O(t²) worst case</td><td class="sc">O(output)</td><td>For each of t first-teams, scan all suffixMap entries (at most t). In practice far fewer candidates per first-team. Worst case is all teams valid for all roles — O(t²) output itself.</td></tr>
+        <tr class="bottleneck"><td>A.2 Total</td><td class="tc">O(t · d)</td><td class="sc">O(t)</td><td>Step 1 dominates when d &gt;&gt; t. Step 3 dominates when t is large and most teams are valid pairs — but output size is Ω(t²) in that case anyway. Extra space is O(t) for the two precompute dicts and the suffix map.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13. Follow-ups -->
+  <section id="followups">
+    <h2>13 &nbsp; Follow-Up Bank — the interviewer's second act</h2>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Before you push this to production — can you see any improvements you'd make?"</div>
+      <div class="followup-a">The main constant-factor improvement: instead of scanning all suffixMap entries for each first team (O(t) per first team in Step 3), sort the suffixMap keys and binary-search for all entries ≤ handoffPoint. This reduces Step 3 from O(t²) to O(t log t + output) — meaningful when t is large and most teams are invalid second-team candidates. Asymptotically the precompute step still dominates at O(t · d).</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "What if the mission could be covered by exactly k teams instead of two?"</div>
+      <div class="followup-a">For k=2 the prefix/suffix trick works because there is exactly one handoff point. For k&gt;2 you'd need k−1 handoff points. The natural extension is dynamic programming: define <code>reach[i][team]</code> = the furthest day coverable contiguously by exactly i teams ending at this team. Fill left to right, k layers. This is O(k · t² · d) — the two-team prefix/suffix trick doesn't generalize cleanly beyond k=2.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "What if a team's availability is given as intervals instead of raw day sets?"</div>
+      <div class="followup-a">The prefix/suffix precompute becomes even simpler: sort each team's intervals by start, then walk forward checking for gaps between consecutive intervals. prefixEnd is the end of the last interval before the first gap after startDay. suffixStart is the start of the first interval after the last gap before endDay. The set construction step is eliminated — you walk O(i) intervals per team instead of O(d) days, where i is the number of intervals per team (usually i &lt;&lt; d).</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "The output requires sorted pairs — does your approach guarantee that without a final sort?"</div>
+      <div class="followup-a">Yes, by construction. The outer loop in Step 3 iterates <code>sortedTeamNames</code> for first teams — so pairs are emitted in first-team alphabetical order. Within each first-team bucket, <code>candidates.sort()</code> before the inner loop ensures second teams are also alphabetical. No final sort of the result array is needed.</div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 14. Theory decoder -->
+  <section id="decoder">
+    <h2>14 &nbsp; Theory Decoder — the theory as used here</h2>
+    <table class="t-decoder">
+      <thead><tr><th>General concept</th><th>Instantiated in this solution as</th><th>General form</th></tr></thead>
+      <tbody>
+        <tr><td>prefixEnd derivation</td><td>Walk forward from startDay; stop when <code>days.contains(reachDay + 1)</code> fails; undefined if team doesn't cover startDay</td><td><a href="../theory/intervals/intervals_overview_master.html#v-handoff">theory §8.5</a></td></tr>
+        <tr><td>suffixStart derivation</td><td>Walk backward from endDay; stop when <code>days.contains(reachDay - 1)</code> fails; undefined if team doesn't cover endDay</td><td><a href="../theory/intervals/intervals_overview_master.html#v-handoff">theory §8.5</a></td></tr>
+        <tr><td>Valid pair condition</td><td><code>suffixStart[B] &lt;= prefixEnd[A] + 1</code> — ≤ not ==; B may cover a wider suffix than strictly needed</td><td><a href="../theory/intervals/intervals_overview_master.html#v-handoff">theory §8.5</a></td></tr>
+        <tr><td>Suffix lookup map</td><td><code>suffixMap: [Int: [String]]</code> — groups teams by suffixStart; Step 3 filters by <code>startValue &lt;= handoffPoint</code></td><td><a href="../theory/intervals/intervals_overview_master.html#v-handoff">theory §8.5</a></td></tr>
+        <tr><td>Raw day sets → not a sweep variant</td><td>Input is <code>[String: [Int]]</code> not <code>[[Int]]</code> intervals; sweep variants (8.1–8.4) don't apply directly; precompute derives the effective intervals</td><td><a href="../theory/intervals/intervals_overview_master.html#signals">theory §2</a></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 15. Back-reference -->
+  <section id="parent">
+    <h2>15 &nbsp; Parent Theory</h2>
+    <p>This walkthrough instantiates Variant 8.5 of the intervals pattern. The parent page follows the theory masterfile standard — here is exactly what you land on:</p>
+    <div class="ref-grid">
+      <a class="backref-card" href="../theory/intervals/intervals_overview_master.html">
+        <span class="ref-file">theory/intervals/intervals_overview_master.html</span>
+        <span class="ref-title">Intervals — Theory Masterfile</span>
+        <span class="ref-desc">The canonical reference: recognition signals (§2), terminology decoder including prefixEnd and suffixStart definitions (§3), all five variant shapes including the split/handoff coverage pattern this problem uses (§8.5), complexity arguments (§9), pitfalls including the == vs ≤ valid-pair condition (§10), and cheat sheet (§12). Its cross-reference section (§13) links back to this walkthrough.</span>
+      </a>
+    </div>
+  </section>
+
+  <div class="page-footer">
+    CUSTOM 1 — Relay Handoff Coverage · Walkthrough Masterfile · Parent theory:
+    <a href="../theory/intervals/intervals_overview_master.html">Intervals</a> ·
+    Structure per <code>wiki/_standards/WALKTHROUGH_MASTERFILE_STANDARD.md</code>
+  </div>
+
+</main>
+</div>
+
+<script src="../_shared/pages.js"></script>
+<script src="../_shared/nav.js"></script>
+</body>
+</html>
