@@ -112,6 +112,15 @@ const WIKI_PAGES = [
   },
   {
     cat: "walkthrough",
+    path: "walkthroughs/LC227_master.html",
+    nav: "LC 227",
+    title: "LC 227 — Basic Calculator II",
+    topics: ["Strings", "Stack", "Parsing"],
+    difficulty: "M",
+    blurb: "Stack-based expression parse — deferred operator trick. Push for +/−, apply to stack top for ×/÷, flush the last operand at the final index. O(n) time, O(n) space.",
+  },
+  {
+    cat: "walkthrough",
     path: "walkthroughs/LC759_master.html",
     nav: "LC 759",
     title: "LC 759 — Employee Free Time",
@@ -127,6 +136,15 @@ const WIKI_PAGES = [
     topics: ["Intervals", "Two Pointers", "Arrays"],
     difficulty: "M",
     blurb: "Two-pointer interval overlap (Variant 8.2). Walk two sorted lists simultaneously — the overlap formula, why advancing the smaller-end pointer is the only correct move, and full dry run.",
+  },
+  {
+    cat: "walkthrough",
+    path: "walkthroughs/LC1041_master.html",
+    nav: "LC 1041",
+    title: "LC 1041 — Robot Bounded In Circle",
+    topics: ["Strings", "Simulation", "State Machine"],
+    difficulty: "M",
+    blurb: "State-machine simulation — one cycle proves boundedness. Direction table + mod-4 turns + the bounded-iff-(origin-or-rotated) insight. No multi-cycle simulation needed.",
   },
   {
     cat: "tips",
