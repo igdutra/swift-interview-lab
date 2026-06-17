@@ -30,6 +30,7 @@
       <a href="#v-anchor"    class="toc-link">8.2 Fixed anchor (3Sum)</a>
       <a href="#v-palindrome" class="toc-link">8.3 Palindrome check</a>
       <a href="#v-maxheight" class="toc-link">8.4 Left/right-max accumulator</a>
+      <a href="#v-floyd"     class="toc-link">8.5 Floyd's cycle detection</a>
     </div>
     <a href="#complexity"   class="toc-link"><span class="toc-num">9</span> Complexity Analysis</a>
     <a href="#pitfalls"     class="toc-link"><span class="toc-num">10</span> Common Pitfalls</a>
@@ -82,6 +83,7 @@
         <tr><td>"is it a palindrome?" / "compare two ends"</td><td>Variant 8.3 — converge, compare characters at l and r</td><td>LC125</td></tr>
         <tr><td>"maximize area between two walls"</td><td>Variant 8.1 with min-side steering — move the shorter wall inward</td><td>LC11</td></tr>
         <tr><td>"how much water can be trapped between bars?"</td><td>Variant 8.4 — left-max and right-max accumulators, water = min(lmax, rmax) − height</td><td>LC42</td></tr>
+        <tr><td>"does this sequence cycle?" / "detect a loop"</td><td>Variant 8.5 — Floyd's cycle detection: slow takes one step, fast takes two; they meet iff there is a cycle</td><td>LC202</td></tr>
       </tbody>
     </table>
     <div class="co-when"><strong>When NOT to use two pointers:</strong> if the array cannot be sorted without destroying the answer (e.g., when indices must be preserved, as in Two Sum LC1 unsorted), use a hash map instead. Two pointers require sorted order to make the steering decision meaningful.</div>
@@ -330,6 +332,50 @@
       </div>
     </div>
 
+    <div class="pattern-block" id="v-floyd">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.5</span>
+        <span class="block-name">Floyd's Cycle Detection (Slow &amp; Fast Pointers)</span>
+        <div class="block-pills"><span class="pill pill-t">O(log n)</span><span class="pill pill-s">O(1)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> "does this process eventually repeat a state?" — the algorithm generates a sequence of values one at a time, and you need to detect whether it cycles without storing every value seen. Slow moves one step; fast moves two. If there is a cycle, fast laps slow and they meet. If there is no cycle, fast reaches the terminal value first.</div>
+        <p><strong>Key difference from Seen-State Tracking (hash set):</strong> the set approach is O(n) space — it stores every visited state. Floyd's uses O(1) space by exploiting the fact that a cycle guarantees the two pointers will eventually land on the same value. The trade-off: Floyd's is slightly harder to explain; mention it as a follow-up optimization in interviews.</p>
+        <pre class="pseudo"><span class="pk">FUNCTION</span> floydCycle(start):
+    slow ← next(start)
+    fast ← next(next(start))
+
+    <span class="pk">WHILE</span> fast ≠ terminal <span class="pk">AND</span> slow ≠ fast:
+        slow ← next(slow)
+        fast ← next(next(fast))
+
+    <span class="pk">RETURN</span> fast == terminal   <span class="pc">// true → no cycle; false → cycle detected</span></pre>
+        <div class="co-insight"><strong>Why they must meet:</strong> in a cycle of length k, fast gains one step on slow per iteration. After at most k iterations, fast has lapped slow — they land on the same node. The cycle is guaranteed to be entered because the sequence is deterministic and the state space is finite.</div>
+        <div class="co-note"><strong>Happy Number (LC202) application:</strong> the "next state" function is the sum of squared digits. The sequence either reaches 1 (happy) or falls into the cycle 4 → 16 → 37 → 58 → 89 → 145 → 42 → 20 → 4. Floyd's detects the cycle in O(log n) time and O(1) space.</div>
+        <pre class="swift"><span class="kw">func</span> <span class="fn">isHappyNumber</span>(<span class="kw">_</span> number: <span class="tp">Int</span>) -&gt; <span class="tp">Bool</span> {
+    <span class="kw">func</span> <span class="fn">nextSquaresSum</span>(<span class="kw">_</span> current: <span class="tp">Int</span>) -&gt; <span class="tp">Int</span> {
+        <span class="kw">var</span> remaining = current, sum = <span class="nm">0</span>
+        <span class="kw">while</span> remaining &gt; <span class="nm">0</span> {
+            <span class="kw">let</span> digit = remaining % <span class="nm">10</span>
+            sum += digit * digit
+            remaining /= <span class="nm">10</span>
+        }
+        <span class="kw">return</span> sum
+    }
+
+    <span class="kw">var</span> slow = number
+    <span class="kw">var</span> fast = <span class="fn">nextSquaresSum</span>(number)
+
+    <span class="kw">while</span> fast != <span class="nm">1</span> &amp;&amp; slow != fast {
+        slow = <span class="fn">nextSquaresSum</span>(slow)
+        fast = <span class="fn">nextSquaresSum</span>(<span class="fn">nextSquaresSum</span>(fast))
+    }
+    <span class="kw">return</span> fast == <span class="nm">1</span>
+}</pre>
+        <p><strong>Problems:</strong> LC202 — Happy Number.</p>
+      </div>
+    </div>
+
   </section>
 
   <hr class="wiki-hr">
@@ -346,6 +392,7 @@
         <tr><td>3Sum anchor (8.2)</td><td class="tc">O(n²)</td><td class="sc">O(1)</td><td>Sort O(n log n) + n anchors × O(n) inner sweep. Result storage O(k) for k triplets.</td></tr>
         <tr><td>Palindrome (8.3)</td><td class="tc">O(n)</td><td class="sc">O(1)</td><td>No sort needed. At most n/2 comparisons. Converting String to Array is O(n).</td></tr>
         <tr><td>Left/right-max (8.4)</td><td class="tc">O(n)</td><td class="sc">O(1)</td><td>No sort needed. Single pass with two running maxima.</td></tr>
+        <tr><td>Floyd's cycle (8.5)</td><td class="tc">O(log n)</td><td class="sc">O(1)</td><td>Outer loop bounded by a constant; inner digit extraction is O(log n). No auxiliary set needed.</td></tr>
         <tr class="bottleneck"><td>Hidden O(n²) trap</td><td class="tc">O(n²)</td><td class="sc">—</td><td>Any nested loop "for each left, scan all rights" — exactly what convergence eliminates. Also: moving both pointers simultaneously on equality causes missed valid pairs.</td></tr>
       </tbody>
     </table>
@@ -400,6 +447,7 @@
         <tr><td>"three numbers sum to 0"</td><td>8.2 anchor + 8.1</td><td>Yes</td><td>outer loop fixes anchor; inner is 8.1</td></tr>
         <tr><td>"is it a palindrome?"</td><td>8.3 compare ends</td><td>No</td><td>mismatch → return false; match → both move inward</td></tr>
         <tr><td>"trapped rain water"</td><td>8.4 l/r max</td><td>No</td><td>move the side with the shorter current bar</td></tr>
+        <tr><td>"does this sequence cycle?"</td><td>8.5 Floyd's</td><td>No</td><td>slow one step, fast two steps; meet = cycle</td></tr>
       </tbody>
     </table>
 

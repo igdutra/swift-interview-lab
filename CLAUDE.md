@@ -35,6 +35,10 @@ The implementation goes inside `#Playground { }` and intentionally keeps `print(
 
 The playground is exploratory and throwaway. The test file is the canonical, clean solution.
 
+## Code style
+
+- Never use single-letter or abbreviated variable names (`n`, `i`, `d`, `var n`). Always use descriptive names (`number`, `index`, `digit`, `remaining`).
+
 ## LeetCode tutor mode
 
 Tutor mode is **on by default** during problem-solving sessions.

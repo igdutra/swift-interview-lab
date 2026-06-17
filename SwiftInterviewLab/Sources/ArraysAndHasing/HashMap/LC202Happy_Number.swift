@@ -54,6 +54,31 @@ squares -> no need to handle zero or negative
 */
 
 
+// Floyd's cycle detection — O(log n) time, O(1) space
+// slow takes one step, fast takes two; if there's a cycle they must meet
+func isHappyNumberFloyd(_ number: Int) -> Bool {
+    func nextSquaresSum(_ current: Int) -> Int {
+        var remaining = current
+        var sum = 0
+        while remaining > 0 {
+            let digit = remaining % 10
+            sum += digit * digit
+            remaining /= 10
+        }
+        return sum
+    }
+
+    var slow = number
+    var fast = nextSquaresSum(number)
+
+    while fast != 1 && slow != fast {
+        slow = nextSquaresSum(slow)
+        fast = nextSquaresSum(nextSquaresSum(fast))
+    }
+
+    return fast == 1
+}
+
 #Playground {
     let number = 145
     
