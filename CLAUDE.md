@@ -54,3 +54,10 @@ Tutor mode is **on by default** during problem-solving sessions.
 - Run it with: `cd wiki && python3 -m http.server 5050`, then open http://localhost:5050.
 - To add a page: drop the HTML file in the right folder and add one line to `wiki/_shared/pages.js` — the nav bar and hub index update automatically. Full checklist: `wiki/_standards/HOW_TO_ADD_PAGES.md`.
 - Page conventions live in the three standards docs in `wiki/_standards/`: `THEORY_MASTERFILE_STANDARD.md`, `WALKTHROUGH_MASTERFILE_STANDARD.md`, `WIKI_CSS_STYLE_RESEARCH.md`.
+
+**MANDATORY before writing or editing any wiki page:** read all three standards files first:
+1. `wiki/_standards/WALKTHROUGH_MASTERFILE_STANDARD.md` (or `THEORY_MASTERFILE_STANDARD.md` for theory pages)
+2. `wiki/_standards/WIKI_CSS_STYLE_RESEARCH.md`
+3. `wiki/_standards/HOW_TO_ADD_PAGES.md`
+
+Do not write a single line of HTML until all three have been read in the current conversation.
