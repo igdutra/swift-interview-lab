@@ -85,6 +85,15 @@ const WIKI_PAGES = [
   },
   {
     cat: "walkthrough",
+    path: "walkthroughs/LC42_master.html",
+    nav: "LC 42",
+    title: "LC 42 — Trapping Rain Water",
+    topics: ["Two Pointers", "Arrays"],
+    difficulty: "H",
+    blurb: "Left/right-max accumulator pattern. Commit water on the bottleneck side — the taller wall guarantees no spill. Why sliding window fails, why the two-pointer version is the O(1)-space compression of prefix-max arrays.",
+  },
+  {
+    cat: "walkthrough",
     path: "walkthroughs/LC125_master.html",
     nav: "LC 125",
     title: "LC 125 — Valid Palindrome",
