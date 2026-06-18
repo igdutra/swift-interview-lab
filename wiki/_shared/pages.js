@@ -76,6 +76,15 @@ const WIKI_PAGES = [
   },
   {
     cat: "walkthrough",
+    path: "walkthroughs/LC15_master.html",
+    nav: "LC 15",
+    title: "LC 15 — 3Sum",
+    topics: ["Two Pointers", "Arrays", "Sorting"],
+    difficulty: "M",
+    blurb: "Converging two pointers with a fixed anchor. Two solutions compared: hashmap O(n) space vs two-pointer O(1) space — same O(n²) time, but structural skip conditions replace both Sets entirely.",
+  },
+  {
+    cat: "walkthrough",
     path: "walkthroughs/LC56_master.html",
     nav: "LC 56",
     title: "LC 56 — Merge Intervals",
