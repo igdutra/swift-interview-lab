@@ -63,7 +63,7 @@ cd wiki && python3 -m http.server 8080
 2. Same wiring rules as above, with `data-category="walkthrough"`.
 3. Solutions must be **iterative-only** in the main section; recursion only
    as an appendix contrast.
-4. Fill the **Parent Theory** section (§14) with a `backref-card` to the
+4. Fill the **Parent Theory** section (§15) with a `backref-card` to the
    theory page, describing its numbered sections.
 5. Register it — one line in `_shared/pages.js`, **only after the file exists
    and is finished** (done things only). Real entry currently in the
@@ -75,13 +75,33 @@ cd wiki && python3 -m http.server 8080
      difficulty: "H", blurb: "Shrink-while-valid sliding window with the matchedCount trick. …" },
    ```
 
+6. **Update the parent theory infobox** — open the parent theory file and
+   change the `Walkthroughs` infobox row to replace the `LCxxx (coming)` placeholder
+   with a live `<a href="…">LCxxx_master.html</a>` link. This is the most visible
+   entry point to the walkthrough and the most commonly forgotten step.
+
+   The infobox row looks like this (find it near the top of the theory file):
+   ```html
+   <div class="infobox-row">
+     <div class="infobox-k">Walkthroughs</div>
+     <div class="infobox-v mono">
+       LC125 (coming) · <a href="…">LC11_master.html</a>
+     </div>
+   </div>
+   ```
+   Replace `LC125 (coming)` with `<a href="../../walkthroughs/LC125_master.html">LC125_master.html</a>`.
+
 ## Close the loop (both directions, always)
 
-Every new walkthrough must add itself as an `xref-card` in its parent theory
-page's "Demonstrated in Practice" section. Every new theory page must be
-back-referenced by its walkthroughs. A page with a missing link direction is
-incomplete — the theory ↔ walkthrough navigation loop is the wiki's core
-feature.
+Every new walkthrough must close **three** links — not two:
+
+1. The walkthrough's `backref-card` (§15) → parent theory page.
+2. The parent theory's **`xref-card`** in its "Demonstrated in Practice" section → this walkthrough.
+3. The parent theory's **infobox `Walkthroughs` row** → replace the `(coming)` placeholder with a live link.
+
+A page with any of these three missing is incomplete. The infobox link (step 3)
+is the fastest entry point a returning reader sees — it must never stay as
+`(coming)` once the walkthrough exists.
 
 ## Color semantics cheat (from the design spec)
 

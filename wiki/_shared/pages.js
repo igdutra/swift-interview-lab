@@ -85,6 +85,15 @@ const WIKI_PAGES = [
   },
   {
     cat: "walkthrough",
+    path: "walkthroughs/LC125_master.html",
+    nav: "LC 125",
+    title: "LC 125 — Valid Palindrome",
+    topics: ["Two Pointers", "Strings"],
+    difficulty: "E",
+    blurb: "Converging two pointers with in-place skip of non-alphanumeric characters. Single O(n) pass — no preprocessing, no cleaned copy. Covers the bounds-guard order gotcha and the Array(string) vs String.Index space tradeoff.",
+  },
+  {
+    cat: "walkthrough",
     path: "walkthroughs/LC56_master.html",
     nav: "LC 56",
     title: "LC 56 — Merge Intervals",
