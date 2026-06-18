@@ -66,6 +66,18 @@
     <div class="lead">
       <p><strong>Prefix and suffix precomputation</strong> is a technique that eliminates repeated linear work by storing, at each index <em>i</em>, the accumulated result of every element to its left (the prefix) and every element to its right (the suffix). A single left-to-right pass builds the prefix array; a single right-to-left pass builds the suffix array. Any query that asks "what is the aggregate of some range, or of everything except position i" then combines <code>prefix[i]</code> and <code>suffix[i]</code> in one step — O(1) per query regardless of range length.</p>
       <p>The "payload" stored at each position varies by problem — a running sum, a running product, a running maximum, a boolean flag, even a set of day indices — but the two-pass shape is always the same. This uniformity is the technique's power: recognizing any of these payload types as "something a left pass accumulates" immediately hands you an O(n) algorithm where the naive alternative scans the array again for every query, costing O(n²) in total.</p>
+
+    <div class="co-insight">
+      <strong>Where prefix/suffix meets Dynamic Programming — and where it doesn't.</strong>
+
+      <p style="margin: 10px 0 6px;">Think of it as a Venn diagram. DP is the <em>paradigm</em>: break a problem into subproblems, store the answers, reuse them instead of recomputing. Prefix/suffix is a <em>technique</em>: two passes over an array that store an accumulated value at each index. They are not the same thing — but they overlap.</p>
+
+      <p style="margin: 6px 0 6px;"><strong>In the intersection (prefix/suffix AND DP):</strong> any variant where each cell is built from the previous cell using a recurrence. <code>leftMaxAt[i] = max(height[i], leftMaxAt[i−1])</code> in LC 42 is a recurrence — you're computing cell <code>i</code> from the stored answer at cell <code>i−1</code> instead of rescanning. <code>prefix[i+1] = prefix[i] + nums[i]</code> in range-sum is identical. These are DP: overlapping subproblems, stored answers, reuse. <strong>Variants 8.1, 8.2, and 8.3 all qualify.</strong></p>
+
+      <p style="margin: 6px 0 0;"><strong>Outside the intersection (prefix/suffix shape, but NOT DP):</strong> Variant 8.4 — Boolean Coverage — sweeps the array and records "has this day been covered so far?" Each cell doesn't depend on the previous cell via a recurrence; it just accumulates a set. The two-pass <em>shape</em> is the same, but there are no overlapping subproblems being memoized. It's a sweep, not DP.</p>
+
+      <p style="margin: 8px 0 0; font-style: italic; color: var(--text2);">The clean rule: if building the array requires a recurrence (<code>cell[i]</code> defined in terms of <code>cell[i−1]</code>), it's DP. If the array just records running state without that dependency, it's not. When a dedicated DP theory page exists on this wiki, Variants 8.1–8.3 will be cross-referenced there.</p>
+    </div>
     </div>
   </section>
 
