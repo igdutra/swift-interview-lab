@@ -36,6 +36,12 @@
     <a href="#followups"    class="toc-link"><span class="toc-num">13</span> Follow-Up Bank</a>
     <a href="#decoder"      class="toc-link"><span class="toc-num">14</span> Theory Decoder</a>
     <a href="#parent"       class="toc-link"><span class="toc-num">15</span> Parent Theory</a>
+    <a href="#alt-solutions" class="toc-link"><span class="toc-num">16</span> Alternative Solutions</a>
+    <div class="toc-sub">
+      <a href="#alt-brute"  class="toc-link">16.1 Brute Force</a>
+      <a href="#alt-dp"     class="toc-link">16.2 Dynamic Programming</a>
+      <a href="#alt-stack"  class="toc-link">16.3 Monotonic Stack</a>
+    </div>
   </div>
 </nav>
 
@@ -557,6 +563,157 @@ RESULT
         <span class="ref-desc">The canonical two-pointers reference. §8 covers all four variants including Variant 8.4 (left/right-max accumulator — this problem's pattern), the recognition signal table, pitfalls, and the full cheat sheet.</span>
       </a>
     </div>
+  </section>
+
+
+  <hr class="wiki-hr">
+
+  <!-- 16. Alternative Solutions -->
+  <section id="alt-solutions">
+    <h2>16 &nbsp; Alternative Solutions</h2>
+    <p>The two-pointer approach in §9 is the optimal solution — O(n) time, O(1) space. The three approaches below are all correct; each one is worth understanding because each reveals a different layer of the problem's structure, and the path from brute force → DP → two pointers is one of the cleanest examples in LeetCode of progressive optimization.</p>
+
+    <!-- 16.1 Brute Force -->
+    <div class="solution-block" id="alt-brute">
+      <div class="block-header">
+        <span class="block-badge">B.1</span>
+        <span class="block-name">Brute Force — scan both sides per bar</span>
+        <div class="block-pills"><span class="pill pill-t">O(n²)</span><span class="pill pill-s">O(1)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="approach-box">
+          <div class="approach-title">Why this works</div>
+          The formula <code>water[i] = min(maxLeft, maxRight) − height[i]</code> is the literal definition of how much water sits above bar <code>i</code>. Brute force computes it directly: for every interior bar, scan all the way left to find the tallest wall, then all the way right to find the tallest wall, then apply the formula. There is no shortcut — just the raw definition applied bar by bar.
+        </div>
+
+        <p>The cost is O(n²) because for each of the n bars you perform two full scans of up to n elements. That's redundant: the max-left value for bar <code>i+1</code> is just <code>max(maxLeft for bar i, height[i])</code> — you already computed it, you just threw it away. That wasted recomputation is exactly the gap that DP closes.</p>
+
+        <p>Brute force is the right place to start mentally: it makes the formula concrete and confirms your understanding of what the problem is actually asking. Once you can write it, the question becomes "which values am I recomputing?" — and that question directly leads to the DP precomputation idea.</p>
+
+        <pre class="swift"><span class="kw">func</span> <span class="fn">trap</span>(<span class="kw">_</span> height: [<span class="tp">Int</span>]) -&gt; <span class="tp">Int</span> {
+    <span class="kw">let</span> size = height.count
+    <span class="kw">var</span> totalWater = <span class="nm">0</span>
+
+    <span class="kw">for</span> index <span class="kw">in</span> <span class="nm">1</span>..&lt;(size - <span class="nm">1</span>) {
+        <span class="kw">var</span> leftMax = <span class="nm">0</span>
+        <span class="kw">var</span> rightMax = <span class="nm">0</span>
+
+        <span class="cm">// Search left of index for the tallest wall.</span>
+        <span class="kw">var</span> scanner = index
+        <span class="kw">while</span> scanner &gt;= <span class="nm">0</span> {
+            leftMax = <span class="fn">max</span>(leftMax, height[scanner])
+            scanner -= <span class="nm">1</span>
+        }
+
+        <span class="cm">// Search right of index for the tallest wall.</span>
+        scanner = index
+        <span class="kw">while</span> scanner &lt; size {
+            rightMax = <span class="fn">max</span>(rightMax, height[scanner])
+            scanner += <span class="nm">1</span>
+        }
+
+        totalWater += <span class="fn">min</span>(leftMax, rightMax) - height[index]
+    }
+
+    <span class="kw">return</span> totalWater
+}</pre>
+      </div>
+    </div>
+
+    <!-- 16.2 Dynamic Programming -->
+    <div class="solution-block" id="alt-dp">
+      <div class="block-header">
+        <span class="block-badge">B.2</span>
+        <span class="block-name">Dynamic Programming — precomputed prefix/suffix max arrays</span>
+        <div class="block-pills"><span class="pill pill-t">O(n)</span><span class="pill pill-s">O(n)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="approach-box">
+          <div class="approach-title">Why this is DP — and why it fixes brute force</div>
+          Dynamic programming applies when a problem has <em>overlapping subproblems</em> — cases where the same computation is performed repeatedly for different inputs. In brute force, computing <code>leftMax</code> for bar <code>i+1</code> repeats almost all the work done for bar <code>i</code>. DP fixes this by building two precomputed arrays in a single pass each: <code>leftMaxAt[i]</code> stores the tallest bar from index 0 through <code>i</code>, and <code>rightMaxAt[i]</code> stores the tallest bar from <code>i</code> through <code>n−1</code>. Each cell is computed in O(1) using the previously stored cell — that's the DP recurrence.
+        </div>
+
+        <p>The recurrences are: <code>leftMaxAt[i] = max(height[i], leftMaxAt[i−1])</code> and <code>rightMaxAt[i] = max(height[i], rightMaxAt[i+1])</code>. Once both arrays exist, a final pass applies the original formula — <code>water[i] = min(leftMaxAt[i], rightMaxAt[i]) − height[i]</code> — in O(1) per bar. Total: three O(n) passes, O(n) extra space for the two arrays.</p>
+
+        <p>This is also the conceptual bridge to the two-pointer solution. The two-pointer version doesn't precompute the arrays — it computes the same values on the fly, discarding cells it no longer needs. At any moment in the two-pointer loop, <code>maxWallLeft</code> holds exactly what <code>leftMaxAt[leftPointer]</code> would contain, and <code>maxWallRight</code> holds what <code>rightMaxAt[rightPointer]</code> would contain. Understanding the DP version makes the two-pointer invariant obvious: it's just DP with rolling variables instead of full arrays.</p>
+
+        <figure style="margin: 20px 0 16px;">
+          <img src="assets/dp_image.png" alt="Three diagrams: top-left shows the max height from the left end up to each bar (green shading); top-right shows the max height from the right end (red shading); bottom shows the minimum of the two overlaid on the bars with hatched shading indicating trapped water." style="max-width: 100%; border: 1px solid #c8ccd1; border-radius: 3px;">
+          <figcaption style="font: italic 12.5px 'Source Sans 3', sans-serif; color: #72777d; margin-top: 6px;">Fig: Dynamic Programming Approach — precompute max height from left (top-left) and from right (top-right) separately, then take the minimum ceiling at each bar (bottom). The shaded portion represents trapped water.</figcaption>
+        </figure>
+
+        <pre class="swift"><span class="kw">func</span> <span class="fn">trap</span>(<span class="kw">_</span> height: [<span class="tp">Int</span>]) -&gt; <span class="tp">Int</span> {
+    <span class="kw">guard</span> !height.isEmpty <span class="kw">else</span> { <span class="kw">return</span> <span class="nm">0</span> }
+    <span class="kw">let</span> size = height.count
+    <span class="kw">var</span> totalWater = <span class="nm">0</span>
+
+    <span class="cm">// leftMaxAt[i] = tallest bar from index 0 through i (inclusive).</span>
+    <span class="kw">var</span> leftMaxAt = [<span class="tp">Int</span>](repeating: <span class="nm">0</span>, count: size)
+    leftMaxAt[<span class="nm">0</span>] = height[<span class="nm">0</span>]
+    <span class="kw">for</span> index <span class="kw">in</span> <span class="nm">1</span>..&lt;size {
+        leftMaxAt[index] = <span class="fn">max</span>(height[index], leftMaxAt[index - <span class="nm">1</span>])
+    }
+
+    <span class="cm">// rightMaxAt[i] = tallest bar from index i through n−1 (inclusive).</span>
+    <span class="kw">var</span> rightMaxAt = [<span class="tp">Int</span>](repeating: <span class="nm">0</span>, count: size)
+    rightMaxAt[size - <span class="nm">1</span>] = height[size - <span class="nm">1</span>]
+    <span class="kw">for</span> index <span class="kw">in</span> <span class="kw">stride</span>(from: size - <span class="nm">2</span>, through: <span class="nm">0</span>, by: -<span class="nm">1</span>) {
+        rightMaxAt[index] = <span class="fn">max</span>(height[index], rightMaxAt[index + <span class="nm">1</span>])
+    }
+
+    <span class="cm">// Apply formula: water above bar i = min ceiling − bar height.</span>
+    <span class="kw">for</span> index <span class="kw">in</span> <span class="nm">1</span>..&lt;(size - <span class="nm">1</span>) {
+        totalWater += <span class="fn">min</span>(leftMaxAt[index], rightMaxAt[index]) - height[index]
+    }
+
+    <span class="kw">return</span> totalWater
+}</pre>
+      </div>
+    </div>
+
+    <!-- 16.3 Monotonic Stack -->
+    <div class="solution-block" id="alt-stack">
+      <div class="block-header">
+        <span class="block-badge">B.3</span>
+        <span class="block-name">Monotonic Stack — horizontal layer-by-layer accumulation</span>
+        <div class="block-pills"><span class="pill pill-t">O(n)</span><span class="pill pill-s">O(n)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="approach-box">
+          <div class="approach-title">Why this works — a completely different mental model</div>
+          All three previous approaches think <em>vertically</em>: for each bar, how much water sits above it? The stack approach thinks <em>horizontally</em>: when a taller bar is encountered, calculate the rectangular layer of water that just got bounded between this new bar and the last tall bar still on the stack. The stack maintains a decreasing sequence of bar heights (by index) — the moment a taller bar arrives, it forms the right wall of a basin whose left wall is the next item on the stack.
+        </div>
+
+        <p>A <em>monotonic decreasing stack</em> stores bar indices in an order where bar heights strictly decrease from bottom to top. When a new bar is taller than the top of the stack, it "closes" a trapped-water layer: pop the top (the floor of the basin), check if a left wall still exists on the stack, then compute <code>distance × boundedHeight</code> — where <code>boundedHeight</code> is <code>min(leftWall, rightWall) − floor</code> and <code>distance</code> is the horizontal gap between left and right walls. This repeats while the stack top is shorter than the current bar, accumulating multiple horizontal layers in a single sweep.</p>
+
+        <p>The O(n) complexity follows from the same argument as all stack-based problems: every bar index is pushed at most once and popped at most once, so the total number of stack operations across the entire loop is at most 2n. The space cost is O(n) in the worst case (a strictly decreasing input fills the stack completely before any bar triggers a pop).</p>
+
+        <pre class="swift"><span class="kw">func</span> <span class="fn">trap</span>(<span class="kw">_</span> height: [<span class="tp">Int</span>]) -&gt; <span class="tp">Int</span> {
+    <span class="kw">var</span> totalWater = <span class="nm">0</span>
+    <span class="kw">var</span> currentIndex = <span class="nm">0</span>
+    <span class="kw">var</span> stackIndices: [<span class="tp">Int</span>] = []  <span class="cm">// stores bar indices; heights decrease from bottom to top</span>
+
+    <span class="kw">while</span> currentIndex &lt; height.count {
+        <span class="cm">// A taller bar has arrived — it closes one or more trapped-water layers.</span>
+        <span class="kw">while</span> !stackIndices.isEmpty &amp;&amp; height[currentIndex] &gt; height[stackIndices.last!] {
+            <span class="kw">let</span> topIndex = stackIndices.removeLast()
+
+            <span class="cm">// No left wall — basin is open on the left, no water trapped.</span>
+            <span class="kw">if</span> stackIndices.isEmpty { <span class="kw">break</span> }
+
+            <span class="kw">let</span> distance = currentIndex - stackIndices.last! - <span class="nm">1</span>
+            <span class="kw">let</span> boundedHeight = <span class="fn">min</span>(height[currentIndex], height[stackIndices.last!]) - height[topIndex]
+            totalWater += distance * boundedHeight
+        }
+        stackIndices.append(currentIndex)
+        currentIndex += <span class="nm">1</span>
+    }
+
+    <span class="kw">return</span> totalWater
+}</pre>
+      </div>
+    </div>
+
   </section>
 
 </main>
