@@ -93,6 +93,8 @@ QUESTIONS
 //            print("first left", leftPointer)
             // make this print commenting out the OUTER LOOP
         print(stringArray[leftPointer], "is \(!stringArray[leftPointer].isNumber)")
+            
+            // TIP: invert the conditions, check first left < right
             while !(stringArray[leftPointer].isLetter || stringArray[leftPointer].isNumber), leftPointer < rightPointer {
                 leftPointer += 1
             }
