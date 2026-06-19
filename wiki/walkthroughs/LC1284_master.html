@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LC 1284 — Minimum Number of Flips to Convert Binary Matrix to Zero Matrix · Walkthrough Masterfile</title>
+<link rel="stylesheet" href="../_shared/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="walkthrough">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── TOC ── -->
+<nav class="toc-col">
+  <div class="toc-inner">
+    <div class="toc-title toc-cat-walkthrough">Walkthrough · Contents</div>
+    <a href="#lead"         class="toc-link"><span class="toc-num">1</span> The Problem</a>
+    <a href="#reading"      class="toc-link"><span class="toc-num">2</span> Reading the Problem</a>
+    <a href="#edge-cases"   class="toc-link"><span class="toc-num">3</span> Edge Case Inventory</a>
+    <a href="#hints"        class="toc-link"><span class="toc-num">4</span> Try It Yourself First</a>
+    <a href="#simulation"   class="toc-link"><span class="toc-num">5</span> Interview Simulation</a>
+    <div class="toc-sub">
+      <a href="#sim-questions" class="toc-link">5.1 Clarifying questions</a>
+      <a href="#sim-plan"      class="toc-link">5.2 The plan, spoken</a>
+    </div>
+    <a href="#approach"     class="toc-link"><span class="toc-num">6</span> Why This Approach</a>
+    <a href="#structures"   class="toc-link"><span class="toc-num">7</span> Data Structures</a>
+    <a href="#dryrun"       class="toc-link"><span class="toc-num">8</span> Pseudocode Dry Run</a>
+    <a href="#swift"        class="toc-link"><span class="toc-num">9</span> Swift Solution</a>
+    <a href="#code-dry-run" class="toc-link"><span class="toc-num">10</span> Code Dry Run</a>
+    <a href="#qmap"         class="toc-link"><span class="toc-num">11</span> Question → Code Map</a>
+    <a href="#complexity"   class="toc-link"><span class="toc-num">12</span> Complexity</a>
+    <a href="#followups"    class="toc-link"><span class="toc-num">13</span> Follow-Up Bank</a>
+    <a href="#decoder"      class="toc-link"><span class="toc-num">14</span> Theory Decoder</a>
+    <a href="#parent"       class="toc-link"><span class="toc-num">15</span> Parent Theory</a>
+  </div>
+</nav>
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">LC 1284 — Min Flips to Convert Binary Matrix to Zero Matrix</h1>
+  <div class="page-meta">
+    <span>Walkthrough Masterfile</span><span>·</span>
+    <span>Language: Swift</span><span>·</span>
+    <span>Hard · State-space BFS · Bitmask states</span>
+  </div>
+
+  <!-- 1. Restatement -->
+  <section id="lead">
+    <div class="infobox">
+      <div class="infobox-title">Problem at a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Difficulty</div><div class="infobox-v"><span class="tag tag-H">Hard</span></div></div>
+      <div class="infobox-row"><div class="infobox-k">Pattern</div><div class="infobox-v">State-space BFS — whole matrix is a vertex (Variant 8.3)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Tools</div><div class="infobox-v">Int bitmask encoding · precomputed XOR flip-masks · queue · visited set</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key insight</div><div class="infobox-v">Encode the whole matrix as one Int; a flip is an XOR with a fixed mask; BFS to state 0 gives the fewest flips</div></div>
+      <div class="infobox-row"><div class="infobox-k">Time / Space</div><div class="infobox-v">O(2^(m·n) · m·n) / O(2^(m·n))</div></div>
+      <div class="infobox-row"><div class="infobox-k">Theory</div><div class="infobox-v mono"><a href="../theory/graphs/bfs_deep_dive_master.html">bfs_deep_dive_master.html</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p>Given an <code>m×n</code> binary matrix <code>mat</code>, one <strong>step</strong> chooses any cell and flips it <em>together with its four direct neighbors</em> (up, down, left, right — diagonals excluded, out-of-grid neighbors ignored). Return the <strong>minimum number of steps</strong> to turn the whole matrix into all zeros, or <code>−1</code> if it's impossible. The grid is tiny: <code>m, n ≤ 3</code>, so there are at most 9 cells.</p>
+
+      <table class="t-example">
+        <thead><tr><th>Input</th><th>Output</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><code>[[0,0],[0,1]]</code></td><td><code>3</code></td><td>Three flips (each toggling a plus-shape) clear it; no shorter sequence exists</td></tr>
+          <tr><td><code>[[0]]</code></td><td><code>0</code></td><td>Already all zeros — zero steps</td></tr>
+          <tr><td><code>[[1,0,0],[1,0,0]]</code></td><td><code>-1</code></td><td>No sequence of plus-flips reaches the zero matrix</td></tr>
+        </tbody>
+      </table>
+
+      <p>The twist is realizing this is a <em>shortest path between configurations</em>, not a grid-traversal. A "vertex" is the entire matrix state, and an "edge" is applying one flip. Because the grid is so small (≤ 9 cells), the whole matrix fits in one <code>Int</code> bitmask, the visited set becomes a set of integers, and "fewest steps" is exactly BFS over those states — the first time BFS reaches state <code>0</code>, that layer is the answer.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Reading the problem -->
+  <section id="reading">
+    <h2>2 &nbsp; Reading the Problem — insights from the constraints</h2>
+
+    <div class="co-insight"><strong>"Minimum number of steps":</strong> "minimum number of moves" where each move costs the same is the BFS signal — but the moves here aren't grid steps, they're transformations of the whole matrix. So the graph is a <em>state space</em>: each reachable matrix is a vertex, each flip is an edge. BFS's first arrival at the zero matrix is the fewest flips.</div>
+
+    <div class="co-insight"><strong>"m, n ≤ 3" — the constraint that picks the technique:</strong> at most 9 cells means at most 2⁹ = 512 distinct matrix states. A space that small is fully searchable, and 9 bits fit in a single <code>Int</code>. This tiny bound is what makes "treat the whole matrix as one vertex" tractable — with a 30×30 grid you couldn't.</div>
+
+    <div class="co-insight"><strong>"Flip a cell and its four direct neighbors":</strong> a flip is a fixed XOR. For each cell position, precompute a mask with bits set for that cell plus its in-grid up/down/left/right neighbors. Applying a flip is <code>state ^ flipMask[cell]</code> — toggling exactly those bits. There are only m·n possible flips (one per cell), so each state has ≤ 9 outgoing edges.</div>
+
+    <div class="co-insight"><strong>"Or −1 if impossible":</strong> some start matrices can never reach all-zeros (the flip operations span only a subspace). BFS handles this for free — if the queue drains without ever dequeuing state 0, return −1. No special reachability theory needed.</div>
+
+    <div class="co-insight"><strong>Encoding as bit position:</strong> cell <code>(r, c)</code> maps to bit <code>r·n + c</code> (row-major). The whole matrix becomes one integer by OR-ing <code>1 &lt;&lt; (r·n + c)</code> for every 1-cell. The zero matrix is integer <code>0</code> — a clean goal test.</div>
+
+    <table class="t-clue">
+      <thead><tr><th>Phrase / constraint</th><th>What it forces</th></tr></thead>
+      <tbody>
+        <tr><td>"minimum number of steps"</td><td>BFS over states — first arrival at the goal is the answer</td></tr>
+        <tr><td>"m, n ≤ 3" (≤ 9 cells)</td><td>≤ 512 states; encode the whole matrix in one Int</td></tr>
+        <tr><td>"flip cell + 4 neighbors"</td><td>Precompute one XOR mask per cell; edge = <code>state ^ mask</code></td></tr>
+        <tr><td>"all zeros target"</td><td>Goal state is integer <code>0</code></td></tr>
+        <tr><td>"−1 if impossible"</td><td>Queue drains without reaching 0 → −1</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Edge cases -->
+  <section id="edge-cases">
+    <h2>3 &nbsp; Edge Case Inventory</h2>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected</th><th>Handled by</th></tr></thead>
+      <tbody>
+        <tr><td>Already all zeros</td><td><code>0</code></td><td>Goal check on the start state, before expanding any neighbor.</td></tr>
+        <tr><td>Single cell <code>[[1]]</code></td><td><code>1</code></td><td>One flip (mask = just that cell) reaches 0 at layer 1.</td></tr>
+        <tr><td>Single cell <code>[[0]]</code></td><td><code>0</code></td><td>Start already equals the goal state 0.</td></tr>
+        <tr><td>Unreachable target</td><td><code>-1</code></td><td>Queue empties without ever dequeuing state 0.</td></tr>
+        <tr><td>Corner cell flip</td><td>fewer bits toggled</td><td>Flip mask only sets in-grid neighbors — out-of-grid ones skipped.</td></tr>
+        <tr><td>1×n or m×1 strip</td><td>correct min</td><td>Neighbor computation uses the actual m, n bounds.</td></tr>
+        <tr><td>Max 3×3 all ones</td><td>correct min (≤ 9 states deep)</td><td>State space ≤ 512; BFS terminates fast.</td></tr>
+        <tr><td>GOTCHA: re-flipping the same cell</td><td>never helps (XOR is its own inverse)</td><td>Visited set prevents revisiting a state, so cycles can't inflate the count.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="co-insight"><strong>The "already zero" and "unreachable" cases bracket the search.</strong> Check the start against the goal first so an all-zero input returns 0 without work. At the other end, never assume a solution exists — let BFS prove unreachability by draining the queue. The XOR-is-its-own-inverse fact means re-applying a flip undoes it, so the visited set is what stops the search from looping.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Hints -->
+  <section id="hints">
+    <h2>4 &nbsp; Try It Yourself First</h2>
+    <p>The leap is "the whole matrix is one vertex." Open hints one at a time.</p>
+    <details class="hint"><summary>Hint 1 — the constraint that's a clue</summary><p>m, n ≤ 3 means at most 9 cells and at most 2⁹ = 512 whole-matrix configurations. A space that small is fully searchable. What if each <em>entire matrix</em> were a single node in a graph?</p></details>
+    <details class="hint"><summary>Hint 2 — the pattern</summary><p>"Minimum number of moves" + equal-cost moves = BFS. The vertex is a matrix state, the edge is "apply one flip." Encode each matrix as an <code>Int</code> bitmask (cell r,c → bit r·n+c). BFS from the start integer to the integer <code>0</code>; the layer you first reach 0 is the answer.</p></details>
+    <details class="hint"><summary>Hint 3 — the flip as an XOR</summary><p>For each cell, precompute a mask with bits for that cell and its in-grid up/down/left/right neighbors. Applying the flip is <code>state ^ mask</code> — XOR toggles exactly those bits. Keep a visited set of seen states so you never reprocess one; if the queue empties without reaching 0, return −1.</p></details>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Interview simulation -->
+  <section id="simulation">
+    <h2>5 &nbsp; Interview Simulation</h2>
+    <p>The interviewer has stated the problem. The script starts with your first words — practice it out loud.</p>
+
+    <div class="sim-block" id="sim-questions">
+      <div class="sim-header">Step 1 — Clarifying questions</div>
+      <div class="sim-body">
+        <div class="sim-q">Q: "How large can the matrix be?"</div>
+        <div class="sim-a">A: m and n are both at most 3. <strong>→ At most 9 cells, ≤ 512 states — small enough to encode the whole matrix in one Int and search the entire state space.</strong></div>
+
+        <div class="sim-q">Q: "A flip toggles the cell and which neighbors — diagonals too?"</div>
+        <div class="sim-a">A: Only the four direct (orthogonal) neighbors, and out-of-grid ones are ignored. <strong>→ One precomputed XOR mask per cell, only in-grid neighbor bits set.</strong></div>
+
+        <div class="sim-q">Q: "Is it guaranteed solvable, or can it be impossible?"</div>
+        <div class="sim-a">A: It can be impossible. <strong>→ I return −1 if BFS drains without reaching the zero state.</strong></div>
+
+        <div class="sim-q">Q: "Does flipping the same cell twice ever help?"</div>
+        <div class="sim-a">A: No — XOR is its own inverse, so two flips cancel. <strong>→ A visited set of states prevents loops and redundant work.</strong></div>
+      </div>
+    </div>
+
+    <div class="sim-block" id="sim-plan">
+      <div class="sim-header">Step 2 — The plan, before any code</div>
+      <div class="sim-body">
+        <div class="speech">
+          <div class="speech-kicker">The plan, spoken</div>
+          <p>"This is state-space BFS — Variant 8.3 of the Graphs / BFS block. The signal is 'minimum number of moves,' and the tiny m, n ≤ 3 bound is the tell that I should treat the <em>entire matrix</em> as a single vertex. The graph is implicit: vertices are matrix configurations, edges are flips."</p>
+          <p>"Let me pin the conditions before the structures. First, the encoding: cell (r,c) is bit r·n+c, so the whole matrix is one Int, and the goal is the integer 0. Second, the edge: for each cell I precompute a flip-mask with bits for that cell and its in-grid orthogonal neighbors; applying a flip is <code>state ^ mask</code>. The validity condition for enqueuing a next state: it hasn't been visited. The invariant: each state enters the queue once because I mark it visited on enqueue — that bounds the work at the 512 states. The stop condition: I return the current layer the moment I dequeue state 0; if the queue empties first, the target is unreachable → −1."</p>
+          <p>"On structures: an Int for the start state (built by OR-ing bits over the 1-cells); an array of m·n precomputed flip-masks; a queue of states with a head index; a <code>Set&lt;Int&gt;</code> of visited states. A per-layer step counter via the level-size loop."</p>
+          <p>"The walk: encode the start matrix. If it's already 0, return 0. BFS layer by layer: for each state, try all m·n flips, XOR to get the next state, enqueue the unvisited ones. When I dequeue 0, return the layer count. Time is O(states · m·n) = O(2^(m·n)·m·n), bounded by 512·9; space O(states) for visited."</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. Approach rationale -->
+  <section id="approach">
+    <h2>6 &nbsp; Why This Approach — and not the others</h2>
+    <table class="t-versus">
+      <thead><tr><th>Candidate</th><th>Cost</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>Brute-force all flip subsets</td><td>O(2^(m·n) · m·n)</td><td>Each cell is flipped 0 or 1 times (twice cancels), so 2^(m·n) subsets — same order as BFS, but you'd still need to find the <em>minimum</em> subset, i.e. count set bits. Works, but BFS finds the minimum naturally by layer.</td></tr>
+        <tr><td>DFS / backtracking over flip sequences</td><td>exponential, no min guarantee</td><td><strong>Wrong tool.</strong> DFS explores one deep sequence first and has no shortest-path property; you'd have to exhaust all sequences to be sure of the minimum.</td></tr>
+        <tr><td>Gaussian elimination over GF(2)</td><td>O((m·n)³)</td><td>The "proper" linear-algebra solution (this is a Lights-Out problem) — elegant and scales, but heavy to derive in an interview. Overkill given m, n ≤ 3.</td></tr>
+        <tr><td><strong>State-space BFS over bitmasks</strong></td><td>O(2^(m·n) · m·n)</td><td><strong>Chosen.</strong> The small state space makes full BFS trivial, the minimum falls out of the layer count, and the encoding + XOR-flip is clean and fast to write correctly.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-when"><strong>The deciding signal:</strong> "minimum moves to transform a configuration" + a <em>tiny</em> state space. That pair says "make each configuration a vertex and BFS." The ≤ 9-cell bound is the green light to encode the whole matrix as one integer; without it, BFS over states would blow up and you'd need the GF(2) approach.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Data structures -->
+  <section id="structures">
+    <h2>7 &nbsp; Data Structures — choice and justification</h2>
+    <table class="t-decoder">
+      <thead><tr><th>Structure</th><th>Holds</th><th>Why this and not weaker/stronger</th></tr></thead>
+      <tbody>
+        <tr><td><code>Int</code> bitmask (per state)</td><td>The whole matrix encoded — bit <code>r·n+c</code> = cell value</td><td>9 bits fit in one Int, making a matrix a hashable, comparable scalar. The goal is just <code>0</code>. A 2-D array per state would be unhashable and slow to compare.</td></tr>
+        <tr><td><code>flipMasks: [Int]</code> (one per cell)</td><td>For each cell, the bits its flip toggles (itself + in-grid neighbors)</td><td>Precomputing once turns each edge into a single <code>state ^ mask</code> XOR — O(1) per move instead of re-deriving neighbors every time.</td></tr>
+        <tr><td><code>queue: [Int]</code> + <code>head</code></td><td>The frontier of states, FIFO</td><td>FIFO order makes first-arrival = fewest flips. Head index keeps dequeue O(1); <code>removeFirst()</code> would add an O(states) factor.</td></tr>
+        <tr><td><code>visited: Set&lt;Int&gt;</code></td><td>States already enqueued</td><td>O(1) membership so each of the ≤ 512 states is processed once. Keying on the Int state is the whole reason the encoding matters.</td></tr>
+        <tr><td><code>steps</code> counter (per layer)</td><td>Flips applied so far</td><td>The level-size loop bumps it once per BFS layer = once per flip-depth.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-insight"><strong>Why the bitmask encoding is the crux.</strong> The entire problem becomes easy <em>because</em> a matrix is an Int: the visited set is a <code>Set&lt;Int&gt;</code>, the goal is <code>0</code>, equality is integer equality, and a flip is one XOR. Trying to BFS over <code>[[Int]]</code> states directly would force you to make 2-D arrays hashable and copy them constantly. The encoding is the technique; the BFS loop is boilerplate.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 8. Pseudocode dry run -->
+  <section id="dryrun">
+    <h2>8 &nbsp; Pseudocode Dry Run</h2>
+
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">encode → BFS over states → first arrival at 0</span></div>
+<pre class="pseudo">n ← cols
+start ← OR of (1 &lt;&lt; (r*n + c)) for every cell with mat[r][c] == 1
+<span class="pk">FOR</span> each cell (r,c): flipMask[r*n+c] ← bits for (r,c) + in-grid 4-neighbors
+
+<span class="pk">IF</span> start == 0: <span class="pk">RETURN</span> 0          <span class="pc">already the zero matrix</span>
+queue ← [start] ; visited ← { start } ; steps ← 0
+<span class="pk">WHILE</span> queue not empty:
+    levelSize ← size(queue) ; steps ← steps + 1
+    <span class="pk">REPEAT</span> levelSize times:
+        state ← dequeue(queue)
+        <span class="pk">FOR</span> mask <span class="pk">IN</span> flipMask:
+            next ← state XOR mask
+            <span class="pk">IF</span> next == 0: <span class="pk">RETURN</span> steps     <span class="pc">first arrival = fewest flips</span>
+            <span class="pk">IF</span> next not in visited:
+                visited.insert(next) ; enqueue(queue, next)
+<span class="pk">RETURN</span> -1                          <span class="pc">unreachable</span></pre>
+
+    <p>Trace on <code>[[0,0],[0,1]]</code> (2×2, n=2) — expected <code>3</code>. Bit layout: <code>bit0=(0,0) bit1=(0,1) bit2=(1,0) bit3=(1,1)</code>, so start = <code>1&lt;&lt;3 = 8 = 0b1000</code>.</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">flip-masks then the first BFS layers</span></div>
+<pre class="dry"><span class="tr-var">flip masks (cell + orthogonal in-grid neighbors), 2×2:
+  cell0 (0,0): self + right(1) + down(2)        = 0b0111 = 7
+  cell1 (0,1): self + left(0) + down(3)         = 0b1011 = 11
+  cell2 (1,0): self + up(0)  + right(3)         = 0b1101 = 13
+  cell3 (1,1): self + up(1)  + left(2)          = 0b1110 = 14
+start = 0b1000 = 8</span>
+
+steps=1, expand 8:
+  8^7  = 15 → enqueue ; 8^11 = 3  → enqueue
+  8^13 = 5  → enqueue ; 8^14 = 6  → enqueue   (none is 0)
+steps=2, expand {15,3,5,6}:
+  e.g. 3^7=4, 3^11=8(seen), 3^13=14, 3^14=13, 15^… , ...
+  many new states enqueued, still no 0 reached
+steps=3, expanding the layer-2 states:
+  one flip from some layer-2 state yields <span class="tr-ok">next == 0 → RETURN 3</span></pre>
+    <p class="ascii-caption">The exact layer-2/3 states are many; the point is that state 0 is first produced as an XOR result at depth 3 — so the minimum is 3 flips.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 9. Swift solution -->
+  <section id="swift">
+    <h2>9 &nbsp; Swift Solution — iterative</h2>
+
+    <p>Encode the matrix into an Int, precompute one flip-mask per cell, then BFS over integer states with a level-size loop for the step count.</p>
+
+    <div class="solution-block">
+      <div class="block-header">
+        <span class="block-badge">A.1</span>
+        <span class="block-name">State-space BFS over a bitmask</span>
+        <div class="block-pills"><span class="pill pill-t">O(2^(m·n)·m·n)</span><span class="pill pill-s">O(2^(m·n))</span></div>
+      </div>
+      <div class="block-body">
+        <div class="approach-box">
+          <div class="approach-title">Plan</div>
+          Encode the matrix as an Int (cell r,c → bit r·n+c). Precompute, for each cell, the XOR mask its flip toggles (the cell plus its in-grid orthogonal neighbors). If the start is already 0, return 0. BFS layer by layer: for each state, XOR with every flip-mask to get next states; the first time a next state is 0, return the current layer. Empty queue → −1.
+        </div>
+
+        <pre class="swift"><span class="kw">func</span> <span class="fn">minFlips</span>(<span class="kw">_</span> mat: [[<span class="tp">Int</span>]]) -&gt; <span class="tp">Int</span> {
+    <span class="kw">let</span> rows = mat.count, cols = mat[<span class="nm">0</span>].count
+
+    <span class="cm">// 1. Encode the matrix into a single Int: cell (r,c) → bit (r*cols + c).</span>
+    <span class="kw">var</span> start = <span class="nm">0</span>
+    <span class="kw">for</span> r <span class="kw">in</span> <span class="nm">0</span>..&lt;rows {
+        <span class="kw">for</span> c <span class="kw">in</span> <span class="nm">0</span>..&lt;cols <span class="kw">where</span> mat[r][c] == <span class="nm">1</span> {
+            start |= <span class="nm">1</span> &lt;&lt; (r * cols + c)
+        }
+    }
+    <span class="kw">if</span> start == <span class="nm">0</span> { <span class="kw">return</span> <span class="nm">0</span> }                       <span class="cm">// already the zero matrix</span>
+
+    <span class="cm">// 2. Precompute one flip-mask per cell: itself + in-grid orthogonal neighbors.</span>
+    <span class="kw">let</span> directions = [(<span class="nm">0</span>,<span class="nm">0</span>),(<span class="nm">0</span>,<span class="nm">1</span>),(<span class="nm">0</span>,-<span class="nm">1</span>),(<span class="nm">1</span>,<span class="nm">0</span>),(-<span class="nm">1</span>,<span class="nm">0</span>)]
+    <span class="kw">var</span> flipMasks: [<span class="tp">Int</span>] = []
+    <span class="kw">for</span> r <span class="kw">in</span> <span class="nm">0</span>..&lt;rows {
+        <span class="kw">for</span> c <span class="kw">in</span> <span class="nm">0</span>..&lt;cols {
+            <span class="kw">var</span> mask = <span class="nm">0</span>
+            <span class="kw">for</span> (dr, dc) <span class="kw">in</span> directions {
+                <span class="kw">let</span> nr = r + dr, nc = c + dc
+                <span class="kw">if</span> nr &gt;= <span class="nm">0</span>, nr &lt; rows, nc &gt;= <span class="nm">0</span>, nc &lt; cols {
+                    mask |= <span class="nm">1</span> &lt;&lt; (nr * cols + nc)
+                }
+            }
+            flipMasks.append(mask)
+        }
+    }
+
+    <span class="cm">// 3. BFS over integer states; the layer that first reaches 0 is the answer.</span>
+    <span class="kw">var</span> queue = [start], head = <span class="nm">0</span>, steps = <span class="nm">0</span>
+    <span class="kw">var</span> visited: <span class="tp">Set</span>&lt;<span class="tp">Int</span>&gt; = [start]
+    <span class="kw">while</span> head &lt; queue.count {
+        <span class="kw">let</span> levelSize = queue.count - head
+        steps += <span class="nm">1</span>
+        <span class="kw">for</span> _ <span class="kw">in</span> <span class="nm">0</span>..&lt;levelSize {
+            <span class="kw">let</span> state = queue[head]; head += <span class="nm">1</span>
+            <span class="kw">for</span> mask <span class="kw">in</span> flipMasks {
+                <span class="kw">let</span> next = state ^ mask                  <span class="cm">// apply one flip</span>
+                <span class="kw">if</span> next == <span class="nm">0</span> { <span class="kw">return</span> steps }            <span class="cm">// first arrival = fewest flips</span>
+                <span class="kw">if</span> !visited.contains(next) {
+                    visited.insert(next)                  <span class="cm">// mark on enqueue</span>
+                    queue.append(next)
+                }
+            }
+        }
+    }
+    <span class="kw">return</span> -<span class="nm">1</span>                                          <span class="cm">// zero matrix unreachable</span>
+}</pre>
+        <div class="co-note"><strong>Note:</strong> the direction table includes <code>(0,0)</code> so the cell itself is part of its own flip-mask. Bounds are checked while <em>building</em> each mask, so out-of-grid neighbors are silently skipped — corner cells get smaller masks automatically. The <code>steps += 1</code> sits at the top of each layer, so a next-state of 0 found while expanding a layer-(k−1) state returns <code>k</code>.</div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 10. Code dry run -->
+  <section id="code-dry-run">
+    <h2>10 &nbsp; Code Dry Run — the Swift solution, traced</h2>
+    <p>Full debugger-style trace on <code>[[1]]</code> (1×1) → expected <code>1</code>. Tiny by design so the trace stays exhaustive.</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">full execution trace — /code-dry-run format</span></div>
+<pre class="dry">────────────────────────────────
+/code-dry-run
+Problem: LC 1284 — Min Flips to Zero Matrix
+Input:   mat = [[1]]   (rows = 1, cols = 1)
+────────────────────────────────
+
+minFlips
+  ENCODE START
+    r=0,c=0: mat[0][0]==1 → start |= 1<<0 → start = 1
+  start == 0? NO
+
+  PRECOMPUTE FLIP MASKS
+    cell (0,0): directions tried —
+      (0,0)→(0,0) in grid → mask |= 1<<0 → mask = 1
+      (0,1)→(0,1) c=1 ≥ cols(1) → skip
+      (0,-1) c=-1 < 0       → skip
+      (1,0) r=1 ≥ rows(1)   → skip
+      (-1,0) r=-1 < 0       → skip
+    flipMasks = [ 1 ]
+
+  BFS INIT
+    queue = [1], head = 0, steps = 0, visited = { 1 }
+
+────────────────────────────────
+LAYER 1   (steps → 1)
+────────────────────────────────
+  levelSize = 1
+  state = queue[0] = 1 ; head → 1
+    mask = 1: next = 1 ^ 1 = 0
+      next == 0? YES → return steps
+  ↑ one flip toggles the single cell from 1 to 0
+
+────────────────────────────────
+RESULT
+────────────────────────────────
+  return steps = 1</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 11. Q→Code map -->
+  <section id="qmap">
+    <h2>11 &nbsp; Question → Code Map</h2>
+    <table class="t-qmap">
+      <thead><tr><th>What you asked / planned</th><th>What it became</th></tr></thead>
+      <tbody>
+        <tr><td>"Whole matrix is a vertex"</td><td><code>start</code> as an Int built by OR-ing <code>1 &lt;&lt; (r*cols+c)</code></td></tr>
+        <tr><td>"A flip is a fixed XOR"</td><td><code>flipMasks[cell]</code> precomputed; edge = <code>state ^ mask</code></td></tr>
+        <tr><td>"In-grid neighbors only"</td><td>bounds check while building each mask, out-of-grid skipped</td></tr>
+        <tr><td>"Goal is the zero matrix"</td><td><code>if next == 0 { return steps }</code></td></tr>
+        <tr><td>"Already zero → 0"</td><td><code>if start == 0 { return 0 }</code></td></tr>
+        <tr><td>"Minimum moves = BFS layer"</td><td>level-size loop, <code>steps += 1</code> per layer</td></tr>
+        <tr><td>"Each state once"</td><td><code>visited.insert(next)</code> on enqueue</td></tr>
+        <tr><td>"Impossible → −1"</td><td><code>return -1</code> after the loop</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 12. Complexity -->
+  <section id="complexity">
+    <h2>12 &nbsp; Complexity</h2>
+    <table class="t-cmx">
+      <thead><tr><th>Phase</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Encode + build flip-masks</td><td class="tc">O(m·n)</td><td class="sc">O(m·n)</td><td>One pass over the cells to encode; one pass per cell over ≤ 5 directions to build masks.</td></tr>
+        <tr><td>BFS over states</td><td class="tc">O(2^(m·n) · m·n)</td><td class="sc">O(2^(m·n))</td><td>At most 2^(m·n) states, each enqueued once; expanding a state tries all m·n flips. Visited holds up to 2^(m·n) integers.</td></tr>
+        <tr class="bottleneck"><td>Total</td><td class="tc">O(2^(m·n) · m·n)</td><td class="sc">O(2^(m·n))</td><td>The state count dominates — exponential in the cell count, but m·n ≤ 9 caps it at 512·9 ≈ 4.6k operations. The bottleneck is the size of the state space, not the BFS loop.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-insight"><strong>Why the exponential is fine here.</strong> 2^(m·n) looks alarming, but the constraint m, n ≤ 3 pins it at 2⁹ = 512 states — a constant for all inputs. This is the whole reason the problem flags the tiny bound: it converts an otherwise intractable "search all configurations" into a trivially fast BFS. Remove that bound and you'd need the GF(2) linear-algebra solution (§6) instead.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13. Follow-ups -->
+  <section id="followups">
+    <h2>13 &nbsp; Follow-Up Bank — the interviewer's second act</h2>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Before you push this to production — can you see any improvements you'd make?"</div>
+      <div class="followup-a">A couple. The flip-masks and the start-encoding are pure functions of the dimensions, so I'd compute them once. I'd also confirm <code>removeFirst()</code> isn't used — the head index keeps dequeues O(1). For a micro-win I could use a fixed-size <code>[Bool]</code> of length 512 as the visited marker instead of a <code>Set</code>, since the state space is bounded and small — array indexing beats hashing.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "What if the matrix could be much larger — say 30×30?"</div>
+      <div class="followup-a">Then BFS over 2^900 states is hopeless. This is the classic <strong>Lights Out</strong> problem; with a large grid I'd model it as a linear system over GF(2) — each flip is a vector, the target is the start matrix, and Gaussian elimination over GF(2) finds a solving combination (and its minimality) in O((m·n)³). The BFS only works because the small bound makes the state space a constant.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Why is a visited set enough — couldn't a shorter path appear later?"</div>
+      <div class="followup-a">No — BFS explores in non-decreasing layer order, so the <em>first</em> time any state is reached is via the fewest flips. Once visited, any later path to it is at least as long, so skipping it is safe. That's the same first-touch guarantee that makes the goal's first arrival optimal.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "This is the same family as LC 773 Sliding Puzzle — what changes?"</div>
+      <div class="followup-a">Only the encoding and the move rule. There the vertex is a board permutation encoded as a <em>string</em>, and a move swaps the blank with an adjacent tile rather than XOR-ing a mask. The BFS loop — queue, visited set of encoded states, first-arrival-at-goal — is identical. Both are state-space BFS (Variant 8.3); recognizing "configuration = vertex" is the transferable skill.</div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 14. Theory decoder -->
+  <section id="decoder">
+    <h2>14 &nbsp; Theory Decoder — the theory as used here</h2>
+    <table class="t-decoder">
+      <thead><tr><th>General concept</th><th>Instantiated in this solution as</th><th>General form</th></tr></thead>
+      <tbody>
+        <tr><td>Configuration as a vertex</td><td>The whole matrix encoded as one <code>Int</code> bitmask.</td><td><a href="../theory/graphs/bfs_deep_dive_master.html#v-state">theory §8.3</a></td></tr>
+        <tr><td>State encoding to a hashable key</td><td>Cell (r,c) → bit <code>r·cols+c</code>; goal = integer 0.</td><td><a href="../theory/graphs/bfs_deep_dive_master.html#terminology">theory §3</a></td></tr>
+        <tr><td>BFS first-touch = fewest moves</td><td>The layer at which a next-state equals 0 is the minimum flips.</td><td><a href="../theory/graphs/bfs_deep_dive_master.html#mental-model">theory §4</a></td></tr>
+        <tr><td>Mark visited on enqueue</td><td><code>visited.insert(next)</code> when a state is queued.</td><td><a href="../theory/graphs/bfs_deep_dive_master.html#pseudocode">theory §5</a></td></tr>
+        <tr><td>Level-size loop for the step count</td><td><code>steps += 1</code> per layer via <code>levelSize</code>.</td><td><a href="../theory/graphs/bfs_deep_dive_master.html#iterative">theory §6</a></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 15. Back-reference -->
+  <section id="parent">
+    <h2>15 &nbsp; Parent Theory</h2>
+    <p>This walkthrough instantiates Variant 8.3 of a larger pattern. The parent page is not free-form — it follows the theory masterfile standard, so here is exactly what you land on:</p>
+    <div class="ref-grid">
+      <a class="backref-card" href="../theory/graphs/bfs_deep_dive_master.html">
+        <span class="ref-file">theory/graphs/bfs_deep_dive_master.html</span>
+        <span class="ref-title">Breadth-First Search — Deep Dive Theory Masterfile</span>
+        <span class="ref-desc">The canonical reference for the BFS family: the "same algorithm, bigger vertices" mental model that reframes a grid as a state space (§4), the state-encoding terminology (§3), the level-counting pseudocode (§5), the four-variant catalog with Variant 8.3 State-space BFS this problem instantiates (§8.3), and the complexity argument on why the state count — not the loop — is the bottleneck (§9). Its cross-reference section (§13) links back to this walkthrough, and it sits under the Graphs hub.</span>
+      </a>
+    </div>
+  </section>
+
+  <div class="page-footer">
+    LC 1284 — Min Flips to Convert Binary Matrix to Zero Matrix · Walkthrough Masterfile · Parent theory:
+    <a href="../theory/graphs/bfs_deep_dive_master.html">Breadth-First Search</a> ·
+    Structure per <code>wiki/_standards/WALKTHROUGH_MASTERFILE_STANDARD.md</code>
+  </div>
+
+</main>
+</div>
+
+<script src="../_shared/pages.js"></script>
+<script src="../_shared/nav.js"></script>
+</body>
+</html>

@@ -62,6 +62,14 @@ const WIKI_PAGES = [
     topics: ["Binary Tree", "BST", "Traversal", "LCA"],
     blurb: "Trees hub — tree/BST/trie vocabulary, traversal orders, and the Lowest Common Ancestor deep dive (recursive construction, post-order LCA, parent-map walk-up).",
   },
+  {
+    cat: "theory",
+    path: "theory/graphs/index.html",
+    nav: "Graphs",
+    title: "Graphs",
+    topics: ["BFS", "Topological Sort", "Dijkstra"],
+    blurb: "Graphs hub — vertex/edge/adjacency vocabulary, traversal families, and the Breadth-First Search deep dive (grid BFS, multi-source BFS, state-space BFS over encoded configurations).",
+  },
   // ── Walkthroughs — CUSTOM problems first, then ascending LC number order ─
   {
     cat: "walkthrough",
@@ -314,6 +322,24 @@ const WIKI_PAGES = [
     topics: ["Tree", "LCA", "Hash Map"],
     difficulty: "M",
     blurb: "Post-order LCA (Variant 8.2). Build a parent map, collect p's ancestors, walk q up to the first shared one — LCA as path intersection. Iterative Swift + recursive contrast + dry run.",
+  },
+  {
+    cat: "walkthrough",
+    path: "walkthroughs/LC1091_master.html",
+    nav: "LC 1091",
+    title: "LC 1091 — Shortest Path in Binary Matrix",
+    topics: ["Graphs", "BFS", "Matrix"],
+    difficulty: "M",
+    blurb: "Grid BFS warm-up (Variant 8.1). Cells as vertices, 8-directional moves, head-index queue + visited set, distance counts cells. First arrival at the goal is the shortest path. Full Swift + dry run.",
+  },
+  {
+    cat: "walkthrough",
+    path: "walkthroughs/LC1284_master.html",
+    nav: "LC 1284",
+    title: "LC 1284 — Min Flips to Convert Binary Matrix",
+    topics: ["Graphs", "BFS", "Bitmask"],
+    difficulty: "H",
+    blurb: "State-space BFS (Variant 8.3). Encode the whole matrix as an Int bitmask, a flip is an XOR with a precomputed move-mask, BFS to state 0 gives the fewest flips. The ≤9-cell bound makes the state space tiny. Full Swift + dry run.",
   },
   {
     cat: "tips",

@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LC 1091 — Shortest Path in Binary Matrix · Walkthrough Masterfile</title>
+<link rel="stylesheet" href="../_shared/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="walkthrough">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── TOC ── -->
+<nav class="toc-col">
+  <div class="toc-inner">
+    <div class="toc-title toc-cat-walkthrough">Walkthrough · Contents</div>
+    <a href="#lead"         class="toc-link"><span class="toc-num">1</span> The Problem</a>
+    <a href="#reading"      class="toc-link"><span class="toc-num">2</span> Reading the Problem</a>
+    <a href="#edge-cases"   class="toc-link"><span class="toc-num">3</span> Edge Case Inventory</a>
+    <a href="#hints"        class="toc-link"><span class="toc-num">4</span> Try It Yourself First</a>
+    <a href="#simulation"   class="toc-link"><span class="toc-num">5</span> Interview Simulation</a>
+    <div class="toc-sub">
+      <a href="#sim-questions" class="toc-link">5.1 Clarifying questions</a>
+      <a href="#sim-plan"      class="toc-link">5.2 The plan, spoken</a>
+    </div>
+    <a href="#approach"     class="toc-link"><span class="toc-num">6</span> Why This Approach</a>
+    <a href="#structures"   class="toc-link"><span class="toc-num">7</span> Data Structures</a>
+    <a href="#dryrun"       class="toc-link"><span class="toc-num">8</span> Pseudocode Dry Run</a>
+    <a href="#swift"        class="toc-link"><span class="toc-num">9</span> Swift Solution</a>
+    <a href="#code-dry-run" class="toc-link"><span class="toc-num">10</span> Code Dry Run</a>
+    <a href="#qmap"         class="toc-link"><span class="toc-num">11</span> Question → Code Map</a>
+    <a href="#complexity"   class="toc-link"><span class="toc-num">12</span> Complexity</a>
+    <a href="#followups"    class="toc-link"><span class="toc-num">13</span> Follow-Up Bank</a>
+    <a href="#decoder"      class="toc-link"><span class="toc-num">14</span> Theory Decoder</a>
+    <a href="#parent"       class="toc-link"><span class="toc-num">15</span> Parent Theory</a>
+  </div>
+</nav>
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">LC 1091 — Shortest Path in Binary Matrix</h1>
+  <div class="page-meta">
+    <span>Walkthrough Masterfile</span><span>·</span>
+    <span>Language: Swift</span><span>·</span>
+    <span>Medium · Grid BFS · Warm-up</span>
+  </div>
+
+  <!-- 1. Restatement -->
+  <section id="lead">
+    <div class="infobox">
+      <div class="infobox-title">Problem at a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Difficulty</div><div class="infobox-v"><span class="tag tag-M">Medium</span></div></div>
+      <div class="infobox-row"><div class="infobox-k">Pattern</div><div class="infobox-v">Grid BFS — shortest path in an unweighted grid (Variant 8.1)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Tools</div><div class="infobox-v">Queue (head index) · visited set · 8-direction table</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key insight</div><div class="infobox-v">All moves cost 1 → BFS's first arrival at the goal is the shortest path; count cells per layer</div></div>
+      <div class="infobox-row"><div class="infobox-k">Time / Space</div><div class="infobox-v">O(n²) / O(n²) for an n×n grid</div></div>
+      <div class="infobox-row"><div class="infobox-k">Theory</div><div class="infobox-v mono"><a href="../theory/graphs/bfs_deep_dive_master.html">bfs_deep_dive_master.html</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p>Given an <code>n×n</code> binary matrix where <code>0</code> is an open cell and <code>1</code> is blocked, return the length of the shortest <em>clear path</em> from the top-left cell <code>(0,0)</code> to the bottom-right cell <code>(n−1,n−1)</code>, or <code>−1</code> if none exists. A clear path moves <strong>8-directionally</strong> (including diagonals) through open cells only, and its <strong>length is the number of cells visited</strong> — so a path through a single cell has length 1, not 0.</p>
+
+      <table class="t-example">
+        <thead><tr><th>Input</th><th>Output</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><code>[[0,1],[1,0]]</code></td><td><code>2</code></td><td>(0,0) → (1,1) diagonally; two cells visited</td></tr>
+          <tr><td><code>[[0,0,0],[1,1,0],[1,1,0]]</code></td><td><code>4</code></td><td>(0,0)→(0,1)→(0,2)→(1,2)→(2,2): four cells</td></tr>
+          <tr><td><code>[[1,0,0],[1,1,0],[1,1,0]]</code></td><td><code>-1</code></td><td>The start cell (0,0) is blocked — no path can begin</td></tr>
+        </tbody>
+      </table>
+
+      <p>The twist is the counting convention: the answer is the <em>number of cells</em> on the path, not the number of steps between them. That means a one-cell grid <code>[[0]]</code> returns 1, and you either start the distance at 1 or add 1 at the end. The 8-directional move set (not just 4) is the other detail that's easy to miss.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Reading the problem -->
+  <section id="reading">
+    <h2>2 &nbsp; Reading the Problem — insights from the constraints</h2>
+
+    <div class="co-insight"><strong>"Shortest clear path":</strong> "shortest" over moves that all cost the same (one step = one cell) is the master BFS signal. A queue pops cells in non-decreasing distance order, so the first time BFS reaches the goal cell it has done so by a fewest-cells path. No need for Dijkstra — there are no edge weights.</div>
+
+    <div class="co-insight"><strong>"8-directionally":</strong> a cell's neighbors are up to eight cells — orthogonal <em>and</em> diagonal. The direction table must list all eight offsets, or you'll compute paths that are too long (forbidding diagonals).</div>
+
+    <div class="co-insight"><strong>"Length is the number of cells visited":</strong> the answer counts cells, not edges. Start the source at distance 1, or count layers from 0 and add 1 at the goal. Getting this off by one is the single most common bug — the example <code>[[0,1],[1,0]]</code> is 2, not 1.</div>
+
+    <div class="co-insight"><strong>"Or −1 if no path":</strong> the start or end cell can itself be blocked, and the grid can be walled off. If <code>grid[0][0] == 1</code> there is no path at all — guard it before the loop. Otherwise BFS draining without reaching the goal means −1.</div>
+
+    <div class="co-insight"><strong>"n×n binary matrix", n up to 100:</strong> at most 10⁴ cells, so an O(n²) BFS is trivially fast. The grid is an <em>implicit</em> graph — never build an adjacency list; compute neighbors by adding direction offsets and bounds-checking.</div>
+
+    <table class="t-clue">
+      <thead><tr><th>Phrase / constraint</th><th>What it forces</th></tr></thead>
+      <tbody>
+        <tr><td>"shortest clear path"</td><td>BFS — first arrival at the goal is the fewest-cells path</td></tr>
+        <tr><td>"8-directionally"</td><td>Direction table of all 8 offsets, diagonals included</td></tr>
+        <tr><td>"length = cells visited"</td><td>Distance starts at 1 (or +1 at the goal) — off-by-one watch</td></tr>
+        <tr><td>"−1 if no path"</td><td>Guard a blocked start; return −1 when the queue empties</td></tr>
+        <tr><td>"n×n, n ≤ 100"</td><td>O(n²) BFS is fast; grid is an implicit graph</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Edge cases -->
+  <section id="edge-cases">
+    <h2>3 &nbsp; Edge Case Inventory</h2>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected</th><th>Handled by</th></tr></thead>
+      <tbody>
+        <tr><td><code>[[0]]</code> (single open cell)</td><td><code>1</code></td><td>Start == goal; distance initialized to 1 returns immediately.</td></tr>
+        <tr><td><code>grid[0][0] == 1</code> (blocked start)</td><td><code>-1</code></td><td>Pre-loop guard before any enqueue.</td></tr>
+        <tr><td><code>grid[n-1][n-1] == 1</code> (blocked goal)</td><td><code>-1</code></td><td>BFS never reaches it; queue empties → −1.</td></tr>
+        <tr><td>Goal walled off by 1s</td><td><code>-1</code></td><td>The fall-through <code>return -1</code> after the loop.</td></tr>
+        <tr><td>Diagonal-only shortcut <code>[[0,1],[1,0]]</code></td><td><code>2</code></td><td>8-direction table includes the diagonal move.</td></tr>
+        <tr><td>Fully open grid</td><td><code>n</code> (straight diagonal)</td><td>Diagonal moves let the path go corner-to-corner in n cells.</td></tr>
+        <tr><td>Large skewed corridor</td><td>correct shortest</td><td>Head-index queue keeps it O(n²) regardless of shape.</td></tr>
+        <tr><td>GOTCHA: counting edges not cells</td><td>off by one</td><td>Distance starts at 1, so the goal's layer is a cell count.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="co-insight"><strong>The two ends and the off-by-one are where this breaks.</strong> Blocked start, blocked goal, and the single-cell grid all hinge on (a) guarding the start and (b) the cells-vs-edges count. Initialize the source's distance to 1 and both fall out correctly: <code>[[0]]</code> returns 1, and the goal's layer is already a cell count.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Hints -->
+  <section id="hints">
+    <h2>4 &nbsp; Try It Yourself First</h2>
+    <p>This is the grid-BFS warm-up — get the queue + visited + level mechanics clean. Open hints one at a time.</p>
+    <details class="hint"><summary>Hint 1 — the pattern</summary><p>"Shortest path where every move costs 1" is BFS. The grid is the graph: each open cell is a vertex, each open neighbor (8-directional) is an edge. You don't build an adjacency list — generate neighbors with a direction table.</p></details>
+    <details class="hint"><summary>Hint 2 — the structure</summary><p>Use a queue (with a head index, not <code>removeFirst()</code>) and a visited set. Mark a cell visited the moment you enqueue it. Track distance either per-node in the queue or with a level-size loop — capture <code>queue.count</code>, drain one layer, increment once.</p></details>
+    <details class="hint"><summary>Hint 3 — the gotchas</summary><p>The answer counts <em>cells</em>, so start the source at distance 1. Guard a blocked start (<code>grid[0][0]==1 → -1</code>) before the loop. Use all eight direction offsets. Bounds-check before reading the grid.</p></details>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Interview simulation -->
+  <section id="simulation">
+    <h2>5 &nbsp; Interview Simulation</h2>
+    <p>The interviewer has stated the problem. The script starts with your first words — practice it out loud.</p>
+
+    <div class="sim-block" id="sim-questions">
+      <div class="sim-header">Step 1 — Clarifying questions</div>
+      <div class="sim-body">
+        <div class="sim-q">Q: "Are moves 4-directional or 8-directional?"</div>
+        <div class="sim-a">A: 8-directional, including diagonals. <strong>→ My direction table has all eight offsets.</strong></div>
+
+        <div class="sim-q">Q: "Is the path length the number of cells or the number of steps between them?"</div>
+        <div class="sim-a">A: Number of cells. <strong>→ I'll start the source distance at 1, so a one-cell path is length 1.</strong></div>
+
+        <div class="sim-q">Q: "Can the start or end cell be blocked?"</div>
+        <div class="sim-a">A: Yes, either can be a 1. <strong>→ I guard a blocked start up front and return −1; a blocked goal is never reached, so the queue empties to −1.</strong></div>
+
+        <div class="sim-q">Q: "How big can the grid get?"</div>
+        <div class="sim-a">A: Up to 100×100. <strong>→ O(n²) BFS is plenty fast; I'll use a head-index queue to keep dequeues O(1).</strong></div>
+      </div>
+    </div>
+
+    <div class="sim-block" id="sim-plan">
+      <div class="sim-header">Step 2 — The plan, before any code</div>
+      <div class="sim-body">
+        <div class="speech">
+          <div class="speech-kicker">The plan, spoken</div>
+          <p>"This is grid BFS — Variant 8.1 of the Graphs / BFS block. The signal is 'shortest path where every move costs the same,' so a queue gives me the shortest path for free: the first time BFS reaches the bottom-right cell, it's via the fewest cells."</p>
+          <p>"Let me pin the conditions before the structure. A vertex is an open cell; an edge is a move to one of the eight neighboring cells that is in bounds and open. The validity condition for enqueuing a neighbor: in bounds, value 0, and not already visited. The invariant: every cell enters the queue at most once because I mark it visited the instant I enqueue it — that's what keeps it O(n²). The distance convention: the answer counts cells, so the source starts at distance 1 and each layer adds one. The stop condition: I return the moment I dequeue the goal cell; if the queue empties first, the goal is unreachable → −1. I also guard a blocked start cell before the loop."</p>
+          <p>"On structures: a queue of (row, col) with a head index so dequeue is O(1) — <code>removeFirst()</code> would make it O(n) per pop and the whole thing O(n³). A visited set of encoded cells (<code>row*cols + col</code>) or I mutate the grid in place. An eight-entry direction table for uniform neighbor generation."</p>
+          <p>"The walk: guard a blocked start. Seed the queue with (0,0) at distance 1, mark it visited. Drain one layer at a time; for each cell, if it's the goal return its distance, else enqueue every valid 8-neighbor. Empty queue → return −1. Time and space O(n²) — every cell handled once."</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. Approach rationale -->
+  <section id="approach">
+    <h2>6 &nbsp; Why This Approach — and not the others</h2>
+    <table class="t-versus">
+      <thead><tr><th>Candidate</th><th>Cost</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>DFS / backtracking over all paths</td><td>exponential</td><td><strong>Wrong tool.</strong> DFS explores one deep path first and has no shortest-path guarantee; finding the minimum needs trying all paths — exponential. BFS gets it in one linear pass.</td></tr>
+        <tr><td>Dijkstra with a priority queue</td><td>O(n² log n)</td><td>Correct but overkill. Dijkstra handles <em>weighted</em> edges; here every move costs 1, so the plain FIFO queue already pops in distance order. The log factor is wasted.</td></tr>
+        <tr><td>A* with a heuristic</td><td>O(n²) typical, faster in practice</td><td>A valid optimization (Chebyshev distance is an admissible heuristic for 8-dir) but more machinery than needed for n ≤ 100. Mention as a follow-up, not the baseline.</td></tr>
+        <tr><td><strong>Plain BFS (queue + visited)</strong></td><td>O(n²) / O(n²)</td><td><strong>Chosen.</strong> Unweighted shortest path is exactly what BFS solves; first arrival at the goal is the answer. Simplest correct solution.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-when"><strong>The deciding signal:</strong> "shortest" + "every move costs the same." That pair is BFS, full stop. Weighted edges would push you to Dijkstra; here they're all equal, so the queue's FIFO order is the shortest-path order for free.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Data structures -->
+  <section id="structures">
+    <h2>7 &nbsp; Data Structures — choice and justification</h2>
+    <table class="t-decoder">
+      <thead><tr><th>Structure</th><th>Holds</th><th>Why this and not weaker/stronger</th></tr></thead>
+      <tbody>
+        <tr><td><code>queue: [(Int,Int)]</code> + <code>head</code> index</td><td>The frontier of cells to expand, FIFO</td><td>FIFO order is what makes first-arrival = shortest. The head index makes dequeue O(1); <code>removeFirst()</code> is O(n) and would make BFS O(n³).</td></tr>
+        <tr><td><code>visited: Set&lt;Int&gt;</code> (cell → <code>r*cols+c</code>)</td><td>Cells already enqueued</td><td>O(1) membership test so each cell enters the queue once. Encoding to an Int avoids hashing tuples. (Alternative: mutate the grid in place to mark walls.)</td></tr>
+        <tr><td>Direction table <code>[(Int,Int)]</code> ×8</td><td>The eight move offsets</td><td>Makes neighbor generation a uniform loop instead of eight copy-pasted branches; trivially switches 8-dir ↔ 4-dir.</td></tr>
+        <tr><td>Per-layer <code>distance</code> counter</td><td>Cells on the path so far</td><td>The level-size loop bumps it once per layer, so no need to store a distance with every queued cell. Starts at 1 for the cells-count convention.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-insight"><strong>Why encode the cell as <code>r*cols + c</code> for the visited set.</strong> Swift tuples aren't <code>Hashable</code> out of the box, so a <code>Set&lt;(Int,Int)&gt;</code> won't compile. Packing the cell into a single <code>Int</code> (row-major index) gives a clean hashable key. The common alternative — writing a wall (<code>1</code>) into the grid as you visit — is O(1) space but mutates the input, so confirm that's allowed.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 8. Pseudocode dry run -->
+  <section id="dryrun">
+    <h2>8 &nbsp; Pseudocode Dry Run</h2>
+
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">grid BFS, distance counts cells (starts at 1)</span></div>
+<pre class="pseudo"><span class="pk">IF</span> grid[0][0] == 1: <span class="pk">RETURN</span> -1            <span class="pc">blocked start</span>
+queue ← [ (0,0,1) ]                          <span class="pc">(row, col, cellsSoFar)</span>
+visited ← { (0,0) }
+<span class="pk">WHILE</span> queue not empty:
+    (r, c, dist) ← dequeue(queue)
+    <span class="pk">IF</span> (r,c) == (n-1, n-1): <span class="pk">RETURN</span> dist   <span class="pc">first arrival = shortest</span>
+    <span class="pk">FOR</span> (dr,dc) <span class="pk">IN</span> eightDirections:
+        nr, nc ← r+dr, c+dc
+        <span class="pk">IF</span> inBounds(nr,nc) AND grid[nr][nc]==0 AND (nr,nc) not in visited:
+            visited.insert((nr,nc))          <span class="pc">mark on enqueue</span>
+            enqueue(queue, (nr, nc, dist+1))
+<span class="pk">RETURN</span> -1                                  <span class="pc">goal unreachable</span></pre>
+
+    <p>Trace on <code>[[0,0,0],[1,1,0],[1,1,0]]</code> — expected <code>4</code>:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">distance carried in the queue as cellsSoFar</span></div>
+<pre class="dry"><span class="tr-var">grid:  0 0 0
+       1 1 0
+       1 1 0      goal = (2,2)</span>
+
+start: queue=[(0,0,1)] visited={(0,0)}
+pop (0,0,1): not goal. neighbors → (0,1) open, (1,1) wall, (1,0) wall.
+   enqueue (0,1,2). visited={(0,0),(0,1)}
+pop (0,1,2): not goal. open neighbors → (0,2),(1,2)  [diagonals (1,0)? wall]
+   enqueue (0,2,3),(1,2,3). visited+={(0,2),(1,2)}
+pop (0,2,3): not goal. open neighbor → (1,2) already visited; nothing new
+pop (1,2,3): not goal. open neighbor → (2,2)
+   enqueue (2,2,4). visited+={(2,2)}
+pop (2,2,4): <span class="tr-ok">(2,2)==goal → RETURN 4</span></pre>
+
+    <p>And the blocked-start case <code>[[1,0,0],...]</code> — expected <code>-1</code>:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">guard fires before the loop</span></div>
+<pre class="dry"><span class="tr-var">grid[0][0] == 1</span>
+guard: grid[0][0]==1? <span class="tr-bad">YES → RETURN -1</span>  (no path can even begin)</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 9. Swift solution -->
+  <section id="swift">
+    <h2>9 &nbsp; Swift Solution — iterative</h2>
+
+    <p>The primary solution carries the cell count in the queue tuple (clearest for this problem). A level-size-loop variant follows in §9b.</p>
+
+    <div class="solution-block">
+      <div class="block-header">
+        <span class="block-badge">A.1</span>
+        <span class="block-name">Grid BFS — distance carried in the queue</span>
+        <div class="block-pills"><span class="pill pill-t">O(n²)</span><span class="pill pill-s">O(n²)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="approach-box">
+          <div class="approach-title">Plan</div>
+          Guard a blocked start. Seed the queue with the top-left cell at distance 1 and mark it visited. Dequeue with a head index; the moment a dequeued cell is the bottom-right, return its distance. Otherwise enqueue every in-bounds, open, unvisited 8-neighbor at distance+1, marking it visited on enqueue. Empty queue → return −1.
+        </div>
+
+        <pre class="swift"><span class="kw">func</span> <span class="fn">shortestPathBinaryMatrix</span>(<span class="kw">_</span> grid: [[<span class="tp">Int</span>]]) -&gt; <span class="tp">Int</span> {
+    <span class="kw">let</span> size = grid.count
+    <span class="cm">// Blocked start (or blocked goal would be caught later) → no path.</span>
+    <span class="kw">guard</span> grid[<span class="nm">0</span>][<span class="nm">0</span>] == <span class="nm">0</span>, grid[size - <span class="nm">1</span>][size - <span class="nm">1</span>] == <span class="nm">0</span> <span class="kw">else</span> { <span class="kw">return</span> -<span class="nm">1</span> }
+
+    <span class="kw">let</span> directions = [(-<span class="nm">1</span>,-<span class="nm">1</span>),(-<span class="nm">1</span>,<span class="nm">0</span>),(-<span class="nm">1</span>,<span class="nm">1</span>),
+                      ( <span class="nm">0</span>,-<span class="nm">1</span>),          ( <span class="nm">0</span>,<span class="nm">1</span>),
+                      ( <span class="nm">1</span>,-<span class="nm">1</span>),( <span class="nm">1</span>,<span class="nm">0</span>),( <span class="nm">1</span>,<span class="nm">1</span>)]
+
+    <span class="kw">var</span> queue: [(<span class="tp">Int</span>, <span class="tp">Int</span>, <span class="tp">Int</span>)] = [(<span class="nm">0</span>, <span class="nm">0</span>, <span class="nm">1</span>)]   <span class="cm">// (row, col, cellsSoFar)</span>
+    <span class="kw">var</span> head = <span class="nm">0</span>
+    <span class="kw">var</span> visited: <span class="tp">Set</span>&lt;<span class="tp">Int</span>&gt; = [<span class="nm">0</span>]                       <span class="cm">// cell 0 = row 0 * size + col 0</span>
+
+    <span class="kw">while</span> head &lt; queue.count {
+        <span class="kw">let</span> (row, col, dist) = queue[head]; head += <span class="nm">1</span>    <span class="cm">// O(1) dequeue</span>
+        <span class="kw">if</span> row == size - <span class="nm">1</span> &amp;&amp; col == size - <span class="nm">1</span> { <span class="kw">return</span> dist }  <span class="cm">// first arrival = shortest</span>
+
+        <span class="kw">for</span> (dr, dc) <span class="kw">in</span> directions {
+            <span class="kw">let</span> nr = row + dr, nc = col + dc
+            <span class="kw">guard</span> nr &gt;= <span class="nm">0</span>, nr &lt; size, nc &gt;= <span class="nm">0</span>, nc &lt; size <span class="kw">else</span> { <span class="kw">continue</span> }  <span class="cm">// bounds first</span>
+            <span class="kw">let</span> encoded = nr * size + nc
+            <span class="kw">guard</span> grid[nr][nc] == <span class="nm">0</span>, !visited.contains(encoded) <span class="kw">else</span> { <span class="kw">continue</span> }
+            visited.insert(encoded)                            <span class="cm">// mark on enqueue</span>
+            queue.append((nr, nc, dist + <span class="nm">1</span>))
+        }
+    }
+    <span class="kw">return</span> -<span class="nm">1</span>                                                  <span class="cm">// goal unreachable</span>
+}</pre>
+        <div class="co-note"><strong>Note:</strong> the head-index queue (<code>head</code> walks forward, never <code>removeFirst()</code>) keeps each dequeue O(1). The guard checks bounds <em>before</em> reading <code>grid[nr][nc]</code> so an edge cell never indexes out of range. Marking <code>visited</code> on enqueue is what guarantees each cell is queued at most once.</div>
+      </div>
+    </div>
+
+    <h3 id="swift-b">9b &nbsp; Level-size-loop form — for contrast</h3>
+    <p>Same algorithm with the distance tracked by draining one layer at a time instead of carrying it per cell:</p>
+    <pre class="swift"><span class="kw">func</span> <span class="fn">shortestPathBinaryMatrix</span>(<span class="kw">_</span> grid: [[<span class="tp">Int</span>]]) -&gt; <span class="tp">Int</span> {
+    <span class="kw">let</span> size = grid.count
+    <span class="kw">guard</span> grid[<span class="nm">0</span>][<span class="nm">0</span>] == <span class="nm">0</span>, grid[size-<span class="nm">1</span>][size-<span class="nm">1</span>] == <span class="nm">0</span> <span class="kw">else</span> { <span class="kw">return</span> -<span class="nm">1</span> }
+    <span class="kw">let</span> directions = [(-<span class="nm">1</span>,-<span class="nm">1</span>),(-<span class="nm">1</span>,<span class="nm">0</span>),(-<span class="nm">1</span>,<span class="nm">1</span>),(<span class="nm">0</span>,-<span class="nm">1</span>),(<span class="nm">0</span>,<span class="nm">1</span>),(<span class="nm">1</span>,-<span class="nm">1</span>),(<span class="nm">1</span>,<span class="nm">0</span>),(<span class="nm">1</span>,<span class="nm">1</span>)]
+    <span class="kw">var</span> queue = [(<span class="nm">0</span>, <span class="nm">0</span>)], head = <span class="nm">0</span>, distance = <span class="nm">1</span>
+    <span class="kw">var</span> visited: <span class="tp">Set</span>&lt;<span class="tp">Int</span>&gt; = [<span class="nm">0</span>]
+    <span class="kw">while</span> head &lt; queue.count {
+        <span class="kw">let</span> levelSize = queue.count - head
+        <span class="kw">for</span> _ <span class="kw">in</span> <span class="nm">0</span>..&lt;levelSize {
+            <span class="kw">let</span> (row, col) = queue[head]; head += <span class="nm">1</span>
+            <span class="kw">if</span> row == size-<span class="nm">1</span> &amp;&amp; col == size-<span class="nm">1</span> { <span class="kw">return</span> distance }
+            <span class="kw">for</span> (dr, dc) <span class="kw">in</span> directions {
+                <span class="kw">let</span> nr = row+dr, nc = col+dc
+                <span class="kw">guard</span> nr &gt;= <span class="nm">0</span>, nr &lt; size, nc &gt;= <span class="nm">0</span>, nc &lt; size <span class="kw">else</span> { <span class="kw">continue</span> }
+                <span class="kw">let</span> e = nr*size+nc
+                <span class="kw">guard</span> grid[nr][nc] == <span class="nm">0</span>, !visited.contains(e) <span class="kw">else</span> { <span class="kw">continue</span> }
+                visited.insert(e); queue.append((nr, nc))
+            }
+        }
+        distance += <span class="nm">1</span>
+    }
+    <span class="kw">return</span> -<span class="nm">1</span>
+}</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 10. Code dry run -->
+  <section id="code-dry-run">
+    <h2>10 &nbsp; Code Dry Run — the Swift solution, traced</h2>
+    <p>Full debugger-style trace of solution A.1 on <code>[[0,1],[1,0]]</code> → expected <code>2</code>.</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">full execution trace — /code-dry-run format</span></div>
+<pre class="dry">────────────────────────────────
+/code-dry-run
+Problem: LC 1091 — Shortest Path in Binary Matrix
+Input:   grid = [[0,1],[1,0]]   (size = 2, goal = (1,1))
+────────────────────────────────
+
+shortestPathBinaryMatrix
+  guard grid[0][0]==0 (true) && grid[1][1]==0 (true) → pass
+  directions = [8 offsets]
+  queue   = [ (0,0,1) ]
+  head    = 0
+  visited = { 0 }                     ↑ 0 = row0*2+col0
+
+────────────────────────────────
+DEQUEUE 1   (row=0, col=0, dist=1)
+────────────────────────────────
+  head → 1
+  goal? row==1 && col==1 → NO
+  expand 8 neighbors of (0,0):
+    (-1,-1) bounds? NO → skip
+    (-1, 0) bounds? NO → skip
+    (-1, 1) bounds? NO → skip
+    ( 0,-1) bounds? NO → skip
+    ( 0, 1) → (0,1): grid[0][1]==1 (wall) → skip
+    ( 1,-1) bounds? NO → skip
+    ( 1, 0) → (1,0): grid[1][0]==1 (wall) → skip
+    ( 1, 1) → (1,1): grid[1][1]==0, encoded=3 not visited
+         visited.insert(3) ; queue.append((1,1,2))
+  State: queue=[(0,0,1),(1,1,2)] head=1 visited={0,3}
+
+────────────────────────────────
+DEQUEUE 2   (row=1, col=1, dist=2)
+────────────────────────────────
+  head → 2
+  goal? row==1 && col==1 → YES
+  ↑ first arrival at the goal — by BFS this is the fewest cells
+
+────────────────────────────────
+RESULT
+────────────────────────────────
+  return dist = 2</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 11. Q→Code map -->
+  <section id="qmap">
+    <h2>11 &nbsp; Question → Code Map</h2>
+    <table class="t-qmap">
+      <thead><tr><th>What you asked / planned</th><th>What it became</th></tr></thead>
+      <tbody>
+        <tr><td>"Shortest path, equal-cost moves"</td><td>plain BFS with a FIFO <code>queue</code></td></tr>
+        <tr><td>"8-directional moves"</td><td>the eight-entry <code>directions</code> table</td></tr>
+        <tr><td>"Length counts cells"</td><td>source seeded at <code>dist = 1</code>; goal returns its <code>dist</code></td></tr>
+        <tr><td>"Blocked start/goal → −1"</td><td><code>guard grid[0][0]==0, grid[n-1][n-1]==0 else return -1</code></td></tr>
+        <tr><td>"Each cell once"</td><td><code>visited.insert(encoded)</code> on enqueue; <code>!visited.contains</code> guard</td></tr>
+        <tr><td>"Keep dequeue O(1)"</td><td><code>head</code> index instead of <code>removeFirst()</code></td></tr>
+        <tr><td>"Bounds before grid read"</td><td><code>guard nr&gt;=0, nr&lt;size, … else continue</code> before <code>grid[nr][nc]</code></td></tr>
+        <tr><td>"Unreachable goal"</td><td><code>return -1</code> after the loop</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 12. Complexity -->
+  <section id="complexity">
+    <h2>12 &nbsp; Complexity</h2>
+    <table class="t-cmx">
+      <thead><tr><th>Phase</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>BFS traversal</td><td class="tc">O(n²)</td><td class="sc">O(n²)</td><td>Each of the n² cells is enqueued at most once (visited guard); each does a constant 8 neighbor checks. Queue + visited hold up to n² cells.</td></tr>
+        <tr><td>Neighbor generation</td><td class="tc">O(8) = O(1)</td><td class="sc">O(1)</td><td>Fixed eight-direction table per cell — a constant factor, not a growth term.</td></tr>
+        <tr class="bottleneck"><td>Total</td><td class="tc">O(n²)</td><td class="sc">O(n²)</td><td>Linear in the number of cells — the irreducible cost of visiting the grid once. The head-index queue is what keeps it O(n²) and not O(n³); <code>removeFirst()</code> would add an O(n) factor per pop.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-insight"><strong>Why O(n²) is optimal here.</strong> Any algorithm that's guaranteed to find the shortest path may, in the worst case (a fully open grid), have to look at every cell — so O(n²) is a lower bound for the grid size. BFS hits it exactly. The only way to beat it in practice (not in the worst case) is A* with an admissible heuristic, which prunes cells away from the goal.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13. Follow-ups -->
+  <section id="followups">
+    <h2>13 &nbsp; Follow-Up Bank — the interviewer's second act</h2>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Before you push this to production — can you see any improvements you'd make?"</div>
+      <div class="followup-a">Two. First, I can drop the <code>visited</code> set and mark cells by writing a <code>1</code> into the grid as I enqueue them — O(1) extra space — if mutating the input is allowed. Second, for very large grids I'd switch from a plain BFS to <strong>A*</strong> with the Chebyshev distance to the goal as an admissible heuristic; it's the same worst case but explores far fewer cells in practice by always expanding toward the corner.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "What if moves were only 4-directional?"</div>
+      <div class="followup-a">Just shrink the direction table to the four orthogonal offsets — the rest of the BFS is identical. The shortest path generally gets longer (no diagonal shortcuts), but the algorithm and complexity don't change. This is exactly why a direction table beats hard-coded branches.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "What if cells had different traversal costs instead of all costing 1?"</div>
+      <div class="followup-a">Then BFS's shortest-path guarantee breaks — the FIFO order no longer matches cost order. I'd switch to <strong>Dijkstra</strong> with a priority queue keyed by accumulated cost, or to <strong>0-1 BFS</strong> with a deque if the only costs are 0 and 1. That's the "weighted edges → Dijkstra" fork from the BFS theory page.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Now return the actual path, not just its length."</div>
+      <div class="followup-a">Keep a <code>parent</code> map recording, for each cell, the cell it was first reached from. When BFS hits the goal, walk the parent links back to the start and reverse — that's the shortest path. Costs an extra O(n²) space for the map but no extra time.</div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 14. Theory decoder -->
+  <section id="decoder">
+    <h2>14 &nbsp; Theory Decoder — the theory as used here</h2>
+    <table class="t-decoder">
+      <thead><tr><th>General concept</th><th>Instantiated in this solution as</th><th>General form</th></tr></thead>
+      <tbody>
+        <tr><td>BFS first-touch = shortest path</td><td>The first dequeue of the bottom-right cell returns its distance.</td><td><a href="../theory/graphs/bfs_deep_dive_master.html#mental-model">theory §4</a></td></tr>
+        <tr><td>Implicit graph (grid as vertices/edges)</td><td>Cells are vertices; the 8-direction table generates edges on the fly.</td><td><a href="../theory/graphs/bfs_deep_dive_master.html#v-grid">theory §8.1</a></td></tr>
+        <tr><td>Mark visited on enqueue</td><td><code>visited.insert(encoded)</code> the instant a neighbor is queued.</td><td><a href="../theory/graphs/bfs_deep_dive_master.html#pseudocode">theory §5</a></td></tr>
+        <tr><td>Head-index queue (no removeFirst)</td><td><code>head += 1</code> walks the array; O(1) dequeue.</td><td><a href="../theory/graphs/bfs_deep_dive_master.html#swift">theory §7</a></td></tr>
+        <tr><td>Distance per layer / per node</td><td>Carried as the third tuple field (A.1) or via the level-size loop (§9b).</td><td><a href="../theory/graphs/bfs_deep_dive_master.html#iterative">theory §6</a></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 15. Back-reference -->
+  <section id="parent">
+    <h2>15 &nbsp; Parent Theory</h2>
+    <p>This walkthrough instantiates Variant 8.1 of a larger pattern. The parent page is not free-form — it follows the theory masterfile standard, so here is exactly what you land on:</p>
+    <div class="ref-grid">
+      <a class="backref-card" href="../theory/graphs/bfs_deep_dive_master.html">
+        <span class="ref-file">theory/graphs/bfs_deep_dive_master.html</span>
+        <span class="ref-title">Breadth-First Search — Deep Dive Theory Masterfile</span>
+        <span class="ref-desc">The canonical reference for the BFS family: the wave-spreading mental model with this exact ring-distance trace (§4), the level-counting pseudocode primer (§5), the queue-cost and visited-on-enqueue Swift foundations (§7), the four-variant catalog with Variant 8.1 Grid BFS this problem instantiates (§8.1), the O(V+E) complexity argument (§9), and the pitfalls and cheat sheet (§10, §12). Its cross-reference section (§13) links back to this walkthrough, and it sits under the Graphs hub (full graph vocabulary: vertex, edge, BFS/DFS, adjacency).</span>
+      </a>
+    </div>
+  </section>
+
+  <div class="page-footer">
+    LC 1091 — Shortest Path in Binary Matrix · Walkthrough Masterfile · Parent theory:
+    <a href="../theory/graphs/bfs_deep_dive_master.html">Breadth-First Search</a> ·
+    Structure per <code>wiki/_standards/WALKTHROUGH_MASTERFILE_STANDARD.md</code>
+  </div>
+
+</main>
+</div>
+
+<script src="../_shared/pages.js"></script>
+<script src="../_shared/nav.js"></script>
+</body>
+</html>

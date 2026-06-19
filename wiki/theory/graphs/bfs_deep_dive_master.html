@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Breadth-First Search · Theory Masterfile</title>
+<link rel="stylesheet" href="../../_shared/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="theory">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── TOC ── -->
+<nav class="toc-col">
+  <div class="toc-inner">
+    <div class="toc-title toc-cat-theory">Theory · Contents</div>
+    <a href="#lead"          class="toc-link"><span class="toc-num">1</span> Definition</a>
+    <a href="#signals"       class="toc-link"><span class="toc-num">2</span> Recognition Signals</a>
+    <a href="#terminology"   class="toc-link"><span class="toc-num">3</span> Terminology Decoder</a>
+    <a href="#mental-model"  class="toc-link"><span class="toc-num">4</span> Mental Model</a>
+    <a href="#pseudocode"    class="toc-link"><span class="toc-num">5</span> Pseudocode Primer</a>
+    <a href="#iterative"     class="toc-link"><span class="toc-num">6</span> The Level-Loop Pattern</a>
+    <a href="#swift"         class="toc-link"><span class="toc-num">7</span> Swift Foundations</a>
+    <a href="#variants"      class="toc-link"><span class="toc-num">8</span> The Four Variants</a>
+    <div class="toc-sub">
+      <a href="#v-grid"      class="toc-link">8.1 Grid BFS</a>
+      <a href="#v-multi"     class="toc-link">8.2 Multi-source BFS</a>
+      <a href="#v-state"     class="toc-link">8.3 State-space BFS</a>
+      <a href="#v-gated"     class="toc-link">8.4 BFS with carried state</a>
+    </div>
+    <a href="#complexity"    class="toc-link"><span class="toc-num">9</span> Complexity Analysis</a>
+    <a href="#pitfalls"      class="toc-link"><span class="toc-num">10</span> Common Pitfalls</a>
+    <a href="#edge-cases"    class="toc-link"><span class="toc-num">11</span> Edge Cases</a>
+    <a href="#cheatsheet"    class="toc-link"><span class="toc-num">12</span> Cheat Sheet</a>
+    <a href="#practice"      class="toc-link"><span class="toc-num">13</span> Demonstrated in Practice</a>
+    <a href="#solo"          class="toc-link"><span class="toc-num">14</span> Solo Problem</a>
+  </div>
+</nav>
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">Breadth-First Search</h1>
+  <div class="page-meta">
+    <span>Theory Masterfile · Deep Dive</span><span>·</span>
+    <span>Language: Swift</span><span>·</span>
+    <span>Queue · Visited · Explore level by level</span>
+  </div>
+
+  <!-- 1. Definition -->
+  <section id="lead">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Explore a graph level by level from a source, using a queue</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v">Process vertices in waves of increasing distance; the first time you reach a vertex is via a fewest-edges path</div></div>
+      <div class="infobox-row"><div class="infobox-k">Time</div><div class="infobox-v">O(V + E) — every vertex and edge handled once</div></div>
+      <div class="infobox-row"><div class="infobox-k">Space</div><div class="infobox-v">O(V) — the queue and the visited set</div></div>
+      <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"shortest / fewest steps", "minimum number of moves", "nearest", "spread / level by level", all edges cost 1</div></div>
+      <div class="infobox-row"><div class="infobox-k">The fork</div><div class="infobox-v">Edges weighted? Use Dijkstra, not BFS. All edges equal cost? BFS gives the shortest path for free</div></div>
+      <div class="infobox-row"><div class="infobox-k">Walkthroughs</div><div class="infobox-v mono"><a href="../../walkthroughs/LC1091_master.html">LC1091</a> · <a href="../../walkthroughs/LC1284_master.html">LC1284</a> · LC994 (coming) · LC1298 (coming)</div></div>
+    </div>
+
+    <div class="lead">
+      <p><strong>Breadth-first search</strong> explores a graph outward from a starting vertex in <em>layers</em>: first all vertices one edge away, then all vertices two edges away, and so on. It is driven by a <strong>queue</strong> (first-in-first-out), which is exactly what enforces the layer order — and that order is what makes BFS the canonical solution to <em>unweighted shortest path</em>: the first time BFS reaches a vertex, it has reached it by a path with the fewest possible edges.</p>
+      <p>The single decision that sends a problem to BFS is "<strong>fewest steps where every step costs the same</strong>." Whether the graph is an explicit adjacency list, a 2-D grid, or an implicit space of board/bitmask states one move apart, the machinery is identical: a queue of frontier vertices, a visited set to never re-process one, and a distance that increases by one each layer. This deep dive lives under the <a href="index.html">Graphs hub</a>, which carries the general graph vocabulary; here we go deep on BFS and its four recurring shapes.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Recognition signals -->
+  <section id="signals">
+    <h2>2 &nbsp; Recognition Signals — what variant is this?</h2>
+    <p>The phrase "shortest / fewest / minimum number of <em>moves</em>" over equal-cost steps is the master signal for BFS. What the vertices and edges <em>are</em> tells you which variant.</p>
+    <table class="t-clue">
+      <thead><tr><th>When the problem says…</th><th>It means…</th></tr></thead>
+      <tbody>
+        <tr><td>"shortest path in a grid / matrix", 4- or 8-directional steps</td><td>Grid BFS — cells are vertices, adjacent cells are edges. §8.1 (LC1091)</td></tr>
+        <tr><td>"everything spreads / rots / fills at once per minute"</td><td>Multi-source BFS — seed the queue with all sources at distance 0. §8.2 (LC994)</td></tr>
+        <tr><td>"minimum moves to transform one configuration into another", one change per move</td><td>State-space BFS — each configuration is a vertex, "one move apart" is an edge. §8.3 (LC1284, LC773)</td></tr>
+        <tr><td>"reach the goal collecting keys / unlocking boxes along the way"</td><td>BFS with carried state — the vertex is (position + what you hold). §8.4 (LC1298)</td></tr>
+        <tr><td>"fewest steps", "minimum number of …", all moves equal cost</td><td>Any BFS — the layer count <em>is</em> the answer.</td></tr>
+        <tr><td>"cheapest path" with <em>different</em> edge weights</td><td>Not BFS — that is Dijkstra (or Bellman-Ford with negatives). BFS assumes equal-cost edges.</td></tr>
+        <tr><td>"count components / does a path exist / detect a cycle"</td><td>Plain reachability — BFS or DFS both work; you don't need the shortest-path property.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-when"><strong>The tell:</strong> the answer is a <em>number of steps</em> and every step costs the same. The instant you read "minimum moves / fewest steps / shortest in an unweighted graph," reach for a queue. Then ask: what is a vertex (a cell? a whole board? a (cell, keys) pair?) and what counts as one edge? That answer picks the variant.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Terminology decoder -->
+  <section id="terminology">
+    <h2>3 &nbsp; Terminology Decoder</h2>
+    <p>The general graph vocabulary lives in the <a href="index.html">Graphs hub</a>; these are the terms this BFS page leans on most.</p>
+    <table class="t-decoder">
+      <thead><tr><th>Term</th><th>Plain meaning</th><th>Example / note</th></tr></thead>
+      <tbody>
+        <tr><td>Frontier</td><td>The set of vertices currently in the queue — the "wave" being expanded</td><td>One full frontier = one BFS level = one distance value</td></tr>
+        <tr><td>Layer / level</td><td>All vertices at the same distance from the source</td><td>Layer k holds every vertex reachable in exactly k edges, first time</td></tr>
+        <tr><td>Queue (FIFO)</td><td>First-in-first-out structure; dequeue the oldest, enqueue new neighbors at the back</td><td>FIFO is what guarantees layers are processed in distance order</td></tr>
+        <tr><td>Visited (seen) set</td><td>Vertices already enqueued, so they are never enqueued or processed twice</td><td>Mark <em>when enqueuing</em>, not when dequeuing (see pitfalls)</td></tr>
+        <tr><td>Source</td><td>The starting vertex (or vertices) at distance 0</td><td>One source = single-source BFS; many = multi-source (§8.2)</td></tr>
+        <tr><td>Implicit graph</td><td>A graph whose vertices/edges are generated on demand, never stored as a list</td><td>Grid neighbors (§8.1) or "states one move apart" (§8.3)</td></tr>
+        <tr><td>State encoding</td><td>Packing a whole configuration into one hashable key (string, Int bitmask)</td><td>A 3×3 board → a 9-char string; an N-bit matrix → one Int (§8.3)</td></tr>
+        <tr><td>Level-size loop</td><td>Capturing <code>queue.count</code> before a layer and looping exactly that many times</td><td>Lets you bump the distance once per layer instead of storing it per node</td></tr>
+        <tr><td>Distance / depth</td><td>The number of edges from the source — what BFS minimizes</td><td>Stored per-node, or implied by the level-size loop</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Mental model -->
+  <section id="mental-model">
+    <h2>4 &nbsp; Mental Model — a wave spreading outward</h2>
+
+    <div class="co-idea">
+      <div class="co-idea-title">The one idea</div>
+      BFS is water spreading from a source: it floods all the cells one step away, then all the cells two steps away, never skipping a layer. Because the queue is FIFO, vertices come out in non-decreasing distance order — so the <em>first</em> time the wave touches a vertex, it has arrived by a fewest-edges path. That "first touch = shortest path" property is the whole reason BFS exists, and it only holds because every edge costs the same.
+    </div>
+
+    <p>Picture a grid, source at the top-left <code>S</code>, walls as <code>#</code>. BFS labels each open cell with its distance from <code>S</code>. Watch the labels grow outward in concentric rings — each ring is one queue frontier:</p>
+
+    <div class="code-label"><span class="code-lang lang-ascii">Diagram</span><span class="code-desc">BFS distances spread in rings from S</span></div>
+<pre class="ascii">grid:            distances (BFS layers):
+S . . #            0 1 2 #
+. # . .            1 # 3 4
+. . . T            2 3 4 5
+
+layer 0: { S }                 → dist 0
+layer 1: { (0,1),(1,0) }       → dist 1
+layer 2: { (0,2),(2,0) }       → dist 2
+layer 3: { (1,2),(2,1) }       → dist 3
+layer 4: { (0,3)wall, (1,3),(2,2) } → dist 4
+layer 5: { T }                 → dist 5   ← first touch of T = shortest path</pre>
+    <p class="ascii-caption">Each ring is exactly one queue frontier. T is first reached at layer 5, so the shortest path is 5 edges — no later, longer path can overwrite it because BFS already marked T visited on first touch.</p>
+
+    <p>Now the key abstraction that unlocks the harder variants: <strong>the grid is just one kind of graph.</strong> Replace "cell" with "any configuration" and "adjacent cell" with "any single legal move," and the same wave finds the fewest <em>moves</em> between two configurations:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">state-space BFS — board configurations as vertices</span></div>
+<pre class="dry"><span class="tr-var">vertex = a whole board state (encoded as a string / Int)
+edge   = "apply one legal move" → a neighboring state</span>
+
+start state ─┬─ move A ─→ state₁ ─┬─ ...
+             ├─ move B ─→ state₂ ─┤
+             └─ move C ─→ state₃ ─┘
+queue holds whole states; visited holds encoded states already seen.
+BFS layer k = "reachable in exactly k moves" → first touch of the
+goal state is the minimum number of moves. <span class="tr-ok">Same algorithm, bigger vertices.</span></pre>
+    <p class="ascii-caption">Grid BFS and state-space BFS are <em>the same code</em>; only "what is a vertex" and "what is a neighbor" change. Master the wave once and every BFS variant is a re-skinning of it.</p>
+
+    <p>So the entire family reduces to three questions: what is a vertex, what is one edge (one equal-cost move), and what is the goal? Answer those and the queue-plus-visited loop is mechanical.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Pseudocode primer -->
+  <section id="pseudocode">
+    <h2>5 &nbsp; Pseudocode Primer</h2>
+    <p>The canonical BFS. The two non-negotiable lines are <em>mark visited when enqueuing</em> and <em>increment distance once per level</em>.</p>
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">level-counting BFS — distance bumps once per frontier</span></div>
+<pre class="pseudo"><span class="pk">FUNCTION</span> bfs(start, isGoal, neighbors):
+    queue   ← [start]
+    visited ← { start }          <span class="pc">mark on ENQUEUE, never on dequeue</span>
+    distance ← 0
+
+    <span class="pk">WHILE</span> queue not empty:
+        levelSize ← size(queue)          <span class="pc">freeze this layer's count</span>
+        <span class="pk">REPEAT</span> levelSize times:           <span class="pc">drain exactly one layer</span>
+            node ← dequeue(queue)
+            <span class="pk">IF</span> isGoal(node): <span class="pk">RETURN</span> distance
+
+            <span class="pk">FOR</span> next <span class="pk">IN</span> neighbors(node):
+                <span class="pk">IF</span> next not in visited:
+                    visited.insert(next)     <span class="pc">mark NOW, before it can be re-queued</span>
+                    enqueue(queue, next)
+        distance ← distance + 1          <span class="pc">one whole layer done</span>
+
+    <span class="pk">RETURN</span> -1                          <span class="pc">goal unreachable</span></pre>
+    <div class="co-insight"><strong>Why mark visited on enqueue, not dequeue:</strong> if you only mark a vertex visited when you pop it, the same vertex can be enqueued many times by different neighbors before any copy is popped — blowing up the queue and, worse, sometimes letting a longer path overwrite the distance. Marking the instant you enqueue guarantees each vertex enters the queue exactly once, which is what makes the whole search O(V + E).</div>
+    <div class="co-insight"><strong>Why the level-size loop:</strong> freezing <code>levelSize = size(queue)</code> before draining lets you bump <code>distance</code> exactly once per layer, so you never have to store a distance alongside every queued node. The alternative — enqueue <code>(node, dist)</code> pairs — is equally correct and sometimes clearer; both appear in the variants.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. The level-loop pattern -->
+  <section id="iterative">
+    <h2>6 &nbsp; The Level-Loop Pattern — BFS is inherently iterative</h2>
+    <p>Unlike DFS, BFS has <em>no natural recursive form</em> — it is a queue loop by construction, which suits the standard's iterative discipline perfectly. Two equivalent ways to track distance:</p>
+    <ul>
+      <li><strong>Level-size loop (no per-node distance).</strong> Capture <code>queue.count</code> at the top of each <code>while</code> pass, drain exactly that many nodes, then increment one shared <code>distance</code>. Best when you need the distance only at the goal, or need to act "per layer" (e.g. multi-source spread time).</li>
+      <li><strong>Distance carried in the queue.</strong> Enqueue <code>(node, distance)</code> tuples, or keep a <code>dist[node]</code> map set when you enqueue. Best when different nodes need their own recorded distance, or the graph is sparse and a level boundary is awkward.</li>
+    </ul>
+    <div class="co-note"><strong>Why this matters here specifically:</strong> both forms are O(V + E) and interview-acceptable; pick by what the problem asks. "Minimum moves to reach the goal" → level-size loop (one number). "Time for the last orange to rot" → also level-size loop, but the answer is the final layer index. "Distance to every cell" → carry a <code>dist</code> map. Knowing both means you never fumble the bookkeeping.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Swift foundations -->
+  <section id="swift">
+    <h2>7 &nbsp; Swift Foundations</h2>
+    <p>Five Swift facts underlie nearly every BFS in this family. Say the queue-cost one out loud before coding — it is the most common interview ding.</p>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">the five BFS-handling rules for this block</span></div>
+<pre class="swift"><span class="cm">// 1. The queue: an Array used FIFO. removeFirst() is O(n) — shifts the whole array!</span>
+<span class="cm">//    For interviews, use a head index instead of removeFirst() to keep BFS O(V+E).</span>
+<span class="kw">var</span> queue: [<span class="tp">State</span>] = [start]
+<span class="kw">var</span> head = <span class="nm">0</span>
+<span class="kw">while</span> head &lt; queue.count {
+    <span class="kw">let</span> node = queue[head]; head += <span class="nm">1</span>   <span class="cm">// O(1) dequeue</span>
+    <span class="cm">// ... expand neighbors, queue.append(next) ...</span>
+}
+
+<span class="cm">// 2. Level-size loop: freeze the count, drain exactly one layer, bump distance once.</span>
+<span class="kw">var</span> distance = <span class="nm">0</span>
+<span class="kw">while</span> !queue.isEmpty {
+    <span class="kw">let</span> levelSize = queue.count
+    <span class="kw">for</span> _ <span class="kw">in</span> <span class="nm">0</span>..&lt;levelSize { <span class="cm">/* dequeue + expand */</span> }
+    distance += <span class="nm">1</span>
+}
+
+<span class="cm">// 3. Grid neighbors: a direction table makes the four (or eight) moves uniform.</span>
+<span class="kw">let</span> directions = [(<span class="nm">0</span>,<span class="nm">1</span>), (<span class="nm">0</span>,-<span class="nm">1</span>), (<span class="nm">1</span>,<span class="nm">0</span>), (-<span class="nm">1</span>,<span class="nm">0</span>)]   <span class="cm">// add diagonals for 8-dir</span>
+
+<span class="cm">// 4. The visited set keys depend on the vertex type:</span>
+<span class="kw">var</span> visited: <span class="tp">Set</span>&lt;<span class="tp">Int</span>&gt; = []                 <span class="cm">// grid cell encoded as row*cols+col, or a bitmask state</span>
+<span class="cm">//   For a board, encode the whole configuration to a String or Int and store THAT.</span>
+
+<span class="cm">// 5. Bounds + wall check, in this order — bounds first, or you index out of range.</span>
+<span class="kw">func</span> <span class="fn">inBounds</span>(<span class="kw">_</span> r: <span class="tp">Int</span>, <span class="kw">_</span> c: <span class="tp">Int</span>) -&gt; <span class="tp">Bool</span> {
+    r &gt;= <span class="nm">0</span> &amp;&amp; r &lt; rows &amp;&amp; c &gt;= <span class="nm">0</span> &amp;&amp; c &lt; cols
+}</pre>
+    <div class="co-pitfall" style="margin-top:12px"><strong>The <code>removeFirst()</code> trap.</strong> <code>Array.removeFirst()</code> is O(n) because it shifts every remaining element. Calling it once per vertex turns an O(V + E) BFS into O(V² ). Use a <strong>head index</strong> (shown above) or a ring buffer / deque. Mention this out loud — interviewers listen for it.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 8. The four variants -->
+  <section id="variants">
+    <h2>8 &nbsp; The Four Variants</h2>
+    <p>Ordered by increasing abstraction of "what is a vertex." The first two are taught in full walkthroughs (the grid warm-up and the state-space hard problem); the last two are solve-it-yourself problems — frame and pitfalls here, no solution.</p>
+
+    <!-- 8.1 Grid BFS -->
+    <div class="pattern-block" id="v-grid">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.1</span>
+        <span class="block-name">Grid BFS</span>
+        <div class="block-pills"><span class="pill pill-t">O(rows·cols)</span><span class="pill pill-s">O(rows·cols)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> the graph <em>is</em> a 2-D grid — cells are vertices, adjacent open cells are edges — and you want the fewest steps from a start cell to a target. Full Swift in the walkthrough (LC1091).</div>
+        <p><strong>The frame (LC 1091 — Shortest Path in Binary Matrix):</strong> the grid is an implicit graph; never build an adjacency list. From a cell, the neighbors are the up-to-8 in-bounds, open (value-0) cells given by a direction table. Run plain BFS from the start, count layers, return the layer at which you first reach the bottom-right cell.</p>
+        <div class="co-insight"><strong>The design decision:</strong> the grid spares you graph construction — neighbors are computed by adding direction offsets and checking bounds + wall in that order. The visited set is just the cells already enqueued (or you mutate the grid in place to mark them). Because BFS first-touch is shortest, the first arrival at the target is the answer.</div>
+        <p>Canonical problem: LC 1091 — Shortest Path in Binary Matrix (warm-up). <em>Full walkthrough.</em></p>
+      </div>
+    </div>
+
+    <!-- 8.2 Multi-source BFS -->
+    <div class="pattern-block" id="v-multi">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.2</span>
+        <span class="block-name">Multi-source BFS</span>
+        <div class="block-pills"><span class="pill pill-t">O(rows·cols)</span><span class="pill pill-s">O(rows·cols)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-note"><strong>Solve-it-yourself variant.</strong> This is an <em>attempt</em> problem — the seeding trick and the level-as-time rule are below, but no solution. Build it cold.</div>
+        <div class="co-when"><strong>When to use:</strong> many things spread simultaneously and you want the time until everything is reached (or to detect something never is). The twist: <em>seed the queue with all sources at once</em>, each at distance 0.</div>
+        <p><strong>The frame (LC 994 — Rotting Oranges):</strong> every rotten orange is a source. Enqueue them all before the loop starts (distance 0), then run a normal level-size BFS. Each layer is one minute; a fresh orange rots when the wave first reaches it. The answer is the last layer index — or −1 if any fresh orange is never visited.</p>
+        <div class="co-insight"><strong>The frame:</strong> multi-source BFS is single-source BFS with a fat layer 0. Because all sources start at distance 0, every cell is labeled with the distance to its <em>nearest</em> source automatically — no need to run BFS once per source. Recognizing "seed them all at once" is the whole trick. See pitfalls §10.</div>
+        <p>Canonical problem: LC 994 — Rotting Oranges (attempt). Graduated hints in the walkthrough.</p>
+      </div>
+    </div>
+
+    <!-- 8.3 State-space BFS -->
+    <div class="pattern-block" id="v-state">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.3</span>
+        <span class="block-name">State-space BFS (configurations as vertices)</span>
+        <div class="block-pills"><span class="pill pill-t">O(states · movesPerState)</span><span class="pill pill-s">O(states)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> "minimum moves to turn configuration X into configuration Y," where one move changes the whole configuration a little. The vertex is an entire state; the edge is "apply one legal move." Full Swift in the walkthrough (LC1284).</div>
+        <p><strong>The frame (LC 1284 — Min Flips to Convert Binary Matrix):</strong> the whole matrix is one vertex, encoded as an <code>Int</code> bitmask (cell r,c → bit <code>r·cols+c</code>). A move flips a cell and its 4 neighbors — i.e. XOR a precomputed mask. BFS from the start matrix; the first layer that reaches the all-zero matrix is the minimum number of flips. The encoding is what makes the visited set possible.</p>
+        <div class="co-insight"><strong>The design decision:</strong> the only new skill versus grid BFS is <em>encoding a whole configuration into one hashable key</em> (a string for a board, an Int bitmask for a small matrix) so the visited set can store it. Once states are integers, "states one move apart" is just "XOR with a move-mask," and the BFS loop is unchanged. The state space is finite and small (2^(rows·cols)), so BFS terminates.</div>
+        <p>Canonical problem: LC 1284 — Min Flips to Convert Binary Matrix (walkthrough); LC 773 — Sliding Puzzle is the same shape with a string-encoded board. <em>Full walkthrough.</em></p>
+      </div>
+    </div>
+
+    <!-- 8.4 BFS with carried state -->
+    <div class="pattern-block" id="v-gated">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.4</span>
+        <span class="block-name">BFS with carried state (augmented vertex)</span>
+        <div class="block-pills"><span class="pill pill-t">O(states · 2^keys)</span><span class="pill pill-s">O(states · 2^keys)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-note"><strong>Solve-it-yourself variant.</strong> This is a <em>target</em> problem — the augmented-vertex model is below, but no code. This is the canonical "BFS where the vertex is more than a position" framing.</div>
+        <div class="co-when"><strong>When to use:</strong> the fewest-steps question depends not just on <em>where</em> you are but on <em>what you have collected</em> (keys, opened boxes, visited set of items). The vertex becomes <code>(position, carried-state)</code>.</div>
+        <p><strong>The model (LC 1298 — Maximum Candies from Boxes):</strong> you BFS over boxes you can open, but whether you can open a box depends on the keys you've found so far. The trick is that the reachable frontier <em>grows</em> as you collect keys — a box you couldn't open earlier becomes openable later, so you must revisit "blocked" boxes when new keys arrive. The carried state (set of keys / boxes-in-hand) is part of the vertex; visited must key on the augmented vertex, not the position alone.</p>
+        <div class="co-insight"><strong>The frame:</strong> this is plain BFS once you widen the vertex to include the carried state. The classic bug is keying <code>visited</code> on position only — then you never reprocess a box after gaining the key that unlocks its neighbors. Recognizing that the vertex must carry the collected state is the whole problem. See pitfalls §10.</div>
+        <p>Canonical problem: LC 1298 — Maximum Candies from Boxes (target); LC 773 — Sliding Puzzle also sits between §8.3 and here. Graduated hints in the walkthrough.</p>
+      </div>
+    </div>
+
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 9. Complexity -->
+  <section id="complexity">
+    <h2>9 &nbsp; Complexity Analysis</h2>
+    <p><strong>BFS is O(V + E): every vertex is enqueued once (the visited set guarantees it) and every edge is examined once when its endpoint is expanded.</strong> The cost shifts only in <em>how big the graph is</em> — and for state-space BFS, the vertex count can be exponential in the configuration size.</p>
+    <table class="t-cmx">
+      <thead><tr><th>Variant</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Grid BFS (8.1)</td><td class="tc">O(R·C)</td><td class="sc">O(R·C)</td><td>Each of R·C cells is enqueued once; up to 8 neighbor checks each is a constant. Queue + visited hold up to R·C cells.</td></tr>
+        <tr><td>Multi-source BFS (8.2)</td><td class="tc">O(R·C)</td><td class="sc">O(R·C)</td><td>Same as single-source — fat layer 0 doesn't change the total; every cell still enters the queue once.</td></tr>
+        <tr><td>State-space BFS (8.3)</td><td class="tc">O(S·M)</td><td class="sc">O(S)</td><td>S = number of reachable states (≤ 2^(R·C) for a bitmask matrix), M = moves per state. Each state enqueued once; visited holds encoded states.</td></tr>
+        <tr><td>BFS with carried state (8.4)</td><td class="tc">O(S·2^K)</td><td class="sc">O(S·2^K)</td><td>The vertex is (position, key-set); the key-set multiplies the state count by 2^K. Still each augmented vertex once.</td></tr>
+        <tr class="bottleneck"><td>Bottleneck</td><td class="tc">state count</td><td class="sc">—</td><td>BFS itself is linear in the graph; the cost is how many vertices the graph <em>has</em>. State-space and augmented-vertex BFS explode because the vertex set is exponential in the configuration — that, not the loop, is what to watch.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-insight"><strong>Why BFS beats Dijkstra when edges are unweighted.</strong> Dijkstra needs a priority queue (O(log V) per operation) to handle varying edge weights. When every edge costs 1, the FIFO queue already pops vertices in distance order for free — so BFS is O(V + E), strictly better than Dijkstra's O(E log V). Use BFS whenever edges are equal-cost; reach for Dijkstra only when they differ.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 10. Pitfalls -->
+  <section id="pitfalls">
+    <h2>10 &nbsp; Common Pitfalls</h2>
+    <div class="co-pitfall">
+      <div class="co-pitfall-title">Pitfalls — bugs this block invites</div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Marking visited on dequeue instead of enqueue (all variants).</strong> If you mark a vertex visited only when you pop it, the same vertex gets enqueued many times before it's popped — the queue bloats and distances can be wrong. Insert into <code>visited</code> the instant you enqueue.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Using <code>removeFirst()</code> as the dequeue (Swift-specific).</strong> It's O(n); doing it per vertex makes BFS O(V²). Use a head index or a deque. Say this out loud in an interview.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Forgetting the start might already be the goal (8.1/8.3).</strong> If start == target (or the start cell is blocked), handle it before the loop — e.g. LC1091 returns −1 if the start cell is a wall, and 1 if start == end and open.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Bumping distance per node instead of per layer (8.1/8.2).</strong> Incrementing the shared distance inside the inner loop counts edges wrong. Freeze <code>levelSize</code>, drain one full layer, then increment once — or carry distance in the queue.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Keying visited on position only when the vertex carries state (8.4).</strong> If the answer depends on collected keys, two visits to the same cell with different key-sets are different vertices. Key <code>visited</code> on the full augmented state, or you'll wrongly skip a now-openable box.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Bounds check after the wall/grid lookup (grid variants).</strong> Always test in-bounds <em>before</em> reading <code>grid[r][c]</code>, or you index out of range on edge cells.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Reaching for BFS on weighted edges.</strong> BFS's shortest-path guarantee only holds when every edge costs the same. Different weights → Dijkstra. A "BFS" over weighted edges silently returns wrong answers.</span></div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 11. Edge cases -->
+  <section id="edge-cases">
+    <h2>11 &nbsp; Edge Cases to Verbalize</h2>
+    <p>Name these before coding. The unreachable and already-at-goal cases are where BFS solutions most often misreport.</p>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected behavior</th><th>What it exercises</th></tr></thead>
+      <tbody>
+        <tr><td>Start cell is blocked / invalid</td><td>Return −1 (or "impossible") immediately</td><td>The pre-loop guard before any enqueue</td></tr>
+        <tr><td>Start == goal</td><td>Distance 0 (or 1 for path-length-in-cells conventions)</td><td>Goal check before/at the first dequeue</td></tr>
+        <tr><td>Goal unreachable (walled off)</td><td>Queue empties without ever reaching the goal → −1</td><td>The <code>RETURN -1</code> fall-through after the loop</td></tr>
+        <tr><td>Single-cell grid, open</td><td>Trivial shortest path (0 or 1)</td><td>1×1 boundary; start is the goal</td></tr>
+        <tr><td>Multi-source: no sources at all</td><td>If nothing needs reaching → 0; if something does → −1</td><td>Empty layer 0 handling (§8.2)</td></tr>
+        <tr><td>State-space: already in the goal state</td><td>0 moves</td><td>Goal check on the start state (§8.3)</td></tr>
+        <tr><td>State-space: goal unreachable in the finite space</td><td>Exhaust all states → −1</td><td>Termination of the bounded state graph</td></tr>
+        <tr><td>Augmented: a box needs a key found only later</td><td>Box becomes openable once the key arrives</td><td>Re-expanding the frontier as carried state grows (§8.4)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 12. Cheat sheet -->
+  <section id="cheatsheet">
+    <h2>12 &nbsp; Cheat Sheet</h2>
+    <table class="t-versus">
+      <thead><tr><th>You see…</th><th>You use</th><th>Variant</th></tr></thead>
+      <tbody>
+        <tr><td>"shortest path in a grid", 4/8-dir</td><td>grid BFS — cells are vertices, direction table for neighbors</td><td>§8.1 Grid BFS</td></tr>
+        <tr><td>"everything spreads per minute"</td><td>seed all sources at layer 0, count layers</td><td>§8.2 Multi-source BFS</td></tr>
+        <tr><td>"minimum moves to transform X→Y"</td><td>encode each config to a key, BFS over states</td><td>§8.3 State-space BFS</td></tr>
+        <tr><td>"reach goal collecting keys/boxes"</td><td>vertex = (position, carried-state); key visited on both</td><td>§8.4 BFS with carried state</td></tr>
+        <tr><td>"cheapest path, weighted edges"</td><td>not BFS — Dijkstra (priority queue)</td><td>see Dijkstra deep dive</td></tr>
+      </tbody>
+    </table>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">copy-paste grid-BFS skeleton (head-index queue, level loop)</span></div>
+<pre class="swift"><span class="kw">func</span> <span class="fn">shortestPath</span>(<span class="kw">_</span> grid: [[<span class="tp">Int</span>]], start: (<span class="tp">Int</span>,<span class="tp">Int</span>), goal: (<span class="tp">Int</span>,<span class="tp">Int</span>)) -&gt; <span class="tp">Int</span> {
+    <span class="kw">let</span> rows = grid.count, cols = grid[<span class="nm">0</span>].count
+    <span class="kw">let</span> directions = [(<span class="nm">0</span>,<span class="nm">1</span>),(<span class="nm">0</span>,-<span class="nm">1</span>),(<span class="nm">1</span>,<span class="nm">0</span>),(-<span class="nm">1</span>,<span class="nm">0</span>)]
+    <span class="kw">var</span> queue = [start], head = <span class="nm">0</span>, distance = <span class="nm">0</span>
+    <span class="kw">var</span> visited: <span class="tp">Set</span>&lt;<span class="tp">Int</span>&gt; = [start.<span class="nm">0</span> * cols + start.<span class="nm">1</span>]
+    <span class="kw">while</span> head &lt; queue.count {
+        <span class="kw">let</span> levelSize = queue.count - head
+        <span class="kw">for</span> _ <span class="kw">in</span> <span class="nm">0</span>..&lt;levelSize {
+            <span class="kw">let</span> (r, c) = queue[head]; head += <span class="nm">1</span>
+            <span class="kw">if</span> (r, c) == goal { <span class="kw">return</span> distance }
+            <span class="kw">for</span> (dr, dc) <span class="kw">in</span> directions {
+                <span class="kw">let</span> nr = r + dr, nc = c + dc
+                <span class="kw">guard</span> nr &gt;= <span class="nm">0</span>, nr &lt; rows, nc &gt;= <span class="nm">0</span>, nc &lt; cols,
+                      grid[nr][nc] == <span class="nm">0</span>,
+                      !visited.contains(nr * cols + nc) <span class="kw">else</span> { <span class="kw">continue</span> }
+                visited.insert(nr * cols + nc)        <span class="cm">// mark on enqueue</span>
+                queue.append((nr, nc))
+            }
+        }
+        distance += <span class="nm">1</span>
+    }
+    <span class="kw">return</span> -<span class="nm">1</span>                                          <span class="cm">// goal unreachable</span>
+}</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13. Cross-reference -->
+  <section id="practice">
+    <h2>13 &nbsp; Demonstrated in Practice</h2>
+    <p>Each problem in this block is taught in its own walkthrough — constraint insights, edge-case inventory, interview simulation, and (for the warm-up and walkthrough) a full dry run and iterative Swift solution.</p>
+    <div class="ref-grid">
+      <a class="xref-card" href="../../walkthroughs/LC1091_master.html">
+        <span class="ref-file">walkthroughs/LC1091_master.html</span>
+        <span class="ref-title">LC 1091 — Shortest Path in Binary Matrix (Medium · warm-up)</span>
+        <span class="ref-desc">Grid BFS — cells as vertices, 8-directional moves, the head-index queue and level loop. Full dry run and Swift. The orientation problem that builds the queue+visited reflex.</span>
+      </a>
+      <a class="xref-card" href="../../walkthroughs/LC1284_master.html">
+        <span class="ref-file">walkthroughs/LC1284_master.html</span>
+        <span class="ref-title">LC 1284 — Min Flips to Convert Binary Matrix (Hard · walkthrough)</span>
+        <span class="ref-desc">State-space BFS — encode the whole matrix as an Int bitmask, a flip is an XOR with a precomputed move-mask, BFS to the all-zero state. Full dry run and Swift, plus the encoding insight.</span>
+      </a>
+      <a class="xref-card" href="../../walkthroughs/LC994_master.html">
+        <span class="ref-file">walkthroughs/LC994_master.html</span>
+        <span class="ref-title">LC 994 — Rotting Oranges (Medium · attempt)</span>
+        <span class="ref-desc">Multi-source BFS you solve cold — seed every rotten orange at layer 0, count minutes as layers, −1 if any orange never rots. Graduated hints. No solution shown.</span>
+      </a>
+      <a class="xref-card" href="../../walkthroughs/LC1298_master.html">
+        <span class="ref-file">walkthroughs/LC1298_master.html</span>
+        <span class="ref-title">LC 1298 — Maximum Candies from Boxes (Hard · target)</span>
+        <span class="ref-desc">BFS with carried state — the frontier grows as you collect keys; the vertex carries what you hold. Frame and hints only; no solution shown.</span>
+      </a>
+    </div>
+    <div class="co-note" style="margin-top:12px"><strong>Note:</strong> the LC994 and LC1298 walkthroughs are the solve-it-yourself targets of this family; their pages are coaches (problem, edge cases, signals, hints) with no solution, per the study-plan spoiler rule.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 14. Solo problem -->
+  <section id="solo">
+    <h2>14 &nbsp; Solo Problem — no solution on this page</h2>
+    <div class="solo-box">
+      <div class="solo-banner">Solo problem — no solution on this page</div>
+      <p><strong>LC 994 — Rotting Oranges (Medium).</strong> Given a grid where 0 = empty, 1 = fresh orange, 2 = rotten, each minute every fresh orange adjacent (4-dir) to a rotten one rots. Return the minutes until no fresh orange remains, or −1 if some never rot. Recognize this as multi-source BFS and build the seeding + level-counting before writing any code.</p>
+      <ul class="checklist">
+        <li>What are the vertices, what is one edge, and what does "one minute" correspond to in BFS terms?</li>
+        <li>Why do you enqueue <em>all</em> rotten oranges before the loop, all at distance 0?</li>
+        <li>Where does the answer live — is it the last layer index, and how do you read it off the level loop?</li>
+        <li>How do you detect that a fresh orange is never reached (the −1 case)?</li>
+        <li>What is the answer when there are zero fresh oranges to begin with?</li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="page-footer">
+    Breadth-First Search · Theory Masterfile (Deep Dive) · Hub:
+    <a href="index.html">Graphs</a> ·
+    Structure per <code>wiki/_standards/THEORY_MASTERFILE_STANDARD.md</code>
+  </div>
+
+</main>
+</div>
+
+<script src="../../_shared/pages.js"></script>
+<script src="../../_shared/nav.js"></script>
+</body>
+</html>
