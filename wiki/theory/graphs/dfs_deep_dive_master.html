@@ -60,7 +60,7 @@
       <div class="infobox-row"><div class="infobox-k">Space</div><div class="infobox-v">O(V) for the visited set and the recursion/stack depth</div></div>
       <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"all paths / combinations", "connected component / island", "does a cycle exist", "explore every choice", "minimize over decisions"</div></div>
       <div class="infobox-row"><div class="infobox-k">The fork</div><div class="infobox-v">Need the <em>fewest steps</em> on equal-cost edges? Use BFS. Need to explore <em>all</em> the way down (paths, choices, costs)? Use DFS</div></div>
-      <div class="infobox-row"><div class="infobox-k">Walkthroughs</div><div class="infobox-v mono"><a href="../../walkthroughs/LC638_master.html">LC638</a> · LC200 (coming) · LC207 (coming)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Walkthroughs</div><div class="infobox-v mono"><a href="../../walkthroughs/LC638_master.html">LC638</a> · LC200 (coming) · <a href="../../walkthroughs/LC207_master.html">LC207</a> (cross-link)</div></div>
     </div>
 
     <div class="lead">
@@ -408,11 +408,11 @@ path.append(choice); <span class="fn">dfs</span>(rest); path.removeLast()    <sp
       </a>
       <a class="xref-card" href="../../walkthroughs/LC207_master.html">
         <span class="ref-file">walkthroughs/LC207_master.html</span>
-        <span class="ref-title">LC 207 — Course Schedule (Medium · target)</span>
-        <span class="ref-desc">Cycle-detection DFS via three-color marking — a Gray neighbor is a back-edge. Frame and hints only; no solution shown. (Also the Topological Sort deep dive's lead problem.)</span>
+        <span class="ref-title">LC 207 — Course Schedule (Medium · cross-link)</span>
+        <span class="ref-desc">The DFS three-color cycle detector (§8.4) in action — a Gray neighbor is a back-edge. Taught fully under the <a href="topological_sort_deep_dive_master.html">Topological Sort deep dive</a> (Kahn's primary, DFS three-color as the §9b contrast). Fully worked there.</span>
       </a>
     </div>
-    <div class="co-note" style="margin-top:12px"><strong>Note:</strong> LC200 and LC207 are solve-it-yourself problems of this family; their pages are coaches (problem, edge cases, signals, hints) with no solution, per the study-plan spoiler rule. LC638 is the fully-worked walkthrough.</div>
+    <div class="co-note" style="margin-top:12px"><strong>Note:</strong> LC200 is a solve-it-yourself problem of this family — a coach page (problem, edge cases, signals, hints) with no solution, per the study-plan spoiler rule. LC638 is the fully-worked walkthrough; LC207 is fully worked under the Topological Sort deep dive and cross-linked here for its DFS cycle-detection angle.</div>
   </section>
 
   <hr class="wiki-hr">

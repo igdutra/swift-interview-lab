@@ -68,7 +68,7 @@ const WIKI_PAGES = [
     nav: "Graphs",
     title: "Graphs",
     topics: ["BFS", "DFS", "Topological Sort", "Dijkstra"],
-    blurb: "Graphs hub — vertex/edge/adjacency vocabulary, traversal families, and the BFS deep dive (grid, multi-source, state-space) and DFS deep dive (components, backtracking, state DFS + memoization, cycle detection).",
+    blurb: "Graphs hub — vertex/edge/adjacency vocabulary, traversal families, and the BFS deep dive (grid, multi-source, state-space), DFS deep dive (components, backtracking, state DFS + memoization, cycle detection), and Topological Sort deep dive (Kahn's in-degree peel, cycle detection, DAG ordering).",
   },
   // ── Walkthroughs — CUSTOM problems first, then ascending LC number order ─
   {
@@ -322,6 +322,15 @@ const WIKI_PAGES = [
     topics: ["Tree", "LCA", "Hash Map"],
     difficulty: "M",
     blurb: "Post-order LCA (Variant 8.2). Build a parent map, collect p's ancestors, walk q up to the first shared one — LCA as path intersection. Iterative Swift + recursive contrast + dry run.",
+  },
+  {
+    cat: "walkthrough",
+    path: "walkthroughs/LC207_master.html",
+    nav: "LC 207",
+    title: "LC 207 — Course Schedule",
+    topics: ["Topological Sort", "Graphs", "BFS"],
+    difficulty: "M",
+    blurb: "Topological sort via Kahn's algorithm (Variant 8.1). Model prerequisites as a directed graph, peel in-degree-0 courses, and read the cycle off the processed count — can finish iff the graph is acyclic. Full Swift + DFS three-color contrast + dry run.",
   },
   {
     cat: "walkthrough",
