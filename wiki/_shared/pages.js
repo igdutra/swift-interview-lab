@@ -68,7 +68,7 @@ const WIKI_PAGES = [
     nav: "Graphs",
     title: "Graphs",
     topics: ["BFS", "DFS", "Topological Sort", "Dijkstra"],
-    blurb: "Graphs hub — vertex/edge/adjacency vocabulary, traversal families, and the BFS deep dive (grid, multi-source, state-space), DFS deep dive (components, backtracking, state DFS + memoization, cycle detection), and Topological Sort deep dive (Kahn's in-degree peel, cycle detection, DAG ordering).",
+    blurb: "Graphs hub — vertex/edge/adjacency vocabulary, traversal families, and the BFS deep dive (grid, multi-source, state-space), DFS deep dive (components, backtracking, state DFS + memoization, cycle detection), Topological Sort deep dive (Kahn's in-degree peel, cycle detection, DAG ordering), and Dijkstra deep dive (min-heap shortest path, min-max cost, constrained/augmented state).",
   },
   // ── Walkthroughs — CUSTOM problems first, then ascending LC number order ─
   {
@@ -358,6 +358,15 @@ const WIKI_PAGES = [
     topics: ["Graphs", "BFS", "Bitmask"],
     difficulty: "H",
     blurb: "State-space BFS (Variant 8.3). Encode the whole matrix as an Int bitmask, a flip is an XOR with a precomputed move-mask, BFS to state 0 gives the fewest flips. The ≤9-cell bound makes the state space tiny. Full Swift + dry run.",
+  },
+  {
+    cat: "walkthrough",
+    path: "walkthroughs/LC1631_master.html",
+    nav: "LC 1631",
+    title: "LC 1631 — Path With Minimum Effort",
+    topics: ["Dijkstra", "Graphs", "Heap"],
+    difficulty: "M",
+    blurb: "Min-max Dijkstra on a grid (Variant 8.3). A path's effort is its worst step, so relax with max instead of +; a hand-rolled min-heap settles least-effort first. Full Swift (with the Heap struct) + dry run.",
   },
   {
     cat: "tips",

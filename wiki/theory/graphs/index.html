@@ -23,7 +23,7 @@
 
     <div class="lead">
       <p>A <strong>graph</strong> is a set of <em>vertices</em> (nodes) connected by <em>edges</em> (links). Almost every "shortest path", "reachability", "ordering", or "spread" question is secretly a graph problem — the hard part is usually <em>recognizing the graph</em>, not traversing it. The grid in a maze, the dependency between two courses, the one-bit difference between two board states: each becomes vertices and edges, and then one of a small number of standard traversals answers the question.</p>
-      <p>This hub gives you the vocabulary first — vertex, edge, neighbor, the adjacency representations, and the traversal families — then sends you to the deep dives. The deep dives so far are <strong>Breadth-First Search (BFS)</strong>, the level-by-level traversal that finds the <em>fewest-steps</em> path in an unweighted graph; <strong>Depth-First Search (DFS)</strong>, the go-deep-then-backtrack traversal behind connected components, backtracking, and top-down DP; and <strong>Topological Sort</strong>, ordering a DAG under dependency constraints (and detecting cycles in the process). Dijkstra follows.</p>
+      <p>This hub gives you the vocabulary first — vertex, edge, neighbor, the adjacency representations, and the traversal families — then sends you to the deep dives. The deep dives so far are <strong>Breadth-First Search (BFS)</strong>, the level-by-level traversal that finds the <em>fewest-steps</em> path in an unweighted graph; <strong>Depth-First Search (DFS)</strong>, the go-deep-then-backtrack traversal behind connected components, backtracking, and top-down DP; and <strong>Topological Sort</strong>, ordering a DAG under dependency constraints (and detecting cycles in the process); and <strong>Dijkstra's algorithm</strong>, the weighted-shortest-path generalization of BFS that settles the cheapest vertex first via a min-heap.</p>
     </div>
 
     <!-- Terminology — what the user must know cold -->
@@ -80,6 +80,15 @@
           <span class="ref-topics">DAG · In-degree · Kahn's · Cycle Detection</span>
         </span>
         <span class="ref-desc">Order a DAG so every edge points forward: Kahn's in-degree peel (cycle check + order in one pass), outputting the order, the DFS post-order alternative, and building the graph from sorted data. Directed at LC207, LC210, LC269.</span>
+      </a>
+
+      <a class="xref-card" href="dijkstra_deep_dive_master.html">
+        <span class="ref-file">theory/graphs/dijkstra_deep_dive_master.html</span>
+        <span class="ref-title">Dijkstra's Algorithm Deep Dive</span>
+        <span class="ref-meta">
+          <span class="ref-topics">Min-heap · Relax · Weighted Shortest Path</span>
+        </span>
+        <span class="ref-desc">Cheapest path over non-negative weighted edges: settle the closest unsettled vertex via a min-heap. Classic single-source, grid Dijkstra, custom-cost/min-max (relax with max), and constrained (augmented-state) shortest path. Directed at LC1631, LC743, LC787.</span>
       </a>
 
     </div>

@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dijkstra's Algorithm · Theory Masterfile</title>
+<link rel="stylesheet" href="../../_shared/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="theory">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── TOC ── -->
+<nav class="toc-col">
+  <div class="toc-inner">
+    <div class="toc-title toc-cat-theory">Theory · Contents</div>
+    <a href="#lead"          class="toc-link"><span class="toc-num">1</span> Definition</a>
+    <a href="#signals"       class="toc-link"><span class="toc-num">2</span> Recognition Signals</a>
+    <a href="#terminology"   class="toc-link"><span class="toc-num">3</span> Terminology Decoder</a>
+    <a href="#mental-model"  class="toc-link"><span class="toc-num">4</span> Mental Model</a>
+    <a href="#pseudocode"    class="toc-link"><span class="toc-num">5</span> Pseudocode Primer</a>
+    <a href="#iterative"     class="toc-link"><span class="toc-num">6</span> The Heap in Swift</a>
+    <a href="#swift"         class="toc-link"><span class="toc-num">7</span> Swift Foundations</a>
+    <a href="#variants"      class="toc-link"><span class="toc-num">8</span> The Four Variants</a>
+    <div class="toc-sub">
+      <a href="#v-classic" class="toc-link">8.1 Classic single-source</a>
+      <a href="#v-grid"    class="toc-link">8.2 Grid Dijkstra</a>
+      <a href="#v-cost"    class="toc-link">8.3 Custom-cost / min-max</a>
+      <a href="#v-state"   class="toc-link">8.4 Constrained (augmented state)</a>
+    </div>
+    <a href="#complexity"    class="toc-link"><span class="toc-num">9</span> Complexity Analysis</a>
+    <a href="#pitfalls"      class="toc-link"><span class="toc-num">10</span> Common Pitfalls</a>
+    <a href="#edge-cases"    class="toc-link"><span class="toc-num">11</span> Edge Cases</a>
+    <a href="#cheatsheet"    class="toc-link"><span class="toc-num">12</span> Cheat Sheet</a>
+    <a href="#practice"      class="toc-link"><span class="toc-num">13</span> Demonstrated in Practice</a>
+    <a href="#solo"          class="toc-link"><span class="toc-num">14</span> Solo Problem</a>
+  </div>
+</nav>
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">Dijkstra's Algorithm</h1>
+  <div class="page-meta">
+    <span>Theory Masterfile · Deep Dive</span><span>·</span>
+    <span>Language: Swift</span><span>·</span>
+    <span>Min-heap · Relax · Settle the cheapest first</span>
+  </div>
+
+  <!-- 1. Definition -->
+  <section id="lead">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Shortest path from one source to all vertices in a graph with non-negative edge weights</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v">Always expand the closest not-yet-settled vertex (via a min-heap); the first time you settle a vertex, its distance is final</div></div>
+      <div class="infobox-row"><div class="infobox-k">Time</div><div class="infobox-v">O(E log V) with a binary heap</div></div>
+      <div class="infobox-row"><div class="infobox-k">Space</div><div class="infobox-v">O(V + E) — adjacency list, distance array, and the heap</div></div>
+      <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"shortest / cheapest / minimum cost path", "weighted edges", "least total / least maximum"</div></div>
+      <div class="infobox-row"><div class="infobox-k">The fork</div><div class="infobox-v">All edges cost the same? Use <a href="bfs_deep_dive_master.html">BFS</a>. Different non-negative weights? Dijkstra. Negative weights? Bellman-Ford</div></div>
+      <div class="infobox-row"><div class="infobox-k">Walkthroughs</div><div class="infobox-v mono"><a href="../../walkthroughs/LC1631_master.html">LC1631</a> · LC743 (coming) · LC787 (coming)</div></div>
+    </div>
+
+    <div class="lead">
+      <p><strong>Dijkstra's algorithm</strong> finds the shortest path from a single source to every other vertex in a graph whose edge weights are <em>non-negative</em>. It generalizes BFS: where BFS assumes every edge costs 1 and so expands in simple layers with a queue, Dijkstra handles <em>varying</em> weights by always expanding the <strong>closest unsettled vertex</strong> — pulled from a <strong>min-heap</strong> (priority queue) keyed by tentative distance. The moment a vertex comes off the heap, its shortest distance is locked in.</p>
+      <p>The decision that sends a problem to Dijkstra is "<strong>cheapest path with non-negative weights that differ.</strong>" The machinery is always the same three pieces: a distance array (best cost known to each vertex), a min-heap of <code>(cost, vertex)</code> frontier entries, and a <em>relaxation</em> step that, on popping a vertex, tries to improve each neighbor's tentative cost and pushes the improved ones back. What "cost" means can flex — total weight (classic, LC743), the <em>maximum</em> single edge on the path (min-max, <a href="../../walkthroughs/LC1631_master.html">LC1631</a>), or cost under a hop/time constraint (LC787) — but the settle-the-cheapest-first skeleton never changes. This deep dive lives under the <a href="index.html">Graphs hub</a>; it is the weighted sibling of the <a href="bfs_deep_dive_master.html">BFS deep dive</a>.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Recognition signals -->
+  <section id="signals">
+    <h2>2 &nbsp; Recognition Signals — what variant is this?</h2>
+    <p>"Cheapest path over weighted edges" is the Dijkstra master signal. What the cost <em>is</em>, and whether there's an extra constraint, picks the variant.</p>
+    <table class="t-clue">
+      <thead><tr><th>When the problem says…</th><th>It means…</th></tr></thead>
+      <tbody>
+        <tr><td>"minimum total time / cost / distance" on a weighted graph</td><td>Classic single-source Dijkstra — sum of weights. §8.1 (LC743)</td></tr>
+        <tr><td>"shortest weighted path in a grid", weighted moves</td><td>Grid Dijkstra — cells are vertices, move costs are edge weights. §8.2</td></tr>
+        <tr><td>"minimize the maximum / minimize the largest step / least effort"</td><td>Custom-cost (min-max) Dijkstra — relax with <code>max</code>, not <code>+</code>. §8.3 (LC1631)</td></tr>
+        <tr><td>"cheapest path within K stops / within T minutes"</td><td>Constrained Dijkstra — augment the vertex with the constraint dimension. §8.4 (LC787)</td></tr>
+        <tr><td>"all edges cost 1 / fewest steps"</td><td>Not Dijkstra — <a href="bfs_deep_dive_master.html">BFS</a> is the right, cheaper tool.</td></tr>
+        <tr><td>"edges can be negative"</td><td>Not Dijkstra — its settled-is-final invariant breaks. Use Bellman-Ford / SPFA.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-when"><strong>The tell:</strong> the answer is a <em>cost</em> and the edges carry <em>different, non-negative</em> weights. The instant you see "cheapest / minimum-cost path" with varying weights, reach for a min-heap. Then ask: is the cost a sum (§8.1/§8.2), a max along the path (§8.3), or is there an extra budget like stops or time that must travel in the state (§8.4)?</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Terminology decoder -->
+  <section id="terminology">
+    <h2>3 &nbsp; Terminology Decoder</h2>
+    <p>The general graph vocabulary lives in the <a href="index.html">Graphs hub</a>; these are the terms this Dijkstra page leans on most.</p>
+    <table class="t-decoder">
+      <thead><tr><th>Term</th><th>Plain meaning</th><th>Example / note</th></tr></thead>
+      <tbody>
+        <tr><td>Tentative distance</td><td>The best cost to a vertex found <em>so far</em> — may still improve</td><td>Stored in <code>dist[]</code>; starts at ∞ for all but the source</td></tr>
+        <tr><td>Settle / finalize</td><td>Pop a vertex from the heap; its distance is now provably final</td><td>The settled-is-final guarantee holds only for non-negative weights</td></tr>
+        <tr><td>Relaxation</td><td>Try to improve a neighbor's tentative distance through the current vertex</td><td><code>if dist[u] + w &lt; dist[v]: update</code> (classic); the combine rule flexes (§8.3)</td></tr>
+        <tr><td>Min-heap / priority queue</td><td>A structure that always hands back the smallest-cost entry</td><td>Swift has none built in — you hand-roll one (§6)</td></tr>
+        <tr><td>Lazy deletion</td><td>Leaving stale (cost, vertex) entries in the heap and skipping them on pop</td><td>Simpler than decrease-key; the standard interview approach</td></tr>
+        <tr><td>Edge weight</td><td>The cost of traversing one edge</td><td>Must be ≥ 0 for Dijkstra; the move/effort/fee of the problem</td></tr>
+        <tr><td>Augmented state</td><td>A vertex paired with extra info (stops left, time used)</td><td>What turns constrained shortest path into plain Dijkstra (§8.4)</td></tr>
+        <tr><td>Path cost function</td><td>How edge weights combine into a path's total</td><td>Sum (classic), or max-of-edges (min-max, §8.3)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Mental model -->
+  <section id="mental-model">
+    <h2>4 &nbsp; Mental Model — settle the cheapest frontier first</h2>
+
+    <div class="co-idea">
+      <div class="co-idea-title">The one idea</div>
+      Dijkstra is BFS with a <em>priority</em> queue. Instead of expanding in equal layers, it always expands the cheapest-reachable vertex next. Because all weights are non-negative, the cheapest unsettled vertex can never later be reached more cheaply — so the first time you pop a vertex off the heap, its distance is final and you never revisit it. That "cheapest-first ⇒ settled-is-final" property is the entire correctness argument, and it is exactly why a negative edge would break it.
+    </div>
+
+    <p>Watch Dijkstra from source <code>A</code>. The heap always serves the smallest tentative cost; popping a vertex finalizes it:</p>
+
+    <div class="code-label"><span class="code-lang lang-ascii">Diagram</span><span class="code-desc">settle cheapest-first; edge labels are weights</span></div>
+<pre class="ascii">     1      5
+  A ---- B ---- D          dist start: A0  B∞  C∞  D∞
+  |      |
+ 4|      |2
+  C ------+                heap: [(0,A)]
+
+pop (0,A): settle A=0 ; relax B→1, C→4         heap [(1,B),(4,C)]
+pop (1,B): settle B=1 ; relax D→1+5=6, C→1+2=3 heap [(3,C),(4,C-stale),(6,D)]
+pop (3,C): settle C=3 ; (4,C) left in heap is stale  heap [(4,C),(6,D)]
+pop (4,C): C already settled → SKIP (lazy deletion)  heap [(6,D)]
+pop (6,D): settle D=6
+final: A0 B1 C3 D6</pre>
+    <p class="ascii-caption">C is first reached at cost 4 (via A) but later improved to 3 (via B) — the stale (4,C) entry stays in the heap and is skipped when popped. That's lazy deletion: cheaper than decrease-key, and the settled check makes it correct.</p>
+
+    <p>The deep idea that unlocks the variants: <strong>"cost" need not be a sum.</strong> Keep the settle-cheapest-first skeleton and swap only the <em>combine</em> rule. For "minimize the maximum edge on the path" (LC1631), a path's cost is the largest edge it uses, so relaxation becomes <code>max</code> instead of <code>+</code>:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">min-max Dijkstra — relax with max, not +</span></div>
+<pre class="dry"><span class="tr-var">classic:   newCost = dist[u] + weight(u,v)
+min-max:   newCost = max(dist[u], weight(u,v))   ← cost of a path = its worst edge</span>
+
+the heap still serves the smallest newCost; settle-cheapest-first still holds
+because max is monotonic and weights are non-negative. <span class="tr-ok">Same skeleton, new combine.</span></pre>
+    <p class="ascii-caption">Classic, grid, and min-max Dijkstra are the <em>same algorithm</em>; only the cost combine rule (and, for §8.4, the vertex definition) changes. Master the heap-relax loop once and every variant is a re-skinning.</p>
+
+    <p>So the family reduces to three questions: what is a vertex, what does one edge cost, and how do costs combine into a path total — sum, max, or under a constraint that rides in the state?</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Pseudocode primer -->
+  <section id="pseudocode">
+    <h2>5 &nbsp; Pseudocode Primer</h2>
+    <p>Classic Dijkstra with lazy deletion. The settled-skip line and the relax-then-push are the two that matter.</p>
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">Dijkstra — min-heap, relax, settle cheapest-first</span></div>
+<pre class="pseudo"><span class="pk">FUNCTION</span> dijkstra(source, adj):
+    dist[*] ← ∞ ; dist[source] ← 0
+    heap ← min-heap with (0, source)
+
+    <span class="pk">WHILE</span> heap not empty:
+        (cost, u) ← pop-min(heap)
+        <span class="pk">IF</span> cost &gt; dist[u]: <span class="pk">CONTINUE</span>      <span class="pc">stale entry — already settled cheaper</span>
+
+        <span class="pk">FOR</span> (v, w) <span class="pk">IN</span> adj[u]:
+            newCost ← cost + w            <span class="pc">the combine rule (sum here; max for min-max)</span>
+            <span class="pk">IF</span> newCost &lt; dist[v]:
+                dist[v] ← newCost
+                push(heap, (newCost, v))   <span class="pc">improved → re-enter the frontier</span>
+
+    <span class="pk">RETURN</span> dist</pre>
+    <div class="co-insight"><strong>Why the <code>cost &gt; dist[u]</code> skip is the whole trick:</strong> a vertex can sit in the heap several times (once per improvement), but only the first pop — the cheapest — is valid; every later copy has a <code>cost</code> larger than the now-finalized <code>dist[u]</code>, so it's skipped. This "lazy deletion" replaces the textbook decrease-key operation, which Swift's lack of an indexed heap makes awkward. The result is the same shortest paths with far simpler code.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. The heap in Swift -->
+  <section id="iterative">
+    <h2>6 &nbsp; The Heap in Swift — you must hand-roll it</h2>
+    <p>Dijkstra is inherently iterative (a heap loop, no recursion), but Swift's standard library has <strong>no priority queue</strong> — so the one piece of real work is supplying a min-heap. Two practical routes:</p>
+    <ul>
+      <li><strong>Hand-rolled binary heap (the expected interview answer).</strong> A struct over an array with <code>siftUp</code> on insert and <code>siftDown</code> on removal, ordered by a comparator. ~30 lines, O(log n) push/pop. Know it cold — interviewers specifically watch for whether you can produce one.</li>
+      <li><strong>Sorted-structure stand-in (acceptable, slower).</strong> For small graphs you can keep the frontier in a structure you re-sort or scan for the min each step — simpler to write but O(V) per extraction, degrading Dijkstra to O(V²). Fine when V is tiny; say so out loud.</li>
+    </ul>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">a minimal generic min-heap for Dijkstra frontiers</span></div>
+<pre class="swift"><span class="kw">struct</span> <span class="tp">Heap</span>&lt;<span class="tp">Element</span>&gt; {
+    <span class="kw">private</span> <span class="kw">var</span> items: [<span class="tp">Element</span>] = []
+    <span class="kw">private</span> <span class="kw">let</span> isOrderedBefore: (<span class="tp">Element</span>, <span class="tp">Element</span>) -&gt; <span class="tp">Bool</span>
+    <span class="kw">init</span>(<span class="kw">_</span> areInIncreasingOrder: <span class="kw">@escaping</span> (<span class="tp">Element</span>, <span class="tp">Element</span>) -&gt; <span class="tp">Bool</span>) {
+        isOrderedBefore = areInIncreasingOrder
+    }
+    <span class="kw">var</span> isEmpty: <span class="tp">Bool</span> { items.isEmpty }
+
+    <span class="kw">mutating</span> <span class="kw">func</span> <span class="fn">push</span>(<span class="kw">_</span> value: <span class="tp">Element</span>) {
+        items.append(value)
+        <span class="kw">var</span> child = items.count - <span class="nm">1</span>
+        <span class="kw">while</span> child &gt; <span class="nm">0</span> {
+            <span class="kw">let</span> parent = (child - <span class="nm">1</span>) / <span class="nm">2</span>
+            <span class="kw">if</span> isOrderedBefore(items[child], items[parent]) {
+                items.swapAt(child, parent); child = parent
+            } <span class="kw">else</span> { <span class="kw">break</span> }
+        }
+    }
+    <span class="kw">mutating</span> <span class="kw">func</span> <span class="fn">pop</span>() -&gt; <span class="tp">Element</span>? {
+        <span class="kw">guard</span> !items.isEmpty <span class="kw">else</span> { <span class="kw">return</span> <span class="kw">nil</span> }
+        items.swapAt(<span class="nm">0</span>, items.count - <span class="nm">1</span>)
+        <span class="kw">let</span> top = items.removeLast()
+        <span class="kw">var</span> parent = <span class="nm">0</span>
+        <span class="kw">while</span> <span class="kw">true</span> {
+            <span class="kw">let</span> left = <span class="nm">2</span>*parent + <span class="nm">1</span>, right = <span class="nm">2</span>*parent + <span class="nm">2</span>
+            <span class="kw">var</span> best = parent
+            <span class="kw">if</span> left  &lt; items.count, isOrderedBefore(items[left],  items[best]) { best = left }
+            <span class="kw">if</span> right &lt; items.count, isOrderedBefore(items[right], items[best]) { best = right }
+            <span class="kw">if</span> best == parent { <span class="kw">break</span> }
+            items.swapAt(parent, best); parent = best
+        }
+        <span class="kw">return</span> top
+    }
+}</pre>
+    <div class="co-note"><strong>Why this matters here specifically:</strong> the heap is the load-bearing data structure of Dijkstra, and forgetting Swift lacks one is a classic stumble. Bring this struct ready, parameterize it with a comparator (<code>{ $0.cost &lt; $1.cost }</code>), and the rest of every Dijkstra variant is the relax loop on top of it.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Swift foundations -->
+  <section id="swift">
+    <h2>7 &nbsp; Swift Foundations</h2>
+    <p>Five Swift facts underlie nearly every Dijkstra. The heap and the lazy-skip are where the algorithm is won or lost.</p>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">the five Dijkstra building blocks for this block</span></div>
+<pre class="swift"><span class="cm">// 1. Distance array initialized to a sentinel "infinity".</span>
+<span class="kw">var</span> dist = [<span class="tp">Int</span>](repeating: <span class="tp">Int</span>.max, count: numNodes)
+dist[source] = <span class="nm">0</span>
+
+<span class="cm">// 2. The min-heap (see §6), ordered by cost.</span>
+<span class="kw">var</span> heap = <span class="tp">Heap</span>&lt;(cost: <span class="tp">Int</span>, node: <span class="tp">Int</span>)&gt;({ $0.cost &lt; $1.cost })
+heap.push((<span class="nm">0</span>, source))
+
+<span class="cm">// 3. Lazy-deletion skip: ignore a popped entry that's already been improved.</span>
+<span class="kw">while</span> <span class="kw">let</span> (cost, node) = heap.pop() {
+    <span class="kw">if</span> cost &gt; dist[node] { <span class="kw">continue</span> }      <span class="cm">// stale — skip</span>
+    <span class="cm">// ... relax neighbors ...</span>
+}
+
+<span class="cm">// 4. Relaxation — the combine rule. Sum for classic; max for min-max (§8.3).</span>
+<span class="kw">let</span> newCost = cost + weight              <span class="cm">// or: max(cost, weight)</span>
+<span class="kw">if</span> newCost &lt; dist[neighbor] {
+    dist[neighbor] = newCost; heap.push((newCost, neighbor))
+}
+
+<span class="cm">// 5. Early exit: if you only need the target, return the moment you pop it.</span>
+<span class="kw">if</span> node == target { <span class="kw">return</span> cost }     <span class="cm">// first pop of target = final distance</span></pre>
+    <div class="co-pitfall" style="margin-top:12px"><strong>The negative-weight trap.</strong> Dijkstra's "settled-is-final" guarantee assumes every edge weight is ≥ 0. A single negative edge can make a vertex reachable more cheaply <em>after</em> it's settled, silently producing wrong answers — no crash, just incorrect output. If weights can be negative, Dijkstra is the wrong tool; use Bellman-Ford. Always confirm non-negativity before reaching for the heap.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 8. The four variants -->
+  <section id="variants">
+    <h2>8 &nbsp; The Four Variants</h2>
+    <p>Ordered by how far they bend the cost model. Variant 8.3 is taught in a full walkthrough (LC1631); the others are solve-it-yourself problems — frame and pitfalls here, no solution.</p>
+
+    <!-- 8.1 Classic single-source -->
+    <div class="pattern-block" id="v-classic">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.1</span>
+        <span class="block-name">Classic single-source (sum of weights)</span>
+        <div class="block-pills"><span class="pill pill-t">O(E log V)</span><span class="pill pill-s">O(V+E)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-note"><strong>Solve-it-yourself variant.</strong> This is an <em>attempt</em> problem — the frame is below, but no solution. It's the canonical Dijkstra to build cold.</div>
+        <div class="co-when"><strong>When to use:</strong> minimize total weight from a source to a target (or to all). The textbook form: adjacency list, min-heap, relax by summing.</div>
+        <p><strong>The frame (LC 743 — Network Delay Time):</strong> build a weighted adjacency list from the edge triples, run Dijkstra from the source, and the answer is the <em>maximum</em> finalized distance over all nodes (the time for the signal to reach the farthest) — or −1 if any node is unreachable (its distance stays ∞).</p>
+        <div class="co-insight"><strong>The frame:</strong> this is Dijkstra with nothing added — sum relaxation, lazy-deletion heap, settle-cheapest-first. The only problem-specific twist is reading the answer (max over all dist, and the unreachable check). Master this and the other three are variations. See pitfalls §10.</div>
+        <p>Canonical problem: LC 743 — Network Delay Time (attempt). Graduated hints in the walkthrough.</p>
+      </div>
+    </div>
+
+    <!-- 8.2 Grid Dijkstra -->
+    <div class="pattern-block" id="v-grid">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.2</span>
+        <span class="block-name">Grid Dijkstra (cells as vertices)</span>
+        <div class="block-pills"><span class="pill pill-t">O(RC log RC)</span><span class="pill pill-s">O(RC)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> a weighted grid — each cell is a vertex, each move into a neighbor carries a cost — and you want the cheapest path between two cells. The implicit-graph cousin of §8.1.</div>
+        <p><strong>The frame:</strong> exactly like grid BFS, but the frontier is a min-heap instead of a queue, because moves have different costs. Neighbors come from a direction table; the move cost is the edge weight; <code>dist[cell]</code> is keyed by the encoded cell <code>row·cols+col</code>. Settle-cheapest-first gives the shortest weighted path.</p>
+        <div class="co-insight"><strong>The frame:</strong> grid Dijkstra is grid BFS with a priority queue. If every move cost the same you'd use BFS; because they differ, the heap is required so the cheapest cell is always expanded next. The same encoding and direction-table machinery from the <a href="bfs_deep_dive_master.html#v-grid">BFS deep dive §8.1</a> carries over. This is the structural base LC1631 (§8.3) builds on.</div>
+        <p>Canonical framing: weighted-grid shortest path; the structural base for LC 1631.</p>
+      </div>
+    </div>
+
+    <!-- 8.3 Custom-cost / min-max -->
+    <div class="pattern-block" id="v-cost">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.3</span>
+        <span class="block-name">Custom-cost / min-max path</span>
+        <div class="block-pills"><span class="pill pill-t">O(RC log RC)</span><span class="pill pill-s">O(RC)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> the path's cost isn't a sum — it's the <em>maximum</em> (or minimum) single edge along it. "Minimize the largest step," "least effort," "widest/narrowest path." Full Swift in the walkthrough (LC1631).</div>
+        <p><strong>The frame (LC 1631 — Path With Minimum Effort):</strong> on a grid of heights, a path's <em>effort</em> is the maximum absolute height difference between consecutive cells. You want the path from top-left to bottom-right with the minimum possible effort. Run grid Dijkstra, but relax with <code>max</code>: the cost to reach a neighbor is <code>max(effortSoFar, |heightDiff|)</code>. The heap settles the cell of least max-effort first.</p>
+        <div class="co-insight"><strong>The design decision:</strong> the only change from §8.2 is the combine rule — <code>max</code> replaces <code>+</code>. The settle-cheapest-first invariant still holds because <code>max</code> is monotonic with non-negative inputs (extending a path can never <em>lower</em> its max edge), so once a cell is popped its minimum-effort is final. Recognizing that "minimize the maximum" is still a Dijkstra with a swapped operator is the whole insight.</div>
+        <p>Canonical problem: LC 1631 — Path With Minimum Effort (walkthrough). <em>Full walkthrough.</em></p>
+      </div>
+    </div>
+
+    <!-- 8.4 Constrained / augmented state -->
+    <div class="pattern-block" id="v-state">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.4</span>
+        <span class="block-name">Constrained Dijkstra (augmented state)</span>
+        <div class="block-pills"><span class="pill pill-t">O(E·K log …)</span><span class="pill pill-s">O(V·K)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-note"><strong>Solve-it-yourself variant.</strong> This is a <em>target</em> problem — the augmented-state model is below, but no code. The hardest Dijkstra framing on the plan.</div>
+        <div class="co-when"><strong>When to use:</strong> the cheapest path is subject to an extra budget — at most K stops, within T minutes. The vertex must carry the constraint, becoming <code>(node, budgetUsed)</code>.</div>
+        <p><strong>The model (LC 787 — Cheapest Flights Within K Stops):</strong> minimize ticket cost from src to dst using at most K stops. A plain <code>dist[node]</code> isn't enough — reaching a node cheaply but with too many stops may be useless, while a pricier route with stops to spare may win. So the state is <code>(node, stopsUsed)</code>; the heap is keyed by cost, and you only expand while stops remain. (A bounded BFS / Bellman-Ford over K rounds is the common alternative here.)</p>
+        <div class="co-insight"><strong>The frame:</strong> once the constraint rides in the vertex, it's plain Dijkstra over the augmented state graph — the new skill is realizing <code>dist</code> must be indexed by both node <em>and</em> remaining budget, or you'll wrongly discard a path that costs more but obeys the limit. Recognizing the extra state dimension is the whole problem. See pitfalls §10.</div>
+        <p>Canonical problem: LC 787 — Cheapest Flights Within K Stops (target). Graduated hints in the walkthrough.</p>
+      </div>
+    </div>
+
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 9. Complexity -->
+  <section id="complexity">
+    <h2>9 &nbsp; Complexity Analysis</h2>
+    <p><strong>Dijkstra with a binary heap is O(E log V): each edge can trigger one heap push (O(log V)), and each vertex is settled once.</strong> The cost shifts with the heap implementation and, for §8.4, with the size of the augmented state space.</p>
+    <table class="t-cmx">
+      <thead><tr><th>Variant</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Classic single-source (8.1)</td><td class="tc">O(E log V)</td><td class="sc">O(V+E)</td><td>Up to E pushes, each O(log V) on the heap; adjacency list + dist + heap are O(V+E).</td></tr>
+        <tr><td>Grid Dijkstra (8.2)</td><td class="tc">O(RC log RC)</td><td class="sc">O(RC)</td><td>V = R·C cells, E = O(RC) edges (constant directions per cell); heap holds up to O(RC).</td></tr>
+        <tr><td>Custom-cost / min-max (8.3)</td><td class="tc">O(RC log RC)</td><td class="sc">O(RC)</td><td>Identical to grid Dijkstra — only the combine operator changes, not the work.</td></tr>
+        <tr><td>Constrained (8.4)</td><td class="tc">O(E·K log(V·K))</td><td class="sc">O(V·K)</td><td>The state space multiplies by the budget K; each (node, budget) pair is settled once.</td></tr>
+        <tr class="bottleneck"><td>Bottleneck</td><td class="tc">heap ops</td><td class="sc">—</td><td>The log factor is the heap; with a Fibonacci heap it drops to O(E + V log V), but binary-heap Dijkstra is the practical interview answer. Using a sorted-array frontier instead degrades it to O(V²) — fine only for tiny V.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-insight"><strong>Why Dijkstra costs more than BFS — and when it's worth it.</strong> BFS is O(V+E) because a FIFO queue already pops in distance order when edges are equal-cost. Dijkstra pays an extra <code>log V</code> for the heap precisely to handle <em>unequal</em> weights, where FIFO order no longer matches cost order. If all weights are equal, drop the heap and use BFS; the moment they differ, the heap is the price of correctness.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 10. Pitfalls -->
+  <section id="pitfalls">
+    <h2>10 &nbsp; Common Pitfalls</h2>
+    <div class="co-pitfall">
+      <div class="co-pitfall-title">Pitfalls — bugs this block invites</div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Negative edge weights (all variants).</strong> Dijkstra's settled-is-final guarantee assumes weights ≥ 0. A negative edge silently breaks it. Use Bellman-Ford instead — confirm non-negativity first.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Forgetting Swift has no priority queue.</strong> You must hand-roll a min-heap (§6). Reaching for a non-existent <code>PriorityQueue</code> or using <code>sorted()</code> each step (O(V²)) is the classic stumble.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>No lazy-deletion skip.</strong> Without the <code>cost &gt; dist[u]</code> guard you re-process settled vertices through stale heap entries — wasted work, and with a buggy combine rule, wrong answers. Skip stale pops.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Wrong combine rule for the cost model (8.3).</strong> Min-max paths relax with <code>max</code>, not <code>+</code>. Summing the height differences answers a different (wrong) question. Match the operator to "what is a path's cost?"</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Single-dimension dist on a constrained problem (8.4).</strong> With a K-stop or time budget, <code>dist[node]</code> alone discards valid pricier-but-within-budget paths. Index dist by <code>(node, budget)</code>.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Settling on push instead of on pop.</strong> A vertex is final only when <em>popped</em> from the heap, not when first pushed. Marking it done on push can finalize a non-minimal distance.</span></div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 11. Edge cases -->
+  <section id="edge-cases">
+    <h2>11 &nbsp; Edge Cases to Verbalize</h2>
+    <p>Name these before coding. The unreachable and source-equals-target cases are where Dijkstra solutions most often misreport.</p>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected behavior</th><th>What it exercises</th></tr></thead>
+      <tbody>
+        <tr><td>Source == target</td><td>cost 0 (no moves)</td><td>dist[source] = 0; early-exit on first pop</td></tr>
+        <tr><td>Target unreachable</td><td>dist stays ∞ → return −1 / impossible</td><td>The sentinel survives the whole run</td></tr>
+        <tr><td>Single vertex, no edges</td><td>0 to itself, ∞ to others</td><td>Heap drains after one pop</td></tr>
+        <tr><td>Multiple equal-cost paths</td><td>any one minimum (cost is unique)</td><td>Tie handling in the heap order</td></tr>
+        <tr><td>Disconnected graph</td><td>reachable settled, rest ∞</td><td>The unreachable-node check</td></tr>
+        <tr><td>Zero-weight edges</td><td>handled — 0 is non-negative</td><td>Still valid; settled-is-final holds</td></tr>
+        <tr><td>Min-max: 1×1 grid (8.3)</td><td>effort 0 (no steps)</td><td>Start is the goal; no relaxation needed</td></tr>
+        <tr><td>Constrained: K = 0 (8.4)</td><td>only direct edges allowed</td><td>Budget exhausts after one hop</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 12. Cheat sheet -->
+  <section id="cheatsheet">
+    <h2>12 &nbsp; Cheat Sheet</h2>
+    <table class="t-versus">
+      <thead><tr><th>You see…</th><th>You use</th><th>Variant</th></tr></thead>
+      <tbody>
+        <tr><td>"min total cost, weighted edges"</td><td>classic Dijkstra; relax with +</td><td>§8.1 Classic</td></tr>
+        <tr><td>"cheapest path in a weighted grid"</td><td>grid Dijkstra; cells = vertices, min-heap frontier</td><td>§8.2 Grid</td></tr>
+        <tr><td>"minimize the maximum / least effort"</td><td>Dijkstra; relax with max, not +</td><td>§8.3 Min-max</td></tr>
+        <tr><td>"cheapest within K stops / T minutes"</td><td>augment vertex to (node, budget); Dijkstra</td><td>§8.4 Constrained</td></tr>
+        <tr><td>"all edges equal cost"</td><td>not Dijkstra — BFS</td><td>see <a href="bfs_deep_dive_master.html">BFS deep dive</a></td></tr>
+        <tr><td>"negative weights"</td><td>not Dijkstra — Bellman-Ford</td><td>—</td></tr>
+      </tbody>
+    </table>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">copy-paste classic Dijkstra (assumes the Heap from §6)</span></div>
+<pre class="swift"><span class="kw">func</span> <span class="fn">dijkstra</span>(<span class="kw">_</span> numNodes: <span class="tp">Int</span>, <span class="kw">_</span> adjacency: [[(node: <span class="tp">Int</span>, weight: <span class="tp">Int</span>)]], <span class="kw">_</span> source: <span class="tp">Int</span>) -&gt; [<span class="tp">Int</span>] {
+    <span class="kw">var</span> dist = [<span class="tp">Int</span>](repeating: <span class="tp">Int</span>.max, count: numNodes)
+    dist[source] = <span class="nm">0</span>
+    <span class="kw">var</span> heap = <span class="tp">Heap</span>&lt;(cost: <span class="tp">Int</span>, node: <span class="tp">Int</span>)&gt;({ $0.cost &lt; $1.cost })
+    heap.push((<span class="nm">0</span>, source))
+    <span class="kw">while</span> <span class="kw">let</span> (cost, node) = heap.pop() {
+        <span class="kw">if</span> cost &gt; dist[node] { <span class="kw">continue</span> }          <span class="cm">// stale entry — skip</span>
+        <span class="kw">for</span> (next, weight) <span class="kw">in</span> adjacency[node] {
+            <span class="kw">let</span> newCost = cost + weight              <span class="cm">// min-max: max(cost, weight)</span>
+            <span class="kw">if</span> newCost &lt; dist[next] {
+                dist[next] = newCost
+                heap.push((newCost, next))
+            }
+        }
+    }
+    <span class="kw">return</span> dist
+}</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13. Cross-reference -->
+  <section id="practice">
+    <h2>13 &nbsp; Demonstrated in Practice</h2>
+    <p>Each problem in this block is taught in its own walkthrough — constraint insights, edge-case inventory, interview simulation, and (for the walkthrough) a full dry run and iterative Swift solution.</p>
+    <div class="ref-grid">
+      <a class="xref-card" href="../../walkthroughs/LC1631_master.html">
+        <span class="ref-file">walkthroughs/LC1631_master.html</span>
+        <span class="ref-title">LC 1631 — Path With Minimum Effort (Medium · walkthrough)</span>
+        <span class="ref-desc">Custom-cost (min-max) Dijkstra on a grid — a path's cost is its largest step, so relax with max instead of +. Hand-rolled min-heap, settle-cheapest-first, full dry run and Swift. The §8.3 instantiation.</span>
+      </a>
+      <a class="xref-card" href="../../walkthroughs/LC743_master.html">
+        <span class="ref-file">walkthroughs/LC743_master.html</span>
+        <span class="ref-title">LC 743 — Network Delay Time (Medium · attempt)</span>
+        <span class="ref-desc">Classic single-source Dijkstra you solve cold — sum relaxation, answer = max finalized distance, −1 if any node unreachable. Graduated hints. No solution shown.</span>
+      </a>
+      <a class="xref-card" href="../../walkthroughs/LC787_master.html">
+        <span class="ref-file">walkthroughs/LC787_master.html</span>
+        <span class="ref-title">LC 787 — Cheapest Flights Within K Stops (Medium · target)</span>
+        <span class="ref-desc">Constrained Dijkstra — augment the vertex with stops used, index dist by (node, stops). Frame and hints only; no solution shown.</span>
+      </a>
+    </div>
+    <div class="co-note" style="margin-top:12px"><strong>Note:</strong> LC743 and LC787 are solve-it-yourself problems of this family; their pages are coaches (problem, edge cases, signals, hints) with no solution, per the study-plan spoiler rule. LC1631 is the fully-worked walkthrough.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 14. Solo problem -->
+  <section id="solo">
+    <h2>14 &nbsp; Solo Problem — no solution on this page</h2>
+    <div class="solo-box">
+      <div class="solo-banner">Solo problem — no solution on this page</div>
+      <p><strong>LC 743 — Network Delay Time (Medium).</strong> A signal starts at node <code>k</code> in a directed weighted graph; <code>times[i] = [u, v, w]</code> is an edge u→v taking w time. Return the time for <em>all</em> nodes to receive the signal, or −1 if some never do. Recognize this as classic single-source Dijkstra and build the heap-relax loop before writing any code.</p>
+      <ul class="checklist">
+        <li>What is a vertex, what is an edge weight, and what is the "cost" you minimize?</li>
+        <li>Why is the answer the <em>maximum</em> of all finalized distances, not their sum?</li>
+        <li>How do you detect that a node is unreachable, and what do you return then?</li>
+        <li>Why does popping a node from the min-heap mean its distance is final — and what assumption about weights does that rely on?</li>
+        <li>How does the lazy-deletion skip (<code>cost &gt; dist[node]</code>) keep the run correct without a decrease-key operation?</li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="page-footer">
+    Dijkstra's Algorithm · Theory Masterfile (Deep Dive) · Hub:
+    <a href="index.html">Graphs</a> ·
+    Structure per <code>wiki/_standards/THEORY_MASTERFILE_STANDARD.md</code>
+  </div>
+
+</main>
+</div>
+
+<script src="../../_shared/pages.js"></script>
+<script src="../../_shared/nav.js"></script>
+</body>
+</html>
