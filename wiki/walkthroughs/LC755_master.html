@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LC 755 — Pour Water · Walkthrough Masterfile</title>
+<link rel="stylesheet" href="../_shared/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="walkthrough">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── TOC ── -->
+<nav class="toc-col">
+  <div class="toc-inner">
+    <div class="toc-title toc-cat-walkthrough">Walkthrough · Contents</div>
+    <a href="#lead"       class="toc-link"><span class="toc-num">1</span> The Problem</a>
+    <a href="#reading"    class="toc-link"><span class="toc-num">2</span> Reading the Problem</a>
+    <a href="#edge-cases" class="toc-link"><span class="toc-num">3</span> Edge Case Inventory</a>
+    <a href="#simulation" class="toc-link"><span class="toc-num">4</span> Clarifying Questions</a>
+    <a href="#approach"   class="toc-link"><span class="toc-num">5</span> Recognition Signals</a>
+    <a href="#hints"      class="toc-link"><span class="toc-num">6</span> Try It Yourself First</a>
+    <a href="#parent"     class="toc-link"><span class="toc-num">7</span> Parent Theory</a>
+  </div>
+</nav>
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">LC 755 — Pour Water</h1>
+  <div class="page-meta">
+    <span>Walkthrough Masterfile</span><span>·</span>
+    <span>Role: ATTEMPT — solve it cold</span><span>·</span>
+    <span>Medium · Physics / grid simulation · Settle each unit</span>
+  </div>
+
+  <!-- 1. Restatement -->
+  <section id="lead">
+    <div class="infobox">
+      <div class="infobox-title">Problem at a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Difficulty</div><div class="infobox-v"><span class="tag tag-M">Medium</span></div></div>
+      <div class="infobox-row"><div class="infobox-k">Pattern</div><div class="infobox-v">Physics / grid simulation — settle each unit (Variant 8.3)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Tools</div><div class="infobox-v">The heights array <em>is</em> the state · an inner local search per drop</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key insight</div><div class="infobox-v">Each drop scans outward from K for the lowest reachable point, never climbing a wall to get there</div></div>
+      <div class="infobox-row"><div class="infobox-k">Time / Space</div><div class="infobox-v">O(volume · width) / O(width)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Theory</div><div class="infobox-v mono"><a href="../theory/strings/text_formatting_deep_dive_master.html">text_formatting_deep_dive_master.html</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p>You are given an elevation map as an array <code>heights</code>, where <code>heights[i]</code> is the height of the terrain at column <code>i</code>. Then <code>volume</code> units of water are dropped, one at a time, from above a fixed column index <code>K</code>. Each unit of water falls onto column K and then flows according to gravity until it settles. After all the water has been poured, return the final <code>heights</code> array (terrain plus settled water).</p>
+
+      <table class="t-example">
+        <thead><tr><th>Input</th><th>Output</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><code>heights=[2,1,1,2,1,2,2], volume=4, K=3</code></td><td><code>[2,2,2,3,2,2,2]</code></td><td>Water at K=3 flows to the lower valleys on each side, filling them before stacking at K</td></tr>
+          <tr><td><code>heights=[1,2,3,4], volume=2, K=2</code></td><td><code>[2,3,3,4]</code></td><td>From K=2 water can only flow left (downhill); both units settle at index 0, raising it twice</td></tr>
+          <tr><td><code>heights=[3,1,3], volume=5, K=1</code></td><td><code>[4,4,4]</code></td><td>The central valley fills, then water stacks at K once both sides are level</td></tr>
+        </tbody>
+      </table>
+
+      <p>The twist is entirely in the <em>settle rule</em> for a single drop: water prefers to flow to the lowest reachable position, it prefers <strong>left</strong> over right when both are equally low, and it can never reach a low spot that lies behind a taller wall. Get those three rules and their precedence right and the problem is solved; get any one subtly wrong and you pass the simple cases and fail the symmetric ones.</p>
+    </div>
+
+    <div class="solo-box">
+      <div class="solo-banner">SOLO PROBLEM — NO SOLUTION ON THIS PAGE</div>
+      <p>This is an <strong>ATTEMPT</strong> problem in the study plan. This page is a coach, not an answer key: it gives you the problem, the constraints, the full edge-case inventory, the recognition signals, and graduated hints — but <strong>no pseudocode and no Swift code</strong>. Solve it cold, then check yourself against the edge cases below.</p>
+      <ul class="checklist">
+        <li>Can I state the settle rule and its left-before-right tie-break precisely?</li>
+        <li>Does my inner scan stop at the first rise (no climbing a wall)?</li>
+        <li>Do I handle a drop at the array edge (K = 0 or K = width − 1)?</li>
+        <li>Have I traced the symmetric-valley case to confirm the left tie-break?</li>
+      </ul>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Reading the problem -->
+  <section id="reading">
+    <h2>2 &nbsp; Reading the Problem — insights from the constraints</h2>
+
+    <div class="co-insight"><strong>"Water is dropped one unit at a time":</strong> the volume units do not settle simultaneously — each unit settles completely before the next is dropped, and it settles against the terrain <em>as modified by all the earlier units</em>. So the state you mutate is the heights array itself, and each drop is an independent local search over the current heights.</div>
+
+    <div class="co-insight"><strong>"Flows according to gravity":</strong> a unit at column K tries to move to an adjacent lower column, repeating until it can't go lower. This is not a global minimum search — it is a <em>reachable</em> minimum: water can only descend or stay level on its way, never climb over a peak to reach a lower valley on the far side.</div>
+
+    <div class="co-insight"><strong>The settle precedence is fixed: left, then right, then in place.</strong> A unit first tries to flow as far left as it can to the lowest reachable position. If there is no lower position to the left (the path is blocked or only rises), it tries the same to the right. If neither side offers a lower reachable spot, it stays at K and raises <code>heights[K]</code> by 1. This ordering is the source of the left-bias tie-break.</div>
+
+    <div class="co-insight"><strong>"Lowest reachable point on a side":</strong> scanning left from K, you track the lowest column you can reach without the terrain first rising above your current path. The moment a column is taller than where you currently stand, the wall blocks you — everything beyond it is unreachable on that side, and you settle at the lowest point found before the wall.</div>
+
+    <div class="co-insight"><strong>Constraints are small:</strong> width up to ~100 and volume up to ~100. An O(volume · width) simulation — for each drop, an outward scan of up to the full width — is comfortably fast. There is no pressure to be clever; the entire difficulty is the correctness of the inner settle search and its tie-breaks.</div>
+
+    <table class="t-clue">
+      <thead><tr><th>Phrase / constraint</th><th>What it forces</th></tr></thead>
+      <tbody>
+        <tr><td>"One unit at a time"</td><td>Outer loop over <code>volume</code>; each iteration mutates the shared heights array</td></tr>
+        <tr><td>"Flows according to gravity"</td><td>Inner search for the lowest <em>reachable</em> position, descending only</td></tr>
+        <tr><td>"Equally low on both sides"</td><td>Left-before-right precedence — try left fully before considering right</td></tr>
+        <tr><td>"Behind a taller wall"</td><td>Stop the scan at the first rise; beyond a wall is unreachable</td></tr>
+        <tr><td>"Return final heights"</td><td>The heights array is both the input state and the output — mutate it in place</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Edge cases -->
+  <section id="edge-cases">
+    <h2>3 &nbsp; Edge Case Inventory</h2>
+    <p>These are the specification. Verbalize each one and confirm your settle logic produces it before you trust your solution.</p>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected behavior</th><th>What it exercises</th></tr></thead>
+      <tbody>
+        <tr><td>Equal heights immediately left and right of K, both lower than K</td><td>Settle on the <strong>left</strong></td><td>The left-before-right tie-break — the single most-missed rule</td></tr>
+        <tr><td>A taller wall between K and a lower valley</td><td>Water cannot cross the wall — it settles on the near side</td><td>Stop-at-first-rise reachability; "lower" is not enough, it must be reachable</td></tr>
+        <tr><td>Drop at the left edge (<code>K = 0</code>)</td><td>No left terrain to scan — only the right side or in-place</td><td>Lower-bound guard on the inner left scan</td></tr>
+        <tr><td>Drop at the right edge (<code>K = width − 1</code>)</td><td>No right terrain to scan — only the left side or in-place</td><td>Upper-bound guard on the inner right scan</td></tr>
+        <tr><td>Strictly increasing terrain, K in the middle</td><td>Every unit flows left and settles at index 0; the right is all uphill</td><td>One side entirely uphill → that side never accepts water</td></tr>
+        <tr><td>Flat terrain</td><td>No lower neighbor anywhere → every unit stacks at K</td><td>The "stay in place, raise heights[K]" fallback</td></tr>
+        <tr><td>A valley that fills and levels mid-pour</td><td>Once a valley is level with K, later units stack at K</td><td>Re-reading the mutated heights each drop, not the original</td></tr>
+        <tr><td>GOTCHA: lowest column is below K but only reachable by descending then rising</td><td>Unreachable — water stops at the local low before the rise</td><td>Reachability vs. global minimum — these differ exactly here</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Clarifying questions -->
+  <section id="simulation">
+    <h2>4 &nbsp; Clarifying Questions</h2>
+    <p>The questions to ask before you start — each answer's design consequence is noted. (No spoken plan and no code on this page: this is an ATTEMPT.)</p>
+
+    <div class="sim-block">
+      <div class="sim-header">Clarifying questions</div>
+      <div class="sim-body">
+        <div class="sim-q">Q: "When water can flow equally low to the left and to the right, which side does it pick?"</div>
+        <div class="sim-a">A: Left. <strong>→ My settle search must try the left side fully before the right; a symmetric valley sends water left.</strong></div>
+
+        <div class="sim-q">Q: "Can water flow over a taller column to reach a lower valley on the far side?"</div>
+        <div class="sim-a">A: No — it can only descend (or stay level) on the way. <strong>→ The inner scan stops at the first column taller than my current footing; reachable, not global, minimum.</strong></div>
+
+        <div class="sim-q">Q: "Does each unit settle fully before the next is dropped, against the updated terrain?"</div>
+        <div class="sim-a">A: Yes. <strong>→ I mutate the heights array in place and re-scan from K for every one of the volume drops.</strong></div>
+
+        <div class="sim-q">Q: "Is K always a valid in-range index, and are heights non-negative?"</div>
+        <div class="sim-a">A: Yes, K is in range and heights are non-negative integers. <strong>→ No validation needed, but my inner scan still needs lower/upper bound guards so it doesn't walk off the array.</strong></div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Recognition signals -->
+  <section id="approach">
+    <h2>5 &nbsp; Recognition Signals — what tells you it's this pattern</h2>
+    <table class="t-versus">
+      <thead><tr><th>Signal in the problem</th><th>What it points to</th></tr></thead>
+      <tbody>
+        <tr><td>"Drop V units into a terrain, one at a time"</td><td>Physics / grid simulation (Variant 8.3) — an outer loop over the units</td></tr>
+        <tr><td>"Each unit settles by a local rule"</td><td>An inner local search per drop, mutating the shared state array</td></tr>
+        <tr><td>"The state is the array itself"</td><td>Mutate in place; the final array is the answer — no separate accumulator</td></tr>
+        <tr><td>Small bounds (width, volume ≤ ~100)</td><td>O(volume · width) is fine — correctness over cleverness</td></tr>
+        <tr><td>Tie-breaks and reachability spelled out in prose</td><td>The difficulty is precision in the inner rule, not the overall shape</td></tr>
+      </tbody>
+    </table>
+    <div class="co-when"><strong>The deciding signal:</strong> a finite number of units settling one-by-one under a deterministic local rule, where the data structure you mutate <em>is</em> the answer. When you see "drop / pour / place units and report the final configuration," reach for an outer loop over units wrapping an inner settle search — and put all your care into the inner rule's precedence and bounds.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. Hints -->
+  <section id="hints">
+    <h2>6 &nbsp; Try It Yourself First</h2>
+    <p>Solve it before peeking. Open the hints one at a time — each reveals only one more layer.</p>
+    <details class="hint"><summary>Hint 1 — the constraint</summary><p>The units fall one at a time and each settles against the terrain left by the previous ones. With width and volume both small, you can afford to fully re-simulate each single drop from scratch. So the shape is: an outer loop running <code>volume</code> times, and inside it, "settle exactly one unit."</p></details>
+    <details class="hint"><summary>Hint 2 — the settle rule, in order</summary><p>For one unit dropped at K, try three things in this strict order. (1) Flow left: scan leftward from K, remembering the lowest reachable index, stopping the instant the terrain rises above your current footing. If a strictly lower index was found, settle there. (2) Otherwise flow right by the same rule. (3) Otherwise stay at K. Whichever index wins, increment its height by 1.</p></details>
+    <details class="hint"><summary>Hint 3 — the reachability detail that breaks naive solutions</summary><p>"Lowest reachable" is not "lowest overall." As you scan left, keep a <code>bestIndex</code> initialized to K and a running "current level." Move one column at a time: if the next column is <em>higher</em> than the current level, stop — it's a wall. If it is lower than <code>heights[bestIndex]</code>, update <code>bestIndex</code>. This way a low valley hidden behind a peak is correctly treated as unreachable, and a symmetric valley resolves left because you check left first.</p></details>
+    <details class="hint"><summary>Hint 4 — verifying the tie-break</summary><p>Hand-run <code>heights=[2,1,2], K=1</code> with one drop — trivially it stacks at K. Then run <code>heights=[1,2,1], K=1</code>: both sides are equally low and reachable; your code must raise index 0 (left), giving <code>[2,2,1]</code>, not index 2. If you get <code>[1,2,2]</code>, your scan is checking right before left.</p></details>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Back-reference -->
+  <section id="parent">
+    <h2>7 &nbsp; Parent Theory</h2>
+    <p>This walkthrough is the ATTEMPT for Variant 8.3 of a larger pattern. The parent page is not free-form — it follows the theory masterfile standard, so here is exactly what you land on:</p>
+    <div class="ref-grid">
+      <a class="backref-card" href="../theory/strings/text_formatting_deep_dive_master.html">
+        <span class="ref-file">theory/strings/text_formatting_deep_dive_master.html</span>
+        <span class="ref-title">Text Formatting &amp; Simulation — Deep Dive Theory Masterfile</span>
+        <span class="ref-desc">The canonical reference for the simulation family: the four-variant catalog with Variant 8.3 Physics / Grid Simulation this problem instantiates — including the exact settle rule and its left-before-right precedence (§8.3), the tie-break and wall-climbing pitfalls (§10), the symmetric-valley and edge-drop cases verbalized (§11), and the complexity table (§9). Its cross-reference section (§13) links back to this walkthrough.</span>
+      </a>
+    </div>
+  </section>
+
+  <div class="page-footer">
+    LC 755 — Pour Water · Walkthrough Masterfile · ATTEMPT (no solution by design) · Parent theory:
+    <a href="../theory/strings/text_formatting_deep_dive_master.html">Text Formatting &amp; Simulation</a> ·
+    Structure per <code>wiki/_standards/WALKTHROUGH_MASTERFILE_STANDARD.md</code>
+  </div>
+
+</main>
+</div>
+
+<script src="../_shared/pages.js"></script>
+<script src="../_shared/nav.js"></script>
+</body>
+</html>

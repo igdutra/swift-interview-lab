@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LC 68 — Text Justification · Walkthrough Masterfile</title>
+<link rel="stylesheet" href="../_shared/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="walkthrough">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── TOC ── -->
+<nav class="toc-col">
+  <div class="toc-inner">
+    <div class="toc-title toc-cat-walkthrough">Walkthrough · Contents</div>
+    <a href="#lead"       class="toc-link"><span class="toc-num">1</span> The Problem</a>
+    <a href="#reading"    class="toc-link"><span class="toc-num">2</span> Reading the Problem</a>
+    <a href="#edge-cases" class="toc-link"><span class="toc-num">3</span> Edge Case Inventory</a>
+    <a href="#simulation" class="toc-link"><span class="toc-num">4</span> Clarifying Questions</a>
+    <a href="#approach"   class="toc-link"><span class="toc-num">5</span> Recognition Signals</a>
+    <a href="#hints"      class="toc-link"><span class="toc-num">6</span> Try It Yourself First</a>
+    <a href="#parent"     class="toc-link"><span class="toc-num">7</span> Parent Theory</a>
+  </div>
+</nav>
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">LC 68 — Text Justification</h1>
+  <div class="page-meta">
+    <span>Walkthrough Masterfile</span><span>·</span>
+    <span>Role: AIRBNB TARGET — solve it cold</span><span>·</span>
+    <span>Hard · Greedy line-packing + space distribution · #1 All-Time frequency</span>
+  </div>
+
+  <!-- 1. Restatement -->
+  <section id="lead">
+    <div class="infobox">
+      <div class="infobox-title">Problem at a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Difficulty</div><div class="infobox-v"><span class="tag tag-H">Hard</span></div></div>
+      <div class="infobox-row"><div class="infobox-k">Pattern</div><div class="infobox-v">Greedy line-packing + space distribution (Variant 8.4)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Tools</div><div class="infobox-v">Two passes — greedy packing, then per-line justification · integer space math</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key insight</div><div class="infobox-v">Pack greedily into word-groups, then format each group with three separate spacing rules (normal / last / single-word)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Time / Space</div><div class="infobox-v">O(total characters) / O(total characters)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Theory</div><div class="infobox-v mono"><a href="../theory/strings/text_formatting_deep_dive_master.html">text_formatting_deep_dive_master.html</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p>You are given an array of <code>words</code> and an integer <code>maxWidth</code>. Format the words into lines of <strong>exactly</strong> <code>maxWidth</code> characters, fully justified. Pack as many words as fit onto each line, greedily. On each line, distribute the extra spaces as evenly as possible between words; when the spaces don't divide evenly, the <strong>left</strong> gaps get one more space than the right gaps. The <strong>last line</strong> is left-justified — single spaces between words, all remaining padding on the right. A line with a <strong>single word</strong> is also left-justified for the same reason: there are no gaps to distribute into.</p>
+
+      <table class="t-example">
+        <thead><tr><th>Input</th><th>Output</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><code>["This","is","an"], maxWidth=16</code></td><td><code>["This&nbsp;&nbsp;&nbsp;&nbsp;is&nbsp;&nbsp;&nbsp;&nbsp;an"]</code> (one line, 16 wide)</td><td>3 words → 2 gaps; 16 − 8 = 8 spaces → 4 per gap, divides evenly</td></tr>
+          <tr><td><code>["What","must","be"], maxWidth=12</code></td><td><code>["What&nbsp;&nbsp;&nbsp;must&nbsp;&nbsp;be"]</code></td><td>12 − 8 = 4 spaces over 2 gaps → 2 each; even split</td></tr>
+          <tr><td><code>["a","b","c","d"], maxWidth=5</code> (as last line)</td><td><code>["a&nbsp;b&nbsp;c&nbsp;d"]</code> (left-justified, right-padded)</td><td>Last line: single spaces between words, trailing pad to width</td></tr>
+        </tbody>
+      </table>
+
+      <p>The twist is that this is pure, unforgiving bookkeeping. There is no clever algorithm to discover — the greedy packing is obvious — but the spacing has three special cases (normal interior line, last line, single-word line) and an integer-division remainder that must bias left. This problem is the #1 most-frequent Airbnb question precisely because it tests whether you can handle a thicket of edge cases without a single off-by-one.</p>
+    </div>
+
+    <div class="solo-box">
+      <div class="solo-banner">SOLO PROBLEM — NO SOLUTION ON THIS PAGE</div>
+      <p>This is an <strong>AIRBNB TARGET</strong> in the study plan. This page is a coach, not an answer key: it gives you the problem, the constraints, the full edge-case inventory, the recognition signals, and graduated hints — but <strong>no pseudocode and no Swift code</strong>. Solve it cold, then check yourself against the edge-case table, which is the real specification here.</p>
+      <ul class="checklist">
+        <li>Is my line-fit test <code>wordLenSum + (gaps) ≤ maxWidth</code>, counting one gap per already-added word?</li>
+        <li>Does my even split bias the leftmost <code>extra</code> gaps with one more space each?</li>
+        <li>Is the last line left-justified with single spaces and right padding?</li>
+        <li>Is a single-word line left-justified and right-padded (no gap math)?</li>
+        <li>Does every output line come out to <em>exactly</em> <code>maxWidth</code> characters?</li>
+      </ul>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Reading the problem -->
+  <section id="reading">
+    <h2>2 &nbsp; Reading the Problem — insights from the constraints</h2>
+
+    <div class="co-insight"><strong>"Lines of exactly maxWidth characters":</strong> every output line, without exception, is exactly <code>maxWidth</code> long. This is the invariant you check every case against: normal lines reach it by distributing spaces between words; last and single-word lines reach it by padding the right. If any line comes out short or long, a spacing rule is wrong.</div>
+
+    <div class="co-insight"><strong>"Pack as many words as fit, greedily":</strong> packing is not an optimization problem — there is no looking ahead for a better line break. You add words to the current line until the next one would overflow, then commit. The fit test must account for the minimum one space between every pair of words already on the line.</div>
+
+    <div class="co-insight"><strong>"Distribute extra spaces as evenly as possible, left gaps get more":</strong> with <code>spaces</code> total padding over <code>gaps</code> slots, the base per gap is <code>spaces / gaps</code> and the remainder is <code>spaces % gaps</code>. The leftmost <code>remainder</code> gaps each get one extra space. This left-bias is the single most error-prone integer-division detail.</div>
+
+    <div class="co-insight"><strong>"The last line is left-justified":</strong> the last line breaks the justification rule — words are separated by single spaces and the entire remaining width is padding on the right. You only know a line is the last line when you've consumed the final word, so the formatting of a committed line depends on whether more words remain.</div>
+
+    <div class="co-insight"><strong>A single-word line has zero gaps:</strong> when a line holds exactly one word, there are no inter-word gaps to distribute spaces into, so it is left-justified — the word, then right-padding. Trying to apply the even-split formula here divides by zero gaps; this case must be branched out explicitly.</div>
+
+    <div class="co-insight"><strong>Each word length ≤ maxWidth:</strong> the constraints guarantee no single word exceeds the line width, so a word always fits on a line by itself. You never need to break a word across lines — one less category of edge case.</div>
+
+    <table class="t-clue">
+      <thead><tr><th>Phrase / constraint</th><th>What it forces</th></tr></thead>
+      <tbody>
+        <tr><td>"Exactly maxWidth characters"</td><td>Every line padded to the same length; the post-condition you verify each case against</td></tr>
+        <tr><td>"Pack greedily"</td><td>One forward pass committing a line the moment the next word overflows — no DP</td></tr>
+        <tr><td>"Fit test"</td><td><code>wordLenSum + (numWords − 1) ≤ maxWidth</code> — one mandatory gap per pair</td></tr>
+        <tr><td>"Left gaps get more space"</td><td><code>base = spaces / gaps</code>, <code>extra = spaces % gaps</code>; first <code>extra</code> gaps get <code>base + 1</code></td></tr>
+        <tr><td>"Last line left-justified"</td><td>Format depends on whether the line is the final one — single spaces + right pad</td></tr>
+        <tr><td>"Single word per line"</td><td>Zero gaps → branch to left-justify; never run the even-split formula</td></tr>
+        <tr><td>"Each word ≤ maxWidth"</td><td>No word-splitting; a word always fits alone</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Edge cases -->
+  <section id="edge-cases">
+    <h2>3 &nbsp; Edge Case Inventory</h2>
+    <p>This table <em>is</em> the specification. Each row is a spacing rule you must reproduce exactly — verbalize every one before coding.</p>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected behavior</th><th>What it exercises</th></tr></thead>
+      <tbody>
+        <tr><td>Spaces divide evenly across gaps</td><td>Every gap gets the same width</td><td>The base case — <code>spaces % gaps == 0</code>, no remainder to distribute</td></tr>
+        <tr><td>Spaces do NOT divide evenly (e.g. 7 over 3 gaps)</td><td>Left gaps get the extra: <code>3,2,2</code></td><td>Left-bias remainder distribution — leftmost <code>extra</code> gaps get <code>base + 1</code></td></tr>
+        <tr><td>The last line</td><td>Single spaces between words, all leftover padding on the right</td><td>Left-justify-and-pad; detecting "this is the final line"</td></tr>
+        <tr><td>A line with a single word</td><td>The word, then right-pad to maxWidth</td><td>Zero-gap branch — must not run even-split (division by zero gaps)</td></tr>
+        <tr><td>A single word that is also the last line</td><td>The word, right-padded — same as both rules agreeing</td><td>Two special cases overlapping; both say "left-justify and pad"</td></tr>
+        <tr><td>A line where words exactly fill maxWidth with single spaces</td><td>Single spaces, no extra padding needed</td><td><code>spaces == gaps</code> → one space per gap, zero remainder</td></tr>
+        <tr><td>One word per line throughout (all words near maxWidth)</td><td>Each line is one word, right-padded; last one too</td><td>Single-word branch on every line</td></tr>
+        <tr><td>GOTCHA: forgetting gaps in the fit test</td><td>wrong: overpacks a line by one word</td><td>The fit test must add <code>(numWordsOnLine − 1)</code> mandatory spaces</td></tr>
+        <tr><td>GOTCHA: justifying the last line</td><td>wrong: spreads spaces where there should be single spaces + right pad</td><td>The last line is NOT justified — a common silent failure</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Clarifying questions -->
+  <section id="simulation">
+    <h2>4 &nbsp; Clarifying Questions</h2>
+    <p>The questions to ask before you start — each answer's design consequence is noted. (No spoken plan and no code on this page: this is a TARGET.)</p>
+
+    <div class="sim-block">
+      <div class="sim-header">Clarifying questions</div>
+      <div class="sim-body">
+        <div class="sim-q">Q: "When the extra spaces don't divide evenly across the gaps, which gaps get the extra space — left or right?"</div>
+        <div class="sim-a">A: The left gaps. <strong>→ <code>base = spaces / gaps</code>, <code>extra = spaces % gaps</code>; the leftmost <code>extra</code> gaps get <code>base + 1</code>, the rest get <code>base</code>.</strong></div>
+
+        <div class="sim-q">Q: "How is the last line formatted differently from the interior lines?"</div>
+        <div class="sim-a">A: Left-justified — single spaces between words, all remaining width padded on the right. <strong>→ I must know whether a committed line is the final one, so the format branch depends on remaining words.</strong></div>
+
+        <div class="sim-q">Q: "What about a line that holds only one word — there are no gaps to fill?"</div>
+        <div class="sim-a">A: Left-justify it: the word followed by right padding. <strong>→ A dedicated zero-gap branch; the even-split formula would divide by zero gaps.</strong></div>
+
+        <div class="sim-q">Q: "Is every word guaranteed to be at most maxWidth long, so I never have to split a word?"</div>
+        <div class="sim-a">A: Yes, every word fits within maxWidth. <strong>→ No word-breaking logic; a word always fits on a line by itself.</strong></div>
+
+        <div class="sim-q">Q: "Must every output line be exactly maxWidth characters, including the last?"</div>
+        <div class="sim-a">A: Yes, exactly maxWidth, every line. <strong>→ I verify each formatted line's length equals maxWidth as my post-condition.</strong></div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Recognition signals -->
+  <section id="approach">
+    <h2>5 &nbsp; Recognition Signals — what tells you it's this pattern</h2>
+    <table class="t-versus">
+      <thead><tr><th>Signal in the problem</th><th>What it points to</th></tr></thead>
+      <tbody>
+        <tr><td>"Pack items into fixed-width lines/containers"</td><td>Greedy line-packing (Variant 8.4) — fill until overflow, commit, repeat</td></tr>
+        <tr><td>"Distribute leftover space/capacity as evenly as possible"</td><td>Integer base + remainder split, with a stated bias direction</td></tr>
+        <tr><td>"Special rules for the last line / last group"</td><td>The format of a committed group depends on whether it is the final one</td></tr>
+        <tr><td>"Output must be exactly N wide"</td><td>A hard post-condition you check every formatting branch against</td></tr>
+        <tr><td>Several prose-stated special cases, no algorithmic depth</td><td>The difficulty is bookkeeping precision, not the overall approach</td></tr>
+      </tbody>
+    </table>
+    <div class="co-when"><strong>The deciding signal:</strong> "pack into fixed-width lines and distribute leftover space." When a problem is obviously greedy to pack but spends its words describing spacing/padding special cases, the work is two separate passes — greedy packing into groups, then a per-group formatter with one branch per special case. Keeping the two phases apart is what makes the three spacing cases tractable.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. Hints -->
+  <section id="hints">
+    <h2>6 &nbsp; Try It Yourself First</h2>
+    <p>This is the hardest bookkeeping in the block. Solve it before peeking — open the hints one at a time.</p>
+    <details class="hint"><summary>Hint 1 — the constraint</summary><p>Two phases, kept as two separate passes. Phase 1 decides <em>which words go on which line</em> (greedy packing). Phase 2 turns each committed line of words into a width-<code>maxWidth</code> string. Do not try to do both at once — the spacing rules are far easier to get right when packing is already done.</p></details>
+    <details class="hint"><summary>Hint 2 — the packing fit test</summary><p>Add words to the current line while <code>(sum of their lengths) + (one space per gap) ≤ maxWidth</code>, where the number of gaps is <code>(words on the line so far)</code> if you're testing whether to add one more. The moment the next word would overflow, commit the current line as a group and start a new one with that word.</p></details>
+    <details class="hint"><summary>Hint 3 — the even-space distribution</summary><p>For an interior line with <code>gaps = wordsOnLine − 1</code> and <code>spaces = maxWidth − totalWordLength</code> to distribute: <code>base = spaces / gaps</code> and <code>extra = spaces % gaps</code>. The first <code>extra</code> gaps get <code>base + 1</code> spaces; the remaining gaps get <code>base</code>. That left-bias is exactly what "as evenly as possible, left gaps more" means.</p></details>
+    <details class="hint"><summary>Hint 4 — the two special-case branches</summary><p>Two lines never use the even-split: (1) the <em>last</em> line — join its words with single spaces, then right-pad with spaces to maxWidth; (2) any line with a <em>single</em> word — the word, then right-pad to maxWidth (zero gaps means nothing to distribute). Detect "last line" by whether any words remain after committing the current group.</p></details>
+    <details class="hint"><summary>Hint 5 — verifying yourself</summary><p>Run <code>words=["This","is","an","example","of","text","justification."], maxWidth=16</code>. The first interior line packs <code>"This is an"</code> → 3 words, 2 gaps, 8 spaces → 4 each → <code>"This····is····an"</code>. The last line <code>"justification."</code> is a single word → right-padded. If any line isn't exactly 16 characters, a branch is wrong.</p></details>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Back-reference -->
+  <section id="parent">
+    <h2>7 &nbsp; Parent Theory</h2>
+    <p>This walkthrough is the TARGET for Variant 8.4 of a larger pattern. The parent page is not free-form — it follows the theory masterfile standard, so here is exactly what you land on:</p>
+    <div class="ref-grid">
+      <a class="backref-card" href="../theory/strings/text_formatting_deep_dive_master.html">
+        <span class="ref-file">theory/strings/text_formatting_deep_dive_master.html</span>
+        <span class="ref-title">Text Formatting &amp; Simulation — Deep Dive Theory Masterfile</span>
+        <span class="ref-desc">The canonical reference for the formatting family: the four-variant catalog with Variant 8.4 Greedy Line-Packing + Space Distribution this problem instantiates — including the two-phase frame and the even/last/single-word spacing rules (§8.4), the fit-test off-by-one and last-line pitfalls (§10), the full spacing edge-case inventory that is the real specification (§11), and the complexity table (§9). Its cross-reference section (§13) links back to this walkthrough.</span>
+      </a>
+    </div>
+  </section>
+
+  <div class="page-footer">
+    LC 68 — Text Justification · Walkthrough Masterfile · AIRBNB TARGET (no solution by design) · Parent theory:
+    <a href="../theory/strings/text_formatting_deep_dive_master.html">Text Formatting &amp; Simulation</a> ·
+    Structure per <code>wiki/_standards/WALKTHROUGH_MASTERFILE_STANDARD.md</code>
+  </div>
+
+</main>
+</div>
+
+<script src="../_shared/pages.js"></script>
+<script src="../_shared/nav.js"></script>
+</body>
+</html>
