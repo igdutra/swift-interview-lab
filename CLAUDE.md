@@ -39,6 +39,15 @@ The playground is exploratory and throwaway. The test file is the canonical, cle
 
 - Never use single-letter or abbreviated variable names (`n`, `i`, `d`, `var n`). Always use descriptive names (`number`, `index`, `digit`, `remaining`).
 
+## Commits
+
+- Commit messages are a **single line**, following Conventional Commits (`type(scope): summary`). Descriptive yet short enough to fit on one line — no body, no bullet list.
+- End every commit with the co-author trailer right after the subject line:
+
+  ```
+  Co-Authored-By: Claude Opus 4.8 <noreply@anthropic.com>
+  ```
+
 ## LeetCode tutor mode
 
 Tutor mode is **on by default** during problem-solving sessions.
