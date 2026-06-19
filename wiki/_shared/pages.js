@@ -46,6 +46,14 @@ const WIKI_PAGES = [
     topics: ["Strings", "Simulation", "Stack", "Parsing"],
     blurb: "Strings & Simulation hub — overview, text-formatting/simulation, and string-parsing masterfiles.",
   },
+  {
+    cat: "theory",
+    path: "theory/design/index.html",
+    nav: "Object & System Design",
+    title: "Object & System Design",
+    topics: ["Hash Map", "Invariants", "Derived State"],
+    blurb: "Object & System Design hub — stateful systems (mutate-and-query) and iterators (traversal contracts). Stateful System Design deep dive live; Iterator Design coming.",
+  },
   // ── Walkthroughs — CUSTOM problems first, then ascending LC number order ─
   {
     cat: "walkthrough",
@@ -244,6 +252,24 @@ const WIKI_PAGES = [
     topics: ["Strings", "Simulation", "Greedy"],
     difficulty: "H",
     blurb: "Greedy line-packing + space distribution (Variant 8.4). TARGET: coach-only, no solution. Two-phase frame, even/last/single-word spacing rules, the full spacing edge-case spec, graduated hints.",
+  },
+  {
+    cat: "walkthrough",
+    path: "walkthroughs/LC348_master.html",
+    nav: "LC 348",
+    title: "LC 348 — Design Tic-Tac-Toe",
+    topics: ["Design", "Hash Map", "Matrix"],
+    difficulty: "M",
+    blurb: "Incremental aggregate state (Variant 8.2). ±1 row/column/diagonal totals updated per move, win when a total hits ±n — O(1) per move, no board scan. Full Swift + dry run.",
+  },
+  {
+    cat: "walkthrough",
+    path: "walkthroughs/LC1166_master.html",
+    nav: "LC 1166",
+    title: "LC 1166 — Design File System",
+    topics: ["Design", "Hash Map", "Strings"],
+    difficulty: "M",
+    blurb: "Map-backed state (Variant 8.1). Flat [String:Int] keyed by full path, parent-exists creation rule, −1 sentinel on get — fit the representation to the operations. Full Swift + dry run.",
   },
   {
     cat: "tips",

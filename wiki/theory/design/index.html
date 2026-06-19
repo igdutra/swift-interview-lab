@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Object &amp; System Design · Study Wiki</title>
+<link rel="stylesheet" href="../../_shared/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="hub">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+  <main class="content" style="margin: 0 auto;">
+
+    <h1 class="page-title">Object &amp; System Design</h1>
+    <div class="page-meta">
+      <span>Theory Hub</span>
+      <span>·</span>
+      <span>Stateful Systems · Iterators</span>
+    </div>
+
+    <div class="lead">
+      <p>Design problems hand you an <strong>API to implement</strong>, not a single function to write: a class with a constructor and a set of methods that are called in sequence, each one reading or mutating internal state. There is rarely an algorithmic trick — the difficulty is choosing the <em>internal representation</em> so that every method is correct and cheap, and keeping that state consistent across an unknown stream of calls. The whole game is "what do I store, and what do I derive?"</p>
+      <p>These problems split along one axis: are you <strong>mutating and querying</strong> evolving state, or are you <strong>exposing a traversal</strong>? A <strong>stateful system</strong> (a file system, a scoreboard, a bank) holds state that methods change and read — the art is picking the data structure and deciding which answers to precompute versus recompute. An <strong>iterator</strong> exposes a <code>hasNext</code>/<code>next</code> contract over a structure — the art is advancing a cursor lazily so each call is amortized O(1). This hub teaches you to name which kind you are designing, because that choice picks the deep dive and, with it, the internal state. The <a href="stateful_system_design_deep_dive_master.html">Stateful System Design deep dive</a> covers mutate-and-query objects; the Iterator Design deep dive (coming) covers traversal contracts.</p>
+    </div>
+
+    <div class="hub-section-title">Deep Dives</div>
+    <div class="ref-grid">
+
+      <a class="xref-card" href="stateful_system_design_deep_dive_master.html">
+        <span class="ref-file">theory/design/stateful_system_design_deep_dive_master.html</span>
+        <span class="ref-title">Stateful System Design Deep Dive</span>
+        <span class="ref-meta">
+          <span class="ref-topics">Hash Map · Invariants · Derived State</span>
+        </span>
+        <span class="ref-desc">Map-backed state with a clean API, incremental aggregate state derived across mutations, validated stateful operations, and dependency-graph recompute. Directed at LC1166, LC348, LC2043, LC631.</span>
+      </a>
+
+    </div>
+
+    <div class="co-note" style="margin-top:24px"><strong>Note:</strong> the Iterator Design deep dive — lazy <code>hasNext</code>/<code>next</code> cursors, stack-based flattening, and lookahead wrappers (LC341, LC251, LC284, LC20) — is the second family under this hub and will appear here once it is written.</div>
+
+    <div class="page-footer">
+      Study Wiki · Object &amp; System Design · Theory Hub
+    </div>
+
+  </main>
+</div>
+
+<script src="../../_shared/pages.js"></script>
+<script src="../../_shared/nav.js"></script>
+</body>
+</html>
