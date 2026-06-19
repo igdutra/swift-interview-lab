@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LC 385 — Mini Parser · Walkthrough Masterfile</title>
+<link rel="stylesheet" href="../_shared/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="walkthrough">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── TOC ── -->
+<nav class="toc-col">
+  <div class="toc-inner">
+    <div class="toc-title toc-cat-walkthrough">Walkthrough · Contents</div>
+    <a href="#lead"         class="toc-link"><span class="toc-num">1</span> The Problem</a>
+    <a href="#reading"      class="toc-link"><span class="toc-num">2</span> Reading the Problem</a>
+    <a href="#edge-cases"   class="toc-link"><span class="toc-num">3</span> Edge Case Inventory</a>
+    <a href="#hints"        class="toc-link"><span class="toc-num">4</span> Try It Yourself First</a>
+    <a href="#simulation"   class="toc-link"><span class="toc-num">5</span> Interview Simulation</a>
+    <div class="toc-sub">
+      <a href="#sim-questions" class="toc-link">5.1 Clarifying questions</a>
+      <a href="#sim-plan"      class="toc-link">5.2 The plan, spoken</a>
+    </div>
+    <a href="#approach"     class="toc-link"><span class="toc-num">6</span> Why This Approach</a>
+    <a href="#structures"   class="toc-link"><span class="toc-num">7</span> Data Structures</a>
+    <a href="#dryrun"       class="toc-link"><span class="toc-num">8</span> Pseudocode Dry Run</a>
+    <a href="#swift"        class="toc-link"><span class="toc-num">9</span> Swift Solution</a>
+    <a href="#code-dry-run" class="toc-link"><span class="toc-num">10</span> Code Dry Run</a>
+    <a href="#qmap"         class="toc-link"><span class="toc-num">11</span> Question → Code Map</a>
+    <a href="#complexity"   class="toc-link"><span class="toc-num">12</span> Complexity</a>
+    <a href="#followups"    class="toc-link"><span class="toc-num">13</span> Follow-Up Bank</a>
+    <a href="#decoder"      class="toc-link"><span class="toc-num">14</span> Theory Decoder</a>
+    <a href="#parent"       class="toc-link"><span class="toc-num">15</span> Parent Theory</a>
+  </div>
+</nav>
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">LC 385 — Mini Parser</h1>
+  <div class="page-meta">
+    <span>Walkthrough Masterfile</span><span>·</span>
+    <span>Language: Swift</span><span>·</span>
+    <span>Medium · Nested-structure stack parse · One scan + explicit stack</span>
+  </div>
+
+  <!-- 1. Restatement -->
+  <section id="lead">
+    <div class="infobox">
+      <div class="infobox-title">Problem at a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Difficulty</div><div class="infobox-v"><span class="tag tag-M">Medium</span></div></div>
+      <div class="infobox-row"><div class="infobox-k">Pattern</div><div class="infobox-v">Nested-structure stack parse (Variant 8.3)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Tools</div><div class="infobox-v">Stack of containers · running-number accumulator · sign flag · single forward scan</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key insight</div><div class="infobox-v">The stack top is always "the container I'm currently filling"; <code>[</code> descends, <code>]</code> ascends</div></div>
+      <div class="infobox-row"><div class="infobox-k">Time / Space</div><div class="infobox-v">O(n) / O(n)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Theory</div><div class="infobox-v mono"><a href="../theory/strings/string_parsing_deep_dive_master.html">string_parsing_deep_dive_master.html</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p>You are given a string that encodes a <em>nested list of integers</em> — for example <code>"[123,[456,[789]]]"</code> — and you must parse it into the corresponding nested structure. Each element is either a plain integer or another nested list. The string is well-formed: brackets are balanced, integers may carry a leading minus sign, and commas separate siblings within a list. Return the parsed object: a <code>NestedInteger</code> that is either a single integer or an ordered list of <code>NestedInteger</code>s.</p>
+
+      <table class="t-example">
+        <thead><tr><th>Input</th><th>Output (structure)</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><code>"324"</code></td><td>integer <code>324</code></td><td>No brackets at all — the whole input is one bare integer, not a list</td></tr>
+          <tr><td><code>"[123,[456,[789]]]"</code></td><td>list <code>[123, [456, [789]]]</code></td><td>Outer list of two elements; the second is itself a list nesting one more level</td></tr>
+          <tr><td><code>"[]"</code></td><td>empty list <code>[]</code></td><td>Open immediately followed by close — a container with no children</td></tr>
+        </tbody>
+      </table>
+
+      <p>The twist is that the input is a <em>recursive</em> structure delivered as a flat string. You could parse it recursively, but the clean iterative answer is a single left-to-right scan driven by an explicit stack of partially-built containers — every character either opens a level, closes a level, accumulates a digit, or marks a boundary.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Reading the problem -->
+  <section id="reading">
+    <h2>2 &nbsp; Reading the Problem — insights from the constraints</h2>
+
+    <div class="co-insight"><strong>"A nested list of integers":</strong> the result type is recursive — a <code>NestedInteger</code> is either a single integer or a list of <code>NestedInteger</code>s. That shape dictates the data structures: a stack whose elements are containers, where opening a bracket pushes a new container and closing one attaches the finished container to its parent.</div>
+
+    <div class="co-insight"><strong>"May be a bare integer with no brackets":</strong> <code>"324"</code> and <code>"-12"</code> are valid inputs with no list at all. This is the first special case — if the string does not start with <code>[</code>, the entire string is a single integer and there is no container to build. Handle it before the scan.</div>
+
+    <div class="co-insight"><strong>Integers can be negative:</strong> a leading <code>-</code> precedes the digits. The number accumulator must track a sign separately (or detect the <code>-</code> and negate when committing), because <code>num = num * 10 + digit</code> only handles magnitude.</div>
+
+    <div class="co-insight"><strong>Commas and close-brackets are both boundaries:</strong> a number being accumulated is finished either by a <code>,</code> (more siblings follow) or by a <code>]</code> (the list ends). Both must flush the running number into the top container — but only if a number was actually being accumulated, so <code>[]</code> and <code>[[]]</code> don't attach a spurious zero.</div>
+
+    <div class="co-insight"><strong>The structure is well-formed:</strong> balanced brackets, valid syntax. So you never validate — no unmatched-bracket guard, no malformed-input branch. Every <code>]</code> has a matching <code>[</code> already on the stack, which is what makes the pop-and-attach safe.</div>
+
+    <table class="t-clue">
+      <thead><tr><th>Phrase / constraint</th><th>What it forces</th></tr></thead>
+      <tbody>
+        <tr><td>"Nested list of integers"</td><td>Recursive result type; a stack of containers to build it iteratively</td></tr>
+        <tr><td>Bare integer with no brackets</td><td>Early-return branch: whole string is one integer</td></tr>
+        <tr><td>Negative integers (leading <code>-</code>)</td><td>A sign flag carried alongside the running-number accumulator</td></tr>
+        <tr><td>Comma OR close-bracket ends a number</td><td>Flush the accumulator on both — but only if a digit was seen</td></tr>
+        <tr><td>Well-formed input</td><td>No validation; every <code>]</code> has a matching container on the stack</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Edge cases -->
+  <section id="edge-cases">
+    <h2>3 &nbsp; Edge Case Inventory</h2>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected</th><th>Handled by</th></tr></thead>
+      <tbody>
+        <tr><td><code>"324"</code> — bare integer</td><td>integer <code>324</code></td><td>Early branch: if the first character isn't <code>[</code>, return <code>NestedInteger(Int(string)!)</code> without entering the scan loop.</td></tr>
+        <tr><td><code>"-12"</code> — bare negative</td><td>integer <code>-12</code></td><td>Same early branch; <code>Int("-12")</code> parses the sign natively.</td></tr>
+        <tr><td><code>"[]"</code> — empty list</td><td>empty list</td><td>Push container on <code>[</code>; the <code>]</code> boundary flushes <em>nothing</em> (no digit accumulated) and pops the empty container as the result.</td></tr>
+        <tr><td><code>"[[]]"</code> — nested empty</td><td>list containing one empty list</td><td>Two pushes, two pops; each <code>]</code> flushes no number and attaches the inner empty container to the outer.</td></tr>
+        <tr><td><code>"[123]"</code> — single element</td><td>list <code>[123]</code></td><td>The closing <code>]</code> flushes the accumulated <code>123</code> before popping the container.</td></tr>
+        <tr><td><code>"[1,2,3]"</code> — flat list</td><td>list <code>[1, 2, 3]</code></td><td>Each <code>,</code> flushes the running number into the top container, then resets the accumulator.</td></tr>
+        <tr><td>GOTCHA: <code>"[123,[456]]"</code> — number right before <code>]</code></td><td>list <code>[123, [456]]</code></td><td>The inner <code>]</code> must flush <code>456</code> <em>before</em> popping, or the last number of every list is lost.</td></tr>
+        <tr><td>GOTCHA: <code>"[-1]"</code> — negative inside list</td><td>list <code>[-1]</code></td><td>The <code>-</code> sets the sign flag; the flush negates the magnitude. Forgetting the flag yields <code>+1</code>.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="co-insight"><strong>"Flush only if a digit was seen" is the quiet correctness rule.</strong> Both <code>,</code> and <code>]</code> trigger a flush, but firing it unconditionally attaches a phantom <code>0</code> to empty lists and double-counts after a just-popped sub-list (e.g. <code>"[[1],2]"</code> — the <code>]</code> after <code>1</code> pops, then the <code>,</code> must not flush). Guard the flush with a "currently accumulating a number" flag.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Hints -->
+  <section id="hints">
+    <h2>4 &nbsp; Try It Yourself First</h2>
+    <p>Attempt this cold — it is the canonical nested-parse drill. Open hints one at a time.</p>
+    <details class="hint"><summary>Hint 1 — the constraint</summary><p>The input encodes a recursive structure (lists inside lists) as a flat string. First handle the degenerate case: if the string doesn't begin with <code>[</code>, it's a single integer — return it directly. Everything else is a list to parse.</p></details>
+    <details class="hint"><summary>Hint 2 — the pattern</summary><p>Nested-structure stack parse. Keep a stack of containers; the top is always the list you're currently filling. Scan left to right: <code>[</code> pushes a new container, a digit accumulates into a running number, a boundary (<code>,</code> or <code>]</code>) flushes that number into the top container, and <code>]</code> additionally pops the top and attaches it to its parent.</p></details>
+    <details class="hint"><summary>Hint 3 — the two bugs everyone hits</summary><p>(1) On a closing <code>]</code>, flush the running number <em>before</em> you pop — otherwise the last element of each list disappears. (2) Only flush when you actually accumulated a digit; track that with a flag, or empty lists get a phantom 0 and post-sub-list commas double-count. Negatives: when you see <code>-</code>, set a sign flag and apply it at flush time.</p></details>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Interview simulation -->
+  <section id="simulation">
+    <h2>5 &nbsp; Interview Simulation</h2>
+    <p>The interviewer has stated the problem. The script starts with your first words — practice it out loud.</p>
+
+    <div class="sim-block" id="sim-questions">
+      <div class="sim-header">Step 1 — Clarifying questions</div>
+      <div class="sim-body">
+        <div class="sim-q">Q: "Is the input always well-formed — balanced brackets, valid syntax, no trailing garbage?"</div>
+        <div class="sim-a">A: Yes, always valid. <strong>→ No validation; every <code>]</code> is guaranteed a matching container on the stack, so pop-and-attach is always safe.</strong></div>
+
+        <div class="sim-q">Q: "Can the whole input be a single integer with no brackets, like <code>"42"</code>?"</div>
+        <div class="sim-a">A: Yes. <strong>→ I branch on the first character: if it's not <code>[</code>, return the integer directly without entering the scan.</strong></div>
+
+        <div class="sim-q">Q: "Can integers be negative, and is there any whitespace between tokens?"</div>
+        <div class="sim-a">A: Negatives yes (leading <code>-</code>), no whitespace. <strong>→ I carry a sign flag with the number accumulator; no whitespace means every non-digit, non-sign char is a structural token.</strong></div>
+
+        <div class="sim-q">Q: "What's the return type — is there a <code>NestedInteger</code> API with <code>add</code> and <code>setInteger</code>?"</div>
+        <div class="sim-a">A: Yes, <code>NestedInteger</code> supports holding an Int or a list you append to. <strong>→ My stack holds <code>NestedInteger</code> containers; closing a bracket appends the finished one to its parent via <code>add</code>.</strong></div>
+      </div>
+    </div>
+
+    <div class="sim-block" id="sim-plan">
+      <div class="sim-header">Step 2 — The plan, before any code</div>
+      <div class="sim-body">
+        <div class="speech">
+          <div class="speech-kicker">The plan, spoken</div>
+          <p>"This is a nested-structure stack parse — Variant 8.3 of the String Parsing family. The signal is 'a flat string encoding a recursive container, parse it into the structure.' I do it in one left-to-right scan with an explicit stack, no recursion."</p>
+          <p>"Let me pin the governing conditions before the data structures. The invariant is: the top of the stack is always the container I am currently filling. Opening a bracket <em>descends</em> a level — push a new empty container; closing a bracket <em>ascends</em> — pop the finished container and attach it to the new top, its parent. The boundary condition is when a number ends: that happens on either a comma or a close-bracket, and at that moment I flush the running number into the top container — but the flush fires only if I was actually accumulating a digit, which is the rule that keeps empty lists and post-sub-list commas clean. The transition out of the scan: the very first character decides everything — if it isn't <code>[</code>, the whole input is a bare integer and I return immediately."</p>
+          <p>"The structures follow from those conditions. I need a <em>stack of <code>NestedInteger</code> containers</em> because the invariant is about 'the container I'm currently filling' and nesting is last-in-first-out. I need an Int <em>number accumulator</em> built with <code>num = num*10 + digit</code>, a Bool <em>sign flag</em> for the leading minus, and a Bool <em>hasDigit flag</em> so the flush is conditional. That's it — no recursion stack, because the explicit stack <em>is</em> the recursion made visible."</p>
+          <p>"The walk: convert to a character array for O(1) indexing. If the first char isn't <code>[</code>, return the integer. Otherwise scan: <code>[</code> → push a new container; <code>-</code> → set sign; digit → accumulate; <code>,</code> → flush-if-accumulating, reset; <code>]</code> → flush-if-accumulating, reset, then pop the top and (if the stack is non-empty) attach it to the new top, else it's the result. Time O(n), space O(n) for the stack and the output."</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. Approach rationale -->
+  <section id="approach">
+    <h2>6 &nbsp; Why This Approach — and not the others</h2>
+    <table class="t-versus">
+      <thead><tr><th>Candidate</th><th>Cost</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>Recursive descent — a parse function that calls itself on each <code>[</code></td><td>O(n) time, O(depth) call stack</td><td>Correct and natural for a recursive grammar, but the call stack can blow on deep nesting, and the index must be passed by reference or returned — fiddly in Swift. The iterative stack is the editorial-preferred form and the one this block teaches.</td></tr>
+        <tr><td>Strip outer brackets, split on top-level commas, recurse on each piece</td><td>O(n·depth) — repeated scanning to find top-level commas</td><td>Splitting on <em>top-level</em> commas requires tracking bracket depth anyway, so you've done the hard part and then added re-scanning on top. Strictly worse than one pass.</td></tr>
+        <tr><td><strong>Single scan + explicit stack of containers</strong></td><td>O(n) / O(n)</td><td><strong>Chosen.</strong> One pass, no recursion-depth risk, the stack makes the nesting explicit and the four character cases are a clean switch.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-when"><strong>The deciding signal:</strong> a flat string encoding a balanced, nested structure. Whenever brackets nest and you must rebuild the tree, an explicit stack of partially-built nodes is the iterative counterpart of recursive descent — <code>[</code> pushes, <code>]</code> pops-and-attaches. Same skeleton parses JSON-ish lists, nested expressions, and directory trees.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Data structures -->
+  <section id="structures">
+    <h2>7 &nbsp; Data Structures — choice and justification</h2>
+    <table class="t-decoder">
+      <thead><tr><th>Structure</th><th>Holds</th><th>Why this and not weaker/stronger</th></tr></thead>
+      <tbody>
+        <tr><td><code>stack: [NestedInteger]</code></td><td>The chain of containers from the root down to the one currently being filled</td><td>Nesting is last-in-first-out: the most recently opened bracket is the first to close. A stack models exactly that. Its top is the active container; popping attaches a finished child to its parent.</td></tr>
+        <tr><td><code>numberValue: Int</code></td><td>The integer currently being accumulated, digit by digit</td><td>Built with <code>numberValue = numberValue * 10 + digit</code> as each digit arrives — the standard running-number trick. Reset to 0 after every flush.</td></tr>
+        <tr><td><code>isNegative: Bool</code></td><td>Whether the current number had a leading minus</td><td>The accumulator only builds magnitude; the sign is tracked separately and applied at flush. Cheaper and clearer than re-parsing a substring.</td></tr>
+        <tr><td><code>hasDigit: Bool</code></td><td>Whether a digit has been seen since the last reset</td><td>Guards the flush so boundaries that follow a <code>]</code> or open an empty list <code>[]</code> don't attach a phantom 0. The single most important flag for correctness.</td></tr>
+        <tr><td><code>characters: [Character]</code></td><td>The input string as a random-access array</td><td>Swift <code>String</code> indexing is O(n); materializing once gives O(1) access for the single forward scan.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-insight"><strong>Why a stack and not recursion.</strong> The grammar is recursive, so recursion is the "obvious" tool — but the explicit stack makes the descent/ascent visible, removes the call-stack depth limit, and keeps the index a plain loop variable instead of a value threaded through recursive calls. The stack <em>is</em> the recursion, turned inside out.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 8. Pseudocode dry run -->
+  <section id="dryrun">
+    <h2>8 &nbsp; Pseudocode Dry Run</h2>
+
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">single scan with a stack of containers</span></div>
+    <pre class="pseudo"><span class="pk">IF</span> first char ≠ '[':
+    <span class="pk">RETURN</span> integer(parse whole string)   <span class="pc">// bare integer</span>
+
+stack ← empty
+num ← 0, neg ← false, hasDigit ← false
+
+<span class="pk">FOR</span> each ch <span class="pk">IN</span> string:
+    <span class="pk">SWITCH</span> ch:
+        '[':  push new empty container onto stack
+        '-':  neg ← true
+        digit: num ← num*10 + value(ch); hasDigit ← true
+        ',':  <span class="pk">IF</span> hasDigit: attach (neg ? −num : num) to top; reset num,neg,hasDigit
+        ']':  <span class="pk">IF</span> hasDigit: attach (neg ? −num : num) to top; reset num,neg,hasDigit
+              finished ← pop stack
+              <span class="pk">IF</span> stack not empty: attach finished to new top
+              <span class="pk">ELSE</span>: result ← finished
+
+<span class="pk">RETURN</span> result</pre>
+
+    <p>Trace on <code>"[123,[456]]"</code> — expected list <code>[123, [456]]</code>:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">stack + accumulator evolution, milestone steps</span></div>
+    <pre class="dry"><span class="tr-var">stack=[]  num=0  neg=false  hasDigit=false</span>
+
+'['   push C0          stack=[C0]
+'1'   num=1  hasDigit=true
+'2'   num=12
+'3'   num=123
+','   flush 123 → C0   C0=[123]   reset num,hasDigit
+'['   push C1          stack=[C0, C1]
+'4'   num=4  hasDigit=true
+'5'   num=45
+'6'   num=456
+']'   flush 456 → C1   C1=[456]   reset
+      pop C1; attach to C0    C0=[123, [456]]   stack=[C0]
+']'   hasDigit=false → no flush   <span class="tr-var">↑ the just-popped sub-list left no number</span>
+      pop C0; stack empty → result = C0
+
+<span class="tr-ok">RETURN [123, [456]]</span></pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 9. Swift solution -->
+  <section id="swift">
+    <h2>9 &nbsp; Swift Solution — iterative</h2>
+
+    <p>LeetCode supplies the <code>NestedInteger</code> class; the relevant API is <code>init()</code> (empty list), <code>init(_ value: Int)</code>, <code>setInteger(value:)</code>, and <code>add(elem:)</code>. The solution below uses it directly.</p>
+
+    <div class="solution-block">
+      <div class="block-header">
+        <span class="block-badge">A.1</span>
+        <span class="block-name">Single scan with an explicit container stack</span>
+        <div class="block-pills"><span class="pill pill-t">O(n)</span><span class="pill pill-s">O(n)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="approach-box">
+          <div class="approach-title">Plan</div>
+          Bare integer? Return it. Otherwise scan once: <code>[</code> pushes a new container, digits accumulate (with a sign flag), and a comma or close-bracket flushes the accumulated number into the top container — but only if a digit was seen. A close-bracket also pops the finished container and attaches it to its parent, or returns it as the result when the stack empties.
+        </div>
+
+        <pre class="swift"><span class="kw">func</span> <span class="fn">deserialize</span>(<span class="kw">_</span> input: <span class="tp">String</span>) -&gt; <span class="tp">NestedInteger</span> {
+    <span class="kw">let</span> characters = <span class="tp">Array</span>(input)
+
+    <span class="cm">// Bare integer — no list to build.</span>
+    <span class="kw">if</span> characters.first != <span class="st">"["</span> {
+        <span class="kw">return</span> <span class="tp">NestedInteger</span>(<span class="tp">Int</span>(input)!)
+    }
+
+    <span class="kw">var</span> stack: [<span class="tp">NestedInteger</span>] = []
+    <span class="kw">var</span> numberValue = <span class="nm">0</span>
+    <span class="kw">var</span> isNegative = <span class="kw">false</span>
+    <span class="kw">var</span> hasDigit = <span class="kw">false</span>
+    <span class="kw">var</span> result = <span class="tp">NestedInteger</span>()
+
+    <span class="cm">// Invariant: stack.last is the container currently being filled.</span>
+    <span class="kw">func</span> <span class="fn">flushNumberIfNeeded</span>() {
+        <span class="kw">if</span> hasDigit {
+            <span class="kw">let</span> value = isNegative ? -numberValue : numberValue
+            stack.last?.<span class="fn">add</span>(elem: <span class="tp">NestedInteger</span>(value))
+            numberValue = <span class="nm">0</span>
+            isNegative = <span class="kw">false</span>
+            hasDigit = <span class="kw">false</span>
+        }
+    }
+
+    <span class="kw">for</span> character <span class="kw">in</span> characters {
+        <span class="kw">switch</span> character {
+        <span class="kw">case</span> <span class="st">"["</span>:
+            stack.<span class="fn">append</span>(<span class="tp">NestedInteger</span>())          <span class="cm">// descend: new empty container</span>
+        <span class="kw">case</span> <span class="st">"-"</span>:
+            isNegative = <span class="kw">true</span>
+        <span class="kw">case</span> <span class="st">"0"</span>...<span class="st">"9"</span>:
+            numberValue = numberValue * <span class="nm">10</span> + character.wholeNumberValue!
+            hasDigit = <span class="kw">true</span>
+        <span class="kw">case</span> <span class="st">","</span>:
+            <span class="fn">flushNumberIfNeeded</span>()
+        <span class="kw">case</span> <span class="st">"]"</span>:
+            <span class="fn">flushNumberIfNeeded</span>()                    <span class="cm">// flush BEFORE popping</span>
+            <span class="kw">let</span> finished = stack.<span class="fn">removeLast</span>()       <span class="cm">// ascend</span>
+            <span class="kw">if</span> <span class="kw">let</span> parent = stack.last {
+                parent.<span class="fn">add</span>(elem: finished)            <span class="cm">// attach to parent</span>
+            } <span class="kw">else</span> {
+                result = finished                    <span class="cm">// root list closed</span>
+            }
+        <span class="kw">default</span>:
+            <span class="kw">break</span>
+        }
+    }
+
+    <span class="kw">return</span> result
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 10. Code dry run -->
+  <section id="code-dry-run">
+    <h2>10 &nbsp; Code Dry Run — the Swift solution, traced</h2>
+    <p>Full debugger-style trace on <code>input = "[123,[456]]"</code> → expected list <code>[123, [456]]</code>.</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">full execution trace — /code-dry-run format</span></div>
+    <pre class="dry">────────────────────────────────
+/code-dry-run
+Problem: LC 385 — Mini Parser
+Input:   input = "[123,[456]]"
+────────────────────────────────
+
+deserialize
+  characters  = ["[","1","2","3",",","[","4","5","6","]","]"]
+  characters.first("[") != "["? NO → continue (it IS a list)
+  stack       = []
+  numberValue = 0
+  isNegative  = false
+  hasDigit    = false
+  result      = NestedInteger()   (placeholder)
+
+────────────────────────────────
+ITERATION 1  character='['
+────────────────────────────────
+  case "[" → stack.append(new container C0)
+  State: stack=[C0]
+
+────────────────────────────────
+ITERATION 2  character='1'
+────────────────────────────────
+  case "0"..."9" → numberValue = 0*10 + 1 = 1 ; hasDigit = true
+  State: numberValue=1, hasDigit=true
+
+────────────────────────────────
+ITERATION 3  character='2'
+────────────────────────────────
+  numberValue = 1*10 + 2 = 12
+  State: numberValue=12
+
+────────────────────────────────
+ITERATION 4  character='3'
+────────────────────────────────
+  numberValue = 12*10 + 3 = 123
+  State: numberValue=123
+
+────────────────────────────────
+ITERATION 5  character=','
+────────────────────────────────
+  case "," → flushNumberIfNeeded()
+    hasDigit? YES → value = 123 ; C0.add(123)
+    reset numberValue=0, isNegative=false, hasDigit=false
+  State: C0=[123], numberValue=0, hasDigit=false
+
+────────────────────────────────
+ITERATION 6  character='['
+────────────────────────────────
+  case "[" → stack.append(new container C1)
+  State: stack=[C0, C1]
+
+────────────────────────────────
+ITERATIONS 7–9  character='4','5','6'
+────────────────────────────────
+  digits accumulate: numberValue = 4 → 45 → 456 ; hasDigit=true
+  ↑ same branch each step, no boundary yet
+  State: numberValue=456, hasDigit=true, stack=[C0, C1]
+
+────────────────────────────────
+ITERATION 10  character=']'
+────────────────────────────────
+  case "]" → flushNumberIfNeeded()
+    hasDigit? YES → value = 456 ; C1.add(456)
+    reset numberValue=0, hasDigit=false
+  finished = stack.removeLast() = C1   (C1=[456])
+  stack.last? C0 exists → C0.add(C1)
+  State: C0=[123,[456]], stack=[C0], hasDigit=false
+
+────────────────────────────────
+ITERATION 11  character=']'
+────────────────────────────────
+  case "]" → flushNumberIfNeeded()
+    hasDigit? NO → no flush
+    ↑ the just-closed sub-list left no pending number — the flag prevents a phantom 0
+  finished = stack.removeLast() = C0   (C0=[123,[456]])
+  stack.last? nil → result = C0
+  State: stack=[], result=[123,[456]]
+
+────────────────────────────────
+LOOP EXIT — all 11 characters consumed
+────────────────────────────────
+
+RESULT
+────────────────────────────────
+  return result = [123, [456]]</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 11. Q→Code map -->
+  <section id="qmap">
+    <h2>11 &nbsp; Question → Code Map</h2>
+    <table class="t-qmap">
+      <thead><tr><th>What you asked / planned</th><th>What it became</th></tr></thead>
+      <tbody>
+        <tr><td>"Bare integer with no brackets"</td><td><code>if characters.first != "[" { return NestedInteger(Int(input)!) }</code></td></tr>
+        <tr><td>"Stack top is the container I'm filling"</td><td><code>var stack: [NestedInteger]</code>; <code>stack.last</code> is the active container</td></tr>
+        <tr><td>"Open bracket descends a level"</td><td><code>case "[": stack.append(NestedInteger())</code></td></tr>
+        <tr><td>"Accumulate digits, track sign"</td><td><code>numberValue = numberValue * 10 + digit</code>; <code>case "-": isNegative = true</code></td></tr>
+        <tr><td>"Flush only if a digit was seen"</td><td><code>func flushNumberIfNeeded() { if hasDigit { … } }</code></td></tr>
+        <tr><td>"Flush before popping on <code>]</code>"</td><td><code>flushNumberIfNeeded(); let finished = stack.removeLast()</code></td></tr>
+        <tr><td>"Attach to parent, or it's the result"</td><td><code>if let parent = stack.last { parent.add(elem: finished) } else { result = finished }</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 12. Complexity -->
+  <section id="complexity">
+    <h2>12 &nbsp; Complexity</h2>
+    <table class="t-cmx">
+      <thead><tr><th>Phase</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Array materialization</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td><code>Array(input)</code> copies the string into a character array once for O(1) indexing.</td></tr>
+        <tr><td>Single scan</td><td class="tc">O(n)</td><td class="sc">O(d)</td><td>Each character is handled by one switch branch in O(1). The stack holds at most d containers, where d is the maximum nesting depth.</td></tr>
+        <tr class="bottleneck"><td>Total</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td>One linear pass dominates. Space is O(n) overall because the output structure itself holds all n′ integers, which is irreducible — the parsed tree must exist.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-insight"><strong>Why one pass is enough.</strong> Every character is consumed exactly once and triggers a constant-time action: push, accumulate, or flush-and-maybe-pop. There is no backtracking and no re-scanning, because the stack remembers all the partially-built ancestor containers — the information a recursive parser would keep on the call stack lives explicitly here instead.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13. Follow-ups -->
+  <section id="followups">
+    <h2>13 &nbsp; Follow-Up Bank — the interviewer's second act</h2>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Before you push this to production — can you see any improvements you'd make?"</div>
+      <div class="followup-a">The algorithm is already O(n) single-pass, which is optimal. The main robustness concern is the two force-unwraps: <code>Int(input)!</code> on the bare-integer branch and <code>character.wholeNumberValue!</code> on the digit branch. Both are safe given the well-formed-input guarantee, but in production I'd validate or use guarded optionals so malformed input fails gracefully rather than crashing. I'd also <code>reserveCapacity</code> on the stack if a depth bound is known.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Write the recursive version instead — does it have any drawback here?"</div>
+      <div class="followup-a">Recursive descent reads cleanly: a <code>parse(from index)</code> that, on seeing <code>[</code>, loops calling itself for each element until the matching <code>]</code>. The drawback is the call-stack depth equals the nesting depth, so a pathological input like <code>"[[[[…]]]]"</code> with thousands of levels risks a stack overflow. The explicit-stack iterative form moves that depth onto the heap and has no recursion limit — which is why it's the preferred answer.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Now serialize a <code>NestedInteger</code> back into this string format — the inverse."</div>
+      <div class="followup-a">That's a recursive (or stack-based) traversal: if the node is an integer, emit its digits; if it's a list, emit <code>[</code>, recurse on each child joining with <code>,</code>, then <code>]</code>. It's the mirror of parsing — the same tree, walked instead of built. Together they form a round-trip you can test by asserting <code>serialize(deserialize(s)) == s</code> on well-formed inputs.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Once parsed, flatten it with an iterator that returns the integers in order — like LC 341."</div>
+      <div class="followup-a">That is exactly <a href="../walkthroughs/LC341_master.html">LC 341 — Flatten Nested List Iterator</a>: take the parsed <code>NestedInteger</code> and expose <code>next()</code>/<code>hasNext()</code> with lazy stack-based descent. Parsing builds the tree; the iterator walks it on demand. The two problems compose directly — parse with this solution, then feed the result into LC 341's iterator.</div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 14. Theory decoder -->
+  <section id="decoder">
+    <h2>14 &nbsp; Theory Decoder — the theory as used here</h2>
+    <table class="t-decoder">
+      <thead><tr><th>General concept</th><th>Instantiated in this solution as</th><th>General form</th></tr></thead>
+      <tbody>
+        <tr><td>Nested-structure stack parse</td><td>A stack of <code>NestedInteger</code> containers; <code>[</code> pushes, <code>]</code> pops-and-attaches. The top is always the active container.</td><td><a href="../theory/strings/string_parsing_deep_dive_master.html#v-nested">theory §8.3</a></td></tr>
+        <tr><td>Running-number accumulation</td><td><code>numberValue = numberValue * 10 + digit</code> rebuilds each multi-digit integer one char at a time.</td><td><a href="../theory/strings/string_parsing_deep_dive_master.html#terminology">theory §3</a></td></tr>
+        <tr><td>Boundary-triggered flush</td><td>Comma and close-bracket both flush the accumulator into the top container, guarded by <code>hasDigit</code>.</td><td><a href="../theory/strings/string_parsing_deep_dive_master.html#v-nested">theory §8.3</a></td></tr>
+        <tr><td>Descend / ascend with a stack</td><td><code>stack.append</code> on <code>[</code> (descend), <code>stack.removeLast</code> + attach on <code>]</code> (ascend) — recursion made explicit.</td><td><a href="../theory/strings/string_parsing_deep_dive_master.html#v-nested">theory §8.3</a></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 15. Back-reference -->
+  <section id="parent">
+    <h2>15 &nbsp; Parent Theory</h2>
+    <p>This walkthrough instantiates Variant 8.3 of a larger pattern. The parent page is not free-form — it follows the theory masterfile standard, so here is exactly what you land on:</p>
+    <div class="ref-grid">
+      <a class="backref-card" href="../theory/strings/string_parsing_deep_dive_master.html">
+        <span class="ref-file">theory/strings/string_parsing_deep_dive_master.html</span>
+        <span class="ref-title">String Parsing — Deep Dive Theory Masterfile</span>
+        <span class="ref-desc">The canonical reference for the parse family: the terminology decoder with running-number accumulation (§3), the four-variant catalog with Variant 8.3 Nested-Structure Stack Parse this problem instantiates including the stack frame and the two recurring bugs (§8.3), the flush-before-pop and phantom-zero pitfalls (§10), the bare-integer and empty-list edge cases (§11), and the complexity table (§9). Its cross-reference section (§13) links back to this walkthrough.</span>
+      </a>
+    </div>
+  </section>
+
+  <div class="page-footer">
+    LC 385 — Mini Parser · Walkthrough Masterfile · Parent theory:
+    <a href="../theory/strings/string_parsing_deep_dive_master.html">String Parsing</a> ·
+    Structure per <code>wiki/_standards/WALKTHROUGH_MASTERFILE_STANDARD.md</code>
+  </div>
+
+</main>
+</div>
+
+<script src="../_shared/pages.js"></script>
+<script src="../_shared/nav.js"></script>
+</body>
+</html>
