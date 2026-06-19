@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trees · Study Wiki</title>
+<link rel="stylesheet" href="../../_shared/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="hub">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+  <main class="content" style="margin: 0 auto;">
+
+    <h1 class="page-title">Trees</h1>
+    <div class="page-meta">
+      <span>Theory Hub</span>
+      <span>·</span>
+      <span>Binary Trees · BST · Traversal · LCA</span>
+    </div>
+
+    <div class="lead">
+      <p>A <strong>tree</strong> is a connected, acyclic graph: a set of <em>nodes</em> linked by <em>edges</em> where exactly one node (the <em>root</em>) has no parent, and every other node has exactly one parent. Most interview trees are <strong>binary</strong> — each node has at most a left and a right child — and the recurring move is <em>recursion that mirrors the structure</em>: to solve a problem on a node, solve it on its children and combine. Almost every tree problem is "do a traversal, and decide what to compute on the way down (pre-order), the way up (post-order), or in sorted order (in-order)."</p>
+      <p>This hub gives you the vocabulary first — tree, binary tree, BST, trie, and the traversal orders — then sends you to the deep dives for specific families. The first deep dive is <strong>Lowest Common Ancestor (LCA)</strong>, the canonical "find the deepest node that is an ancestor of both targets" problem, which underpins a large share of Airbnb's tree questions.</p>
+    </div>
+
+    <!-- Terminology — what the user must know cold -->
+    <div class="hub-section-title">Vocabulary you must know cold</div>
+    <table class="t-decoder">
+      <thead><tr><th>Term</th><th>Plain meaning</th><th>Example / note</th></tr></thead>
+      <tbody>
+        <tr><td>Tree</td><td>A connected graph with no cycles; n nodes have exactly n−1 edges</td><td>One root, every other node has a unique parent</td></tr>
+        <tr><td>Node / edge</td><td>A node holds a value; an edge links a parent to a child</td><td>The basic building blocks</td></tr>
+        <tr><td>Root</td><td>The single node with no parent — the entry point to the whole tree</td><td>Traversals start here</td></tr>
+        <tr><td>Leaf</td><td>A node with no children</td><td>The "bottom" of each branch</td></tr>
+        <tr><td>Parent / child</td><td>If an edge goes from A down to B, A is B's parent and B is A's child</td><td>Each node (except root) has exactly one parent</td></tr>
+        <tr><td>Ancestor / descendant</td><td>An ancestor is any node on the path up to the root; a descendant is any node in your subtree</td><td>The basis of LCA — a node is its own ancestor by convention here</td></tr>
+        <tr><td>Subtree</td><td>A node together with all of its descendants</td><td>Recursion solves a subtree, then combines</td></tr>
+        <tr><td>Binary tree</td><td>Every node has at most two children, named left and right</td><td>The default interview tree</td></tr>
+        <tr><td>Binary search tree (BST)</td><td>A binary tree where, for every node, all left-subtree values are smaller and all right-subtree values are larger</td><td>In-order traversal yields sorted values; lookup is O(height)</td></tr>
+        <tr><td>Balanced tree</td><td>Left and right subtree heights differ by at most a constant at every node, so height is O(log n)</td><td>What LC 108 builds from a sorted array</td></tr>
+        <tr><td>Height / depth</td><td>Height = longest root-to-leaf edge count; depth of a node = edges from the root to it</td><td>A balanced tree of n nodes has height ≈ log₂ n</td></tr>
+        <tr><td>Trie (prefix tree)</td><td>A tree whose edges are labeled by characters; each root-to-node path spells a string prefix</td><td>Not a binary tree — used for word/prefix lookup (e.g. autocomplete, LC 336)</td></tr>
+        <tr><td>Pre-order</td><td>Visit the node, then left subtree, then right (node-first)</td><td>Good for copying/building a tree top-down</td></tr>
+        <tr><td>In-order</td><td>Left subtree, then node, then right (node-in-the-middle)</td><td>On a BST, produces values in sorted order</td></tr>
+        <tr><td>Post-order</td><td>Left subtree, then right, then the node (node-last)</td><td>Good for combining children's results — the shape LCA uses</td></tr>
+        <tr><td>Level-order (BFS)</td><td>Visit nodes layer by layer from the root, using a queue</td><td>Shortest-path-in-edges, level grouping</td></tr>
+      </tbody>
+    </table>
+
+    <div class="co-when" style="margin-top:16px"><strong>The mental default:</strong> reach for recursion that mirrors the tree — handle the base case (usually <code>nil</code>), recurse on left and right, and combine. Choose <em>when</em> you do the node's own work: pre-order (before recursing) to push information down, post-order (after recursing) to pull results up. LCA is the archetypal post-order problem.</div>
+
+    <div class="hub-section-title">Deep Dives</div>
+    <div class="ref-grid">
+
+      <a class="xref-card" href="lca_deep_dive_master.html">
+        <span class="ref-file">theory/trees/lca_deep_dive_master.html</span>
+        <span class="ref-title">Lowest Common Ancestor (LCA) Deep Dive</span>
+        <span class="ref-meta">
+          <span class="ref-topics">Binary Tree · Recursion · Parent Maps</span>
+        </span>
+        <span class="ref-desc">Recursive tree construction, the canonical post-order LCA, ancestor-set intersection with parent pointers, and LCA reframed as parent-map paths over a region hierarchy. Directed at LC108, LC236, LC1650, LC1257.</span>
+      </a>
+
+    </div>
+
+    <div class="page-footer">
+      Study Wiki · Trees · Theory Hub
+    </div>
+
+  </main>
+</div>
+
+<script src="../../_shared/pages.js"></script>
+<script src="../../_shared/nav.js"></script>
+</body>
+</html>

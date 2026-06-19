@@ -52,7 +52,15 @@ const WIKI_PAGES = [
     nav: "Object & System Design",
     title: "Object & System Design",
     topics: ["Hash Map", "Invariants", "Derived State"],
-    blurb: "Object & System Design hub — stateful systems (mutate-and-query) and iterators (traversal contracts). Stateful System Design deep dive live; Iterator Design coming.",
+    blurb: "Object & System Design hub — stateful systems (mutate-and-query) and iterators (traversal contracts). Stateful System Design and Iterator Design deep dives.",
+  },
+  {
+    cat: "theory",
+    path: "theory/trees/index.html",
+    nav: "Trees",
+    title: "Trees",
+    topics: ["Binary Tree", "BST", "Traversal", "LCA"],
+    blurb: "Trees hub — tree/BST/trie vocabulary, traversal orders, and the Lowest Common Ancestor deep dive (recursive construction, post-order LCA, parent-map walk-up).",
   },
   // ── Walkthroughs — CUSTOM problems first, then ascending LC number order ─
   {
@@ -288,6 +296,24 @@ const WIKI_PAGES = [
     topics: ["Stack", "Iterator", "Design"],
     difficulty: "M",
     blurb: "Lazy stack flatten (Variant 8.2). Push the list reversed, unwind nested lists in hasNext until an integer is on top, pop in next — amortized O(1)/call, never eager. Full Swift + dry run.",
+  },
+  {
+    cat: "walkthrough",
+    path: "walkthroughs/LC108_master.html",
+    nav: "LC 108",
+    title: "LC 108 — Convert Sorted Array to BST",
+    topics: ["Tree", "BST", "Recursion"],
+    difficulty: "E",
+    blurb: "Recursive tree construction (Variant 8.1). Middle-as-root divide over index ranges builds a height-balanced BST — the recurse-and-combine reflex. Iterative frame-stack Swift + dry run.",
+  },
+  {
+    cat: "walkthrough",
+    path: "walkthroughs/LC236_master.html",
+    nav: "LC 236",
+    title: "LC 236 — LCA of a Binary Tree",
+    topics: ["Tree", "LCA", "Hash Map"],
+    difficulty: "M",
+    blurb: "Post-order LCA (Variant 8.2). Build a parent map, collect p's ancestors, walk q up to the first shared one — LCA as path intersection. Iterative Swift + recursive contrast + dry run.",
   },
   {
     cat: "tips",
