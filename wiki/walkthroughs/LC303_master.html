@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LC 303 — Range Sum Query - Immutable · Walkthrough Masterfile</title>
+<link rel="stylesheet" href="../_shared/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="walkthrough">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── TOC ── -->
+<nav class="toc-col">
+  <div class="toc-inner">
+    <div class="toc-title toc-cat-walkthrough">Walkthrough · Contents</div>
+    <a href="#lead"         class="toc-link"><span class="toc-num">1</span> The Problem</a>
+    <a href="#reading"      class="toc-link"><span class="toc-num">2</span> Reading the Problem</a>
+    <a href="#edge-cases"   class="toc-link"><span class="toc-num">3</span> Edge Case Inventory</a>
+    <a href="#hints"        class="toc-link"><span class="toc-num">4</span> Try It Yourself First</a>
+    <a href="#simulation"   class="toc-link"><span class="toc-num">5</span> Interview Simulation</a>
+    <div class="toc-sub">
+      <a href="#sim-questions" class="toc-link">5.1 Clarifying questions</a>
+      <a href="#sim-plan"      class="toc-link">5.2 The plan, spoken</a>
+    </div>
+    <a href="#approach"     class="toc-link"><span class="toc-num">6</span> Why This Approach</a>
+    <a href="#structures"   class="toc-link"><span class="toc-num">7</span> Data Structures</a>
+    <a href="#dryrun"       class="toc-link"><span class="toc-num">8</span> Pseudocode Dry Run</a>
+    <a href="#swift"        class="toc-link"><span class="toc-num">9</span> Swift Solution</a>
+    <a href="#code-dry-run" class="toc-link"><span class="toc-num">10</span> Code Dry Run</a>
+    <a href="#qmap"         class="toc-link"><span class="toc-num">11</span> Question → Code Map</a>
+    <a href="#complexity"   class="toc-link"><span class="toc-num">12</span> Complexity</a>
+    <a href="#followups"    class="toc-link"><span class="toc-num">13</span> Follow-Up Bank</a>
+    <a href="#decoder"      class="toc-link"><span class="toc-num">14</span> Theory Decoder</a>
+    <a href="#parent"       class="toc-link"><span class="toc-num">15</span> Parent Theory</a>
+  </div>
+</nav>
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">LC 303 — Range Sum Query - Immutable</h1>
+  <div class="page-meta">
+    <span>Walkthrough Masterfile</span><span>·</span>
+    <span>Language: Swift</span><span>·</span>
+    <span>Easy · Prefix sum · Build once, query in O(1)</span>
+  </div>
+
+  <!-- 1. Restatement -->
+  <section id="lead">
+    <div class="infobox">
+      <div class="infobox-title">Problem at a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Difficulty</div><div class="infobox-v"><span class="tag tag-E">Easy</span></div></div>
+      <div class="infobox-row"><div class="infobox-k">Pattern</div><div class="infobox-v">Prefix sum — Variant 8.1</div></div>
+      <div class="infobox-row"><div class="infobox-k">Tools</div><div class="infobox-v">One prefix array of length n+1; sentinel at index 0</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key insight</div><div class="infobox-v">Pay O(n) once in the initializer; each sumRange call costs O(1) — one subtraction</div></div>
+      <div class="infobox-row"><div class="infobox-k">Time / Space</div><div class="infobox-v">O(n) init · O(1) query / O(n) space</div></div>
+      <div class="infobox-row"><div class="infobox-k">Theory</div><div class="infobox-v mono"><a href="../theory/arrays/prefix_suffix_master.html">prefix_suffix_master.html</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p>Given an integer array <code>nums</code> that does <strong>not change</strong> after initialization, design a data structure that answers repeated <strong>"sum of all elements from index <em>left</em> to index <em>right</em> (inclusive)"</strong> queries in constant time.</p>
+
+      <table class="t-example">
+        <thead><tr><th>Input</th><th>Output</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><code>nums = [-2,0,3,-5,2,-1]</code><br><code>sumRange(0, 2)</code></td><td><code>1</code></td><td>−2 + 0 + 3 = 1</td></tr>
+          <tr><td><code>sumRange(2, 5)</code> (same array)</td><td><code>-1</code></td><td>3 + (−5) + 2 + (−1) = −1</td></tr>
+          <tr><td><code>sumRange(0, 5)</code> (same array)</td><td><code>-3</code></td><td>Sum of the entire array = −3</td></tr>
+        </tbody>
+      </table>
+
+      <p>The twist that makes it a precomputation problem: the query is called <em>multiple times</em> on the <em>same static array</em>. Recomputing the sum from scratch on every call costs O(n) per query — acceptable for a single query, catastrophic for k queries on a large array. The key observation is that any range sum can be expressed as a difference of two prefix sums, and those prefix sums can be built once in O(n) and reused forever.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Reading the problem -->
+  <section id="reading">
+    <h2>2 &nbsp; Reading the Problem — insights from the statement</h2>
+
+    <div class="co-insight"><strong>"Immutable" array:</strong> the array never changes after initialization. This is the single most important word in the problem title — it is what makes precomputation legal. If the array could change between queries, every update would invalidate every prefix value at or after the changed index, requiring O(n) repair. The constraint guarantees the prefix array we build in the initializer will remain correct forever.</div>
+
+    <div class="co-insight"><strong>"Multiple calls to sumRange":</strong> LeetCode's NumericArray class is initialized once and queried many times. This is the "pay once, reuse forever" pattern. Even if sumRange is called only twice, the O(n) preprocessing already pays for itself — and with k queries, the total work is O(n + k) instead of O(n·k).</div>
+
+    <div class="co-insight"><strong>"left to right, inclusive":</strong> both endpoints are included in the sum. The prefix array of length n+1 with a sentinel at index 0 is what makes the formula <code>prefix[right+1] − prefix[left]</code> work uniformly for all ranges — including those starting at index 0 — with no special case.</div>
+
+    <div class="co-insight"><strong>Negative numbers allowed:</strong> <code>nums[i]</code> can be negative. This makes no difference to the prefix-sum approach — addition and subtraction work identically over negative integers. Sliding window would be disqualified here (no monotonic shrink condition), but prefix sums are unaffected.</div>
+
+    <table class="t-clue">
+      <thead><tr><th>Phrase / constraint</th><th>What it forces</th></tr></thead>
+      <tbody>
+        <tr><td>"immutable" / array never changes</td><td>Precomputing a prefix array is valid — it will never need to be rebuilt</td></tr>
+        <tr><td>"multiple calls to sumRange"</td><td>Pay O(n) once at init; each query must be O(1) — not O(n)</td></tr>
+        <tr><td>"left to right, inclusive"</td><td>Formula is <code>prefix[right+1] − prefix[left]</code> — both endpoints must contribute</td></tr>
+        <tr><td>nums[i] can be negative</td><td>Prefix sum approach works fine; sliding window would not (no valid shrink condition)</td></tr>
+        <tr><td>1 ≤ nums.length ≤ 10⁴</td><td>O(n) init is trivially fast; the question is per-query cost when k is large</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Edge cases -->
+  <section id="edge-cases">
+    <h2>3 &nbsp; Edge Case Inventory</h2>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected</th><th>Handled by</th></tr></thead>
+      <tbody>
+        <tr><td><code>sumRange(0, 0)</code> — single element</td><td><code>nums[0]</code></td><td><code>prefix[1] − prefix[0] = nums[0]</code> — formula holds with no special case</td></tr>
+        <tr><td><code>sumRange(0, n−1)</code> — full array</td><td>sum of all elements</td><td><code>prefix[n] − prefix[0] = prefix[n] − 0</code> — sentinel makes it uniform</td></tr>
+        <tr><td><code>sumRange(i, i)</code> for any interior i</td><td><code>nums[i]</code></td><td><code>prefix[i+1] − prefix[i]</code> = exactly one element</td></tr>
+        <tr><td>Array with all negative values</td><td>Correct negative sum</td><td>Prefix accumulation works identically; subtraction may yield a negative result</td></tr>
+        <tr><td>Array with zeros</td><td>Zero-width contribution from zeros</td><td>Accumulation step adds 0 — prefix values stay flat across zero elements</td></tr>
+        <tr><td>nums = [x] (length 1), sumRange(0,0)</td><td><code>x</code></td><td><code>prefix = [0, x]</code>; query = prefix[1] − prefix[0] = x</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Hints -->
+  <section id="hints">
+    <h2>4 &nbsp; Try It Yourself First</h2>
+    <p>Attempt the problem before reading on. Open hints one at a time.</p>
+    <details class="hint"><summary>Hint 1 — the naïve approach and its problem</summary><p>The obvious solution: in sumRange, loop from left to right and accumulate. This is O(n) per call. With k calls this is O(n·k). What information could you compute once at init time and reuse on every query?</p></details>
+    <details class="hint"><summary>Hint 2 — prefix sums</summary><p>Define <code>prefix[i]</code> = sum of nums[0..i−1]. Then sum(left, right) = prefix[right+1] − prefix[left]. Can you see why? Build prefix during init and answer every query with one subtraction.</p></details>
+    <details class="hint"><summary>Hint 3 — the sentinel and why the array is length n+1</summary><p>Setting <code>prefix[0] = 0</code> (the sentinel) is what makes the formula work when left = 0. Without it, sumRange(0, j) would need a special case. Try tracing sumRange(0, 2) on nums = [1, 2, 3] with and without the sentinel to see why.</p></details>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Interview Simulation -->
+  <section id="simulation">
+    <h2>5 &nbsp; Interview Simulation</h2>
+    <p>The interviewer has stated the problem. The script starts with your first words — practice it out loud.</p>
+
+    <div class="sim-block" id="sim-questions">
+      <div class="sim-header">Step 1 — Clarifying questions</div>
+      <div class="sim-body">
+        <div class="sim-q">Q: "Can the array contain negative numbers?"</div>
+        <div class="sim-a">A: Yes. <strong>→ Prefix sums work fine with negatives — I won't assume non-negative values anywhere in the design.</strong></div>
+
+        <div class="sim-q">Q: "Is the array truly immutable — it will never be updated between queries?"</div>
+        <div class="sim-a">A: Correct, it never changes. <strong>→ This means I can safely precompute a prefix sum array in the constructor and reuse it for every query. If the array could mutate, I'd need a Fenwick tree instead.</strong></div>
+
+        <div class="sim-q">Q: "Can left equal right — a single-element range?"</div>
+        <div class="sim-a">A: Yes. <strong>→ My formula must handle this without special-casing. The sentinel at prefix[0] = 0 is what makes it uniform.</strong></div>
+
+        <div class="sim-q">Q: "How many times will sumRange be called, roughly?"</div>
+        <div class="sim-a">A: Up to 10⁴ times. <strong>→ That confirms the O(1)-per-query target. With 10⁴ calls on a 10⁴-element array, O(n) per query would be 10⁸ operations — O(1) per query is the right bar.</strong></div>
+      </div>
+    </div>
+
+    <div class="sim-block" id="sim-plan">
+      <div class="sim-header">Step 2 — The plan, before any code</div>
+      <div class="sim-body">
+        <div class="speech">
+          <div class="speech-kicker">The plan, spoken</div>
+          <p>"This is a prefix sum problem — specifically Variant 8.1, the range-query variant. The signal is the word 'immutable' combined with 'multiple calls': I need to answer arbitrary [left, right] range sums in O(1), which means I need to precompute something. The natural choice is a prefix sum array."</p>
+          <p>"Let me state the governing condition. A range sum sum(left, right) can always be decomposed as: everything from the start up through right, minus everything from the start up through left−1. That decomposition is exact — no approximation. Formalizing it: if prefix[k] = nums[0] + nums[1] + … + nums[k−1], then sum(left, right) = prefix[right+1] − prefix[left]."</p>
+          <p>"The sentinel is non-optional: I'll allocate the prefix array at length n+1, not n, and set prefix[0] = 0. That sentinel is what makes the formula prefix[right+1] − prefix[left] work uniformly when left = 0 — without it, sumRange(0, j) requires a special case that's a guaranteed bug vector. With it, every range query uses the same formula."</p>
+          <p>"Data structure: one [Int] array of length n+1 stored as an instance variable. The left pass builds it in a single for loop during init: prefix[index+1] = prefix[index] + nums[index]. The sumRange method is then one line: return prefix[right+1] − prefix[left]."</p>
+          <p>"Expected complexity: O(n) time and space for the constructor — one linear pass; O(1) time per sumRange call — two array lookups and one subtraction. I'll trace the canonical example to verify."</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. Approach rationale -->
+  <section id="approach">
+    <h2>6 &nbsp; Why This Approach — and not the others</h2>
+    <table class="t-versus">
+      <thead><tr><th>Candidate</th><th>Cost</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>Brute force: sum from left to right in sumRange</td><td>O(1) init, O(n) per query</td><td>Works for a single query; with k=10⁴ calls on n=10⁴ elements this is 10⁸ operations — too slow</td></tr>
+        <tr><td>Sliding window</td><td>—</td><td>Wrong tool. Sliding window requires a monotonic condition to decide when to shrink. Range sums with negative numbers have no such condition — you cannot infer the sum of [left, right] from the sum of [left−1, right] without recomputing. Negative values break the "if sum is too big, shrink" invariant.</td></tr>
+        <tr><td><strong>Prefix sum array (length n+1, sentinel at 0)</strong></td><td>O(n) init, O(1) per query</td><td><strong>Chosen.</strong> One linear pass at construction. Every query is two array reads and one subtraction. Total cost for k queries: O(n + k). Sentinel eliminates all edge cases.</td></tr>
+        <tr><td>Fenwick tree (Binary Indexed Tree)</td><td>O(n) init, O(log n) update and query</td><td>Overkill for a static array — a Fenwick tree exists to handle point updates in O(log n). With no updates, a plain prefix array dominates on all metrics: simpler, faster queries, same space.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="co-idea">
+      <strong>THE ONE IDEA:</strong> Any range sum [left, right] is the difference of two prefix sums: <code>prefix[right+1] − prefix[left]</code>. The sentinel <code>prefix[0] = 0</code> makes this formula hold for all ranges, including those starting at index 0, without any special case. Build the prefix array once; query forever.
+    </div>
+
+    <div class="co-when"><strong>When to reach for prefix sum Variant 8.1:</strong> the array is static (immutable between queries) and you must answer multiple "sum from i to j" queries. As soon as you hear "multiple queries" on a non-mutating array, the prefix sum is the answer.</div>
+
+    <div class="co-pitfall">
+      <strong>PITFALLS</strong>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Allocating the prefix array at length n instead of n+1.</strong> With length n, there is no room for the sentinel at index 0 — you are forced into one-off index arithmetic on every query. Always allocate n+1 and let prefix[0] = 0 carry the sentinel.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Off-by-one in the query formula: using prefix[right] instead of prefix[right+1].</strong> With the sentinel convention, prefix[k] = sum of nums[0..k−1]. So the sum of nums[left..right] is prefix[right+1] − prefix[left]. Using prefix[right] silently drops nums[right] from every query result — a constant under-count that won't always surface in tests with positive integers.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Re-initializing the prefix array on every sumRange call.</strong> The whole point of the design is to compute prefix once at init and reuse it. If the array is rebuilt inside sumRange, you pay O(n) per query and the design buys nothing over brute force.</span></div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Data structures -->
+  <section id="structures">
+    <h2>7 &nbsp; Data Structures — choice and justification</h2>
+    <table class="t-decoder">
+      <thead><tr><th>Variable</th><th>Holds</th><th>Why this and not something else</th></tr></thead>
+      <tbody>
+        <tr><td><code>prefix: [Int]</code> (length n+1)</td><td><code>prefix[k]</code> = sum of nums[0..k−1]; <code>prefix[0] = 0</code> is the sentinel</td><td>A plain [Int] array gives O(1) random access — the only operation needed in sumRange. A dictionary would work but costs more memory and has pointer indirection. A stack or linked list cannot be random-accessed.</td></tr>
+        <tr><td>Length n+1 (not n)</td><td>The extra slot at index 0 holds the sentinel</td><td>The sentinel is not a convenience — it is what makes the query formula work uniformly for all ranges without branching. Without it, sumRange(0, j) is a special case.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="co-note"><strong>Why [Int] and not [Double]:</strong> the problem guarantees integer inputs and integer sums. Using Int avoids floating-point error and is the exact type the query result must return.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 8. Pseudocode dry run -->
+  <section id="dryrun">
+    <h2>8 &nbsp; Pseudocode Dry Run</h2>
+
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">prefix sum — init and query</span></div>
+    <pre class="pseudo"><span class="pk">CLASS</span> NumericArray:
+    prefix: Array[n+1]
+
+    <span class="pk">INIT</span>(nums):
+        n ← length(nums)
+        prefix ← array of size n+1, all zeros
+        prefix[0] ← 0                             <span class="pc">// sentinel</span>
+        <span class="pk">FOR</span> index <span class="pk">FROM</span> 0 <span class="pk">TO</span> n−1:
+            prefix[index + 1] ← prefix[index] + nums[index]
+
+    <span class="pk">FUNCTION</span> sumRange(left, right) → Int:
+        <span class="pk">RETURN</span> prefix[right + 1] − prefix[left]</pre>
+
+    <p>Trace on <code>nums = [-2, 0, 3, -5, 2, -1]</code>, then query <code>sumRange(0, 2)</code>:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">building the prefix array step by step</span></div>
+    <pre class="dry"><span class="tr-var">Init — building prefix array (length 7 for n=6)</span>
+
+prefix[0] = 0          ← sentinel
+
+index=0:  prefix[1] = prefix[0] + nums[0] = 0 + (−2) = −2
+index=1:  prefix[2] = prefix[1] + nums[1] = −2 + 0   = −2
+index=2:  prefix[3] = prefix[2] + nums[2] = −2 + 3   = 1
+index=3:  prefix[4] = prefix[3] + nums[3] = 1 + (−5) = −4
+index=4:  prefix[5] = prefix[4] + nums[4] = −4 + 2   = −2
+index=5:  prefix[6] = prefix[5] + nums[5] = −2 + (−1) = −3
+
+<span class="tr-var">prefix = [0, −2, −2, 1, −4, −2, −3]</span>
+
+<span class="tr-var">Query: sumRange(0, 2)</span>
+  prefix[right+1] − prefix[left]
+= prefix[3]       − prefix[0]
+= 1               − 0
+<span class="tr-ok">= 1 ✓  (−2 + 0 + 3 = 1)</span>
+
+<span class="tr-var">Query: sumRange(2, 5)</span>
+= prefix[6] − prefix[2]
+= −3        − (−2)
+<span class="tr-ok">= −1 ✓  (3 + (−5) + 2 + (−1) = −1)</span>
+
+<span class="tr-var">Query: sumRange(0, 5)</span>
+= prefix[6] − prefix[0]
+= −3        − 0
+<span class="tr-ok">= −3 ✓  (full array sum)</span></pre>
+
+    <p class="ascii-caption">Observe: every query is exactly two lookups and one subtraction — O(1) regardless of range width. The sentinel at prefix[0] = 0 means the left endpoint never needs special-casing.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 9. Swift solution -->
+  <section id="swift">
+    <h2>9 &nbsp; Swift Solution</h2>
+
+    <div class="solution-block" id="swift-a1">
+      <div class="block-header">
+        <span class="block-badge">A.1</span>
+        <span class="block-name">Prefix sum — build once, query in O(1)</span>
+        <div class="block-pills"><span class="pill pill-t">O(n) init · O(1) query</span><span class="pill pill-s">O(n)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="approach-box">
+          <div class="approach-title">Plan</div>
+          In the initializer, build a prefix array of length n+1 with a sentinel of 0 at index 0. Each cell i+1 holds the running sum through nums[i]. In sumRange, return prefix[right+1] − prefix[left]. No loops at query time.
+        </div>
+
+        <pre class="swift"><span class="kw">class</span> <span class="tp">NumericArray</span> {
+    <span class="kw">private let</span> prefix: [<span class="tp">Int</span>]
+
+    <span class="kw">init</span>(<span class="kw">_</span> nums: [<span class="tp">Int</span>]) {
+        <span class="kw">var</span> buildPrefix = [<span class="tp">Int</span>](repeating: <span class="nm">0</span>, count: nums.count + <span class="nm">1</span>)
+        <span class="cm">// buildPrefix[0] = 0 is the sentinel — sum of zero elements.</span>
+        <span class="kw">for</span> index <span class="kw">in</span> <span class="nm">0</span> ..&lt; nums.count {
+            buildPrefix[index + <span class="nm">1</span>] = buildPrefix[index] + nums[index]
+        }
+        prefix = buildPrefix
+    }
+
+    <span class="kw">func</span> <span class="fn">sumRange</span>(<span class="kw">_</span> left: <span class="tp">Int</span>, <span class="kw">_</span> right: <span class="tp">Int</span>) -&gt; <span class="tp">Int</span> {
+        <span class="cm">// Both left and right are inclusive 0-based indices.</span>
+        prefix[right + <span class="nm">1</span>] - prefix[left]
+    }
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 10. Code dry run -->
+  <section id="code-dry-run">
+    <h2>10 &nbsp; Code Dry Run — Swift solution, traced</h2>
+    <p>Full debugger-style execution trace on <code>nums = [-2, 0, 3, -5, 2, -1]</code> followed by three queries, matching the canonical LeetCode examples.</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">full execution trace — /code-dry-run format</span></div>
+    <pre class="dry">────────────────────────────────
+/code-dry-run
+Problem: LC 303 — Range Sum Query - Immutable
+Input:   nums = [-2, 0, 3, -5, 2, -1]
+────────────────────────────────
+
+NumericArray.init([-2, 0, 3, -5, 2, -1])
+  buildPrefix = [0, 0, 0, 0, 0, 0, 0]   ↑ length 7 = n+1
+
+────────────────────────────────
+LOOP — building prefix array
+────────────────────────────────
+
+  index=0:
+    buildPrefix[1] = buildPrefix[0](0) + nums[0](−2) = −2
+    buildPrefix = [0, −2, 0, 0, 0, 0, 0]
+
+  index=1:
+    buildPrefix[2] = buildPrefix[1](−2) + nums[1](0) = −2
+    buildPrefix = [0, −2, −2, 0, 0, 0, 0]
+
+  index=2:
+    buildPrefix[3] = buildPrefix[2](−2) + nums[2](3) = 1
+    buildPrefix = [0, −2, −2, 1, 0, 0, 0]
+
+  index=3:
+    buildPrefix[4] = buildPrefix[3](1) + nums[3](−5) = −4
+    buildPrefix = [0, −2, −2, 1, −4, 0, 0]
+
+  index=4:
+    buildPrefix[5] = buildPrefix[4](−4) + nums[4](2) = −2
+    buildPrefix = [0, −2, −2, 1, −4, −2, 0]
+
+  index=5:
+    buildPrefix[6] = buildPrefix[5](−2) + nums[5](−1) = −3
+    buildPrefix = [0, −2, −2, 1, −4, −2, −3]
+
+  prefix = [0, −2, −2, 1, −4, −2, −3]   ↑ stored as let constant
+
+────────────────────────────────
+QUERY 1 — sumRange(0, 2)
+────────────────────────────────
+
+  prefix[right+1] − prefix[left]
+= prefix[3]       − prefix[0]
+= 1               − 0
+= 1
+
+────────────────────────────────
+RESULT 1
+────────────────────────────────
+  return 1  ✓
+
+────────────────────────────────
+QUERY 2 — sumRange(2, 5)
+────────────────────────────────
+
+  prefix[right+1] − prefix[left]
+= prefix[6]       − prefix[2]
+= −3              − (−2)
+= −1
+
+────────────────────────────────
+RESULT 2
+────────────────────────────────
+  return −1  ✓
+
+────────────────────────────────
+QUERY 3 — sumRange(0, 5)
+────────────────────────────────
+
+  prefix[right+1] − prefix[left]
+= prefix[6]       − prefix[0]
+= −3              − 0
+= −3
+
+────────────────────────────────
+RESULT 3
+────────────────────────────────
+  return −3  ✓</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 11. Question → Code Map -->
+  <section id="qmap">
+    <h2>11 &nbsp; Question → Code Map</h2>
+    <table class="t-qmap">
+      <thead><tr><th>Question / decision</th><th>Code it became</th></tr></thead>
+      <tbody>
+        <tr><td>"Where does the computation happen — init or query?"</td><td>Constructor: <code>for index in 0 ..&lt; nums.count { buildPrefix[index+1] = ... }</code></td></tr>
+        <tr><td>"Why length n+1 and not n?"</td><td><code>[Int](repeating: 0, count: nums.count + 1)</code> — the +1 is the sentinel slot</td></tr>
+        <tr><td>"What is the sentinel and why?"</td><td><code>buildPrefix[0]</code> stays 0 (the initial <code>repeating: 0</code>) — makes the formula work for left=0</td></tr>
+        <tr><td>"What is the query formula?"</td><td><code>prefix[right + 1] - prefix[left]</code> — two reads, one subtraction</td></tr>
+        <tr><td>"Does left=0 need a special case?"</td><td>No — <code>prefix[0] = 0</code> so <code>prefix[right+1] − 0 = prefix[right+1]</code> works uniformly</td></tr>
+        <tr><td>"Why store prefix as a let constant?"</td><td>The array never changes after init — marking it <code>let</code> communicates immutability and prevents accidental mutation</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 12. Complexity -->
+  <section id="complexity">
+    <h2>12 &nbsp; Complexity</h2>
+    <table class="t-cmx">
+      <thead><tr><th>Phase</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Brute force sumRange (no precomputation)</td><td>O(n) per query</td><td>O(1)</td><td>Must sum all elements in the range on every call; k calls cost O(n·k)</td></tr>
+        <tr><td><strong>init(_:) — this solution</strong></td><td><strong>O(n)</strong></td><td><strong>O(n)</strong></td><td>One linear pass through nums; stores n+1 prefix values</td></tr>
+        <tr><td><strong>sumRange(_:_:) — this solution</strong></td><td><strong>O(1)</strong></td><td><strong>O(1)</strong></td><td>Two array subscripts and one subtraction — no loop</td></tr>
+      </tbody>
+    </table>
+    <div class="co-note"><strong>Bottleneck:</strong> you must read every element of nums at least once to know any prefix sum — O(n) for init is optimal. The query at O(1) is also optimal (you must at minimum read two cells and compute a result). Total cost for k queries: O(n + k) vs O(n·k) for brute force.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13. Follow-up bank -->
+  <section id="followups">
+    <h2>13 &nbsp; Follow-Up Bank</h2>
+
+    <div class="followup-entry">
+      <div class="followup-q">Follow-up: "Before you push this to production — can you see any improvements you'd make?"</div>
+      <p>The solution is already optimal for a static array: O(n) init, O(1) query, O(n) space — no algorithmic improvement exists. One constant-factor note: I store the prefix array as <code>let</code>, which signals immutability clearly and prevents accidental mutation. If memory were extremely constrained (unlikely at n ≤ 10⁴), a space-O(1) approach would require accepting O(n) per query — an unavoidable tradeoff once you give up precomputation.</p>
+    </div>
+
+    <div class="followup-entry">
+      <div class="followup-q">Follow-up: "What if the array can be updated between queries?"</div>
+      <p>Then precomputing a static prefix array is invalid — any update at index <em>i</em> would invalidate every prefix cell from i+1 onward, requiring an O(n) rebuild. The right data structure becomes a <strong>Fenwick tree</strong> (Binary Indexed Tree), which supports both point updates and prefix-sum queries in O(log n) per operation. LC 307 — Range Sum Query - Mutable — is exactly this problem with updates enabled.</p>
+    </div>
+
+    <div class="followup-entry">
+      <div class="followup-q">Follow-up: "Can you generalize this to a 2D matrix — sum of a rectangular subregion?"</div>
+      <p>Yes — this is LC 304 (Range Sum Query 2D - Immutable). Build a 2D prefix sum <code>prefix[row][col]</code> = sum of the rectangle from (0,0) to (row−1, col−1). The query formula extends to inclusion-exclusion: <code>prefix[row2+1][col2+1] − prefix[row1][col2+1] − prefix[row2+1][col1] + prefix[row1][col1]</code>. The sentinel is now a zero-filled first row and first column instead of a single zero cell.</p>
+    </div>
+
+    <div class="followup-entry">
+      <div class="followup-q">Follow-up: "What if you need the product of a range instead of the sum?"</div>
+      <p>Prefix products work for ranges where no zero exists — divide prefix[right+1] by prefix[left]. But integer division loses information if any element in the range is zero, and division is not always exact for integers. For "product except self" (LC 238), the standard approach avoids division entirely using separate prefix and suffix product arrays — the two-pass pattern is cleaner and handles zeros correctly.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 14. Theory decoder -->
+  <section id="decoder">
+    <h2>14 &nbsp; Theory Decoder — concepts used here</h2>
+    <table class="t-decoder">
+      <thead><tr><th>Concept</th><th>How it appears in LC 303</th></tr></thead>
+      <tbody>
+        <tr><td>Prefix sum (Variant 8.1)</td><td><code>prefix[k]</code> = sum of nums[0..k−1]. Built once in the constructor with a left-to-right pass: <code>prefix[index+1] = prefix[index] + nums[index]</code>.</td></tr>
+        <tr><td>Sentinel value</td><td><code>prefix[0] = 0</code> — the identity element of addition. It represents "the sum of zero elements" and is what makes the query formula uniform for all ranges including those starting at index 0.</td></tr>
+        <tr><td>Range query in O(1)</td><td><code>sumRange(left, right) = prefix[right+1] − prefix[left]</code>. The sentinel shifts the indexing so left is always subtracted, never special-cased.</td></tr>
+        <tr><td>Pay-once, reuse-forever</td><td>The O(n) initialization in the constructor is spent once. Every subsequent sumRange call spends O(1). For k queries, total cost is O(n + k) instead of O(n·k).</td></tr>
+        <tr><td>Immutability as prerequisite</td><td>The entire design depends on the array not changing. The prefix array is stored as <code>let</code> to communicate that it is computed once and thereafter read-only. A mutable array between queries would require a Fenwick tree.</td></tr>
+      </tbody>
+    </table>
+    <p>For the general theory of prefix/suffix precomputation — all four variants, the sentinel, the monoid structure, and the cheat sheet — see the parent theory page linked below.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 15. Parent theory -->
+  <section id="parent">
+    <h2>15 &nbsp; Parent Theory</h2>
+    <div class="ref-grid">
+      <a class="backref-card" href="../theory/arrays/prefix_suffix_master.html">
+        <span class="ref-file">theory/arrays/prefix_suffix_master.html</span>
+        <span class="ref-title">Prefix &amp; Suffix Precomputation</span>
+        <span class="ref-desc">The canonical prefix/suffix reference. §8.1 covers Variant 8.1 (range sum — exactly this problem's pattern), §3 decodes the sentinel and monoid terminology, §5 gives the canonical pseudocode template, and §10 lists the off-by-one pitfalls this problem illustrates. §13 links back to this walkthrough.</span>
+      </a>
+    </div>
+  </section>
+
+  <div class="page-footer">
+    LC 303 — Range Sum Query - Immutable · Walkthrough Masterfile ·
+    Parent theory: <a href="../theory/arrays/prefix_suffix_master.html">prefix_suffix_master.html</a> ·
+    Structure per <code>wiki/_standards/WALKTHROUGH_MASTERFILE_STANDARD.md</code>
+  </div>
+
+</main>
+</div>
+
+<script src="../_shared/pages.js"></script>
+<script src="../_shared/nav.js"></script>
+</body>
+</html>

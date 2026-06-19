@@ -60,7 +60,7 @@
       <div class="infobox-row"><div class="infobox-k">Space</div><div class="infobox-v">O(n) — two arrays of length n + 1 (or n)</div></div>
       <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"range query", "product except self", "water trapped", "coverage check"</div></div>
       <div class="infobox-row"><div class="infobox-k">Payload type</div><div class="infobox-v">Any monoid — sum, product, max, boolean OR, set union</div></div>
-      <div class="infobox-row"><div class="infobox-k">Walkthroughs</div><div class="infobox-v mono">LC303 (coming) · LC238 (coming) · <a href="../../walkthroughs/LC42_master.html">LC42_master.html</a> · CUSTOM1 (coming)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Walkthroughs</div><div class="infobox-v mono"><a href="../../walkthroughs/LC303_master.html">LC303_master.html</a> · <a href="../../walkthroughs/LC560_master.html">LC560_master.html</a> · <a href="../../walkthroughs/LC238_master.html">LC238_master.html</a> · <a href="../../walkthroughs/LC42_master.html">LC42_master.html</a> · CUSTOM1 (coming)</div></div>
     </div>
 
     <div class="lead">
@@ -413,6 +413,21 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
     <h2>13 &nbsp; Demonstrated in Practice</h2>
     <p>The walkthroughs below apply this theory to concrete problems. Each follows the walkthrough masterfile standard — constraint analysis, mental model, dry run, iterative Swift, interview simulation, and a Theory Decoder that maps each solution line back to the numbered sections above.</p>
     <div class="ref-grid">
+      <a class="xref-card" href="../../walkthroughs/LC303_master.html">
+        <span class="ref-file">walkthroughs/LC303_master.html</span>
+        <span class="ref-title">LC 303 — Range Sum Query - Immutable (Easy)</span>
+        <span class="ref-desc">Primary walkthrough for Variant 8.1 (range sum). Shows the sentinel at prefix[0]=0, the query formula prefix[right+1]−prefix[left], and the pay-once-reuse-forever design. Theory Decoder maps each line back to §8.1 and §10.</span>
+      </a>
+      <a class="xref-card" href="../../walkthroughs/LC560_master.html">
+        <span class="ref-file">walkthroughs/LC560_master.html</span>
+        <span class="ref-title">LC 560 — Subarray Sum Equals K (Medium)</span>
+        <span class="ref-desc">Extension of Variant 8.1: adds a frequency map to the prefix sum. The algebraic flip — prefix[i] = currentPrefix − k — converts pair-counting into a single O(1) complement lookup per step. Theory Decoder explains the sentinel, lookup-before-update order, and why a Set is wrong here.</span>
+      </a>
+      <a class="xref-card" href="../../walkthroughs/LC238_master.html">
+        <span class="ref-file">walkthroughs/LC238_master.html</span>
+        <span class="ref-title">LC 238 — Product of Array Except Self (Medium)</span>
+        <span class="ref-desc">Primary walkthrough for Variant 8.2 (prefix × suffix product). Demonstrates why division is disqualified, how the multiplicative identity sentinel (1) handles the endpoints, and the O(1) space optimization using a rolling suffix variable. Theory Decoder maps the structural exclusion of position i back to §8.2.</span>
+      </a>
       <a class="xref-card" href="../../walkthroughs/LC42_master.html">
         <span class="ref-file">walkthroughs/LC42_master.html</span>
         <span class="ref-title">LC 42 — Trapping Rain Water (Hard)</span>
@@ -424,7 +439,6 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
         <span class="ref-desc">Demonstrates Variant 8.4 (boolean/set coverage). The Theory Decoder maps the prefix-coverage and suffix-coverage arrays directly to §8.4 and §10 (the ≤ vs == handoff condition pitfall).</span>
       </a>
     </div>
-    <p style="margin-top:16px; font-size:14px; color:var(--text3);">LC 303 (Range Sum Query) and LC 238 (Product of Array Except Self) walkthroughs are coming — they will be added here once complete.</p>
   </section>
 
   <hr class="wiki-hr">
@@ -433,7 +447,7 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
   <section id="solo">
     <h2>14 &nbsp; Solo Problem — no solution on this page</h2>
     <div class="solo-box">
-      <div class="solo-banner">Solo problem — no solution on this page</div>
+      <div class="solo-banner">Solo problem — walkthrough available at <a href="../../walkthroughs/LC560_master.html">LC560_master.html</a></div>
       <p><strong>LC 560 — Subarray Sum Equals K (Medium).</strong> Given an array of integers and an integer <code>k</code>, return the total number of subarrays whose sum equals <code>k</code>. The array may contain negative numbers. This problem combines Variant 8.1 (prefix sum) with a hash map to count prefix-sum occurrences — the natural next step after LC 303. Build the prefix sum mentally first, then ask: "what does <code>prefix[j] − prefix[i] = k</code> tell me about what to store in the map?"</p>
       <ul class="checklist">
         <li>Can you express "subarray sum from i to j" as a difference of two prefix values?</li>
@@ -459,7 +473,10 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
 
   <div class="page-footer">
     Prefix &amp; Suffix Precomputation · Theory Masterfile ·
-    Demonstrated in practice: <a href="../../walkthroughs/LC42_master.html">LC 42 — Trapping Rain Water</a> ·
+    Demonstrated in practice: <a href="../../walkthroughs/LC303_master.html">LC 303 — Range Sum Query</a> ·
+    <a href="../../walkthroughs/LC560_master.html">LC 560 — Subarray Sum Equals K</a> ·
+    <a href="../../walkthroughs/LC238_master.html">LC 238 — Product Except Self</a> ·
+    <a href="../../walkthroughs/LC42_master.html">LC 42 — Trapping Rain Water</a> ·
     <a href="../../walkthroughs/CUSTOM1_Relay_Handoff_Coverage_master.html">CUSTOM 1 — Relay Handoff Coverage</a> ·
     Structure per <code>wiki/_standards/THEORY_MASTERFILE_STANDARD.md</code>
   </div>
