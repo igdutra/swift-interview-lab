@@ -325,6 +325,15 @@ const WIKI_PAGES = [
   },
   {
     cat: "walkthrough",
+    path: "walkthroughs/LC638_master.html",
+    nav: "LC 638",
+    title: "LC 638 — Shopping Offers",
+    topics: ["DFS", "Memoization", "Top-down DP"],
+    difficulty: "M",
+    blurb: "DFS over the remaining-needs vector + memoization (top-down DP). The no-overshoot rule kills greedy; min(base price, each fitting offer + recurse on leftover), cached by the needs vector. Full Swift + dry run.",
+  },
+  {
+    cat: "walkthrough",
     path: "walkthroughs/LC1091_master.html",
     nav: "LC 1091",
     title: "LC 1091 — Shortest Path in Binary Matrix",

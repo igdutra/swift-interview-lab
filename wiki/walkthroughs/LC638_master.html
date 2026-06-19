@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LC 638 — Shopping Offers · Walkthrough Masterfile</title>
+<link rel="stylesheet" href="../_shared/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="walkthrough">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── TOC ── -->
+<nav class="toc-col">
+  <div class="toc-inner">
+    <div class="toc-title toc-cat-walkthrough">Walkthrough · Contents</div>
+    <a href="#lead"         class="toc-link"><span class="toc-num">1</span> The Problem</a>
+    <a href="#reading"      class="toc-link"><span class="toc-num">2</span> Reading the Problem</a>
+    <a href="#edge-cases"   class="toc-link"><span class="toc-num">3</span> Edge Case Inventory</a>
+    <a href="#hints"        class="toc-link"><span class="toc-num">4</span> Try It Yourself First</a>
+    <a href="#simulation"   class="toc-link"><span class="toc-num">5</span> Interview Simulation</a>
+    <div class="toc-sub">
+      <a href="#sim-questions" class="toc-link">5.1 Clarifying questions</a>
+      <a href="#sim-plan"      class="toc-link">5.2 The plan, spoken</a>
+    </div>
+    <a href="#approach"     class="toc-link"><span class="toc-num">6</span> Why This Approach</a>
+    <a href="#structures"   class="toc-link"><span class="toc-num">7</span> Data Structures</a>
+    <a href="#dryrun"       class="toc-link"><span class="toc-num">8</span> Pseudocode Dry Run</a>
+    <a href="#swift"        class="toc-link"><span class="toc-num">9</span> Swift Solution</a>
+    <a href="#code-dry-run" class="toc-link"><span class="toc-num">10</span> Code Dry Run</a>
+    <a href="#qmap"         class="toc-link"><span class="toc-num">11</span> Question → Code Map</a>
+    <a href="#complexity"   class="toc-link"><span class="toc-num">12</span> Complexity</a>
+    <a href="#followups"    class="toc-link"><span class="toc-num">13</span> Follow-Up Bank</a>
+    <a href="#decoder"      class="toc-link"><span class="toc-num">14</span> Theory Decoder</a>
+    <a href="#parent"       class="toc-link"><span class="toc-num">15</span> Parent Theory</a>
+  </div>
+</nav>
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">LC 638 — Shopping Offers</h1>
+  <div class="page-meta">
+    <span>Walkthrough Masterfile</span><span>·</span>
+    <span>Language: Swift</span><span>·</span>
+    <span>Medium · DFS over states + memoization</span>
+  </div>
+
+  <!-- 1. Restatement -->
+  <section id="lead">
+    <div class="infobox">
+      <div class="infobox-title">Problem at a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Difficulty</div><div class="infobox-v"><span class="tag tag-M">Medium</span></div></div>
+      <div class="infobox-row"><div class="infobox-k">Pattern</div><div class="infobox-v">DFS over the remaining-needs state + memoization (top-down DP)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Tools</div><div class="infobox-v">Recursion on the needs vector · memo dictionary keyed by needs · base-price fallback</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key insight</div><div class="infobox-v">The state is the remaining needs vector; at each state try every still-affordable offer, else buy the rest at base price</div></div>
+      <div class="infobox-row"><div class="infobox-k">Time / Space</div><div class="infobox-v">O(offers · states) memoized / O(states)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Theory</div><div class="infobox-v mono"><a href="../theory/graphs/index.html">graphs/index.html</a> (DFS deep dive — coming)</div></div>
+    </div>
+
+    <div class="lead">
+      <p>You're shopping for a fixed basket. <code>price[i]</code> is the unit price of item <code>i</code>; <code>needs[i]</code> is exactly how many of item <code>i</code> you must end up with. There's also a list of <strong>special offers</strong>: each <code>special[j]</code> is a vector <code>[c₀, c₁, …, c_{n−1}, cost]</code> meaning "pay <code>cost</code> to receive <code>c₀</code> of item 0, <code>c₁</code> of item 1, …". Return the <strong>lowest price</strong> to buy <em>exactly</em> <code>needs</code> — no more of any item. You may use any offer any number of times, but never in a way that overshoots a need.</p>
+
+      <table class="t-example">
+        <thead><tr><th>Input</th><th>Output</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>price=[2,5], special=[[3,0,5],[1,2,10]], needs=[3,2]</td><td><code>14</code></td><td>Apply offer1 ([1,2]→10) leaving needs [2,0], then buy 2×A at base 2×2=4 → 14. Beats offer0 ([3,0]→5)+2×B base 10 = 15, and beats all-base 16.</td></tr>
+          <tr><td>price=[2,3,4], special=[[1,1,0,4],[2,2,1,9]], needs=[1,2,1]</td><td><code>11</code></td><td>Buy 1 A + 1 B with offer 0 (cost 4), then 1 B + 1 C at base 3+4=7 → 11. The greedy "use the biggest offer" would overshoot.</td></tr>
+          <tr><td>price=[2,5], special=[[3,0,5]], needs=[0,0]</td><td><code>0</code></td><td>Nothing needed → cost 0 (the base case).</td></tr>
+        </tbody>
+      </table>
+
+      <p>The twist is the <strong>"exactly, no overshoot"</strong> rule. It rules out a greedy "always take the cheapest-per-item offer" — an offer that's cheap per unit can still be wrong because it forces you past a need. The clean framing: the <em>remaining needs vector</em> is a state, and from any state you either apply one still-affordable offer (recursing on the smaller leftover) or stop using offers and buy everything left at base price. That's a DFS over states, and because many offer-orderings reach the same leftover vector, you memoize on the vector.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Reading the problem -->
+  <section id="reading">
+    <h2>2 &nbsp; Reading the Problem — insights from the constraints</h2>
+
+    <div class="co-insight"><strong>"Buy exactly <code>needs</code>, no overshoot":</strong> this is the constraint that kills greedy. An offer is only legal from a state if <em>every</em> item it grants is ≤ the corresponding remaining need. So at each step you can only apply a subset of offers, and that subset shrinks as needs deplete. This "applicable only if it fits" rule is what makes it a search, not a formula.</div>
+
+    <div class="co-insight"><strong>"Any offer any number of times":</strong> there's no per-offer limit, so you don't track how many times you've used an offer — only the resulting needs vector matters. That's the key to memoization: two different sequences of offers that leave the same remaining needs cost the same from here on, so the answer depends <em>only</em> on the current needs vector.</div>
+
+    <div class="co-insight"><strong>"Return the lowest price":</strong> a minimization over choices = DFS that returns the min over (each applicable offer → recurse) versus (buy the rest at base price). The base-price option is always available and is the floor that guarantees the recursion terminates with a real number.</div>
+
+    <div class="co-insight"><strong>Small constraints (n ≤ 6 items, needs[i] ≤ 10, ≤ 100 offers):</strong> the state space is at most 11⁶ ≈ 1.7M vectors, but in practice far fewer are reachable. Small enough that DFS + memo over the needs vector is comfortably fast — no need for clever bitmask packing, a dictionary keyed by the vector suffices.</div>
+
+    <div class="co-insight"><strong>Offers can be "bad":</strong> an offer may cost more than buying its items individually. You don't pre-filter — the recursion's min naturally ignores a bad offer because the base-price branch (or a better offer) wins. Trying every applicable offer and taking the min is what makes correctness automatic.</div>
+
+    <table class="t-clue">
+      <thead><tr><th>Phrase / constraint</th><th>What it forces</th></tr></thead>
+      <tbody>
+        <tr><td>"buy exactly needs, no overshoot"</td><td>An offer is applicable only if it fits every remaining need → branch on a subset</td></tr>
+        <tr><td>"any offer any number of times"</td><td>State = remaining needs vector only; memoize on it</td></tr>
+        <tr><td>"lowest price"</td><td>DFS returning min over (apply offer) vs (base-price the rest)</td></tr>
+        <tr><td>"n ≤ 6, needs ≤ 10"</td><td>State space small enough for memo keyed by the vector</td></tr>
+        <tr><td>offers may be overpriced</td><td>No pre-filtering — the min over branches discards bad offers</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Edge cases -->
+  <section id="edge-cases">
+    <h2>3 &nbsp; Edge Case Inventory</h2>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected</th><th>Handled by</th></tr></thead>
+      <tbody>
+        <tr><td>All needs already zero <code>[0,0]</code></td><td><code>0</code></td><td>Base case: no items left → cost 0 before trying offers.</td></tr>
+        <tr><td>No special offers at all</td><td>Σ price[i]·needs[i]</td><td>The base-price fallback (no applicable offer to recurse on).</td></tr>
+        <tr><td>Every offer overshoots from the start</td><td>base price of needs</td><td>No offer is applicable; only the base-price branch runs.</td></tr>
+        <tr><td>An offer grants nothing useful (all-zero counts, positive cost)</td><td>ignored</td><td>Applying it doesn't shrink needs → infinite loop risk; guard or it loses to base price (see pitfalls).</td></tr>
+        <tr><td>An offer costs more than buying individually</td><td>ignored</td><td>The min over branches: base-price branch beats the bad offer.</td></tr>
+        <tr><td>Offer exactly matches remaining needs</td><td>recurse into the zero state</td><td>Leftover becomes all-zero → base case returns 0; only the offer cost counts.</td></tr>
+        <tr><td>Same leftover reached via different offer orders</td><td>computed once</td><td>Memo keyed by the needs vector dedupes overlapping subproblems.</td></tr>
+        <tr><td>GOTCHA: applying an offer that overshoots one item</td><td>must be rejected</td><td>Applicability check tests <em>every</em> item ≤ its need before recursing.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="co-insight"><strong>The overshoot check and the base case are the load-bearing lines.</strong> Rejecting any offer that exceeds even one remaining need is what enforces "exactly needs." The all-zero base case is what stops the recursion and what every applicable-offer branch eventually bottoms out into. Get those two right and the min-over-branches handles bad and useless offers for free.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Hints -->
+  <section id="hints">
+    <h2>4 &nbsp; Try It Yourself First</h2>
+    <p>Resist greedy — the "exactly needs" rule breaks it. Open hints one at a time.</p>
+    <details class="hint"><summary>Hint 1 — why greedy fails</summary><p>"Pick the cheapest offer per item" can overshoot a need, and you're forbidden to overshoot. A cheap offer might force you past a need you can't undo. So you must consider keeping <em>and</em> skipping each offer — that's a search over choices, not a formula.</p></details>
+    <details class="hint"><summary>Hint 2 — the state</summary><p>What changes as you shop is the <em>remaining needs vector</em>. From any remaining-needs state, your options are: (a) for each offer that fits (every count ≤ the matching remaining need), apply it and recurse on the smaller leftover, paying its cost; or (b) stop using offers and buy everything left at base price. Return the minimum.</p></details>
+    <details class="hint"><summary>Hint 3 — memoize</summary><p>Many different offer orders reach the same remaining-needs vector, and the cost from there on depends only on that vector. Cache results keyed by the vector (e.g. a <code>[Int]</code> as a dictionary key) so each distinct state is solved once. That turns exponential DFS into polynomial-ish top-down DP.</p></details>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Interview simulation -->
+  <section id="simulation">
+    <h2>5 &nbsp; Interview Simulation</h2>
+    <p>The interviewer has stated the problem. The script starts with your first words — practice it out loud.</p>
+
+    <div class="sim-block" id="sim-questions">
+      <div class="sim-header">Step 1 — Clarifying questions</div>
+      <div class="sim-body">
+        <div class="sim-q">Q: "Can I overshoot a need — buy extra of an item — if it ends up cheaper?"</div>
+        <div class="sim-a">A: No, you must end with exactly <code>needs</code>. <strong>→ An offer is only applicable if every count it grants is ≤ the remaining need; that kills greedy and forces a search.</strong></div>
+
+        <div class="sim-q">Q: "Is there a limit on how many times I can use a given offer?"</div>
+        <div class="sim-a">A: No limit. <strong>→ I don't track offer usage counts; the state is just the remaining needs vector, which makes it memoizable.</strong></div>
+
+        <div class="sim-q">Q: "Can an offer be a bad deal — more expensive than buying its items at base price?"</div>
+        <div class="sim-a">A: Yes. <strong>→ I won't pre-filter; the min over (apply offer) vs (buy at base) discards bad offers automatically.</strong></div>
+
+        <div class="sim-q">Q: "How big do needs and the offer list get?"</div>
+        <div class="sim-a">A: Up to 6 items, each need ≤ 10, ≤ 100 offers. <strong>→ The reachable state space is small; a memo dictionary keyed by the needs vector is plenty fast.</strong></div>
+      </div>
+    </div>
+
+    <div class="sim-block" id="sim-plan">
+      <div class="sim-header">Step 2 — The plan, before any code</div>
+      <div class="sim-body">
+        <div class="speech">
+          <div class="speech-kicker">The plan, spoken</div>
+          <p>"This is a DFS over states with memoization — top-down DP. The signal is 'minimize cost' under a choice at each step (which offer, if any), where greedy fails because of the no-overshoot rule. So I search."</p>
+          <p>"Let me pin the conditions before the structures. The state is the <em>remaining needs vector</em> — that's all that matters, because offers are unlimited and the future cost depends only on what's left to buy. The validity condition for applying an offer: every item count in the offer must be ≤ the matching remaining need — otherwise it overshoots and is rejected. The recurrence at a state: <code>min</code> over two kinds of branch — for each applicable offer, its <code>cost</code> plus the solved cost of the leftover needs; and the always-available fallback, buy everything remaining at base price. The base case: an all-zero needs vector costs 0. The invariant memoization relies on: two paths reaching the same remaining-needs vector have identical optimal cost from there, so I cache by the vector."</p>
+          <p>"On structures: a recursive function taking the current needs vector; a memo <code>[[Int]: Int]</code> mapping a needs vector to its solved minimum; the base price computed as the dot product of <code>price</code> and the remaining needs."</p>
+          <p>"The walk: at a state, first compute the base-price answer (buy all remaining individually) as the running minimum. Then for each offer that fits, build the leftover vector, recurse, and take <code>cost + sub-answer</code> if it beats the running min. Memoize and return. Time is O(offers · reachable-states); space is the memo plus recursion depth. I'll guard against useless offers that don't shrink any need to avoid non-termination."</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. Approach rationale -->
+  <section id="approach">
+    <h2>6 &nbsp; Why This Approach — and not the others</h2>
+    <table class="t-versus">
+      <thead><tr><th>Candidate</th><th>Cost</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>Greedy — repeatedly take the best per-unit offer</td><td>O(offers)</td><td><strong>Wrong.</strong> The no-overshoot rule means a per-unit-cheap offer can force you past a need; skipping it is sometimes optimal. Greedy can't look ahead, so it returns wrong answers.</td></tr>
+        <tr><td>Pure DFS over offer choices (no memo)</td><td>exponential</td><td>Correct but recomputes the same remaining-needs vector along many offer orders — exponential blow-up. The fix is caching, not a different search.</td></tr>
+        <tr><td>Bottom-up DP over all needs vectors</td><td>O(Πᵢ(needsᵢ+1) · offers)</td><td>Valid — iterate every reachable vector in increasing order. Correct, but the iteration order over a multi-dimensional grid is fiddly to write; top-down only visits reachable states.</td></tr>
+        <tr><td><strong>DFS over the needs vector + memoization</strong></td><td>O(states · offers)</td><td><strong>Chosen.</strong> The state is naturally the remaining needs; memoizing on it dedupes overlapping subproblems and only visits reachable states. Cleanest correct solution.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-when"><strong>The deciding signal:</strong> "minimize cost" + "a constrained choice at each step where greedy can overshoot" + "overlapping subproblems (same leftover via different orders)." That triad is top-down DP: DFS the choices, and memoize on the state that fully determines the remaining cost — here, the needs vector.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Data structures -->
+  <section id="structures">
+    <h2>7 &nbsp; Data Structures — choice and justification</h2>
+    <table class="t-decoder">
+      <thead><tr><th>Structure</th><th>Holds</th><th>Why this and not weaker/stronger</th></tr></thead>
+      <tbody>
+        <tr><td><code>needs: [Int]</code> (the recursion argument)</td><td>The remaining quantity of each item</td><td>The full state — it alone determines the optimal remaining cost. A scalar can't capture a multi-item basket; the vector is the minimal faithful state.</td></tr>
+        <tr><td><code>memo: [[Int]: Int]</code></td><td>Solved minimum cost for each needs vector seen</td><td>Many offer orders reach the same leftover; caching by the vector turns exponential DFS into polynomial. Swift arrays are <code>Hashable</code> (elements are), so <code>[Int]</code> is a legal key.</td></tr>
+        <tr><td><code>price: [Int]</code></td><td>Base unit prices</td><td>Used to compute the base-price fallback (dot product with remaining needs) — the always-available branch and the recursion's floor.</td></tr>
+        <tr><td><code>special: [[Int]]</code></td><td>Offers — counts then trailing cost</td><td>Iterated at each state; the applicability check reads the first n entries, the cost is the last.</td></tr>
+        <tr><td>leftover vector (per branch)</td><td><code>needs[i] − offer[i]</code> for each item</td><td>The smaller state to recurse on after applying an offer; rebuilt fresh per branch so siblings don't interfere.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-insight"><strong>Why the needs vector is the right memo key.</strong> The cost to finish shopping depends on exactly one thing: what you still need. It does not depend on which offers you used to get here or in what order — offers are unlimited and stateless. That independence is what licenses memoizing on the vector alone, and it's the difference between an exponential search and a fast one.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 8. Pseudocode dry run -->
+  <section id="dryrun">
+    <h2>8 &nbsp; Pseudocode Dry Run</h2>
+
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">DFS over needs, memoized; min(base-price, each applicable offer)</span></div>
+<pre class="pseudo"><span class="pk">FUNCTION</span> solve(needs):
+    <span class="pk">IF</span> needs in memo: <span class="pk">RETURN</span> memo[needs]
+
+    best ← Σ price[i] * needs[i]          <span class="pc">buy everything at base price</span>
+
+    <span class="pk">FOR</span> offer <span class="pk">IN</span> special:
+        leftover ← []
+        <span class="pk">FOR</span> i <span class="pk">IN</span> 0..&lt;n:
+            <span class="pk">IF</span> offer[i] &gt; needs[i]: leftover ← INVALID; <span class="pk">BREAK</span>   <span class="pc">overshoot → skip offer</span>
+            leftover.append(needs[i] - offer[i])
+        <span class="pk">IF</span> leftover is INVALID: <span class="pk">CONTINUE</span>
+        best ← min(best, offer.cost + solve(leftover))
+
+    memo[needs] ← best
+    <span class="pk">RETURN</span> best</pre>
+
+    <p>Trace on price=[2,3,4], special=[[1,1,0,4],[2,2,1,9]], needs=[1,2,1] — expected <code>11</code>:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">DFS exploring offers from [1,2,1]</span></div>
+<pre class="dry"><span class="tr-var">price = [2,3,4]
+offer0 = [1,1,0] cost 4 ; offer1 = [2,2,1] cost 9</span>
+
+solve([1,2,1]):
+   base = 2*1 + 3*2 + 4*1 = 12          → best = 12
+   offer0 [1,1,0] fits [1,2,1]? yes → leftover [0,1,1]
+        4 + solve([0,1,1]) :
+           solve([0,1,1]): base = 0 + 3 + 4 = 7
+               offer0 [1,1,0] fits [0,1,1]? no (1>0) → skip
+               offer1 [2,2,1] fits [0,1,1]? no       → skip
+               → returns 7
+        = 4 + 7 = 11                     → best = min(12,11) = 11
+   offer1 [2,2,1] fits [1,2,1]? no (2>1 for item0) → skip
+   memo[[1,2,1]] = 11 → <span class="tr-ok">RETURN 11</span></pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 9. Swift solution -->
+  <section id="swift">
+    <h2>9 &nbsp; Swift Solution</h2>
+
+    <p>Top-down: a recursive helper over the needs vector with a dictionary memo. The base-price fallback is the running minimum; each applicable offer can only lower it.</p>
+
+    <div class="solution-block">
+      <div class="block-header">
+        <span class="block-badge">A.1</span>
+        <span class="block-name">DFS over needs + memoization</span>
+        <div class="block-pills"><span class="pill pill-t">O(states·offers)</span><span class="pill pill-s">O(states)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="approach-box">
+          <div class="approach-title">Plan</div>
+          Recurse on the remaining needs vector. Start the answer at the base price (buy everything left individually). For each offer that fits every remaining need, form the leftover vector, recurse, and take its <code>cost + sub-answer</code> if smaller. Memoize the result by the needs vector and return.
+        </div>
+
+        <pre class="swift"><span class="kw">func</span> <span class="fn">shoppingOffers</span>(<span class="kw">_</span> price: [<span class="tp">Int</span>], <span class="kw">_</span> special: [[<span class="tp">Int</span>]], <span class="kw">_</span> needs: [<span class="tp">Int</span>]) -&gt; <span class="tp">Int</span> {
+    <span class="kw">let</span> itemCount = price.count
+    <span class="kw">var</span> memo: [[<span class="tp">Int</span>]: <span class="tp">Int</span>] = [:]
+
+    <span class="kw">func</span> <span class="fn">solve</span>(<span class="kw">_</span> needs: [<span class="tp">Int</span>]) -&gt; <span class="tp">Int</span> {
+        <span class="kw">if</span> <span class="kw">let</span> cached = memo[needs] { <span class="kw">return</span> cached }
+
+        <span class="cm">// Always-available branch: buy every remaining item at base price.</span>
+        <span class="kw">var</span> best = <span class="nm">0</span>
+        <span class="kw">for</span> item <span class="kw">in</span> <span class="nm">0</span>..&lt;itemCount { best += price[item] * needs[item] }
+
+        <span class="cm">// Try each offer that fits within the remaining needs (no overshoot).</span>
+        <span class="kw">for</span> offer <span class="kw">in</span> special {
+            <span class="kw">var</span> leftover = [<span class="tp">Int</span>](repeating: <span class="nm">0</span>, count: itemCount)
+            <span class="kw">var</span> fits = <span class="kw">true</span>
+            <span class="kw">for</span> item <span class="kw">in</span> <span class="nm">0</span>..&lt;itemCount {
+                <span class="kw">if</span> offer[item] &gt; needs[item] { fits = <span class="kw">false</span>; <span class="kw">break</span> }   <span class="cm">// overshoot → reject</span>
+                leftover[item] = needs[item] - offer[item]
+            }
+            <span class="kw">if</span> !fits { <span class="kw">continue</span> }
+
+            <span class="kw">let</span> offerCost = offer[itemCount]                          <span class="cm">// trailing entry is the price</span>
+            best = min(best, offerCost + <span class="fn">solve</span>(leftover))
+        }
+
+        memo[needs] = best
+        <span class="kw">return</span> best
+    }
+
+    <span class="kw">return</span> <span class="fn">solve</span>(needs)
+}</pre>
+        <div class="co-note"><strong>Note:</strong> the base-price computation doubles as the base case — when <code>needs</code> is all zeros, the loop adds nothing and <code>best</code> stays 0, so no explicit zero check is needed. An offer that grants nothing useful (all counts 0 but positive cost) makes <code>leftover == needs</code>; it can't lower <code>best</code> (it only adds cost), and because the result is memoized the same state isn't re-expanded — so it neither helps nor loops. If an offer could have a non-positive cost and zero counts you'd guard against the no-progress recursion explicitly, but LC638 offers have positive cost.</div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 10. Code dry run -->
+  <section id="code-dry-run">
+    <h2>10 &nbsp; Code Dry Run — the Swift solution, traced</h2>
+    <p>Full debugger-style trace on price=[2,3,4], special=[[1,1,0,4],[2,2,1,9]], needs=[1,2,1] → expected <code>11</code>.</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">full execution trace — /code-dry-run format</span></div>
+<pre class="dry">────────────────────────────────
+/code-dry-run
+Problem: LC 638 — Shopping Offers
+Input:   price=[2,3,4]  special=[[1,1,0,4],[2,2,1,9]]  needs=[1,2,1]
+────────────────────────────────
+
+shoppingOffers
+  itemCount = 3
+  memo = [:]
+  call solve([1,2,1])
+
+────────────────────────────────
+solve([1,2,1])
+────────────────────────────────
+  memo[[1,2,1]]? miss
+  base price: 2*1 + 3*2 + 4*1 = 12 → best = 12
+
+  OFFER [1,1,0,4]
+    item0: 1 > 1? NO → leftover[0] = 0
+    item1: 1 > 2? NO → leftover[1] = 1
+    item2: 0 > 1? NO → leftover[2] = 1
+    fits = true ; leftover = [0,1,1] ; offerCost = 4
+    → recurse solve([0,1,1])
+
+    ────────────────────────────────
+    solve([0,1,1])
+    ────────────────────────────────
+      memo[[0,1,1]]? miss
+      base price: 2*0 + 3*1 + 4*1 = 7 → best = 7
+      OFFER [1,1,0,4]: item0 1 > 0? YES → fits=false → skip
+      OFFER [2,2,1,9]: item0 2 > 0? YES → fits=false → skip
+      memo[[0,1,1]] = 7
+      return 7
+    ↑ back in solve([1,2,1])
+
+    best = min(12, 4 + 7) = min(12, 11) = 11
+
+  OFFER [2,2,1,9]
+    item0: 2 > 1? YES → fits = false → skip
+
+  memo[[1,2,1]] = 11
+
+────────────────────────────────
+RESULT
+────────────────────────────────
+  return 11</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 11. Q→Code map -->
+  <section id="qmap">
+    <h2>11 &nbsp; Question → Code Map</h2>
+    <table class="t-qmap">
+      <thead><tr><th>What you asked / planned</th><th>What it became</th></tr></thead>
+      <tbody>
+        <tr><td>"State = remaining needs vector"</td><td><code>func solve(_ needs: [Int])</code> — the recursion argument</td></tr>
+        <tr><td>"Always-available base-price branch"</td><td><code>best = Σ price[item] * needs[item]</code></td></tr>
+        <tr><td>"Reject offers that overshoot"</td><td><code>if offer[item] &gt; needs[item] { fits = false; break }</code></td></tr>
+        <tr><td>"Apply offer → recurse on leftover"</td><td><code>min(best, offerCost + solve(leftover))</code></td></tr>
+        <tr><td>"Offer price is the trailing entry"</td><td><code>let offerCost = offer[itemCount]</code></td></tr>
+        <tr><td>"Same leftover via different orders → solve once"</td><td><code>memo[needs]</code> lookup + store</td></tr>
+        <tr><td>"Empty needs costs 0"</td><td>base-price loop adds nothing → <code>best == 0</code> (implicit base case)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 12. Complexity -->
+  <section id="complexity">
+    <h2>12 &nbsp; Complexity</h2>
+    <table class="t-cmx">
+      <thead><tr><th>Phase</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Per state (one <code>solve</code> call body)</td><td class="tc">O(offers·n)</td><td class="sc">O(n)</td><td>Iterate all offers; each does an n-item fit check and builds an n-item leftover.</td></tr>
+        <tr><td>Distinct states (memoized)</td><td class="tc">O(Πᵢ(needsᵢ+1))</td><td class="sc">O(Πᵢ(needsᵢ+1)·n)</td><td>Each reachable needs vector is solved once; the memo stores one entry (an n-vector) per state.</td></tr>
+        <tr class="bottleneck"><td>Total</td><td class="tc">O(states · offers · n)</td><td class="sc">O(states · n)</td><td>Bounded by Πᵢ(needsᵢ+1) ≤ 11⁶ states × 100 offers × 6 — comfortably small in practice since only reachable states are visited. The state count, not the per-state work, is the cap.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-insight"><strong>Why memoization is what makes it tractable.</strong> Without the memo, the same leftover vector is recomputed along every offer order that reaches it — exponential. The cache collapses all those repeats into one solve per distinct needs vector, so the cost becomes "number of reachable states × work per state." This is the defining move of top-down DP: a DFS whose state fully determines the answer, cached on that state.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13. Follow-ups -->
+  <section id="followups">
+    <h2>13 &nbsp; Follow-Up Bank — the interviewer's second act</h2>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Before you push this to production — can you see any improvements you'd make?"</div>
+      <div class="followup-a">Two. First, I'd pre-filter offers that are strictly worse than buying their items at base price (<code>offerCost ≥ Σ price[i]·offer[i]</code>) — they can never help, so dropping them shrinks the branching. Second, the <code>[Int]</code> dictionary key hashes the whole vector each call; since needs are small (≤ 10, ≤ 6 items) I could pack the vector into a single <code>Int</code> (mixed-radix, 4 bits per item) for an O(1) integer key and faster memo lookups.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Why not just buy greedily using the cheapest-per-item offers?"</div>
+      <div class="followup-a">Because you must buy <em>exactly</em> the needs — no overshoot. A per-item-cheap offer can push you past a need, and you can't return the surplus. So sometimes the optimal solution skips a locally-cheap offer. Greedy has no way to see that; only a search over keep-vs-skip (with memo) is guaranteed correct.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "What if you <em>were</em> allowed to overshoot — buy extra if it's cheaper?"</div>
+      <div class="followup-a">Then the fit check changes from "<code>offer[i] ≤ needs[i]</code> for all i" to "applicable as long as at least one need is still positive," and the leftover clamps at zero (<code>max(0, needs[i] - offer[i])</code>). The DFS+memo skeleton is identical — only the applicability rule and the leftover formula change. Memoizing on the clamped vector still works.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Could you write this bottom-up instead of recursive?"</div>
+      <div class="followup-a">Yes — iterate every needs vector from <code>[0,…,0]</code> upward in each dimension, filling a table where <code>dp[v]</code> = min cost for vector <code>v</code>, computed from base price and from <code>offerCost + dp[v − offer]</code> for fitting offers. Same recurrence, explicit order. The top-down version is easier to write and only touches reachable states, which is why I'd lead with it.</div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 14. Theory decoder -->
+  <section id="decoder">
+    <h2>14 &nbsp; Theory Decoder — the theory as used here</h2>
+    <p>This problem is <strong>DFS over an implicit state graph with memoization</strong> — i.e. top-down dynamic programming. The general concepts, instantiated:</p>
+    <table class="t-decoder">
+      <thead><tr><th>General concept</th><th>Plain meaning</th><th>Instantiated in this solution as</th></tr></thead>
+      <tbody>
+        <tr><td>State</td><td>The minimal information that determines the rest of the answer</td><td>The remaining needs vector — offers are unlimited, so nothing else matters.</td></tr>
+        <tr><td>DFS over states</td><td>Recurse into each choice's resulting state, exploring depth-first</td><td>Each applicable offer leads to a leftover vector you recurse into; the base-price branch is the "stop" choice.</td></tr>
+        <tr><td>Recurrence (optimal substructure)</td><td>The answer for a state is built from answers of smaller states</td><td><code>solve(needs) = min(basePrice, minₒ offerCost + solve(needs − offer))</code>.</td></tr>
+        <tr><td>Overlapping subproblems</td><td>The same sub-state is reached many ways</td><td>Different offer orders reach the same leftover vector.</td></tr>
+        <tr><td>Memoization</td><td>Cache each state's answer so it's computed once</td><td><code>memo: [[Int]: Int]</code> keyed by the needs vector.</td></tr>
+        <tr><td>Base case</td><td>The smallest state with a direct answer</td><td>All-zero needs → cost 0 (implicit: the base-price loop sums to 0).</td></tr>
+      </tbody>
+    </table>
+    <div class="co-insight"><strong>DFS vs BFS here.</strong> This is a shortest-<em>cost</em> search where edges (offers) carry different prices and you must explore <em>all</em> the way to the zero state to compare totals — so depth-first recursion with memo fits naturally, not a level-by-level BFS. BFS shines for fewest-<em>steps</em> on equal-cost edges; this is fewest-<em>cost</em> over a DAG of states, which is DP territory.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 15. Back-reference -->
+  <section id="parent">
+    <h2>15 &nbsp; Parent Theory</h2>
+    <p>This problem belongs to the <strong>DFS / top-down DP</strong> family. A dedicated DFS deep dive isn't in the wiki yet; until it lands, the closest reference is the Graphs hub, which carries the general traversal vocabulary (DFS, state graph, visited/memo) this solution draws on.</p>
+    <div class="ref-grid">
+      <a class="backref-card" href="../theory/graphs/index.html">
+        <span class="ref-file">theory/graphs/index.html</span>
+        <span class="ref-title">Graphs — Theory Hub (DFS deep dive coming)</span>
+        <span class="ref-desc">The hub defines the graph vocabulary this DFS-over-states solution rests on: vertex/edge (here a needs vector and an offer), implicit graph (states generated on demand, never stored), and DFS vs BFS (depth-first recursion for fewest-cost over a state DAG, versus BFS for fewest-steps on equal-cost edges). The dedicated DFS / top-down-DP deep dive — recurrence, memoization, state design — is a planned addition; this walkthrough's §14 Theory Decoder carries the self-contained theory in the meantime.</span>
+      </a>
+    </div>
+  </section>
+
+  <div class="page-footer">
+    LC 638 — Shopping Offers · Walkthrough Masterfile · Family: DFS over states + memoization (top-down DP) ·
+    Hub: <a href="../theory/graphs/index.html">Graphs</a> ·
+    Structure per <code>wiki/_standards/WALKTHROUGH_MASTERFILE_STANDARD.md</code>
+  </div>
+
+</main>
+</div>
+
+<script src="../_shared/pages.js"></script>
+<script src="../_shared/nav.js"></script>
+</body>
+</html>
