@@ -23,7 +23,7 @@
 
     <div class="lead">
       <p>A <strong>graph</strong> is a set of <em>vertices</em> (nodes) connected by <em>edges</em> (links). Almost every "shortest path", "reachability", "ordering", or "spread" question is secretly a graph problem — the hard part is usually <em>recognizing the graph</em>, not traversing it. The grid in a maze, the dependency between two courses, the one-bit difference between two board states: each becomes vertices and edges, and then one of a small number of standard traversals answers the question.</p>
-      <p>This hub gives you the vocabulary first — vertex, edge, neighbor, the adjacency representations, and the three traversal families — then sends you to the deep dives. The first deep dive is <strong>Breadth-First Search (BFS)</strong>, the level-by-level traversal that finds the <em>fewest-steps</em> path in an unweighted graph. Topological Sort and Dijkstra follow.</p>
+      <p>This hub gives you the vocabulary first — vertex, edge, neighbor, the adjacency representations, and the traversal families — then sends you to the deep dives. The first two are <strong>Breadth-First Search (BFS)</strong>, the level-by-level traversal that finds the <em>fewest-steps</em> path in an unweighted graph, and <strong>Depth-First Search (DFS)</strong>, the go-deep-then-backtrack traversal behind connected components, backtracking, and top-down DP. Topological Sort and Dijkstra follow.</p>
     </div>
 
     <!-- Terminology — what the user must know cold -->
@@ -62,6 +62,15 @@
           <span class="ref-topics">Queue · Visited Set · Shortest Path</span>
         </span>
         <span class="ref-desc">Level-by-level traversal with a queue: the fewest-edges shortest-path guarantee, grid BFS, multi-source BFS, and BFS over an implicit state space (board/bitmask states one move apart). Directed at LC1091, LC1284, LC994, LC1298, LC773.</span>
+      </a>
+
+      <a class="xref-card" href="dfs_deep_dive_master.html">
+        <span class="ref-file">theory/graphs/dfs_deep_dive_master.html</span>
+        <span class="ref-title">Depth-First Search (DFS) Deep Dive</span>
+        <span class="ref-meta">
+          <span class="ref-topics">Recursion · Backtracking · Memoization</span>
+        </span>
+        <span class="ref-desc">Go-deep-then-backtrack traversal with a stack: connected-component flood fill, recursion-tree backtracking, DFS over an implicit state space with memoization (top-down DP), and three-color cycle detection. Directed at LC638, LC200, LC207.</span>
       </a>
 
     </div>

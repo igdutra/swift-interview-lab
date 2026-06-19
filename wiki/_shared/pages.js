@@ -67,8 +67,8 @@ const WIKI_PAGES = [
     path: "theory/graphs/index.html",
     nav: "Graphs",
     title: "Graphs",
-    topics: ["BFS", "Topological Sort", "Dijkstra"],
-    blurb: "Graphs hub — vertex/edge/adjacency vocabulary, traversal families, and the Breadth-First Search deep dive (grid BFS, multi-source BFS, state-space BFS over encoded configurations).",
+    topics: ["BFS", "DFS", "Topological Sort", "Dijkstra"],
+    blurb: "Graphs hub — vertex/edge/adjacency vocabulary, traversal families, and the BFS deep dive (grid, multi-source, state-space) and DFS deep dive (components, backtracking, state DFS + memoization, cycle detection).",
   },
   // ── Walkthroughs — CUSTOM problems first, then ascending LC number order ─
   {

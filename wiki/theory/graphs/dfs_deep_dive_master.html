@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Depth-First Search · Theory Masterfile</title>
+<link rel="stylesheet" href="../../_shared/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="theory">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── TOC ── -->
+<nav class="toc-col">
+  <div class="toc-inner">
+    <div class="toc-title toc-cat-theory">Theory · Contents</div>
+    <a href="#lead"          class="toc-link"><span class="toc-num">1</span> Definition</a>
+    <a href="#signals"       class="toc-link"><span class="toc-num">2</span> Recognition Signals</a>
+    <a href="#terminology"   class="toc-link"><span class="toc-num">3</span> Terminology Decoder</a>
+    <a href="#mental-model"  class="toc-link"><span class="toc-num">4</span> Mental Model</a>
+    <a href="#pseudocode"    class="toc-link"><span class="toc-num">5</span> Pseudocode Primer</a>
+    <a href="#iterative"     class="toc-link"><span class="toc-num">6</span> Iterative (Explicit Stack)</a>
+    <a href="#swift"         class="toc-link"><span class="toc-num">7</span> Swift Foundations</a>
+    <a href="#variants"      class="toc-link"><span class="toc-num">8</span> The Four Variants</a>
+    <div class="toc-sub">
+      <a href="#v-component" class="toc-link">8.1 Connectivity / components</a>
+      <a href="#v-backtrack" class="toc-link">8.2 Recursion-tree / backtracking</a>
+      <a href="#v-memo"      class="toc-link">8.3 DFS over states + memo</a>
+      <a href="#v-cycle"     class="toc-link">8.4 Cycle detection</a>
+    </div>
+    <a href="#complexity"    class="toc-link"><span class="toc-num">9</span> Complexity Analysis</a>
+    <a href="#pitfalls"      class="toc-link"><span class="toc-num">10</span> Common Pitfalls</a>
+    <a href="#edge-cases"    class="toc-link"><span class="toc-num">11</span> Edge Cases</a>
+    <a href="#cheatsheet"    class="toc-link"><span class="toc-num">12</span> Cheat Sheet</a>
+    <a href="#practice"      class="toc-link"><span class="toc-num">13</span> Demonstrated in Practice</a>
+    <a href="#solo"          class="toc-link"><span class="toc-num">14</span> Solo Problem</a>
+  </div>
+</nav>
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">Depth-First Search</h1>
+  <div class="page-meta">
+    <span>Theory Masterfile · Deep Dive</span><span>·</span>
+    <span>Language: Swift</span><span>·</span>
+    <span>Recurse · Backtrack · Go deep before wide</span>
+  </div>
+
+  <!-- 1. Definition -->
+  <section id="lead">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Explore a graph by going as deep as possible along each branch before backtracking</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v">Recurse into a neighbor, fully explore its subtree, return, then try the next — driven by a stack (the call stack or an explicit one)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Time</div><div class="infobox-v">O(V + E) — every vertex and edge handled once (memoized state DFS: O(states · work)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Space</div><div class="infobox-v">O(V) for the visited set and the recursion/stack depth</div></div>
+      <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"all paths / combinations", "connected component / island", "does a cycle exist", "explore every choice", "minimize over decisions"</div></div>
+      <div class="infobox-row"><div class="infobox-k">The fork</div><div class="infobox-v">Need the <em>fewest steps</em> on equal-cost edges? Use BFS. Need to explore <em>all</em> the way down (paths, choices, costs)? Use DFS</div></div>
+      <div class="infobox-row"><div class="infobox-k">Walkthroughs</div><div class="infobox-v mono"><a href="../../walkthroughs/LC638_master.html">LC638</a> · LC200 (coming) · LC207 (coming)</div></div>
+    </div>
+
+    <div class="lead">
+      <p><strong>Depth-first search</strong> explores a graph by committing to one branch and following it as far as it goes before backing up to try alternatives. It is the mirror image of BFS: where BFS fans out in layers using a queue, DFS plunges down using a <strong>stack</strong> — usually the implicit call stack of recursion. That "go deep, then backtrack" rhythm is exactly what you want when the question is about <em>whole paths</em>, <em>connected regions</em>, <em>every combination of choices</em>, or the <em>cheapest total</em> over a sequence of decisions.</p>
+      <p>DFS is less about shortest paths and more about <em>exhaustive structure</em>: is this region all one piece, does a cycle exist, what's the best outcome over every way of choosing? When the choices form an <em>implicit state graph</em> — each decision leading to a new state — DFS becomes <strong>top-down dynamic programming</strong>: recurse over the choices, and <em>memoize</em> each state so overlapping subproblems are solved once. That is the pattern <a href="../../walkthroughs/LC638_master.html">LC638 — Shopping Offers</a> instantiates. This deep dive lives under the <a href="index.html">Graphs hub</a>, which carries the general graph vocabulary; here we go deep on DFS and its four recurring shapes.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Recognition signals -->
+  <section id="signals">
+    <h2>2 &nbsp; Recognition Signals — what variant is this?</h2>
+    <p>"Explore everything down a branch" is the DFS master signal. What you're exploring — a region, a tree of choices, a state space, or edges for a cycle — picks the variant.</p>
+    <table class="t-clue">
+      <thead><tr><th>When the problem says…</th><th>It means…</th></tr></thead>
+      <tbody>
+        <tr><td>"count islands / connected components / flood fill a region"</td><td>Component DFS — sweep cells/nodes, DFS each unvisited one to mark its whole region. §8.1 (LC200)</td></tr>
+        <tr><td>"generate all permutations / combinations / subsets / valid paths"</td><td>Recursion-tree DFS (backtracking) — choose, recurse, un-choose. §8.2 (LC46, LC78)</td></tr>
+        <tr><td>"minimize / count over a sequence of choices", greedy overshoots</td><td>DFS over states + memoization (top-down DP) — recurse on the state, cache it. §8.3 (LC638)</td></tr>
+        <tr><td>"is there a cycle / can all tasks be ordered / detect a deadlock"</td><td>Cycle-detection DFS — three-color marking or recursion-stack tracking. §8.4 (LC207)</td></tr>
+        <tr><td>"does a path exist / is everything reachable"</td><td>Plain reachability — DFS or BFS both work; you don't need the shortest-path property.</td></tr>
+        <tr><td>"fewest steps / minimum moves" on equal-cost edges</td><td>Not DFS — that's <a href="bfs_deep_dive_master.html">BFS</a>; its layer order gives shortest paths for free.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-when"><strong>The tell:</strong> you need to explore <em>all the way down</em> — every node of a region, every branch of choices, or every state of a decision sequence — not just the nearest layer. The instant you read "all paths / all combinations," "whole region," "cycle," or "best over every choice," reach for recursion. Then ask: am I marking a region (§8.1), enumerating choices (§8.2), optimizing over states (§8.3), or hunting a cycle (§8.4)?</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Terminology decoder -->
+  <section id="terminology">
+    <h2>3 &nbsp; Terminology Decoder</h2>
+    <p>The general graph vocabulary lives in the <a href="index.html">Graphs hub</a>; these are the terms this DFS page leans on most.</p>
+    <table class="t-decoder">
+      <thead><tr><th>Term</th><th>Plain meaning</th><th>Example / note</th></tr></thead>
+      <tbody>
+        <tr><td>Backtrack</td><td>Return from a branch and undo the choice that led into it, to try the next</td><td>The "un-choose" step in permutation/subset generation (§8.2)</td></tr>
+        <tr><td>Recursion tree</td><td>The tree of all recursive calls — each node a call, children the sub-calls it makes</td><td>Its leaves are complete solutions or base cases</td></tr>
+        <tr><td>Call stack</td><td>The implicit stack of in-progress recursive calls; its depth = current DFS depth</td><td>Deep recursion can overflow it — hence the iterative form (§6)</td></tr>
+        <tr><td>Visited / seen set</td><td>Nodes already fully or partially explored, so you don't revisit</td><td>Prevents infinite loops on cyclic graphs and redundant work</td></tr>
+        <tr><td>State</td><td>The minimal info that determines the rest of the answer</td><td>For §8.3, the remaining-needs vector; the memo key</td></tr>
+        <tr><td>Memoization</td><td>Caching each state's solved answer so it's computed once</td><td>Turns exponential DFS into polynomial top-down DP (§8.3)</td></tr>
+        <tr><td>Implicit state graph</td><td>A graph whose vertices (states) and edges (choices) are generated on the fly</td><td>You never build it; each recursive call <em>is</em> visiting a vertex</td></tr>
+        <tr><td>Three-color marking</td><td>White = unseen, Gray = on the current path, Black = fully done</td><td>A Gray neighbor means a back-edge → cycle (§8.4)</td></tr>
+        <tr><td>Pre-order / post-order work</td><td>Work done <em>before</em> recursing (going down) vs <em>after</em> (coming up)</td><td>Topological order is the post-order reversal; combining children is post-order</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Mental model -->
+  <section id="mental-model">
+    <h2>4 &nbsp; Mental Model — plunge, then back up</h2>
+
+    <div class="co-idea">
+      <div class="co-idea-title">The one idea</div>
+      DFS is exploring a maze by always taking a corridor as far as it goes, dropping a breadcrumb at every junction, and only backing up to the last junction when you hit a dead end. The call stack <em>is</em> your trail of junctions; the visited set <em>is</em> your breadcrumbs. Because you finish a whole branch before touching the next, DFS naturally answers "what is the entire structure below here?" — a region's full extent, every leaf of a choice tree, or the best total over all decisions.
+    </div>
+
+    <p>Watch DFS traverse a small graph from <code>A</code>. It dives down the first edge each time, only backing up at a dead end. The number beside each node is the order it's first visited:</p>
+
+    <div class="code-label"><span class="code-lang lang-ascii">Diagram</span><span class="code-desc">DFS visit order from A — deep before wide</span></div>
+<pre class="ascii">      A          edges: A-B, A-E, B-C, B-D
+     / \
+    B   E        DFS(A): visit A(1)
+   / \             → B(2) → C(3) dead end, back up
+  C   D                  → D(4) dead end, back up to A
+                    → E(5) dead end, done
+
+visit order: A B C D E      (one branch fully, then the next)
+call stack peaks at [A,B,C] — depth 3, the longest root-to-leaf path</pre>
+    <p class="ascii-caption">DFS exhausts B's whole subtree (C, D) before ever touching E. Contrast BFS, which would visit A, then B and E together, then C and D — layer by layer.</p>
+
+    <p>The leap that unlocks the hardest variant: <strong>the "graph" can be an implicit space of decisions.</strong> Each recursive call is a state; each choice is an edge to a new state. DFS explores the whole tree of choices — and when many choice-orders reach the <em>same</em> state, you cache it so it's solved once. That's top-down DP:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">DFS over states with memo — the LC638 shape</span></div>
+<pre class="dry"><span class="tr-var">state  = what's left to decide (e.g. remaining needs vector)
+choice = apply one option → a smaller state</span>
+
+solve(state):
+    if state in memo: return memo[state]        ← overlapping subproblem
+    best = baseline(state)                       ← the "stop choosing" option
+    for choice in options(state) that fit:
+        best = min(best, cost(choice) + solve(next(state, choice)))
+    memo[state] = best ; return best
+
+<span class="tr-ok">DFS the choices, memoize the state → exponential search becomes polynomial.</span></pre>
+    <p class="ascii-caption">Plain region/path DFS and DFS-over-states are the <em>same recursion</em>; only "what is a vertex" and "is there a value to optimize and cache" change. The memo is what separates top-down DP from naive backtracking.</p>
+
+    <p>So the family reduces to three questions: what does one recursive call explore (a region, a choice, a state?), what's the work — mark, collect, or minimize — and is the state reached many ways (if so, memoize)?</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Pseudocode primer -->
+  <section id="pseudocode">
+    <h2>5 &nbsp; Pseudocode Primer</h2>
+    <p>Two shapes you must know cold: the plain visited-set DFS (reachability/components) and the memoized state DFS (top-down DP).</p>
+
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">plain DFS — mark visited, recurse on neighbors</span></div>
+<pre class="pseudo"><span class="pk">FUNCTION</span> dfs(node):
+    <span class="pk">IF</span> node in visited: <span class="pk">RETURN</span>
+    visited.insert(node)
+    <span class="pc">// pre-order work here (mark region, record entry)</span>
+    <span class="pk">FOR</span> next <span class="pk">IN</span> neighbors(node):
+        dfs(next)
+    <span class="pc">// post-order work here (combine children, record exit)</span></pre>
+
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">memoized DFS over states — top-down DP</span></div>
+<pre class="pseudo"><span class="pk">FUNCTION</span> solve(state):
+    <span class="pk">IF</span> state in memo: <span class="pk">RETURN</span> memo[state]    <span class="pc">overlapping subproblem</span>
+    <span class="pk">IF</span> isBase(state): <span class="pk">RETURN</span> baseValue       <span class="pc">smallest state, direct answer</span>
+
+    result ← baseline(state)                 <span class="pc">the "do nothing more" option</span>
+    <span class="pk">FOR</span> choice <span class="pk">IN</span> validChoices(state):
+        result ← combine(result, value(choice) + solve(apply(state, choice)))
+
+    memo[state] ← result
+    <span class="pk">RETURN</span> result</pre>
+    <div class="co-insight"><strong>Why the visited set (plain DFS) and the memo (state DFS) are the same idea in different clothes:</strong> both stop you from re-doing a node/state you've already handled. The visited set answers a yes/no ("have I been here?") for traversal; the memo stores a <em>value</em> ("what was the answer here?") for optimization. Drop either and a cyclic or overlapping problem explodes — into an infinite loop, or into exponential recomputation.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. Iterative-only pattern -->
+  <section id="iterative">
+    <h2>6 &nbsp; Iterative DFS — the explicit stack</h2>
+    <p>DFS reads most naturally as recursion, but the call stack has a depth limit; for very deep graphs (a 10⁵-node path, a skewed tree) you convert the recursion to an <strong>explicit stack</strong>:</p>
+    <ul>
+      <li><strong>Plain DFS → push the start, loop: pop a node, if unvisited mark it and push its neighbors.</strong> This is the literal de-recursion — the explicit stack replaces the call stack. Order differs slightly from recursive DFS (neighbors come off in reverse push order) but the set of visited nodes is identical.</li>
+      <li><strong>Memoized state DFS is usually left recursive</strong> — its depth is bounded by the number of decisions (small), and the recursion reads far clearer than a hand-rolled stack of frames. The memo, not the stack form, is what makes it efficient. If depth is a genuine risk, the bottom-up DP table (filling states in dependency order) is the iterative counterpart.</li>
+    </ul>
+    <div class="co-note"><strong>Why this matters here specifically:</strong> the standard prefers iterative solutions because recursion hides the data structure and risks stack overflow. For component/reachability DFS on large grids, prefer the explicit stack. For top-down DP (§8.3), recursion + memo is the idiomatic and readable form, and overflow is rarely the constraint — but know the bottom-up table as its iterative twin.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Swift foundations -->
+  <section id="swift">
+    <h2>7 &nbsp; Swift Foundations</h2>
+    <p>Five Swift facts underlie nearly every DFS in this family. The memo-key and visited-set ones are where state-DFS problems are won.</p>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">the five DFS-handling rules for this block</span></div>
+<pre class="swift"><span class="cm">// 1. Recursive DFS is a nested func capturing shared state (visited / memo).</span>
+<span class="kw">func</span> <span class="fn">explore</span>(<span class="kw">_</span> grid: [[<span class="tp">Int</span>]]) {
+    <span class="kw">var</span> visited: <span class="tp">Set</span>&lt;<span class="tp">Int</span>&gt; = []
+    <span class="kw">func</span> <span class="fn">dfs</span>(<span class="kw">_</span> r: <span class="tp">Int</span>, <span class="kw">_</span> c: <span class="tp">Int</span>) { <span class="cm">/* uses visited */</span> }
+    <span class="fn">dfs</span>(<span class="nm">0</span>, <span class="nm">0</span>)
+}
+
+<span class="cm">// 2. Memo key: any Hashable that fully captures the state.</span>
+<span class="cm">//    Swift arrays ARE Hashable when their elements are — [Int] is a legal key.</span>
+<span class="kw">var</span> memo: [[<span class="tp">Int</span>]: <span class="tp">Int</span>] = [:]            <span class="cm">// state vector → answer</span>
+
+<span class="cm">// 3. The memo guard returns early; missing → compute, store, return.</span>
+<span class="kw">if</span> <span class="kw">let</span> cached = memo[state] { <span class="kw">return</span> cached }
+
+<span class="cm">// 4. Explicit stack when recursion depth is a risk:</span>
+<span class="kw">var</span> stack: [(<span class="tp">Int</span>, <span class="tp">Int</span>)] = [(<span class="nm">0</span>, <span class="nm">0</span>)]
+<span class="kw">while</span> <span class="kw">let</span> (r, c) = stack.popLast() { <span class="cm">/* mark, push neighbors */</span> }
+
+<span class="cm">// 5. Backtracking: mutate, recurse, then UNDO — leave state as you found it.</span>
+path.append(choice); <span class="fn">dfs</span>(rest); path.removeLast()    <span class="cm">// un-choose</span></pre>
+    <div class="co-pitfall" style="margin-top:12px"><strong>The shared-mutable-state trap.</strong> A recursive DFS that mutates a shared array (a path, a board) <em>must</em> undo the mutation on the way out, or sibling branches inherit corruption. For memoized state DFS, build a <em>fresh</em> leftover state per branch (don't mutate the caller's) so siblings don't interfere — the memo assumes each state value is computed in isolation.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 8. The four variants -->
+  <section id="variants">
+    <h2>8 &nbsp; The Four Variants</h2>
+    <p>Ordered by what one recursive call explores. Variant 8.3 is taught in a full walkthrough (LC638); the others are solve-it-yourself problems — frame and pitfalls here, no solution.</p>
+
+    <!-- 8.1 Component DFS -->
+    <div class="pattern-block" id="v-component">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.1</span>
+        <span class="block-name">Connectivity / components (flood fill)</span>
+        <div class="block-pills"><span class="pill pill-t">O(V+E)</span><span class="pill pill-s">O(V)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-note"><strong>Solve-it-yourself variant.</strong> This is an <em>attempt</em> problem — the sweep-and-flood frame is below, but no solution.</div>
+        <div class="co-when"><strong>When to use:</strong> count or label maximal connected regions — islands in a grid, friend circles, provinces. DFS from each unvisited node marks its entire component in one dive.</div>
+        <p><strong>The frame (LC 200 — Number of Islands):</strong> sweep every cell; when you hit an unvisited land cell, increment the island count and DFS-flood the whole connected land region (4-directionally), marking each cell visited so it's never counted again. The number of DFS launches = the number of components.</p>
+        <div class="co-insight"><strong>The frame:</strong> the outer sweep finds <em>one</em> seed per region; the inner DFS consumes the <em>whole</em> region so the sweep never re-counts it. Marking visited (or sinking land to water) is what guarantees each cell is processed once → O(V+E). See pitfalls §10.</div>
+        <p>Canonical problem: LC 200 — Number of Islands (attempt). Graduated hints in the walkthrough.</p>
+      </div>
+    </div>
+
+    <!-- 8.2 Backtracking -->
+    <div class="pattern-block" id="v-backtrack">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.2</span>
+        <span class="block-name">Recursion-tree / backtracking (enumerate choices)</span>
+        <div class="block-pills"><span class="pill pill-t">O(branching^depth)</span><span class="pill pill-s">O(depth)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-note"><strong>Solve-it-yourself variant.</strong> This is an <em>attempt</em> problem — the choose/recurse/un-choose frame is below, but no solution.</div>
+        <div class="co-when"><strong>When to use:</strong> generate or count <em>all</em> valid arrangements — permutations, subsets, combinations, board placements. The recursion tree's leaves are the complete solutions.</div>
+        <p><strong>The frame (LC 46 — Permutations / LC 78 — Subsets):</strong> at each level, pick an unused element (a choice), recurse to build the rest, then <em>un-pick</em> it (backtrack) and try the next. The path from root to leaf is one solution; the un-choose step is what lets sibling branches start clean.</p>
+        <div class="co-insight"><strong>The frame:</strong> no memo here — the goal is to <em>enumerate</em> every leaf, not optimize over overlapping states, so each path is distinct. The discipline is the mutate-recurse-undo trio; forgetting the undo bleeds one branch's choices into the next. See pitfalls §10.</div>
+        <p>Canonical problems: LC 46 — Permutations, LC 78 — Subsets (attempt). Graduated hints in the walkthrough.</p>
+      </div>
+    </div>
+
+    <!-- 8.3 Memoized state DFS -->
+    <div class="pattern-block" id="v-memo">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.3</span>
+        <span class="block-name">DFS over states + memoization (top-down DP)</span>
+        <div class="block-pills"><span class="pill pill-t">O(states·work)</span><span class="pill pill-s">O(states)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> minimize or count over a <em>sequence of decisions</em> where greedy fails and the same sub-situation recurs via different decision orders. Recurse on the state; cache it. Full Swift in the walkthrough (LC638).</div>
+        <p><strong>The frame (LC 638 — Shopping Offers):</strong> the state is the remaining needs vector. From a state, the options are: apply each special offer that <em>fits</em> (no overshoot) and recurse on the smaller leftover, or buy everything left at base price. Return the minimum. Because many offer-orders reach the same leftover, memoize on the needs vector — that's what turns the exponential search polynomial.</p>
+        <div class="co-insight"><strong>The design decision:</strong> the only new skill versus plain DFS is recognizing the <em>state</em> — the minimal info that determines the remaining answer (here: what's left to buy, since offers are unlimited and order-independent) — and memoizing on it. The recursion explores choices; the memo collapses repeats. This is the bridge from backtracking (§8.2) to dynamic programming.</div>
+        <p>Canonical problem: LC 638 — Shopping Offers (walkthrough). <em>Full walkthrough.</em></p>
+      </div>
+    </div>
+
+    <!-- 8.4 Cycle detection -->
+    <div class="pattern-block" id="v-cycle">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.4</span>
+        <span class="block-name">Cycle detection / coloring (directed graphs)</span>
+        <div class="block-pills"><span class="pill pill-t">O(V+E)</span><span class="pill pill-s">O(V)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-note"><strong>Solve-it-yourself variant.</strong> This is a <em>target</em> problem — the three-color model is below, but no code. (Topological sort gets its own deep dive; this is the DFS-flavored detector.)</div>
+        <div class="co-when"><strong>When to use:</strong> decide whether a directed graph has a cycle — "can all courses be finished," "is there a dependency deadlock." A cycle means an ordering is impossible.</div>
+        <p><strong>The model (LC 207 — Course Schedule):</strong> DFS each node with three-color marking — White (unseen), Gray (on the current recursion path), Black (fully explored). If DFS reaches a <em>Gray</em> neighbor, that's a back-edge → a cycle exists. If every node finishes Black with no Gray hit, the graph is acyclic and the tasks can be ordered.</p>
+        <div class="co-insight"><strong>The frame:</strong> the Gray state — "this node is an ancestor on my current path" — is the whole trick; a plain visited/Black set alone can't tell a cross-edge from a back-edge. Equivalently, track the recursion stack as a set. Topological order falls out of post-order finishing times. See pitfalls §10 and the (coming) Topological Sort deep dive.</div>
+        <p>Canonical problem: LC 207 — Course Schedule (target). Graduated hints in the walkthrough.</p>
+      </div>
+    </div>
+
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 9. Complexity -->
+  <section id="complexity">
+    <h2>9 &nbsp; Complexity Analysis</h2>
+    <p><strong>Plain DFS is O(V + E): the visited set guarantees each vertex is entered once and each edge examined once.</strong> The state variants shift the cost into "how many states exist" and "is there a memo."</p>
+    <table class="t-cmx">
+      <thead><tr><th>Variant</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Component DFS (8.1)</td><td class="tc">O(V+E)</td><td class="sc">O(V)</td><td>Each cell/node visited once across all DFS launches; visited set + recursion depth are O(V).</td></tr>
+        <tr><td>Backtracking (8.2)</td><td class="tc">O(b^d)</td><td class="sc">O(d)</td><td>The recursion tree has one leaf per solution — inherently exponential (there <em>are</em> exponentially many permutations/subsets); space is the path depth d.</td></tr>
+        <tr><td>Memoized state DFS (8.3)</td><td class="tc">O(states·work)</td><td class="sc">O(states)</td><td>Each distinct state solved once (memo); work = choices tried per state. The memo is what removes the exponent.</td></tr>
+        <tr><td>Cycle detection (8.4)</td><td class="tc">O(V+E)</td><td class="sc">O(V)</td><td>One DFS pass; three-color array + recursion stack are O(V).</td></tr>
+        <tr class="bottleneck"><td>Bottleneck</td><td class="tc">state/leaf count</td><td class="sc">—</td><td>DFS itself is linear in the graph it walks; the cost is how big that graph is. Backtracking is exponential because the answer set is; memoization tames the state variant by reusing repeats. <em>Without</em> the memo, §8.3 would also be exponential.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-insight"><strong>Why memoization is the headline.</strong> Naive DFS over a decision space recomputes every state once per path that reaches it — exponential. Caching each state's answer collapses those repeats into one solve per distinct state, so time becomes "reachable states × work per state." That single change is what separates top-down DP (§8.3) from the exponential backtracking of §8.2 — same recursion, one dictionary added.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 10. Pitfalls -->
+  <section id="pitfalls">
+    <h2>10 &nbsp; Common Pitfalls</h2>
+    <div class="co-pitfall">
+      <div class="co-pitfall-title">Pitfalls — bugs this block invites</div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>No visited set on a cyclic graph (8.1/8.4).</strong> DFS without marking revisits nodes forever — infinite recursion / stack overflow. Mark a node before (or as) you recurse into it.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Forgetting to un-choose in backtracking (8.2).</strong> Mutating a shared path/board and not undoing it on return leaks one branch's state into its siblings. The mutate-recurse-undo trio must be complete.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Wrong memo key — missing a state dimension (8.3).</strong> If the cached answer actually depends on something not in the key, you return stale results. The key must capture <em>everything</em> that determines the remaining answer (and nothing irrelevant, or you cache too little).</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Mutating the caller's state instead of a fresh copy (8.3).</strong> Build a new leftover/state per branch; mutating in place corrupts sibling branches and poisons the memo, which assumes states are evaluated in isolation.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Using Black/visited alone for cycle detection (8.4).</strong> A plain visited set can't distinguish a back-edge (cycle) from a cross-edge to an already-finished node. You need the Gray "on current path" state.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Reaching for DFS when BFS is required.</strong> DFS finds <em>a</em> path, not the shortest. For "fewest steps" on equal-cost edges, use <a href="bfs_deep_dive_master.html">BFS</a> — its layer order is the shortest-path order.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Stack overflow on deep recursion.</strong> A 10⁵-long path or skewed tree can exceed the call-stack limit. Convert to an explicit stack (§6) when depth is unbounded.</span></div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 11. Edge cases -->
+  <section id="edge-cases">
+    <h2>11 &nbsp; Edge Cases to Verbalize</h2>
+    <p>Name these before coding. The base case and the already-seen case are where DFS solutions most often misbehave.</p>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected behavior</th><th>What it exercises</th></tr></thead>
+      <tbody>
+        <tr><td>Empty graph / grid</td><td>0 components / trivial answer</td><td>The outer sweep finds nothing; no DFS launched (§8.1)</td></tr>
+        <tr><td>Single node, no edges</td><td>1 component; reachable = itself</td><td>Base case of the recursion</td></tr>
+        <tr><td>Fully connected (one big region)</td><td>1 component; one deep DFS</td><td>Recursion depth = V — overflow risk (§6)</td></tr>
+        <tr><td>Self-loop / 2-cycle (directed)</td><td>cycle detected</td><td>Gray-neighbor hit on the first/second step (§8.4)</td></tr>
+        <tr><td>State already at the base (e.g. all-zero needs)</td><td>baseline answer, no further choices</td><td>The isBase / baseline short-circuit (§8.3)</td></tr>
+        <tr><td>Same state reached via two decision orders</td><td>computed once</td><td>The memo dedupes overlapping subproblems (§8.3)</td></tr>
+        <tr><td>No valid choices from a state</td><td>baseline only</td><td>The empty validChoices loop → baseline returned (§8.3)</td></tr>
+        <tr><td>Disconnected directed components</td><td>each swept independently</td><td>Outer loop launches DFS from every unvisited node (§8.4)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 12. Cheat sheet -->
+  <section id="cheatsheet">
+    <h2>12 &nbsp; Cheat Sheet</h2>
+    <table class="t-versus">
+      <thead><tr><th>You see…</th><th>You use</th><th>Variant</th></tr></thead>
+      <tbody>
+        <tr><td>"count islands / regions / flood fill"</td><td>sweep + DFS-flood each unvisited seed</td><td>§8.1 Component DFS</td></tr>
+        <tr><td>"all permutations / subsets / paths"</td><td>choose → recurse → un-choose</td><td>§8.2 Backtracking</td></tr>
+        <tr><td>"minimize/count over choices, greedy fails"</td><td>DFS on the state + memoize</td><td>§8.3 State DFS + memo</td></tr>
+        <tr><td>"is there a cycle / can all be ordered"</td><td>three-color DFS (Gray = on path)</td><td>§8.4 Cycle detection</td></tr>
+        <tr><td>"fewest steps, equal-cost edges"</td><td>not DFS — BFS</td><td>see <a href="bfs_deep_dive_master.html">BFS deep dive</a></td></tr>
+      </tbody>
+    </table>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">copy-paste memoized state-DFS skeleton (top-down DP)</span></div>
+<pre class="swift"><span class="kw">func</span> <span class="fn">solveTopDown</span>(<span class="kw">_</span> start: [<span class="tp">Int</span>]) -&gt; <span class="tp">Int</span> {
+    <span class="kw">var</span> memo: [[<span class="tp">Int</span>]: <span class="tp">Int</span>] = [:]
+    <span class="kw">func</span> <span class="fn">solve</span>(<span class="kw">_</span> state: [<span class="tp">Int</span>]) -&gt; <span class="tp">Int</span> {
+        <span class="kw">if</span> <span class="kw">let</span> cached = memo[state] { <span class="kw">return</span> cached }
+        <span class="kw">var</span> best = baseline(state)                 <span class="cm">// the "stop choosing" option</span>
+        <span class="kw">for</span> choice <span class="kw">in</span> validChoices(state) {
+            <span class="kw">let</span> next = apply(state, choice)         <span class="cm">// FRESH state, not a mutation</span>
+            best = min(best, cost(choice) + <span class="fn">solve</span>(next))
+        }
+        memo[state] = best
+        <span class="kw">return</span> best
+    }
+    <span class="kw">return</span> <span class="fn">solve</span>(start)
+}</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13. Cross-reference -->
+  <section id="practice">
+    <h2>13 &nbsp; Demonstrated in Practice</h2>
+    <p>Each problem in this block is taught in its own walkthrough — constraint insights, edge-case inventory, interview simulation, and (for the walkthrough) a full dry run and iterative/recursive Swift solution.</p>
+    <div class="ref-grid">
+      <a class="xref-card" href="../../walkthroughs/LC638_master.html">
+        <span class="ref-file">walkthroughs/LC638_master.html</span>
+        <span class="ref-title">LC 638 — Shopping Offers (Medium · walkthrough)</span>
+        <span class="ref-desc">DFS over states + memoization — the remaining-needs vector is the state, each fitting offer is an edge, the base-price branch is the floor. The no-overshoot rule kills greedy. Full dry run and Swift, plus the why-memoize-on-the-vector insight. The §8.3 instantiation.</span>
+      </a>
+      <a class="xref-card" href="../../walkthroughs/LC200_master.html">
+        <span class="ref-file">walkthroughs/LC200_master.html</span>
+        <span class="ref-title">LC 200 — Number of Islands (Medium · attempt)</span>
+        <span class="ref-desc">Component DFS you solve cold — sweep for a seed, flood the whole region, count the launches. Graduated hints. No solution shown.</span>
+      </a>
+      <a class="xref-card" href="../../walkthroughs/LC207_master.html">
+        <span class="ref-file">walkthroughs/LC207_master.html</span>
+        <span class="ref-title">LC 207 — Course Schedule (Medium · target)</span>
+        <span class="ref-desc">Cycle-detection DFS via three-color marking — a Gray neighbor is a back-edge. Frame and hints only; no solution shown. (Also the Topological Sort deep dive's lead problem.)</span>
+      </a>
+    </div>
+    <div class="co-note" style="margin-top:12px"><strong>Note:</strong> LC200 and LC207 are solve-it-yourself problems of this family; their pages are coaches (problem, edge cases, signals, hints) with no solution, per the study-plan spoiler rule. LC638 is the fully-worked walkthrough.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 14. Solo problem -->
+  <section id="solo">
+    <h2>14 &nbsp; Solo Problem — no solution on this page</h2>
+    <div class="solo-box">
+      <div class="solo-banner">Solo problem — no solution on this page</div>
+      <p><strong>LC 200 — Number of Islands (Medium).</strong> Given a grid of <code>'1'</code> (land) and <code>'0'</code> (water), count the islands — maximal groups of land connected 4-directionally. Recognize this as component DFS and design the sweep + flood before writing any code.</p>
+      <ul class="checklist">
+        <li>What is a vertex, what is an edge, and what does "one island" correspond to in DFS terms?</li>
+        <li>Why does the outer sweep find exactly one seed per island, and what must the inner DFS do so it isn't re-counted?</li>
+        <li>How do you mark cells visited — a separate set, or sinking land to water in place — and what's the tradeoff?</li>
+        <li>Where does the island counter increment — per sweep cell, or per DFS launch?</li>
+        <li>What's the recursion depth in the worst case, and when would you switch to an explicit stack?</li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="page-footer">
+    Depth-First Search · Theory Masterfile (Deep Dive) · Hub:
+    <a href="index.html">Graphs</a> ·
+    Structure per <code>wiki/_standards/THEORY_MASTERFILE_STANDARD.md</code>
+  </div>
+
+</main>
+</div>
+
+<script src="../../_shared/pages.js"></script>
+<script src="../../_shared/nav.js"></script>
+</body>
+</html>

@@ -58,7 +58,7 @@
       <div class="infobox-row"><div class="infobox-k">Tools</div><div class="infobox-v">Recursion on the needs vector · memo dictionary keyed by needs · base-price fallback</div></div>
       <div class="infobox-row"><div class="infobox-k">Key insight</div><div class="infobox-v">The state is the remaining needs vector; at each state try every still-affordable offer, else buy the rest at base price</div></div>
       <div class="infobox-row"><div class="infobox-k">Time / Space</div><div class="infobox-v">O(offers · states) memoized / O(states)</div></div>
-      <div class="infobox-row"><div class="infobox-k">Theory</div><div class="infobox-v mono"><a href="../theory/graphs/index.html">graphs/index.html</a> (DFS deep dive — coming)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Theory</div><div class="infobox-v mono"><a href="../theory/graphs/dfs_deep_dive_master.html">dfs_deep_dive_master.html</a></div></div>
     </div>
 
     <div class="lead">
@@ -432,16 +432,16 @@ RESULT
   <!-- 14. Theory decoder -->
   <section id="decoder">
     <h2>14 &nbsp; Theory Decoder — the theory as used here</h2>
-    <p>This problem is <strong>DFS over an implicit state graph with memoization</strong> — i.e. top-down dynamic programming. The general concepts, instantiated:</p>
+    <p>This problem is <strong>DFS over an implicit state graph with memoization</strong> — i.e. top-down dynamic programming, Variant 8.3 of the DFS deep dive. The general concepts, instantiated:</p>
     <table class="t-decoder">
-      <thead><tr><th>General concept</th><th>Plain meaning</th><th>Instantiated in this solution as</th></tr></thead>
+      <thead><tr><th>General concept</th><th>Instantiated in this solution as</th><th>General form</th></tr></thead>
       <tbody>
-        <tr><td>State</td><td>The minimal information that determines the rest of the answer</td><td>The remaining needs vector — offers are unlimited, so nothing else matters.</td></tr>
-        <tr><td>DFS over states</td><td>Recurse into each choice's resulting state, exploring depth-first</td><td>Each applicable offer leads to a leftover vector you recurse into; the base-price branch is the "stop" choice.</td></tr>
-        <tr><td>Recurrence (optimal substructure)</td><td>The answer for a state is built from answers of smaller states</td><td><code>solve(needs) = min(basePrice, minₒ offerCost + solve(needs − offer))</code>.</td></tr>
-        <tr><td>Overlapping subproblems</td><td>The same sub-state is reached many ways</td><td>Different offer orders reach the same leftover vector.</td></tr>
-        <tr><td>Memoization</td><td>Cache each state's answer so it's computed once</td><td><code>memo: [[Int]: Int]</code> keyed by the needs vector.</td></tr>
-        <tr><td>Base case</td><td>The smallest state with a direct answer</td><td>All-zero needs → cost 0 (implicit: the base-price loop sums to 0).</td></tr>
+        <tr><td>State (minimal info that determines the rest)</td><td>The remaining needs vector — offers are unlimited, so nothing else matters.</td><td><a href="../theory/graphs/dfs_deep_dive_master.html#terminology">theory §3</a></td></tr>
+        <tr><td>DFS over states</td><td>Each applicable offer leads to a leftover vector you recurse into; the base-price branch is the "stop" choice.</td><td><a href="../theory/graphs/dfs_deep_dive_master.html#v-memo">theory §8.3</a></td></tr>
+        <tr><td>Recurrence (optimal substructure)</td><td><code>solve(needs) = min(basePrice, minₒ offerCost + solve(needs − offer))</code>.</td><td><a href="../theory/graphs/dfs_deep_dive_master.html#pseudocode">theory §5</a></td></tr>
+        <tr><td>Overlapping subproblems</td><td>Different offer orders reach the same leftover vector.</td><td><a href="../theory/graphs/dfs_deep_dive_master.html#mental-model">theory §4</a></td></tr>
+        <tr><td>Memoization</td><td><code>memo: [[Int]: Int]</code> keyed by the needs vector.</td><td><a href="../theory/graphs/dfs_deep_dive_master.html#complexity">theory §9</a></td></tr>
+        <tr><td>Base case</td><td>All-zero needs → cost 0 (implicit: the base-price loop sums to 0).</td><td><a href="../theory/graphs/dfs_deep_dive_master.html#edge-cases">theory §11</a></td></tr>
       </tbody>
     </table>
     <div class="co-insight"><strong>DFS vs BFS here.</strong> This is a shortest-<em>cost</em> search where edges (offers) carry different prices and you must explore <em>all</em> the way to the zero state to compare totals — so depth-first recursion with memo fits naturally, not a level-by-level BFS. BFS shines for fewest-<em>steps</em> on equal-cost edges; this is fewest-<em>cost</em> over a DAG of states, which is DP territory.</div>
@@ -452,19 +452,19 @@ RESULT
   <!-- 15. Back-reference -->
   <section id="parent">
     <h2>15 &nbsp; Parent Theory</h2>
-    <p>This problem belongs to the <strong>DFS / top-down DP</strong> family. A dedicated DFS deep dive isn't in the wiki yet; until it lands, the closest reference is the Graphs hub, which carries the general traversal vocabulary (DFS, state graph, visited/memo) this solution draws on.</p>
+    <p>This walkthrough instantiates Variant 8.3 of a larger pattern. The parent page is not free-form — it follows the theory masterfile standard, so here is exactly what you land on:</p>
     <div class="ref-grid">
-      <a class="backref-card" href="../theory/graphs/index.html">
-        <span class="ref-file">theory/graphs/index.html</span>
-        <span class="ref-title">Graphs — Theory Hub (DFS deep dive coming)</span>
-        <span class="ref-desc">The hub defines the graph vocabulary this DFS-over-states solution rests on: vertex/edge (here a needs vector and an offer), implicit graph (states generated on demand, never stored), and DFS vs BFS (depth-first recursion for fewest-cost over a state DAG, versus BFS for fewest-steps on equal-cost edges). The dedicated DFS / top-down-DP deep dive — recurrence, memoization, state design — is a planned addition; this walkthrough's §14 Theory Decoder carries the self-contained theory in the meantime.</span>
+      <a class="backref-card" href="../theory/graphs/dfs_deep_dive_master.html">
+        <span class="ref-file">theory/graphs/dfs_deep_dive_master.html</span>
+        <span class="ref-title">Depth-First Search — Deep Dive Theory Masterfile</span>
+        <span class="ref-desc">The canonical reference for the DFS family: the plunge-then-backtrack mental model with the DFS-over-states trace this problem follows (§4), the memoized-state pseudocode primer (§5), the memo-key and fresh-state Swift foundations (§7), the four-variant catalog with Variant 8.3 DFS-over-states-with-memoization this problem instantiates (§8.3), the complexity argument on why the memo removes the exponent (§9), and the wrong-memo-key / mutate-the-caller pitfalls (§10). Its cross-reference section (§13) links back to this walkthrough, and it sits under the Graphs hub (vertex, edge, implicit graph, DFS vs BFS).</span>
       </a>
     </div>
   </section>
 
   <div class="page-footer">
-    LC 638 — Shopping Offers · Walkthrough Masterfile · Family: DFS over states + memoization (top-down DP) ·
-    Hub: <a href="../theory/graphs/index.html">Graphs</a> ·
+    LC 638 — Shopping Offers · Walkthrough Masterfile · Parent theory:
+    <a href="../theory/graphs/dfs_deep_dive_master.html">Depth-First Search</a> ·
     Structure per <code>wiki/_standards/WALKTHROUGH_MASTERFILE_STANDARD.md</code>
   </div>
 
