@@ -637,32 +637,70 @@ RESULT
 
         <p>This is also the conceptual bridge to the two-pointer solution. The two-pointer version doesn't precompute the arrays — it computes the same values on the fly, discarding cells it no longer needs. At any moment in the two-pointer loop, <code>maxWallLeft</code> holds exactly what <code>leftMaxAt[leftPointer]</code> would contain, and <code>maxWallRight</code> holds what <code>rightMaxAt[rightPointer]</code> would contain. Understanding the DP version makes the two-pointer invariant obvious: it's just DP with rolling variables instead of full arrays.</p>
 
+        <div class="co-insight"><strong>How to recognize prefix/suffix here — the key question.</strong> Unlike LC 238 (Product of Array Except Self), where the prefix structure is literally spelled out in the problem statement, LC 42 disguises itself as something else entirely — it looks like a sliding window problem because it involves a contiguous array and accumulates a total. The unlock is asking: <em>"At each index, what do I need to know about everything to my LEFT and everything to my RIGHT?"</em> The moment you answer that question — "the tallest bar on each side" — you have named a prefix max and a suffix max, and the pattern becomes visible. Whenever the answer to that question is "a running max (or min) on each side independently," prefix/suffix arrays are your tool.</div>
+
+        <div class="co-pitfall">
+          <strong>PITFALLS — math gotchas in the prefix/suffix construction</strong>
+          <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Seeding <code>currentMax</code> with 0 instead of the first element.</strong> If you initialize <code>var currentMax = 0</code> before building the prefix array, every bar with a height greater than 0 gets a correct running max — but a bar at height 0 that comes before any taller bar gets assigned a running max of 0, which is fine mathematically. The real trap: in the suffix array, seeding from 0 instead of <code>heights.last!</code> means the reversed scan starts with an artificially low wall. When you un-reverse the result, index 0 of <code>maxRights</code> could be wrong — it should reflect the tallest bar from the right end inward, but a 0-seed gives it no initial wall to anchor against. Always seed from the first element of the pass direction: <code>heights[0]</code> for prefix, <code>heights.last!</code> for suffix.</span></div>
+          <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Forgetting to reverse the suffix array after building it.</strong> The Swift-idiomatic approach builds <code>maxRights</code> by calling <code>heights.reversed().map { … }</code>, which produces the running max in reverse order — index 0 of the result is the max seen from the right end. When you zip it with <code>maxLefts</code> (which is in forward order), the indices don't align. Store <code>Array(maxRights.reversed())</code> before the final pass, or the wrong wall is paired with every bar.</span></div>
+          <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Why the math silently handles the edge bars.</strong> You might think you need a guard or a sentinel to prevent out-of-bounds access or negative water at the first and last indices. You don't. At index 0, <code>maxLefts[0] == heights[0]</code>, so <code>min(maxLefts[0], maxRights[0]) − heights[0]</code> is at most <code>heights[0] − heights[0] = 0</code>. Same at the last index. The formula produces 0 for the boundary bars automatically — no guard, no padding, no special case needed.</span></div>
+        </div>
+
         <figure style="margin: 20px 0 16px;">
           <img src="assets/dp_image.png" alt="Three diagrams: top-left shows the max height from the left end up to each bar (green shading); top-right shows the max height from the right end (red shading); bottom shows the minimum of the two overlaid on the bars with hatched shading indicating trapped water." style="max-width: 100%; border: 1px solid #c8ccd1; border-radius: 3px;">
           <figcaption style="font: italic 12.5px 'Source Sans 3', sans-serif; color: #72777d; margin-top: 6px;">Fig: Dynamic Programming Approach — precompute max height from left (top-left) and from right (top-right) separately, then take the minimum ceiling at each bar (bottom). The shaded portion represents trapped water.</figcaption>
         </figure>
 
-        <pre class="swift"><span class="kw">func</span> <span class="fn">trap</span>(<span class="kw">_</span> height: [<span class="tp">Int</span>]) -&gt; <span class="tp">Int</span> {
+        <p>The idiomatic Swift version below uses <code>map</code> with a captured running max and <code>enumerated()</code> for the final accumulation pass — matching the exploratory style you would write in a Playground.</p>
+
+        <pre class="swift"><span class="kw">func</span> <span class="fn">trap</span>(<span class="kw">_</span> heights: [<span class="tp">Int</span>]) -&gt; <span class="tp">Int</span> {
+    <span class="kw">guard</span> !heights.isEmpty <span class="kw">else</span> { <span class="kw">return</span> <span class="nm">0</span> }
+
+    <span class="cm">// Pass 1 — prefix max: maxLefts[i] = tallest bar from index 0 through i.</span>
+    <span class="kw">var</span> currentMaxLeft = heights[<span class="nm">0</span>]
+    <span class="kw">let</span> maxLefts = heights.<span class="fn">map</span> { height <span class="kw">in</span>
+        currentMaxLeft = <span class="fn">max</span>(currentMaxLeft, height)
+        <span class="kw">return</span> currentMaxLeft
+    }
+
+    <span class="cm">// Pass 2 — suffix max: maxRights[i] = tallest bar from index i through n−1.</span>
+    <span class="cm">// Build in reverse, then flip so indices align with maxLefts.</span>
+    <span class="kw">var</span> currentMaxRight = heights.last!
+    <span class="kw">let</span> maxRights = <span class="tp">Array</span>(heights.<span class="fn">reversed</span>().<span class="fn">map</span> { height <span class="kw">in</span>
+        currentMaxRight = <span class="fn">max</span>(currentMaxRight, height)
+        <span class="kw">return</span> currentMaxRight
+    }.<span class="fn">reversed</span>())
+
+    <span class="cm">// Pass 3 — accumulate: water above each bar = min ceiling − bar height.</span>
+    <span class="kw">var</span> totalWaterTrapped = <span class="nm">0</span>
+    <span class="kw">for</span> (index, currentHeight) <span class="kw">in</span> heights.<span class="fn">enumerated</span>() {
+        <span class="kw">let</span> minWall = <span class="fn">min</span>(maxLefts[index], maxRights[index])
+        totalWaterTrapped += minWall - currentHeight
+    }
+
+    <span class="kw">return</span> totalWaterTrapped
+}
+
+<span class="cm">// The original C-style loop version is kept below for reference — same logic,</span>
+<span class="cm">// identical complexity, just expressed with explicit index arithmetic.</span>
+<span class="kw">func</span> <span class="fn">trapClassic</span>(<span class="kw">_</span> height: [<span class="tp">Int</span>]) -&gt; <span class="tp">Int</span> {
     <span class="kw">guard</span> !height.isEmpty <span class="kw">else</span> { <span class="kw">return</span> <span class="nm">0</span> }
     <span class="kw">let</span> size = height.count
     <span class="kw">var</span> totalWater = <span class="nm">0</span>
 
-    <span class="cm">// leftMaxAt[i] = tallest bar from index 0 through i (inclusive).</span>
     <span class="kw">var</span> leftMaxAt = [<span class="tp">Int</span>](repeating: <span class="nm">0</span>, count: size)
     leftMaxAt[<span class="nm">0</span>] = height[<span class="nm">0</span>]
     <span class="kw">for</span> index <span class="kw">in</span> <span class="nm">1</span>..&lt;size {
         leftMaxAt[index] = <span class="fn">max</span>(height[index], leftMaxAt[index - <span class="nm">1</span>])
     }
 
-    <span class="cm">// rightMaxAt[i] = tallest bar from index i through n−1 (inclusive).</span>
     <span class="kw">var</span> rightMaxAt = [<span class="tp">Int</span>](repeating: <span class="nm">0</span>, count: size)
     rightMaxAt[size - <span class="nm">1</span>] = height[size - <span class="nm">1</span>]
     <span class="kw">for</span> index <span class="kw">in</span> <span class="kw">stride</span>(from: size - <span class="nm">2</span>, through: <span class="nm">0</span>, by: -<span class="nm">1</span>) {
         rightMaxAt[index] = <span class="fn">max</span>(height[index], rightMaxAt[index + <span class="nm">1</span>])
     }
 
-    <span class="cm">// Apply formula: water above bar i = min ceiling − bar height.</span>
-    <span class="kw">for</span> index <span class="kw">in</span> <span class="nm">1</span>..&lt;(size - <span class="nm">1</span>) {
+    <span class="kw">for</span> index <span class="kw">in</span> <span class="nm">0</span>..&lt;size {
         totalWater += <span class="fn">min</span>(leftMaxAt[index], rightMaxAt[index]) - height[index]
     }
 
