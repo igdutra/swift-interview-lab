@@ -30,6 +30,10 @@
     <a href="#structures"   class="toc-link"><span class="toc-num">7</span> Data Structures</a>
     <a href="#dryrun"       class="toc-link"><span class="toc-num">8</span> Pseudocode Dry Run</a>
     <a href="#swift"        class="toc-link"><span class="toc-num">9</span> Swift Solution</a>
+    <div class="toc-sub">
+      <a href="#swift-a1" class="toc-link">A.1 Prefix sum (explicit loop)</a>
+      <a href="#swift-a2" class="toc-link">A.2 Idiomatic Swift (reduce + zip)</a>
+    </div>
     <a href="#code-dry-run" class="toc-link"><span class="toc-num">10</span> Code Dry Run</a>
     <a href="#qmap"         class="toc-link"><span class="toc-num">11</span> Question → Code Map</a>
     <a href="#complexity"   class="toc-link"><span class="toc-num">12</span> Complexity</a>
@@ -306,6 +310,38 @@ index=5:  prefix[6] = prefix[5] + nums[5] = −2 + (−1) = −3
         prefix[right + <span class="nm">1</span>] - prefix[left]
     }
 }</pre>
+      </div>
+    </div>
+
+    <div class="solution-block" id="swift-a2">
+      <div class="block-header">
+        <span class="block-badge">A.2</span>
+        <span class="block-name">Idiomatic Swift — scan + zip</span>
+        <div class="block-pills"><span class="pill pill-t">O(n) init · O(1) query</span><span class="pill pill-s">O(n)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="approach-box">
+          <div class="approach-title">Plan</div>
+          Replace the manual for-loop with <code>nums.reduce(into: [0])</code> to build the prefix array — the sentinel <code>[0]</code> is the starting accumulator, and each step appends <code>acc.last! + value</code>. <code>sumRange</code> stays identical.
+        </div>
+
+        <pre class="swift"><span class="kw">class</span> <span class="tp">NumericArray</span> {
+    <span class="kw">private let</span> prefix: [<span class="tp">Int</span>]
+
+    <span class="kw">init</span>(<span class="kw">_</span> nums: [<span class="tp">Int</span>]) {
+        prefix = nums.<span class="fn">reduce</span>(into: [<span class="nm">0</span>]) { acc, value <span class="kw">in</span>
+            acc.<span class="fn">append</span>(acc.last! + value)
+        }
+    }
+
+    <span class="kw">func</span> <span class="fn">sumRange</span>(<span class="kw">_</span> left: <span class="tp">Int</span>, <span class="kw">_</span> right: <span class="tp">Int</span>) -&gt; <span class="tp">Int</span> {
+        prefix[right + <span class="nm">1</span>] - prefix[left]
+    }
+}</pre>
+
+        <div class="co-note">
+          <strong>What changed vs A.1:</strong> the <code>[Int](repeating: 0, count: n+1)</code> allocation + index-arithmetic loop is replaced by <code>reduce(into: [0])</code>. The starting accumulator <code>[0]</code> <em>is</em> the sentinel — you never write <code>prefix[0] = 0</code> explicitly because it is the identity you hand to <code>reduce</code>. Each step appends the running sum, so the array grows to length n+1 exactly as before. <code>reduce(into:)</code> mutates in place (no copies per step), so performance is identical to A.1.
+        </div>
       </div>
     </div>
   </section>

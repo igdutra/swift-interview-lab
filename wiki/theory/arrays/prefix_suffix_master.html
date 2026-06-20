@@ -64,7 +64,7 @@
     </div>
 
     <div class="lead">
-      <p><strong>Prefix and suffix precomputation</strong> is a technique that eliminates repeated linear work by storing, at each index <em>i</em>, the accumulated result of every element to its left (the prefix) and every element to its right (the suffix). A single left-to-right pass builds the prefix array; a single right-to-left pass builds the suffix array. Any query that asks "what is the aggregate of some range, or of everything except position i" then combines <code>prefix[i]</code> and <code>suffix[i]</code> in one step — O(1) per query regardless of range length.</p>
+      <p><strong>Prefix and suffix precomputation</strong> is a technique that eliminates repeated linear work by storing, at each index <em>pos</em>, the accumulated result of every element to its left (the prefix) and every element to its right (the suffix). A single left-to-right pass builds the prefix array; a single right-to-left pass builds the suffix array. Any query that asks "what is the aggregate of some range, or of everything except position pos" then combines <code>prefix[pos]</code> and <code>suffix[pos]</code> in one step — O(1) per query regardless of range length.</p>
       <p>The "payload" stored at each position varies by problem — a running sum, a running product, a running maximum, a boolean flag, even a set of day indices — but the two-pass shape is always the same. This uniformity is the technique's power: recognizing any of these payload types as "something a left pass accumulates" immediately hands you an O(n) algorithm where the naive alternative scans the array again for every query, costing O(n²) in total.</p>
 
     <div class="co-insight">
@@ -72,11 +72,11 @@
 
       <p style="margin: 10px 0 6px;">Think of it as a Venn diagram. DP is the <em>paradigm</em>: break a problem into subproblems, store the answers, reuse them instead of recomputing. Prefix/suffix is a <em>technique</em>: two passes over an array that store an accumulated value at each index. They are not the same thing — but they overlap.</p>
 
-      <p style="margin: 6px 0 6px;"><strong>In the intersection (prefix/suffix AND DP):</strong> any variant where each cell is built from the previous cell using a recurrence. <code>leftMaxAt[i] = max(height[i], leftMaxAt[i−1])</code> in LC 42 is a recurrence — you're computing cell <code>i</code> from the stored answer at cell <code>i−1</code> instead of rescanning. <code>prefix[i+1] = prefix[i] + nums[i]</code> in range-sum is identical. These are DP: overlapping subproblems, stored answers, reuse. <strong>Variants 8.1, 8.2, and 8.3 all qualify.</strong></p>
+      <p style="margin: 6px 0 6px;"><strong>In the intersection (prefix/suffix AND DP):</strong> any variant where each cell is built from the previous cell using a recurrence. <code>leftMaxAt[pos] = max(height[pos], leftMaxAt[pos−1])</code> in LC 42 is a recurrence — you're computing cell <code>pos</code> from the stored answer at cell <code>pos−1</code> instead of rescanning. <code>prefix[pos+1] = prefix[pos] + nums[pos]</code> in range-sum is identical. These are DP: overlapping subproblems, stored answers, reuse. <strong>Variants 8.1, 8.2, and 8.3 all qualify.</strong></p>
 
       <p style="margin: 6px 0 0;"><strong>Outside the intersection (prefix/suffix shape, but NOT DP):</strong> Variant 8.4 — Boolean Coverage — sweeps the array and records "has this day been covered so far?" Each cell doesn't depend on the previous cell via a recurrence; it just accumulates a set. The two-pass <em>shape</em> is the same, but there are no overlapping subproblems being memoized. It's a sweep, not DP.</p>
 
-      <p style="margin: 8px 0 0; font-style: italic; color: var(--text2);">The clean rule: if building the array requires a recurrence (<code>cell[i]</code> defined in terms of <code>cell[i−1]</code>), it's DP. If the array just records running state without that dependency, it's not. When a dedicated DP theory page exists on this wiki, Variants 8.1–8.3 will be cross-referenced there.</p>
+      <p style="margin: 8px 0 0; font-style: italic; color: var(--text2);">The clean rule: if building the array requires a recurrence (<code>cell[pos]</code> defined in terms of <code>cell[pos−1]</code>), it's DP. If the array just records running state without that dependency, it's not. When a dedicated DP theory page exists on this wiki, Variants 8.1–8.3 will be cross-referenced there.</p>
     </div>
     </div>
   </section>
@@ -90,9 +90,9 @@
     <table class="t-clue">
       <thead><tr><th>When the problem says…</th><th>It maps to…</th></tr></thead>
       <tbody>
-        <tr><td>"range sum query" / "sum of elements from i to j"</td><td>Variant 8.1 — prefix sum; answer is <code>prefix[j+1] − prefix[i]</code></td></tr>
+        <tr><td>"range sum query" / "sum of elements from left to right"</td><td>Variant 8.1 — prefix sum; answer is <code>prefix[right+1] − prefix[left]</code></td></tr>
         <tr><td>"product of all elements except self" / "no division"</td><td>Variant 8.2 — prefix product × suffix product at each index</td></tr>
-        <tr><td>"water trapped" / "amount each bar can hold"</td><td>Variant 8.3 — prefix max and suffix max; water at <em>i</em> = <code>min(leftMax[i], rightMax[i]) − height[i]</code></td></tr>
+        <tr><td>"water trapped" / "amount each bar can hold"</td><td>Variant 8.3 — prefix max and suffix max; water at <em>pos</em> = <code>min(leftMax[pos], rightMax[pos]) − height[pos]</code></td></tr>
         <tr><td>"contiguous coverage" / "do segments cover every day"</td><td>Variant 8.4 — prefix boolean OR; check that every position is covered from the left by some predecessor and from the right by some successor</td></tr>
         <tr><td>"repeated range aggregates" / "multiple queries on one array"</td><td>Any variant — build once O(n), answer each query O(1)</td></tr>
         <tr><td>product / sum / max "without" a specific element</td><td>Prefix × suffix combine; the excluded element falls exactly at the join point</td></tr>
@@ -109,12 +109,12 @@
     <table class="t-decoder">
       <thead><tr><th>Term</th><th>Plain meaning</th><th>Example</th></tr></thead>
       <tbody>
-        <tr><td>Prefix array</td><td>An array where position <em>i</em> holds the accumulated result of all elements from index 0 up to (but not including) <em>i</em></td><td><code>prefix[3]</code> = sum of <code>nums[0..2]</code></td></tr>
-        <tr><td>Suffix array</td><td>An array where position <em>i</em> holds the accumulated result of all elements from index <em>i</em> to the end (exclusive of <em>i</em> itself, in the "except self" convention)</td><td><code>suffix[2]</code> = product of <code>nums[3..n-1]</code></td></tr>
+        <tr><td>Prefix array</td><td>An array where position <em>pos</em> holds the accumulated result of all elements from index 0 up to (but not including) <em>pos</em></td><td><code>prefix[3]</code> = sum of <code>nums[0..2]</code></td></tr>
+        <tr><td>Suffix array</td><td>An array where position <em>pos</em> holds the accumulated result of all elements from index <em>pos</em> to the end (exclusive of <em>pos</em> itself, in the "except self" convention)</td><td><code>suffix[2]</code> = product of <code>nums[3..n-1]</code></td></tr>
         <tr><td>Sentinel value</td><td>The identity element of the accumulation operation placed at the boundary position so that the first real element combines cleanly with "nothing accumulated yet"</td><td><code>prefix[0] = 0</code> (sum), <code>prefix[0] = 1</code> (product), <code>prefix[0] = false</code> (boolean OR)</td></tr>
-        <tr><td>Range query</td><td>A question of the form "aggregate of <code>nums[i..j]</code>" answered in O(1) using a prebuilt prefix array</td><td><code>rangeSum(2, 5) = prefix[6] − prefix[2]</code></td></tr>
+        <tr><td>Range query</td><td>A question of the form "aggregate of <code>nums[left..right]</code>" answered in O(1) using a prebuilt prefix array</td><td><code>rangeSum(2, 5) = prefix[6] − prefix[2]</code></td></tr>
         <tr><td>Monoid</td><td>Any operation that is associative and has an identity element — the mathematical name for "the kind of thing a prefix array can accumulate." Sums, products, max, boolean OR, and set union are all monoids; division is not (no identity that works universally)</td><td>sum: identity 0; product: identity 1; max: identity −∞; OR: identity false</td></tr>
-        <tr><td>Combine at each index</td><td>The O(1) per-element step that merges <code>prefix[i]</code> and <code>suffix[i]</code> to answer the query for position <em>i</em> — the payoff of the two-pass build</td><td><code>result[i] = prefix[i] * suffix[i]</code></td></tr>
+        <tr><td>Combine at each index</td><td>The O(1) per-element step that merges <code>prefix[pos]</code> and <code>suffix[pos]</code> to answer the query for position <em>pos</em> — the payoff of the two-pass build</td><td><code>result[pos] = prefix[pos] * suffix[pos]</code></td></tr>
       </tbody>
     </table>
   </section>
@@ -137,7 +137,7 @@
 <span class="tr-var">prefix</span>  build:  [  0,   2,   5,   6,  10  ]
                   ↑
                   sentinel (sum of zero elements)</pre>
-    <p class="ascii-caption"><code>prefix[i+1] = prefix[i] + nums[i]</code>. The sentinel at index 0 means every range query uses the same formula: <code>sum(i, j) = prefix[j+1] − prefix[i]</code>, with no special-casing for i = 0.</p>
+    <p class="ascii-caption"><code>prefix[pos+1] = prefix[pos] + nums[pos]</code>. The sentinel at index 0 means every range query uses the same formula: <code>sum(left, right) = prefix[right+1] − prefix[left]</code>, with no special-casing for left = 0.</p>
 
     <p>Now verify two range queries against the table: <code>sum(1, 2)</code> (indices 1 and 2, values 3 and 1) = <code>prefix[3] − prefix[1]</code> = 6 − 2 = 4. Correct. <code>sum(0, 3)</code> = <code>prefix[4] − prefix[0]</code> = 10 − 0 = 10. Correct. Both answers read from two table cells — no loop.</p>
 
@@ -148,14 +148,14 @@
 nums:      1    2    3    4
 
 <span class="tr-var">left pass</span>  (prefix product, sentinel = 1)
-prefix:    1    1    2    6       <span class="tr-ok">prefix[i] = product of nums[0..i-1]</span>
+prefix:    1    1    2    6       <span class="tr-ok">prefix[pos] = product of nums[0..pos-1]</span>
 
 <span class="tr-var">right pass</span> (suffix product, sentinel = 1)
-suffix:    24   12   4    1       <span class="tr-ok">suffix[i] = product of nums[i+1..n-1]</span>
+suffix:    24   12   4    1       <span class="tr-ok">suffix[pos] = product of nums[pos+1..n-1]</span>
 
-<span class="tr-var">combine</span>    prefix[i] * suffix[i]
-result:    24   12   8    6       <span class="tr-aha">each cell = product of everything EXCEPT nums[i]</span></pre>
-    <p class="ascii-caption">Division is never needed. The "gap" at position <em>i</em> is bridged by placing the left product in <code>prefix[i]</code> and the right product in <code>suffix[i]</code>, then multiplying — neither array knows about position <em>i</em> itself.</p>
+<span class="tr-var">combine</span>    prefix[pos] * suffix[pos]
+result:    24   12   8    6       <span class="tr-aha">each cell = product of everything EXCEPT nums[pos]</span></pre>
+    <p class="ascii-caption">Division is never needed. The "gap" at position <em>pos</em> is bridged by placing the left product in <code>prefix[pos]</code> and the right product in <code>suffix[pos]</code>, then multiplying — neither array knows about position <em>pos</em> itself.</p>
   </section>
 
   <hr class="wiki-hr">
@@ -171,22 +171,22 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
     <span class="pc">① LEFT PASS — build prefix array of length n+1 (sentinel at index 0)</span>
     prefix ← array of size n + 1
     prefix[0] ← IDENTITY              <span class="pc">e.g. 0 for sum, 1 for product, false for OR</span>
-    <span class="pk">FOR</span> i <span class="pk">FROM</span> 0 <span class="pk">TO</span> n − 1:
-        prefix[i + 1] ← ACCUMULATE(prefix[i], nums[i])
+    <span class="pk">FOR</span> pos <span class="pk">FROM</span> 0 <span class="pk">TO</span> n − 1:
+        prefix[pos + 1] ← ACCUMULATE(prefix[pos], nums[pos])
 
     <span class="pc">② RIGHT PASS — build suffix array of length n+1 (sentinel at index n)</span>
     suffix ← array of size n + 1
     suffix[n] ← IDENTITY
-    <span class="pk">FOR</span> i <span class="pk">FROM</span> n − 1 <span class="pk">DOWNTO</span> 0:
-        suffix[i] ← ACCUMULATE(suffix[i + 1], nums[i])
+    <span class="pk">FOR</span> pos <span class="pk">FROM</span> n − 1 <span class="pk">DOWNTO</span> 0:
+        suffix[pos] ← ACCUMULATE(suffix[pos + 1], nums[pos])
 
     <span class="pc">③ COMBINE — answer each query in O(1)</span>
     result ← array of size n
-    <span class="pk">FOR</span> i <span class="pk">FROM</span> 0 <span class="pk">TO</span> n − 1:
-        result[i] ← COMBINE(prefix[i], suffix[i + 1])
+    <span class="pk">FOR</span> pos <span class="pk">FROM</span> 0 <span class="pk">TO</span> n − 1:
+        result[pos] ← COMBINE(prefix[pos], suffix[pos + 1])
 
     <span class="pk">RETURN</span> result</pre>
-    <div class="co-insight"><strong>Why it works:</strong> <code>prefix[i]</code> holds the aggregate of <code>nums[0..i-1]</code> (nothing from position <em>i</em> itself), and <code>suffix[i+1]</code> holds the aggregate of <code>nums[i+1..n-1]</code> (nothing from position <em>i</em> itself). Combining them yields "everything except position <em>i</em>" — the gap is the element at <em>i</em>, and neither array filled it.</div>
+    <div class="co-insight"><strong>Why it works:</strong> <code>prefix[pos]</code> holds the aggregate of <code>nums[0..pos-1]</code> (nothing from position <em>pos</em> itself), and <code>suffix[pos+1]</code> holds the aggregate of <code>nums[pos+1..n-1]</code> (nothing from position <em>pos</em> itself). Combining them yields "everything except position <em>pos</em>" — the gap is the element at <em>pos</em>, and neither array filled it.</div>
 
     <p>For range queries (<strong>not</strong> "combine at index") the query formula instead of combine loop is:</p>
     <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">range-sum query using the prefix array</span></div>
@@ -262,8 +262,8 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
         <div class="block-pills"><span class="pill pill-t">O(n) build</span><span class="pill pill-s">O(n) space</span></div>
       </div>
       <div class="block-body">
-        <div class="co-when"><strong>When to use:</strong> the problem issues multiple "sum of range [i, j]" queries against a static array. Build once, answer each query in O(1). The sentinel at <code>prefix[0] = 0</code> is not optional — it is what makes the query formula <code>prefix[j+1] − prefix[i]</code> work for all ranges including i = 0.</div>
-        <p><strong>Payload:</strong> integer sum. <strong>Identity:</strong> 0. <strong>Combine:</strong> subtraction (prefix[j+1] − prefix[i]).</p>
+        <div class="co-when"><strong>When to use:</strong> the problem issues multiple "sum of range [left, right]" queries against a static array. Build once, answer each query in O(1). The sentinel at <code>prefix[0] = 0</code> is not optional — it is what makes the query formula <code>prefix[right+1] − prefix[left]</code> work for all ranges including left = 0.</div>
+        <p><strong>Payload:</strong> integer sum. <strong>Identity:</strong> 0. <strong>Combine:</strong> subtraction (prefix[right+1] − prefix[left]).</p>
         <p>Demonstrated in: LC 303 — Range Sum Query - Immutable (coming); LC 560 — Subarray Sum Equals K (solo problem below).</p>
       </div>
     </div>
@@ -275,9 +275,9 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
         <div class="block-pills"><span class="pill pill-t">O(n) build</span><span class="pill pill-s">O(n) space</span></div>
       </div>
       <div class="block-body">
-        <div class="co-when"><strong>When to use:</strong> "return an array where each element is the product of all other elements, without using division." Division would be O(n) and fails on zeros. The two-pass approach bypasses division entirely: for index <em>i</em>, <code>prefix[i]</code> accumulates nums[0..i-1] and <code>suffix[i+1]</code> accumulates nums[i+1..n-1]; multiplying them leaves exactly nums[i] excluded.</div>
-        <p><strong>Payload:</strong> integer product. <strong>Identity:</strong> 1. <strong>Combine:</strong> multiplication (prefix[i] × suffix[i+1]).</p>
-        <div class="co-insight"><strong>Why no division:</strong> the "gap" at position <em>i</em> is structural — neither the left pass nor the right pass includes nums[i]. The element is excluded by construction, not by inverting the total.</div>
+        <div class="co-when"><strong>When to use:</strong> "return an array where each element is the product of all other elements, without using division." Division would be O(n) and fails on zeros. The two-pass approach bypasses division entirely: for index <em>pos</em>, <code>prefix[pos]</code> accumulates nums[0..pos-1] and <code>suffix[pos+1]</code> accumulates nums[pos+1..n-1]; multiplying them leaves exactly nums[pos] excluded.</div>
+        <p><strong>Payload:</strong> integer product. <strong>Identity:</strong> 1. <strong>Combine:</strong> multiplication (prefix[pos] × suffix[pos+1]).</p>
+        <div class="co-insight"><strong>Why no division:</strong> the "gap" at position <em>pos</em> is structural — neither the left pass nor the right pass includes nums[pos]. The element is excluded by construction, not by inverting the total.</div>
         <p>Demonstrated in: LC 238 — Product of Array Except Self (coming).</p>
       </div>
     </div>
@@ -289,8 +289,8 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
         <div class="block-pills"><span class="pill pill-t">O(n) build</span><span class="pill pill-s">O(n) space</span></div>
       </div>
       <div class="block-body">
-        <div class="co-when"><strong>When to use:</strong> problems where each position's answer depends on the largest (or smallest) value to its left <em>and</em> the largest (or smallest) value to its right — most commonly physical simulations. Trapping Rain Water is the canonical example: the water at position <em>i</em> is <code>min(leftMax[i], rightMax[i]) − height[i]</code>, clamped to 0.</div>
-        <p><strong>Payload:</strong> running maximum. <strong>Identity:</strong> 0 (or −∞). <strong>Combine:</strong> <code>min(prefixMax[i], suffixMax[i]) − height[i]</code> per position.</p>
+        <div class="co-when"><strong>When to use:</strong> problems where each position's answer depends on the largest (or smallest) value to its left <em>and</em> the largest (or smallest) value to its right — most commonly physical simulations. Trapping Rain Water is the canonical example: the water at position <em>pos</em> is <code>min(leftMax[pos], rightMax[pos]) − height[pos]</code>, clamped to 0.</div>
+        <p><strong>Payload:</strong> running maximum. <strong>Identity:</strong> 0 (or −∞). <strong>Combine:</strong> <code>min(prefixMax[pos], suffixMax[pos]) − height[pos]</code> per position.</p>
         <div class="co-note"><strong>Relation to the two-pointer solution (LC 42):</strong> the two-pointer approach is the O(1)-space compression of this two-array solution — it avoids materializing both arrays by observing that the bottleneck side is always determined by <code>min(leftMax, rightMax)</code>. If you understand this variant first, the two-pointer version follows immediately. The walkthrough at <a href="../../walkthroughs/LC42_master.html">LC42_master.html</a> covers both.</div>
         <p>Demonstrated in: <a href="../../walkthroughs/LC42_master.html">LC 42 — Trapping Rain Water</a> (the alternate two-array solution is discussed in that walkthrough's §9 follow-up section).</p>
       </div>
@@ -325,7 +325,7 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
     <table class="t-cmx">
       <thead><tr><th>Variant</th><th>Build time</th><th>Build space</th><th>Per query</th><th>Why</th></tr></thead>
       <tbody>
-        <tr><td>8.1 Range sum</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td class="tc">O(1)</td><td>One subtraction: <code>prefix[j+1] − prefix[i]</code></td></tr>
+        <tr><td>8.1 Range sum</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td class="tc">O(1)</td><td>One subtraction: <code>prefix[right+1] − prefix[left]</code></td></tr>
         <tr><td>8.2 Product except self</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td class="tc">O(1)</td><td>One multiplication per index in the combine pass</td></tr>
         <tr><td>8.3 Max simulation</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td class="tc">O(1)</td><td>One min + one subtraction per index</td></tr>
         <tr><td>8.4 Boolean coverage</td><td class="tc">O(t·d)</td><td class="sc">O(t·d)</td><td class="tc">O(d)</td><td>Set union per step; coverage check per split point reads two sets</td></tr>
@@ -342,15 +342,15 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
     <div class="co-pitfall">
       <div class="co-pitfall-title">Pitfalls — bugs this pattern invites</div>
 
-      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Off-by-one on the sentinel — forgetting <code>prefix[0] = 0</code> and why it exists.</strong> The sentinel is not a convenience; it is what makes the formula <code>prefix[j+1] − prefix[i]</code> work uniformly when <code>i = 0</code>. Without it, querying the range [0, j] requires a special case (<code>prefix[j]</code> with no subtraction) — a guaranteed source of bugs. Always allocate the prefix array at length <code>n+1</code>, not <code>n</code>, and initialize index 0 to the identity.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Off-by-one on the sentinel — forgetting <code>prefix[0] = 0</code> and why it exists.</strong> The sentinel is not a convenience; it is what makes the formula <code>prefix[right+1] − prefix[left]</code> work uniformly when <code>left = 0</code>. Without it, querying the range [0, right] requires a special case (<code>prefix[right]</code> with no subtraction) — a guaranteed source of bugs. Always allocate the prefix array at length <code>n+1</code>, not <code>n</code>, and initialize index 0 to the identity.</span></div>
 
-      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Wrong index formula: <code>prefix[j] − prefix[i]</code> instead of <code>prefix[j+1] − prefix[i]</code>.</strong> When the prefix array has length n+1 with a sentinel, <code>prefix[k]</code> stores the aggregate of <code>nums[0..k-1]</code>. So "sum of nums[i..j] inclusive" is <code>prefix[j+1] − prefix[i]</code>. Using <code>prefix[j]</code> silently drops <code>nums[j]</code> from every range result. Derive the formula from the invariant, not from memory.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Wrong index formula: <code>prefix[right] − prefix[left]</code> instead of <code>prefix[right+1] − prefix[left]</code>.</strong> When the prefix array has length n+1 with a sentinel, <code>prefix[k]</code> stores the aggregate of <code>nums[0..k-1]</code>. So "sum of nums[left..right] inclusive" is <code>prefix[right+1] − prefix[left]</code>. Using <code>prefix[right]</code> silently drops <code>nums[right]</code> from every range result. Derive the formula from the invariant, not from memory.</span></div>
 
       <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Assuming the pattern requires numeric data.</strong> The payload can be any monoid — booleans (OR), sets (union), strings (concatenation), even sorted lists. The two-pass shape does not care what "accumulate" means, only that it is associative and has an identity. A boolean prefix-OR array is as valid as a numeric prefix-sum array. When a coverage or membership problem feels quadratic, ask: "can I express the left-side aggregate as an accumulation?"</span></div>
 
       <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Materializing both arrays when one can be eliminated (space optimization).</strong> For the "combine at each index" variants (8.2, 8.3), the suffix array can be computed on a second pass while applying the combine immediately — no need to store it separately. This halves the allocation without changing time complexity. Only matters if the problem constrains space; don't premature-optimize the code's clarity before the algorithm is correct.</span></div>
 
-      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Using the pattern on a mutable array.</strong> Any update to <code>nums[i]</code> invalidates every prefix cell from index <code>i+1</code> onward — an O(n) repair. For arrays that change between queries, a prefix array is wrong; use a Fenwick tree (O(log n) update and query) instead.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Using the pattern on a mutable array.</strong> Any update to <code>nums[pos]</code> invalidates every prefix cell from index <code>pos+1</code> onward — an O(n) repair. For arrays that change between queries, a prefix array is wrong; use a Fenwick tree (O(log n) update and query) instead.</span></div>
     </div>
   </section>
 
@@ -367,7 +367,7 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
         <tr><td>All zeros (product variant)</td><td>Product except self is all-zeros (each cell = 0 × 0 … × 0)</td><td>Does not break the formula — no division involved</td></tr>
         <tr><td>One zero in array (product variant)</td><td>All result cells are 0 except the zero's own position, which is the product of all non-zeros</td><td>Prefix product will be 0 after the zero; suffix product will be 0 before it</td></tr>
         <tr><td>Flat terrain (trapped water)</td><td>Zero water everywhere — <code>min(leftMax, rightMax) − height</code> = 0 at every bar</td><td>Clamping: result must be <code>max(0, ...)</code> or the formula never goes negative here anyway</td></tr>
-        <tr><td>Range query where i = j</td><td>Sum of a single element: <code>prefix[i+1] − prefix[i] = nums[i]</code></td><td>Formula is uniform — no special case needed</td></tr>
+        <tr><td>Range query where left = right</td><td>Sum of a single element: <code>prefix[left+1] − prefix[left] = nums[left]</code></td><td>Formula is uniform — no special case needed</td></tr>
         <tr><td>Coverage with no valid split (boolean variant)</td><td>Return −1 or nil; all split points must be checked and none qualifies</td><td>Sentinel sets are empty; the scan loop finds no valid index</td></tr>
       </tbody>
     </table>
@@ -381,9 +381,9 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
     <table class="t-versus">
       <thead><tr><th>You see</th><th>Variant</th><th>Payload</th><th>Identity</th><th>Combine step</th></tr></thead>
       <tbody>
-        <tr><td>"range sum" / "multiple queries"</td><td>8.1</td><td>sum</td><td>0</td><td><code>prefix[j+1] − prefix[i]</code></td></tr>
-        <tr><td>"product except self" / "no division"</td><td>8.2</td><td>product</td><td>1</td><td><code>prefix[i] × suffix[i+1]</code></td></tr>
-        <tr><td>"water trapped" / "per-bar capacity"</td><td>8.3</td><td>max</td><td>0</td><td><code>min(prefix[i], suffix[i]) − height[i]</code></td></tr>
+        <tr><td>"range sum" / "multiple queries"</td><td>8.1</td><td>sum</td><td>0</td><td><code>prefix[right+1] − prefix[left]</code></td></tr>
+        <tr><td>"product except self" / "no division"</td><td>8.2</td><td>product</td><td>1</td><td><code>prefix[pos] × suffix[pos+1]</code></td></tr>
+        <tr><td>"water trapped" / "per-bar capacity"</td><td>8.3</td><td>max</td><td>0</td><td><code>min(prefix[pos], suffix[pos]) − height[pos]</code></td></tr>
         <tr><td>"coverage split" / "handoff valid"</td><td>8.4</td><td>set / bool</td><td>∅ / false</td><td>union covers all days AND split condition holds</td></tr>
         <tr><td>array mutates between queries</td><td>Not this pattern</td><td>—</td><td>—</td><td>Use Fenwick tree (O(log n) update)</td></tr>
       </tbody>
@@ -421,12 +421,12 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
       <a class="xref-card" href="../../walkthroughs/LC560_master.html">
         <span class="ref-file">walkthroughs/LC560_master.html</span>
         <span class="ref-title">LC 560 — Subarray Sum Equals K (Medium)</span>
-        <span class="ref-desc">Extension of Variant 8.1: adds a frequency map to the prefix sum. The algebraic flip — prefix[i] = currentPrefix − k — converts pair-counting into a single O(1) complement lookup per step. Theory Decoder explains the sentinel, lookup-before-update order, and why a Set is wrong here.</span>
+        <span class="ref-desc">Extension of Variant 8.1: adds a frequency map to the prefix sum. The algebraic flip — prefix[left] = currentPrefix − k — converts pair-counting into a single O(1) complement lookup per step. Theory Decoder explains the sentinel, lookup-before-update order, and why a Set is wrong here.</span>
       </a>
       <a class="xref-card" href="../../walkthroughs/LC238_master.html">
         <span class="ref-file">walkthroughs/LC238_master.html</span>
         <span class="ref-title">LC 238 — Product of Array Except Self (Medium)</span>
-        <span class="ref-desc">Primary walkthrough for Variant 8.2 (prefix × suffix product). Demonstrates why division is disqualified, how the multiplicative identity sentinel (1) handles the endpoints, and the O(1) space optimization using a rolling suffix variable. Theory Decoder maps the structural exclusion of position i back to §8.2.</span>
+        <span class="ref-desc">Primary walkthrough for Variant 8.2 (prefix × suffix product). Demonstrates why division is disqualified, how the multiplicative identity sentinel (1) handles the endpoints, and the O(1) space optimization using a rolling suffix variable. Theory Decoder maps the structural exclusion of position pos back to §8.2.</span>
       </a>
       <a class="xref-card" href="../../walkthroughs/LC42_master.html">
         <span class="ref-file">walkthroughs/LC42_master.html</span>
@@ -448,9 +448,9 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
     <h2>14 &nbsp; Solo Problem — no solution on this page</h2>
     <div class="solo-box">
       <div class="solo-banner">Solo problem — walkthrough available at <a href="../../walkthroughs/LC560_master.html">LC560_master.html</a></div>
-      <p><strong>LC 560 — Subarray Sum Equals K (Medium).</strong> Given an array of integers and an integer <code>k</code>, return the total number of subarrays whose sum equals <code>k</code>. The array may contain negative numbers. This problem combines Variant 8.1 (prefix sum) with a hash map to count prefix-sum occurrences — the natural next step after LC 303. Build the prefix sum mentally first, then ask: "what does <code>prefix[j] − prefix[i] = k</code> tell me about what to store in the map?"</p>
+      <p><strong>LC 560 — Subarray Sum Equals K (Medium).</strong> Given an array of integers and an integer <code>k</code>, return the total number of subarrays whose sum equals <code>k</code>. The array may contain negative numbers. This problem combines Variant 8.1 (prefix sum) with a hash map to count prefix-sum occurrences — the natural next step after LC 303. Build the prefix sum mentally first, then ask: "what does <code>prefix[right] − prefix[left] = k</code> tell me about what to store in the map?"</p>
       <ul class="checklist">
-        <li>Can you express "subarray sum from i to j" as a difference of two prefix values?</li>
+        <li>Can you express "subarray sum from left to right" as a difference of two prefix values?</li>
         <li>What does the hash map store, and what does each lookup mean?</li>
         <li>Why is the sentinel <code>prefix[0] = 0</code> (count 1 in the map) essential for subarrays starting at index 0?</li>
         <li>Why does the approach still work when the array contains negative numbers, unlike a sliding window?</li>
@@ -462,7 +462,7 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
       </details>
       <details class="hint">
         <summary>Hint 2 — pattern</summary>
-        <p>You want to count pairs (i, j) where <code>prefix[j] − prefix[i] = k</code>. Rearranging: you want <code>prefix[i] = prefix[j] − k</code>. As you build the prefix sum left to right, keep a frequency map of prefix values seen so far.</p>
+        <p>You want to count pairs (left, right) where <code>prefix[right] − prefix[left] = k</code>. Rearranging: you want <code>prefix[left] = prefix[right] − k</code>. As you build the prefix sum left to right, keep a frequency map of prefix values seen so far.</p>
       </details>
       <details class="hint">
         <summary>Hint 3 — sentinel</summary>
