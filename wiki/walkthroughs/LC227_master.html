@@ -204,12 +204,12 @@
       <thead><tr><th>Structure</th><th>Holds</th><th>Why this and not weaker/stronger</th></tr></thead>
       <tbody>
         <tr><td><code>stack: [Int]</code></td><td>Deferred operands waiting to be summed</td><td>An array with <code>append</code> and <code>removeLast</code> — both O(1) amortized. A simple Int accumulator would lose track of which operands are still pending. A deque is unnecessary (only the top is touched for × and ÷).</td></tr>
-        <tr><td><code>num: Int</code></td><td>Running accumulation of the current multi-digit number</td><td>Rebuilt digit by digit with <code>num = num * 10 + digit</code>. Reset to 0 on each commit. A String buffer would require an Int conversion at each commit — the arithmetic accumulation is one instruction per digit.</td></tr>
+        <tr><td><code>currentNumber: Int</code></td><td>Running accumulation of the current multi-digit number</td><td>Rebuilt digit by digit with <code>currentNumber = currentNumber * 10 + digit</code>. Reset to 0 on each commit. A String buffer would require an Int conversion at each commit — the arithmetic accumulation is one instruction per digit.</td></tr>
         <tr><td><code>lastOp: Character</code></td><td>The most recently seen operator, initially <code>'+'</code></td><td>Initialized to <code>'+'</code> so the first number is treated as positively pushed — no special case for the very first token. A separate first-token flag would double the branch count.</td></tr>
-        <tr><td><code>chars: [Character]</code></td><td>Random-access view of the input string</td><td>Converting to <code>[Character]</code> first gives O(1) index access for the last-index check (<code>i == chars.count - 1</code>). Iterating a Swift String directly doesn't give cheap index arithmetic.</td></tr>
+        <tr><td><code>characters: [Character]</code></td><td>Random-access view of the input string</td><td>Converting to <code>[Character]</code> first gives O(1) index access for the last-index check (<code>index == characters.count - 1</code>). Iterating a Swift String directly doesn't give cheap index arithmetic.</td></tr>
       </tbody>
     </table>
-    <div class="co-insight"><strong>Why <code>lastOp = '+'</code> at initialization.</strong> The first number has no operator before it. By pretending the expression is prefixed with an implicit <code>+</code>, the commit logic for the first number follows the same branch as all subsequent additions — push <code>+num</code>. This eliminates a special-case branch for the first token and makes the loop uniform from the very first character.</div>
+    <div class="co-insight"><strong>Why <code>lastOp = '+'</code> at initialization.</strong> The first number has no operator before it. By pretending the expression is prefixed with an implicit <code>+</code>, the commit logic for the first number follows the same branch as all subsequent additions — push <code>+currentNumber</code>. This eliminates a special-case branch for the first token and makes the loop uniform from the very first character.</div>
   </section>
 
   <hr class="wiki-hr">
@@ -277,32 +277,40 @@ i=4  c='2'  digit → num=2
       </div>
       <div class="block-body">
         <div class="approach-box">
+          <div class="approach-title">Key trick — multi-digit accumulation</div>
+          The input is a string, so <code>"142+2"</code> arrives as the array <code>['1','4','2','+','2']</code> — individual characters, not the integer <code>142</code>. We rebuild each number one character at a time: on each digit character, shift what we already have left by one decimal place and append the new digit. So for <code>142</code>:<br><br>
+          <code>currentNumber = 0 * 10 + 1 = 1</code><br>
+          <code>currentNumber = 1 * 10 + 4 = 14</code><br>
+          <code>currentNumber = 14 * 10 + 2 = 142</code><br><br>
+          The moment we hit a non-digit (the <code>+</code> operator, or the last index), <code>currentNumber</code> holds the complete integer and we commit it to the stack. Then we reset <code>currentNumber = 0</code> and start accumulating the next number from scratch.
+        </div>
+        <div class="approach-box">
           <div class="approach-title">Plan</div>
           Scan the expression left to right with three variables: a running number accumulator, a deferred lastOp character, and an operand stack. At each operator or the final index, apply lastOp to commit the current number — push for +/−, modify the stack top for ×/÷. Sum the stack for the result.
         </div>
 
         <pre class="swift"><span class="kw">func</span> <span class="fn">calculate</span>(<span class="kw">_</span> s: <span class="tp">String</span>) -&gt; <span class="tp">Int</span> {
-    <span class="kw">let</span> chars = <span class="tp">Array</span>(s)
+    <span class="kw">let</span> characters = <span class="tp">Array</span>(s)
     <span class="kw">var</span> stack: [<span class="tp">Int</span>] = []
-    <span class="kw">var</span> num = <span class="nm">0</span>
+    <span class="kw">var</span> currentNumber = <span class="nm">0</span>
     <span class="kw">var</span> lastOp: <span class="tp">Character</span> = <span class="st">"+"</span>
 
-    <span class="kw">for</span> i <span class="kw">in</span> <span class="nm">0</span>..&lt;chars.count {
-        <span class="kw">let</span> c = chars[i]
-        <span class="kw">if</span> <span class="kw">let</span> d = c.wholeNumberValue {
-            num = num * <span class="nm">10</span> + d
+    <span class="kw">for</span> index <span class="kw">in</span> <span class="nm">0</span>..&lt;characters.count {
+        <span class="kw">let</span> character = characters[index]
+        <span class="kw">if</span> <span class="kw">let</span> digit = character.wholeNumberValue {
+            currentNumber = currentNumber * <span class="nm">10</span> + digit
         }
         <span class="cm">// Commit on an operator, or at the final character (the flush).</span>
-        <span class="kw">if</span> (!c.isNumber &amp;&amp; c != <span class="st">" "</span>) || i == chars.count - <span class="nm">1</span> {
+        <span class="kw">if</span> (!character.isNumber &amp;&amp; character != <span class="st">" "</span>) || index == characters.count - <span class="nm">1</span> {
             <span class="kw">switch</span> lastOp {
-            <span class="kw">case</span> <span class="st">"+"</span>: stack.append(num)
-            <span class="kw">case</span> <span class="st">"-"</span>: stack.append(-num)
-            <span class="kw">case</span> <span class="st">"*"</span>: stack.append(stack.removeLast() * num)
-            <span class="kw">case</span> <span class="st">"/"</span>: stack.append(stack.removeLast() / num) <span class="cm">// truncates toward zero</span>
+            <span class="kw">case</span> <span class="st">"+"</span>: stack.append(currentNumber)
+            <span class="kw">case</span> <span class="st">"-"</span>: stack.append(-currentNumber)
+            <span class="kw">case</span> <span class="st">"*"</span>: stack.append(stack.removeLast() * currentNumber)
+            <span class="kw">case</span> <span class="st">"/"</span>: stack.append(stack.removeLast() / currentNumber) <span class="cm">// truncates toward zero</span>
             <span class="kw">default</span>: <span class="kw">break</span>
             }
-            lastOp = c
-            num = <span class="nm">0</span>
+            lastOp = character
+            currentNumber = <span class="nm">0</span>
         }
     }
     <span class="kw">return</span> stack.reduce(<span class="nm">0</span>, +)
@@ -414,11 +422,11 @@ RESULT
       <thead><tr><th>What you asked / planned</th><th>What it became</th></tr></thead>
       <tbody>
         <tr><td>"No parentheses — one scan, one stack"</td><td>No recursive calls, no nested context stack — a single <code>for</code> loop with one operand stack</td></tr>
-        <tr><td>"Non-negative integers — digit accumulation"</td><td><code>if let d = c.wholeNumberValue { num = num * 10 + d }</code></td></tr>
+        <tr><td>"Non-negative integers — digit accumulation"</td><td><code>if let digit = character.wholeNumberValue { currentNumber = currentNumber * 10 + digit }</code></td></tr>
         <tr><td>"Initialized lastOp to '+' — no special first-token branch"</td><td><code>var lastOp: Character = "+"</code></td></tr>
-        <tr><td>"Defer +/− by pushing"</td><td><code>case "+": stack.append(num)</code> · <code>case "-": stack.append(-num)</code></td></tr>
-        <tr><td>"Apply ×/÷ to the stack top immediately"</td><td><code>case "*": stack.append(stack.removeLast() * num)</code> · similarly for <code>"/"</code></td></tr>
-        <tr><td>"Commit on operator OR last index (the flush)"</td><td><code>if (!c.isNumber &amp;&amp; c != " ") || i == chars.count - 1</code></td></tr>
+        <tr><td>"Defer +/− by pushing"</td><td><code>case "+": stack.append(currentNumber)</code> · <code>case "-": stack.append(-currentNumber)</code></td></tr>
+        <tr><td>"Apply ×/÷ to the stack top immediately"</td><td><code>case "*": stack.append(stack.removeLast() * currentNumber)</code> · similarly for <code>"/"</code></td></tr>
+        <tr><td>"Commit on operator OR last index (the flush)"</td><td><code>if (!character.isNumber &amp;&amp; character != " ") || index == characters.count - 1</code></td></tr>
         <tr><td>"Spaces skipped"</td><td><code>c != " "</code> in commit condition — spaces fail the operator check and aren't the last index typically; they pass through both branches without action</td></tr>
         <tr><td>"Division truncates toward zero"</td><td><code>stack.removeLast() / num</code> — Swift Int <code>/</code> truncates toward zero natively</td></tr>
         <tr><td>"Sum the stack for the final answer"</td><td><code>return stack.reduce(0, +)</code></td></tr>
@@ -480,7 +488,7 @@ RESULT
       <tbody>
         <tr><td>Stack-based expression parse</td><td>Operand stack accumulates deferred additions; × and ÷ are applied to the top immediately at each boundary.</td><td><a href="../theory/strings/string_parsing_deep_dive_master.html#v-stack">theory §8.2</a></td></tr>
         <tr><td>Deferred operator</td><td><code>lastOp: Character = "+"</code> — carries the previous operator across digit accumulation until the next boundary.</td><td><a href="../theory/strings/string_parsing_deep_dive_master.html#v-stack">theory §8.2</a></td></tr>
-        <tr><td>Running number accumulation</td><td><code>num = num * 10 + digit</code> — rebuilds each multi-digit integer one character at a time.</td><td><a href="../theory/strings/string_parsing_deep_dive_master.html#terminology">theory §3</a></td></tr>
+        <tr><td>Running number accumulation</td><td><code>currentNumber = currentNumber * 10 + digit</code> — rebuilds each multi-digit integer one character at a time.</td><td><a href="../theory/strings/string_parsing_deep_dive_master.html#terminology">theory §3</a></td></tr>
         <tr><td>Final flush</td><td><code>i == chars.count - 1</code> in the commit condition — fires the commit for the last operand, which has no trailing operator.</td><td><a href="../theory/strings/string_parsing_deep_dive_master.html#v-stack">theory §8.2</a></td></tr>
         <tr><td>Sum-the-stack result</td><td><code>stack.reduce(0, +)</code> — all deferred +/− operands combine here; × and ÷ operands were already folded into the stack top.</td><td><a href="../theory/strings/string_parsing_deep_dive_master.html#v-stack">theory §8.2</a></td></tr>
       </tbody>
