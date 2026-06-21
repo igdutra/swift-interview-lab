@@ -16,7 +16,7 @@ cd wiki && python3 -m http.server 8080
 
 | Doc | Governs |
 |---|---|
-| `THEORY_MASTERFILE_STANDARD.md` | The 15 required sections of a theory page |
+| `THEORY_MASTERFILE_STANDARD.md` | The 15 required sections of a theory page (see the **Hub overview exemption** at its end — hub `*overview*` files need not follow the strict order) |
 | `WALKTHROUGH_MASTERFILE_STANDARD.md` | The 16 required sections of a walkthrough page |
 | `WIKI_CSS_STYLE_RESEARCH.md` | The design system — all classes live in `_shared/wiki.css` |
 

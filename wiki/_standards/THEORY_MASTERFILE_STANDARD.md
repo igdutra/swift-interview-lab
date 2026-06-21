@@ -246,6 +246,25 @@ provided, here's why" treatment is the model.
 > *Handled **well** in graphs (§13) and design (§4); **not at all** in DP,
 > greedy, and sliding window.*
 
+## Hub overview exemption
+
+A file named `*overview*` that sits at the top of a hub (e.g.
+`theory/arrays/arrays_hashing_overview_master.html`) **may** follow the
+15-section order above but is **not required to**. Its job is different from a
+single-technique deep dive: it is the hub's **decision layer and Swift
+toolbox** — "given a new problem, which of these tools, and why not the
+others," plus the language mechanics that implement them. That naturally
+reorders and merges the standard sections (a unified decision diagram replaces
+the separate Recognition-Signals + Mental-Model + Variant-Catalog sections; a
+real-Swift skeleton set replaces the Pseudocode + Iterative-Only + Swift
+sections; a closing cheat sheet absorbs Complexity + Pitfalls).
+
+The exemption is about **section structure and ordering only**. Everything else
+still holds: the closed class vocabulary (§ `WIKI_CSS_STYLE_RESEARCH.md`), no
+inline `<style>`, the shared CSS, one `co-idea` per page, and no duplicated
+content across sections. An overview page must still read as one coherent
+document, not a checklist.
+
 ## Explicitly excluded from the standard
 
 - **Embedded full walkthrough solutions.** Design's §3 and sliding window's

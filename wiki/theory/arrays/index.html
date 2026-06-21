@@ -18,11 +18,11 @@
     <div class="page-meta">
       <span>Theory Hub</span>
       <span>·</span>
-      <span>Hash Map · Two Pointers · Sliding Window</span>
+      <span>Hash Map · Two Pointers · Sliding Window · Prefix/Suffix</span>
     </div>
 
     <div class="lead">
-      <p>The first and most fundamental interview block: three single-pass O(n) tools that solve the majority of array and string problems. Hash maps trade space for instant lookup; two pointers exploit sorted order to converge from both ends; sliding windows maintain an incremental summary of a moving range. Together they cover nearly every "find a pair / find a subarray" problem you will see.</p>
+      <p>The first and most fundamental interview block: a handful of single-pass O(n) tools that solve the majority of array and string problems. Hash maps trade space for instant lookup; two pointers exploit sorted order to converge from both ends; sliding windows maintain an incremental summary of a moving range; prefix/suffix precomputation stores both sides of every index for O(1) queries. The <a href="arrays_hashing_overview_master.html">Overview</a> is the decision layer — how to pick the right tool and rule out the wrong ones — plus the Swift toolbox and cheat sheet; the deep dives below drill each technique against its problems.</p>
     </div>
 
     <div class="hub-section-title">Overview</div>
@@ -32,9 +32,9 @@
         <span class="ref-file">theory/arrays/arrays_hashing_overview_master.html</span>
         <span class="ref-title">Arrays &amp; Hashing Overview</span>
         <span class="ref-meta">
-          <span class="ref-topics">Hash Map · Two Pointers · Sliding Window</span>
+          <span class="ref-topics">Decision Guide · Swift Toolbox · Cheat Sheet</span>
         </span>
-        <span class="ref-desc">The decision layer — what unites the three tools and how to pick between them when a new problem lands.</span>
+        <span class="ref-desc">The decision layer — when to use each pattern (and why not the others), the four standard loop skeletons, the Swift tools toolbox, and the ultimate cheat sheet. The single canonical home for picking between the tools.</span>
       </a>
 
     </div>
@@ -80,97 +80,18 @@
 
     </div>
 
-    <div class="hub-section-title">Swift Code Patterns</div>
-
-    <div class="hub-prose">
-
-      <h3 class="hub-pattern-title">Array Slicing</h3>
-      <pre class="swift"><span class="kw">let</span> nums = [<span class="nm">1</span>, <span class="nm">2</span>, <span class="nm">3</span>, <span class="nm">4</span>, <span class="nm">5</span>]
-
-nums[..&lt;<span class="nm">3</span>]      <span class="cm">// [1, 2, 3]        — from 0 up to (not including) 3</span>
-nums[<span class="nm">2</span>...]      <span class="cm">// [3, 4, 5]        — from index 2 to end</span>
-nums[<span class="nm">1</span>..&lt;<span class="nm">3</span>]    <span class="cm">// [2, 3]           — index 1 up to (not including) 3</span>
-nums[<span class="nm">1</span>...<span class="nm">3</span>]    <span class="cm">// [2, 3, 4]        — index 1 through 3 inclusive</span>
-nums[...]       <span class="cm">// [1, 2, 3, 4, 5]  — full slice</span></pre>
-      <p class="hub-pattern-note">Type is <code>ArraySlice&lt;Int&gt;</code> — a zero-copy view into the original buffer. Works with any <code>Sequence</code> method (<code>reduce</code>, <code>map</code>, <code>filter</code>…).</p>
-
-      <h3 class="hub-pattern-title">reduce — two forms</h3>
-      <pre class="swift"><span class="cm">// Form 1 — fold into a single value</span>
-nums[..&lt;<span class="nm">3</span>].<span class="fn">reduce</span>(<span class="nm">1</span>, *)      <span class="cm">// 1 * 2 * 3 = 6</span>
-nums.<span class="fn">reduce</span>(<span class="nm">0</span>, +)             <span class="cm">// 15  — sum of all</span>
-nums.<span class="fn">reduce</span>(<span class="tp">Int</span>.min, max)     <span class="cm">// 5   — running max; operator passed directly</span>
-
-<span class="cm">// Form 2 — fold into a growing collection  (reduce(into:) mutates in place, no copies)</span>
-nums.<span class="fn">dropLast</span>().<span class="fn">reduce</span>(into: [<span class="nm">1</span>]) { acc, value <span class="kw">in</span>
-    acc.<span class="fn">append</span>(acc.last! * value)
-}
-<span class="cm">// [1, 2, 3, 4] → [1, 1, 2, 6]   (prefix products)</span></pre>
-
-      <h3 class="hub-pattern-title">zip + .map(*) — combine two parallel arrays</h3>
-      <pre class="swift"><span class="kw">let</span> prefixes = [<span class="nm">1</span>,  <span class="nm">1</span>,  <span class="nm">2</span>,  <span class="nm">6</span>]
-<span class="kw">let</span> suffixes  = [<span class="nm">24</span>, <span class="nm">12</span>, <span class="nm">4</span>,  <span class="nm">1</span>]
-
-<span class="fn">zip</span>(prefixes, suffixes).<span class="fn">map</span>(*)   <span class="cm">// [24, 12, 8, 6]</span>
-<span class="cm">// same as .map { a, b in a * b } — * is just a (Int, Int) -> Int function</span></pre>
-
-      <h3 class="hub-pattern-title">Sentinel — two ways to prepend it (prefix)</h3>
-      <pre class="swift"><span class="cm">// Explicit: allocate n+1 slots, sentinel lands at index 0, loop fills index+1</span>
-<span class="kw">var</span> prefix = [<span class="tp">Int</span>](repeating: <span class="nm">0</span>, count: nums.count + <span class="nm">1</span>)
-<span class="kw">for</span> index <span class="kw">in</span> <span class="nm">0</span> ..&lt; nums.count {
-    prefix[index + <span class="nm">1</span>] = prefix[index] + nums[index]
-}
-<span class="cm">// nums=[-2,0,3] → prefix=[0,-2,-2,1]  ← 0 is the sentinel at index 0</span>
-
-<span class="cm">// Idiomatic: [0] IS the starting array — sentinel is already there before reduce runs</span>
-<span class="kw">let</span> prefix = nums.<span class="fn">reduce</span>(into: [<span class="nm">0</span>]) { acc, value <span class="kw">in</span>
-    acc.<span class="fn">append</span>(acc.last! + value)
-}
-<span class="cm">// same result: [0, -2, -2, 1]</span></pre>
-      <p class="hub-pattern-note">Both produce length n+1 with the sentinel shoved in front. The explicit version pre-allocates and uses <code>index+1</code> arithmetic. The idiomatic version starts with <code>[0]</code> and grows via <code>append</code> — same structure, no index math.</p>
-
-      <h3 class="hub-pattern-title">Sentinel — suffix (identity at the end)</h3>
-      <pre class="swift"><span class="cm">// Explicit: sentinel at index n, loop fills backwards</span>
-<span class="kw">var</span> suffix = [<span class="tp">Int</span>](repeating: <span class="nm">1</span>, count: nums.count + <span class="nm">1</span>)
-<span class="kw">for</span> index <span class="kw">in</span> <span class="kw">stride</span>(from: nums.count - <span class="nm">1</span>, through: <span class="nm">0</span>, by: -<span class="nm">1</span>) {
-    suffix[index] = suffix[index + <span class="nm">1</span>] * nums[index]
-}
-<span class="cm">// nums=[1,2,3,4] → suffix=[24,12,4,1,1]  ← trailing 1 is the sentinel</span>
-
-<span class="cm">// Idiomatic: build right-to-left, flip back — [1] seeds the right end</span>
-<span class="kw">let</span> suffix = nums.<span class="fn">dropFirst</span>().<span class="fn">reversed</span>().<span class="fn">reduce</span>(into: [<span class="nm">1</span>]) { acc, value <span class="kw">in</span>
-    acc.<span class="fn">append</span>(acc.last! * value)
-}.<span class="fn">reversed</span>()
-<span class="cm">// same result: [24, 12, 4, 1]</span></pre>
-      <p class="hub-pattern-note">Suffix sentinel ends up at the back. The idiomatic version must reverse twice: once to feed <code>reduce</code> right-to-left, once to restore left-to-right order.</p>
-
-      <h3 class="hub-pattern-title">When to drop — the one question</h3>
-      <pre class="swift"><span class="cm">// ASK: should position i be ABSENT from its own accumulated value?</span>
-
-<span class="cm">// YES (product-except-self) → drop the boundary, sentinel is the identity</span>
-nums.<span class="fn">dropLast</span>().<span class="fn">reduce</span>(into: [<span class="nm">1</span>]) { ... }   <span class="cm">// prefix: drop rightmost</span>
-nums.<span class="fn">dropFirst</span>().<span class="fn">reversed</span>()...              <span class="cm">// suffix: drop leftmost</span>
-<span class="cm">// exclusion is STRUCTURAL — i never enters its own accumulation</span>
-
-<span class="cm">// NO (range sum LC303) → full array, no drop, sentinel just prepended</span>
-nums.<span class="fn">reduce</span>(into: [<span class="nm">0</span>]) { ... }              <span class="cm">// every element is included</span>
-<span class="cm">// exclusion happens AT QUERY TIME: prefix[right+1] - prefix[left]</span></pre>
-      <p class="hub-pattern-note">If i must be absent → exclude at build time with <code>drop</code>. If i is included → no drop, and the query formula handles the boundary.</p>
-
-      <h3 class="hub-pattern-title">Full prefix/suffix pipeline (idiomatic O(n))</h3>
-      <pre class="swift"><span class="cm">// nums = [1, 2, 3, 4]</span>
-<span class="kw">let</span> prefixes = nums.<span class="fn">dropLast</span>().<span class="fn">reduce</span>(into: [<span class="nm">1</span>]) { acc, value <span class="kw">in</span>
-    acc.<span class="fn">append</span>(acc.last! * value)
-}
-<span class="cm">// → [1, 1, 2, 6]   (sentinel [1] + products of everything LEFT of each index)</span>
-
-<span class="kw">let</span> suffixes = nums.<span class="fn">dropFirst</span>().<span class="fn">reversed</span>().<span class="fn">reduce</span>(into: [<span class="nm">1</span>]) { acc, value <span class="kw">in</span>
-    acc.<span class="fn">append</span>(acc.last! * value)
-}.<span class="fn">reversed</span>()
-<span class="cm">// → [24, 12, 4, 1]  (products of everything RIGHT of each index + sentinel [1])</span>
-
-<span class="fn">zip</span>(prefixes, suffixes).<span class="fn">map</span>(*)   <span class="cm">// [24, 12, 8, 6]  ✓</span></pre>
-
+    <div class="hub-section-title">Decision Guide, Skeletons &amp; Cheat Sheet</div>
+    <div class="ref-grid">
+      <a class="xref-card" href="arrays_hashing_overview_master.html#when">
+        <span class="ref-file">theory/arrays/arrays_hashing_overview_master.html</span>
+        <span class="ref-title">When to Use Each Pattern · The Toolbox · Ultimate Cheat Sheet</span>
+        <span class="ref-meta">
+          <span class="ref-topics">Decision Guide · Swift Toolbox · Cheat Sheet</span>
+        </span>
+        <span class="ref-desc">The decision layer now lives in the Overview: the three questions that pick the pattern, the routing diagram, the five wrong-tool tables (why <em>not</em> the other tool), the four standard loop skeletons, the Swift tools toolbox (slicing, <code>ClosedRange</code> window-tracking, sentinels…), and the night-before cheat sheet.</span>
+      </a>
     </div>
+
 
     <div class="page-footer">
       Study Wiki · Arrays &amp; Hashing · Theory Hub
