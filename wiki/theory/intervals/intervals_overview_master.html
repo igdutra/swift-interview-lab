@@ -19,6 +19,7 @@
     <div class="toc-title toc-cat-theory">Theory · Contents</div>
     <a href="#lead"          class="toc-link"><span class="toc-num">1</span> Definition</a>
     <a href="#signals"       class="toc-link"><span class="toc-num">2</span> Recognition Signals</a>
+    <a href="#sort-key"      class="toc-link"><span class="toc-num">2.5</span> Sort Key as Signal</a>
     <a href="#terminology"   class="toc-link"><span class="toc-num">3</span> Terminology Decoder</a>
     <a href="#mental-model"  class="toc-link"><span class="toc-num">4</span> Mental Model</a>
     <a href="#pseudocode"    class="toc-link"><span class="toc-num">5</span> Pseudocode Primer</a>
@@ -88,6 +89,37 @@
       </tbody>
     </table>
     <div class="co-when"><strong>The disqualifier:</strong> if the problem asks about isolated point membership with no notion of ranges overlapping or covering each other, the interval machinery is overkill. Reach for a hash set or a sort + binary search instead.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2.5 Sort key as signal -->
+  <section id="sort-key">
+    <h2>2.5 &nbsp; Sort Key as Signal — sweep vs. greedy</h2>
+    <p>The sort key the problem forces on you is one of the earliest hints about which algorithm shape you need. Two interval problems side by side make this concrete:</p>
+
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">LC56 Merge Intervals (sweep + accumulate) vs LC435 Non-overlapping Intervals (greedy)</span></div>
+<pre class="pseudo"><span class="pc">LC56 — Merge Intervals · sort by START · sweep + accumulate</span>
+sort by start
+for each interval:
+    if overlaps last result → MERGE (extend end)     <span class="pc">← no rejection, just transform</span>
+    else → APPEND as new entry                       <span class="pc">← still included, just separate</span>
+
+<span class="pc">LC435 — Non-overlapping Intervals · sort by END · greedy keep/reject</span>
+sort by END                                          <span class="pc">← different sort key is a hint</span>
+for each interval:
+    if start ≥ last kept end → KEEP IT               <span class="pc">← active accept</span>
+    else → REJECT IT (remove/skip)                   <span class="pc">← active reject ← this is the greedy choice</span></pre>
+
+    <div class="co-insight"><strong>The pattern:</strong> in a sweep problem every interval ends up in the output — it either gets merged into the previous one or appended as its own entry. In a greedy problem some intervals are actively rejected; the greedy choice (keep the interval that ends earliest) is what makes that rejection optimal.</div>
+
+    <p>The sort key reinforces this split:</p>
+    <ul>
+      <li><strong>Sort by start</strong> → usually sweep (you care about where things begin, so you can detect and fold overlaps left to right)</li>
+      <li><strong>Sort by end</strong> → usually greedy (you're making keep/reject decisions optimised around finishing early, maximising room for future intervals)</li>
+    </ul>
+
+    <div class="co-note"><strong>Quick self-check:</strong> after you sort, ask "will every interval contribute to my output?" If yes → sweep. If some might be thrown away → greedy. The sort key and this question together almost always resolve the ambiguity before you write a single line of code.</div>
   </section>
 
   <hr class="wiki-hr">
