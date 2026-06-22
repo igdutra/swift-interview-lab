@@ -252,6 +252,15 @@ const WIKI_PAGES = [
   },
   {
     cat: "walkthrough",
+    path: "walkthroughs/LC394_master.html",
+    nav: "LC 394",
+    title: "LC 394 — Decode String",
+    topics: ["Stack", "Strings", "Parsing"],
+    difficulty: "M",
+    blurb: "Stack Skeleton 2 — push (count, string) context on [, pop-repeat-attach on ]. The canonical nested-structure decode: pause the outer level, build the inner, fold back. Full Swift + dry run.",
+  },
+  {
+    cat: "walkthrough",
     path: "walkthroughs/LC415_master.html",
     nav: "LC 415",
     title: "LC 415 — Add Strings",

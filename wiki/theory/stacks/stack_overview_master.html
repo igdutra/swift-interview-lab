@@ -49,14 +49,15 @@
       <div class="infobox-row"><div class="infobox-k">Time</div><div class="infobox-v">O(n) — each element pushed and popped at most once</div></div>
       <div class="infobox-row"><div class="infobox-k">Space</div><div class="infobox-v">O(n) — the stack holds up to n items in the worst case (fully nested input)</div></div>
       <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"valid parentheses", "decode", "nested", "flatten", "evaluate expression", "iterative DFS"</div></div>
-      <div class="infobox-row"><div class="infobox-k">Deep dives</div><div class="infobox-v mono">
-        <a href="../strings/string_parsing_deep_dive_master.html">string_parsing_deep_dive_master.html</a>
+      <div class="infobox-row"><div class="infobox-k">Walkthroughs</div><div class="infobox-v mono">
+        <a href="../../walkthroughs/LC20_master.html">LC20_master.html</a> ·
+        <a href="../../walkthroughs/LC394_master.html">LC394_master.html</a>
       </div></div>
     </div>
 
     <div class="lead">
       <p><strong>A stack</strong> is a single-ended list where you can only interact with the top. You push items onto the top and pop them off the top — Last In, First Out. That one rule is surprisingly powerful: any problem where the most recent thing you saw governs what to do next is a stack problem. Nested brackets, arithmetic expressions, flattening recursive structures, and iterative DFS all reduce to this mechanic.</p>
-      <p>The stack pattern appears across several domains in this wiki: <strong>Strings &amp; Parsing</strong> (matching brackets, evaluating expressions, decoding nested encodings), <strong>Design</strong> (iterators that lazily unwind nested structures), and <strong>Graphs</strong> (iterative DFS over trees and graphs). The LIFO mechanic is the same in all three — only the type stored on the stack changes. This overview is the <strong>decision layer and Swift toolbox</strong>: the three canonical loop skeletons, when to pick each variant, and the Swift mechanics you reach for every time. The parsing-specific patterns live in the <a href="../strings/string_parsing_deep_dive_master.html">String Parsing Deep Dive</a>.</p>
+      <p>The stack pattern appears across several domains in this wiki: <strong>Strings &amp; Parsing</strong> (matching brackets, evaluating expressions, decoding nested encodings), <strong>Design</strong> (iterators that lazily unwind nested structures), and <strong>Graphs</strong> (iterative DFS over trees and graphs). The LIFO mechanic is the same in all three — only the type stored on the stack changes. This overview is the <strong>decision layer and Swift toolbox</strong>: the three canonical loop skeletons, when to pick each variant, and the Swift mechanics you reach for every time.</p>
     </div>
   </section>
 
@@ -370,15 +371,6 @@ stack.last == <span class="nm">7</span>    <span class="cm">// true — use for 
       </a>
     </div>
 
-    <h3 style="margin-top: 32px">Related theory — string parsing</h3>
-    <p>The stack is used in string parsing problems as the backbone of both expression evaluation (skeleton 1) and nested encoding (skeleton 2). The full variant catalog — tokenize-and-map, stack expression parse, nested-structure parse, and reverse-match — lives in the String Parsing Deep Dive.</p>
-    <div class="ref-grid">
-      <a class="xref-card" href="../strings/string_parsing_deep_dive_master.html">
-        <span class="ref-file">theory/strings/string_parsing_deep_dive_master.html</span>
-        <span class="ref-title">String Parsing Deep Dive</span>
-        <span class="ref-desc">Four parsing variants — tokenize-and-map (8.1), stack expression parse (8.2), nested-structure stack parse (8.3), reversed-prefix match (8.4) — with full pseudocode, Swift code, and pitfalls for each.</span>
-      </a>
-    </div>
   </section>
 
   <hr class="wiki-hr">
@@ -454,8 +446,7 @@ stack.isEmpty                       <span class="cm">// empty check    O(1)</spa
 
   <div class="page-footer">
     Stack Overview · Theory Masterfile ·
-    Related: <a href="../strings/string_parsing_deep_dive_master.html">String Parsing Deep Dive</a> ·
-    Walkthroughs: <a href="../../walkthroughs/LC20_master.html">LC20</a> · <a href="../../walkthroughs/LC227_master.html">LC227</a> · <a href="../../walkthroughs/LC341_master.html">LC341</a> · <a href="../../walkthroughs/LC385_master.html">LC385</a> ·
+    Walkthroughs: <a href="../../walkthroughs/LC20_master.html">LC20</a> · <a href="../../walkthroughs/LC394_master.html">LC394</a> · <a href="../../walkthroughs/LC227_master.html">LC227</a> · <a href="../../walkthroughs/LC341_master.html">LC341</a> · <a href="../../walkthroughs/LC385_master.html">LC385</a> ·
     Hub-overview exemption per <code>wiki/_standards/THEORY_MASTERFILE_STANDARD.md</code>
   </div>
 
