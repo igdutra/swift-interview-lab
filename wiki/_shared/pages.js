@@ -48,6 +48,14 @@ const WIKI_PAGES = [
   },
   {
     cat: "theory",
+    path: "theory/stacks/stack_overview_master.html",
+    nav: "Stacks",
+    title: "Stacks",
+    topics: ["Stack", "LIFO", "Parsing", "Graphs", "Design"],
+    blurb: "Stack overview — three canonical skeletons: push-openers/pop-match (bracket validation, expression eval), push-containers/pop-and-attach (nested structure parse), and explicit DFS. Swift toolbox, pitfalls, and routing diagram.",
+  },
+  {
+    cat: "theory",
     path: "theory/design/index.html",
     nav: "Object & System Design",
     title: "Object & System Design",
