@@ -1,4 +1,5 @@
 import Testing
+import SwiftInterviewLab
 
 // ============================================================
 // PROBLEM: 385. Mini Parser
@@ -7,7 +8,7 @@ import Testing
 // Topics: Stack, Depth-First Search, String
 //
 // Given a string s representing a serialization of a nested
-// list, parse and deserialize it into a NestedInteger object.
+// list, parse and getNestedNumber it into a NestedInteger object.
 //
 // Example 1:
 //   Input:  s = "324"
@@ -21,62 +22,59 @@ import Testing
 //   - 1 <= s.length <= 5 * 10^4
 //   - s consists of digits, square brackets "[]", negative sign '-', and commas ','
 //   - s is the serialization of valid NestedInteger
-//   - All the values in the input are in the range [-10^6, 10^6]
+//   - All the values in the range [-10^6, 10^6]
 //
 // ============================================================
 // TIME AND SPACE COMPLEXITY ANALYSIS
 //
-// Time Complexity:
-// TODO
-// 
-// Space Complexity: 
-// TODO
+// Time:  O(n) — single pass over the string
+// Space: O(d) — stack depth equals max nesting depth
 // ============================================================
 
-// NestedInteger interface/protocol
-protocol NestedInteger {
-    init()
-    init(_ value: Int)
-    mutating func add(_ elem: NestedInteger)
-    func isInteger() -> Bool
-    func getInteger() -> Int
-    func getList() -> [NestedInteger]
-}
+private func getNestedNumber(_ s: String) -> NestedInteger {
+    var currentNumber = 0
+    var isNegative = false
+    // guards against committing a phantom 0 into empty lists like []
+    // currentNumber == 0 alone can't distinguish "nothing accumulated" from the literal value 0
+    var hasSeenNumber = false
+    // start empty — pre-seeding with a result object caused plain numbers ("324") to be
+    // wrapped inside a list instead of returned as integers
+    var stack: [NestedInteger] = []
 
-// Concrete NestedInteger implementation for testing
-class NestedIntegerImpl: NestedInteger {
-    private var value: Int?
-    private var list: [NestedIntegerImpl] = []
-    
-    required init() {
-        self.value = nil
-    }
-    
-    required init(_ value: Int) {
-        self.value = value
-    }
-    
-    func add(_ elem: NestedInteger) {
-        if let impl = elem as? NestedIntegerImpl {
-            list.append(impl)
+    for character in s {
+        switch character {
+        case "[":
+            stack.append(NestedInteger())
+        case ",":
+            if hasSeenNumber {
+                let value = isNegative ? -currentNumber : currentNumber
+                stack[stack.count - 1].add(NestedInteger(value))
+                currentNumber = 0; isNegative = false; hasSeenNumber = false
+            }
+        case "]":
+            if hasSeenNumber {
+                let value = isNegative ? -currentNumber : currentNumber
+                stack[stack.count - 1].add(NestedInteger(value))
+                currentNumber = 0; isNegative = false; hasSeenNumber = false
+            }
+            let popped = stack.removeLast()
+            // stack empty means this was the outermost bracket — popped IS the answer
+            if stack.isEmpty { return popped }
+            stack[stack.count - 1].add(popped)
+        case "-":
+            isNegative = true
+            hasSeenNumber = true
+        default:
+            if let digit = character.wholeNumberValue {
+                currentNumber = currentNumber * 10 + digit
+                hasSeenNumber = true
+            }
         }
     }
-    
-    func isInteger() -> Bool {
-        return value != nil
-    }
-    
-    func getInteger() -> Int {
-        return value ?? 0
-    }
-    
-    func getList() -> [NestedInteger] {
-        return list
-    }
-}
 
-private func deserialize(_ s: String) -> NestedInteger {
-    // TODO
+    // reached only for plain number inputs with no brackets (e.g. "324", "-5")
+    let value = isNegative ? -currentNumber : currentNumber
+    return NestedInteger(value)
 }
 
 
@@ -91,14 +89,14 @@ struct MiniParserTests {
 
     @Test("Official example 1")
     func officialExample1() {
-        let result = deserialize("324")
+        let result = getNestedNumber("324")
         #expect(result.isInteger())
         #expect(result.getInteger() == 324)
     }
 
     @Test("Official example 2")
     func officialExample2() {
-        let result = deserialize("[123,[456,[789]]]")
+        let result = getNestedNumber("[123,[456,[789]]]")
         #expect(!result.isInteger())
         let list = result.getList()
         #expect(list.count == 2)
@@ -110,14 +108,14 @@ struct MiniParserTests {
 
     @Test("Empty list")
     func emptyList() {
-        let result = deserialize("[]")
+        let result = getNestedNumber("[]")
         #expect(!result.isInteger())
         #expect(result.getList().isEmpty)
     }
 
     @Test("Single element list")
     func singleElementList() {
-        let result = deserialize("[1]")
+        let result = getNestedNumber("[1]")
         #expect(!result.isInteger())
         let list = result.getList()
         #expect(list.count == 1)
@@ -126,14 +124,14 @@ struct MiniParserTests {
 
     @Test("Negative number")
     func negativeNumber() {
-        let result = deserialize("-5")
+        let result = getNestedNumber("-5")
         #expect(result.isInteger())
         #expect(result.getInteger() == -5)
     }
 
     @Test("List with negative numbers")
     func listWithNegatives() {
-        let result = deserialize("[-1,2,-3]")
+        let result = getNestedNumber("[-1,2,-3]")
         #expect(!result.isInteger())
         let list = result.getList()
         #expect(list.count == 3)
