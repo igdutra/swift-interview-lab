@@ -58,7 +58,7 @@
       <div class="infobox-row"><div class="infobox-k">Tools</div><div class="infobox-v">A stack of (repeatCount, builtString) pairs · a digit accumulator · a letter accumulator</div></div>
       <div class="infobox-row"><div class="infobox-k">Key insight</div><div class="infobox-v">On <code>[</code> save the current context onto the stack and start fresh; on <code>]</code> pop the saved context, repeat the just-built string, and append it back</div></div>
       <div class="infobox-row"><div class="infobox-k">Time / Space</div><div class="infobox-v">O(n · k_max) / O(n)</div></div>
-      <div class="infobox-row"><div class="infobox-k">Theory</div><div class="infobox-v mono"><a href="../theory/stacks/stack_overview_master.html">stack_overview_master.html</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Theory</div><div class="infobox-v mono"><a href="../theory/stacks_queues/stack_master.html">stack_overview_master.html</a></div></div>
     </div>
 
     <div class="lead">
@@ -484,10 +484,10 @@ RESULT
     <table class="t-decoder">
       <thead><tr><th>General concept</th><th>Instantiated in this solution as</th><th>General form</th></tr></thead>
       <tbody>
-        <tr><td>Stack Skeleton 2 — push containers, pop-and-attach</td><td>Push <code>(currentNumber, currentString)</code> on <code>[</code>; pop, repeat, and prepend on <code>]</code>.</td><td><a href="../theory/stacks/stack_overview_master.html#when">stack overview §4 — Pattern 2</a></td></tr>
-        <tr><td>LIFO as pause-and-resume</td><td>The most recently pushed context is the first restored — inner groups complete before outer groups.</td><td><a href="../theory/stacks/stack_overview_master.html#lifo">stack overview §5</a></td></tr>
-        <tr><td>Context saved as a tuple</td><td><code>(Int, String)</code> pair keeps the count and the partial string co-located — they travel together because they were created together.</td><td><a href="../theory/stacks/stack_overview_master.html#structures">stack overview §7</a></td></tr>
-        <tr><td>Pop AND attach as one atomic step</td><td><code>currentString = savedString + String(repeating: currentString, count: savedCount)</code> — two operations on <code>]</code>: remove from stack, combine with outer.</td><td><a href="../theory/stacks/stack_overview_master.html#when">stack overview §4 pitfall</a></td></tr>
+        <tr><td>Stack Skeleton 2 — push containers, pop-and-attach</td><td>Push <code>(currentNumber, currentString)</code> on <code>[</code>; pop, repeat, and prepend on <code>]</code>.</td><td><a href="../theory/stacks_queues/stack_master.html#when">stack overview §4 — Pattern 2</a></td></tr>
+        <tr><td>LIFO as pause-and-resume</td><td>The most recently pushed context is the first restored — inner groups complete before outer groups.</td><td><a href="../theory/stacks_queues/stack_master.html#lifo">stack overview §5</a></td></tr>
+        <tr><td>Context saved as a tuple</td><td><code>(Int, String)</code> pair keeps the count and the partial string co-located — they travel together because they were created together.</td><td><a href="../theory/stacks_queues/stack_master.html#structures">stack overview §7</a></td></tr>
+        <tr><td>Pop AND attach as one atomic step</td><td><code>currentString = savedString + String(repeating: currentString, count: savedCount)</code> — two operations on <code>]</code>: remove from stack, combine with outer.</td><td><a href="../theory/stacks_queues/stack_master.html#when">stack overview §4 pitfall</a></td></tr>
         <tr><td>String Parsing — nested-structure variant</td><td>Digits → accumulate count; <code>[</code> → descend; letters → accumulate; <code>]</code> → expand and ascend. The four-way character dispatch is Variant 8.3 of the string parsing family.</td><td><a href="../theory/strings/string_parsing_deep_dive_master.html">string_parsing_deep_dive_master.html §8.3</a></td></tr>
       </tbody>
     </table>
@@ -500,7 +500,7 @@ RESULT
     <h2>15 &nbsp; Parent Theory</h2>
     <p>This walkthrough instantiates Stack Skeleton 2 from the Stack Overview. It also demonstrates Variant 8.3 (nested-structure parse) from the String Parsing Deep Dive — the two theory pages are linked here because this problem sits at their intersection.</p>
     <div class="ref-grid">
-      <a class="backref-card" href="../theory/stacks/stack_overview_master.html">
+      <a class="backref-card" href="../theory/stacks_queues/stack_master.html">
         <span class="ref-file">theory/stacks/stack_overview_master.html</span>
         <span class="ref-title">Stack Overview — Theory Masterfile</span>
         <span class="ref-desc">The canonical stack reference: LIFO mental model (§5), the three skeletons with routing diagram (§2–§4), Swift toolbox with append/removeLast/popLast (§3), and the cheat sheet (§10). Skeleton 2 — push containers, pop-and-attach — is the exact variant this problem instantiates.</span>
@@ -515,7 +515,7 @@ RESULT
 
   <div class="page-footer">
     LC 394 — Decode String · Walkthrough Masterfile · Parent theory:
-    <a href="../theory/stacks/stack_overview_master.html">Stack Overview</a> ·
+    <a href="../theory/stacks_queues/stack_master.html">Stack Overview</a> ·
     <a href="../theory/strings/string_parsing_deep_dive_master.html">String Parsing Deep Dive</a> ·
     Structure per <code>wiki/_standards/WALKTHROUGH_MASTERFILE_STANDARD.md</code>
   </div>

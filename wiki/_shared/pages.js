@@ -48,11 +48,11 @@ const WIKI_PAGES = [
   },
   {
     cat: "theory",
-    path: "theory/stacks/stack_overview_master.html",
-    nav: "Stacks",
-    title: "Stacks",
-    topics: ["Stack", "LIFO", "Parsing", "Graphs", "Design"],
-    blurb: "Stack overview — three canonical skeletons: push-openers/pop-match (bracket validation, expression eval), push-containers/pop-and-attach (nested structure parse), and explicit DFS. Swift toolbox, pitfalls, and routing diagram.",
+    path: "theory/stacks_queues/index.html",
+    nav: "Stacks & Queues",
+    title: "Stacks & Queues",
+    topics: ["Stack", "Queue", "LIFO", "FIFO", "BFS", "DFS", "Parsing"],
+    blurb: "Stacks & Queues hub — LIFO stack (nesting, matching, iterative DFS) and FIFO queue (BFS shortest path, level order, sliding-window eviction). Overview with Swift toolbox + deep dives for each structure.",
   },
   {
     cat: "theory",

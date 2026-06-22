@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stacks &amp; Queues · Study Wiki</title>
+<link rel="stylesheet" href="../../_shared/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="hub">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+  <main class="content" style="margin: 0 auto;">
+
+    <h1 class="page-title">Stacks &amp; Queues</h1>
+    <div class="page-meta">
+      <span>Theory Hub</span>
+      <span>·</span>
+      <span>Stack (LIFO) · Queue (FIFO) · BFS · DFS · Parsing · Nesting</span>
+    </div>
+
+    <div class="lead">
+      <p>Two linear structures defined by their access discipline. A <strong>stack</strong> (LIFO) gives you the most recently added item first — nesting, bracket matching, expression evaluation, and iterative DFS all reduce to this mechanic. A <strong>queue</strong> (FIFO) gives you the oldest item first — level-order traversal, shortest-path BFS, and sliding time-windows all depend on it. The <a href="stacks_queues_overview_master.html">Overview</a> is the decision layer with the Swift toolbox and cheat sheet for both; the deep dives below drill each structure against its canonical problems.</p>
+    </div>
+
+    <div class="hub-section-title">Overview</div>
+    <div class="ref-grid">
+
+      <a class="xref-card" href="stacks_queues_overview_master.html">
+        <span class="ref-file">theory/stacks_queues/stacks_queues_overview_master.html</span>
+        <span class="ref-title">Stacks &amp; Queues Overview</span>
+        <span class="ref-meta">
+          <span class="ref-topics">Decision Guide · Swift Toolbox · Cheat Sheet</span>
+        </span>
+        <span class="ref-desc">The decision layer — LIFO vs FIFO, when to use each structure and why not the other, the canonical skeletons for both, the Swift toolbox (append, removeLast, popLast, removeFirst, head-index), and the night-before cheat sheet.</span>
+      </a>
+
+    </div>
+
+    <div class="hub-section-title">Deep Dives</div>
+    <div class="ref-grid">
+
+      <a class="xref-card" href="stack_master.html">
+        <span class="ref-file">theory/stacks_queues/stack_master.html</span>
+        <span class="ref-title">Stack — LIFO Deep Dive</span>
+        <span class="ref-meta">
+          <span class="ref-topics">Stack · LIFO · Parsing · Nesting · DFS</span>
+        </span>
+        <span class="ref-desc">Three skeletons: push-openers/pop-match (bracket validation, expression eval), push-containers/pop-and-attach (nested decode), and iterative DFS. Swift toolbox, LIFO mechanic, edge cases, and cheat sheet. Directed at LC20, LC394, LC227, LC341, LC385.</span>
+      </a>
+
+      <a class="xref-card" href="queue_master.html">
+        <span class="ref-file">theory/stacks_queues/queue_master.html</span>
+        <span class="ref-title">Queue — FIFO Deep Dive</span>
+        <span class="ref-meta">
+          <span class="ref-topics">Queue · FIFO · BFS · Level-order · Sliding Window</span>
+        </span>
+        <span class="ref-desc">Two skeletons: BFS level-swap (shortest path, level order, Kahn's topological sort) and sliding-window queue (rate limiting, time-window counts). Swift head-index trick, FIFO mechanic, multi-source BFS, edge cases. Directed at LC1091, LC1284, LC207, LC933.</span>
+      </a>
+
+    </div>
+
+    <div class="hub-section-title">Decision Guide, Skeletons &amp; Cheat Sheet</div>
+    <div class="ref-grid">
+      <a class="xref-card" href="stacks_queues_overview_master.html#when">
+        <span class="ref-file">theory/stacks_queues/stacks_queues_overview_master.html</span>
+        <span class="ref-title">LIFO vs FIFO · The Toolbox · Ultimate Cheat Sheet</span>
+        <span class="ref-meta">
+          <span class="ref-topics">Decision Guide · Swift Toolbox · Cheat Sheet</span>
+        </span>
+        <span class="ref-desc">The one question that picks the structure (depth-first vs breadth-first), the routing diagram, the wrong-tool tables, all canonical skeletons side by side, the Swift ops toolbox for both structures, and the night-before cheat sheet.</span>
+      </a>
+    </div>
+
+    <div class="page-footer">
+      Study Wiki · Stacks &amp; Queues · Theory Hub
+    </div>
+
+  </main>
+</div>
+
+<script src="../../_shared/pages.js"></script>
+<script src="../../_shared/nav.js"></script>
+</body>
+</html>
