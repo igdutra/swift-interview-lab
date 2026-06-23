@@ -50,15 +50,14 @@ import Playgrounds
         currentMaxRight = max(currentMaxRight, height)
         return currentMaxRight
     }
-    let maxRights = Array(maxRightss.reversed())
-    
+    let maxRightReversed = Array(maxRightss.reversed())
     
     print(currentMaxRight)
-    print(Array(maxRights.reversed()))
+    print(Array(maxRightReversed))
     
     var totalWaterTrapped = 0
     for (index, currentHeight) in heights.enumerated() {
-        let minWall = min(maxLefts[index], maxRights[index])
+        let minWall = min(maxLefts[index], maxRightReversed[index])
         print(index, minWall)
 
         totalWaterTrapped += minWall - currentHeight

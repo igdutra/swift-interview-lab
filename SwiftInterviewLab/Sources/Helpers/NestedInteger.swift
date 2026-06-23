@@ -62,4 +62,19 @@ public final class NestedInteger: NestedIntegerProtocol, CustomStringConvertible
     outer.add(inner)
 
     print(outer)
+    var out = outer.getList()
+    print("list,", out)
+    let last = out.popLast()
+    print("last", last)
+    print(last?.getList())
+    var test: [NestedInteger] = []
+//    
+    for value in last!.getList().reversed() {
+        test.append(value)
+    }
+    print("final", test)
+    for value in test {
+        print(value.isInteger())
+    }
+   
 }
