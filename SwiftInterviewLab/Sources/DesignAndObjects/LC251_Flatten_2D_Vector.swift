@@ -126,5 +126,57 @@ import Playgrounds
 }
 
 #Playground("pointer based") {
+    var input = [[1,2],[3],[4]]
     
+    class Vector2D {
+        var input: [[Int]]
+        var outerIndex: Int = 0 // acts as my input in the above solution
+        var innerIndex: Int = 0 // acts as my int stack
+        
+        init(input: [[Int]]) {
+            self.input = input
+            advanceToNextVector()
+//            print(stack)
+        }
+
+        @discardableResult
+        func hasNext() -> Bool {
+            advanceToNextVector()
+            // fix: only check outerIndex - when outerIndex overflows that is the indication of exhaustion
+            print("hasNext", outerIndex < input.count)
+            return outerIndex < input.count
+        }
+
+        @discardableResult
+        func next() -> Int? {
+            advanceToNextVector()
+            guard outerIndex < input.count else { return nil }
+            let next = input[outerIndex][innerIndex]
+            innerIndex += 1
+            print("next", next)
+            return next
+        }
+
+        // MARK: private
+
+        func advanceToNextVector() {
+            // fix: only check outerIndex - when outerIndex overflows that is the indication of exhaustion
+            while outerIndex < input.count, innerIndex >= input[outerIndex].count {
+                outerIndex += 1
+                innerIndex = 0
+            }
+        }
+    }
+    
+    let object = Vector2D(input: [[1,2],[3],[4]])
+    print("1)", object.hasNext())
+    print("2)", object.next() as Any)
+    print("3)", object.hasNext())
+    print("4)", object.next() as Any)
+    print("5)", object.hasNext() as Any)
+    print("6)", object.next() as Any)
+    print("7)", object.hasNext() as Any)
+    print("8)", object.next() as Any)
+    print("9)", object.hasNext() as Any) // must be false
+    print("10)", object.next() as Any)
 }
