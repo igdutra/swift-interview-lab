@@ -375,6 +375,8 @@ nums.<span class="fn">reduce</span>(into: [<span class="nm">0</span>]) { acc, va
         <tr><td>Sliding window vs Prefix-sum</td><td>Can the values be <em>negative</em>?</td><td>All non-negative ⇒ window (monotonic shrink). Any negative ⇒ prefix-sum (+ map if counting).</td></tr>
         <tr><td>Hash map vs Two pointers</td><td>Is it sorted — or can I sort without losing what I must return?</td><td>Sorted &amp; free to sort ⇒ two pointers (O(1) space). Otherwise ⇒ hash map.</td></tr>
         <tr><td>Prefix/suffix vs DP</td><td>Is each cell a <em>recurrence</em> over the prior cell, or just an accumulated set?</td><td>Recurrence ⇒ DP-flavored. Accumulation ⇒ plain sweep. (Mostly a naming distinction in the interview.)</td></tr>
+        <tr><td>Suffix-max vs Monotonic Stack</td><td>Do I want the <em>maximum</em> overall to the right, or the <em>nearest</em> element that qualifies?</td><td>Maximum value ⇒ suffix precomputation (one pass, O(n) space). <strong>Nearest</strong> greater/smaller ⇒ monotonic stack (Stack theory, Pattern 4). The word "first" or "nearest" in the problem is the monotonic stack tell.</td></tr>
+        <tr><td>Two pointers vs Monotonic Stack</td><td>Am I steering two indices toward each other (or both rightward), or resolving pending queries for many elements as I scan?</td><td>Converge / both-right ⇒ two pointers / window. "Next greater/smaller for each element" ⇒ monotonic stack — it holds pending unanswered elements and discharges them as qualifying values arrive.</td></tr>
       </tbody>
     </table>
 
@@ -519,6 +521,7 @@ nums.<span class="fn">reduce</span>(into: [<span class="nm">0</span>]) { acc, va
         <tr><td>"count subarrays summing to k" and <strong>negatives</strong> appear</td><td>Prefix-sum + map</td><td>negatives kill the window's monotonic shrink — only the map works</td></tr>
         <tr><td>"range sum", <strong>many queries</strong>, array immutable</td><td>Prefix sum</td><td>build once O(n), then O(1) per query via one subtraction</td></tr>
         <tr><td>"product <strong>except self</strong>", no division</td><td>Prefix × suffix</td><td>division breaks on zeros; the gap at i is excluded structurally</td></tr>
+        <tr><td>"next greater / next smaller / <strong>first</strong> element to the right that…"</td><td>Monotonic Stack (Stack theory, Pattern 4)</td><td><em>nearest</em> qualifying neighbor → not suffix-max (which gives maximum, not nearest); not two pointers (wrong motion); monotonic stack resolves queries in O(n) with one push and at most one pop per element</td></tr>
       </tbody>
     </table>
 
@@ -544,6 +547,7 @@ nums.<span class="fn">reduce</span>(into: [<span class="nm">0</span>]) { acc, va
       <div class="pitfall"><span class="pitfall-bullet">▸</span><span>Quantity needs the max on <strong>both</strong> sides of each index → <strong>not</strong> a single-direction window.</span></div>
       <div class="pitfall"><span class="pitfall-bullet">▸</span><span>Array <strong>mutates</strong> between queries → <strong>not</strong> a static prefix array → Fenwick / segment tree.</span></div>
       <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Division</strong> proposed for product-except-self → disqualified (breaks on zeros; not a monoid).</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span>Problem says "next greater" / "nearest" → <strong>not</strong> suffix-max (gives maximum value, not position) and <strong>not</strong> two pointers (wrong motion for multi-element pending queries) → Monotonic Stack.</span></div>
     </div>
 
     <h3 style="margin-top:32px">Prefix / suffix array idioms</h3>

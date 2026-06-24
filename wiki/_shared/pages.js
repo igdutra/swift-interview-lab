@@ -270,6 +270,15 @@ const WIKI_PAGES = [
   },
   {
     cat: "walkthrough",
+    path: "walkthroughs/LC496_master.html",
+    nav: "LC 496",
+    title: "LC 496 — Next Greater Element I",
+    topics: ["Stack", "Monotonic Stack", "Arrays"],
+    difficulty: "E",
+    blurb: "Monotonic decreasing stack (Pattern 4) — right-to-left sweep, evict dominated elements, record next-greater in a map. The canonical routing signal: 'next greater / nearest element satisfying a condition'.",
+  },
+  {
+    cat: "walkthrough",
     path: "walkthroughs/LC415_master.html",
     nav: "LC 415",
     title: "LC 415 — Add Strings",
