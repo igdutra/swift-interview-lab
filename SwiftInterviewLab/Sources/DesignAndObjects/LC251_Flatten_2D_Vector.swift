@@ -41,6 +41,33 @@ import Playgrounds
 //        }
 // ============================================================
 
+/* FOLLOW-UP: what if we add a remove() method?
+
+ -> stack-based: trivial, remove() == next() (pop is already the removal)
+ -> 2-pointers: you need to mutate the input array (remove at innerIndex),
+    then carefully re-adjust outerIndex/innerIndex so they still point
+    at the element before the one just removed
+
+    func remove() -> Int {
+        // innerIndex is currently ON the last-returned element (next() did not advance past it)
+        let removed = input[outerIndex][innerIndex]
+        input[outerIndex].remove(at: innerIndex)
+
+        // after removal, innerIndex now points at the NEXT element (or is out of bounds).
+        // step back one so the iterator cursor sits "before" that next element,
+        // matching the invariant that advanceToNext() will move forward on the next call.
+        innerIndex -= 1
+
+        // if we stepped before the start of this row, walk back to the previous non-empty row
+        while innerIndex < 0 && outerIndex > 0 {
+            outerIndex -= 1
+            innerIndex = input[outerIndex].count - 1
+        }
+
+        return removed
+    }
+ */
+
 /* PLAN
  
  PATTERN
@@ -101,7 +128,18 @@ import Playgrounds
             print("next", next)
             return next
         }
-        
+
+        @discardableResult
+        func remove() -> Int? {
+            // no advanceToNextVector() — calling it would load the next row into the stack,
+            // making remove() "always safe" but wrong: you'd remove an element never visited by next().
+            // nil when stack is empty is intentional: next() was never called (or called twice).
+            // same contract as Java Iterator.remove() throwing IllegalStateException.
+            guard let removed = stack.popLast() else { return nil }
+            print("remove", removed)
+            return removed
+        }
+
         // MARK: private
         
         func advanceToNextVector() {
