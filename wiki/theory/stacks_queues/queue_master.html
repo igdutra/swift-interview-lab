@@ -258,6 +258,64 @@ queue.<span class="fn">append</span>(<span class="nm">3</span>)   <span class="c
         <tr><td>Sliding-window queue vs sliding-window array</td><td>Is the input a <em>stream</em> (items arrive one by one) or a <em>static array</em>?</td><td>Stream → queue with front-eviction. Static array → two-pointer window.</td></tr>
       </tbody>
     </table>
+
+    <h3>Sliding-window queue vs. traditional sliding window — they share a name, not a tool</h3>
+    <p>Both patterns use the word "sliding window," but they solve structurally different problems with different data structures. The table above has one routing row for this; the two snippets below make the difference concrete.</p>
+
+    <div class="co-idea">
+      <div class="co-idea-title">The one question that separates them</div>
+      <strong>Is your input a static array you can index into both directions?</strong>
+      → Traditional sliding window (two pointers, no queue needed). <strong>Is your input a live stream arriving one item at a time, where you can only evict from the front?</strong>
+      → Sliding-window queue (FIFO, enqueue back / evict front).
+    </div>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Problem A — "longest contiguous subarray with sum ≤ k" — static array → two-pointer window, no queue</span></div>
+<pre class="swift"><span class="cm">// Input: a fixed array. Both pointers index into it freely.</span>
+<span class="cm">// Tool: two pointers (left + right), O(n) time, O(1) space.</span>
+<span class="kw">func</span> <span class="fn">longestSubarrayWithSumAtMost</span>(_ numbers: [<span class="tp">Int</span>], _ limit: <span class="tp">Int</span>) -&gt; <span class="tp">Int</span> {
+    <span class="kw">var</span> left = <span class="nm">0</span>
+    <span class="kw">var</span> windowSum = <span class="nm">0</span>
+    <span class="kw">var</span> best = <span class="nm">0</span>
+
+    <span class="kw">for</span> right <span class="kw">in</span> numbers.indices {
+        windowSum += numbers[right]
+        <span class="kw">while</span> windowSum &gt; limit {
+            windowSum -= numbers[left]   <span class="cm">// shrink from LEFT — direct index access</span>
+            left += <span class="nm">1</span>
+        }
+        best = <span class="fn">max</span>(best, right - left + <span class="nm">1</span>)
+    }
+    <span class="kw">return</span> best
+}
+<span class="cm">// Key point: we jump left directly to any index. No queue needed — the array is static.</span>
+<span class="cm">// The "window" is just a pair of indices, not a data structure holding the items.</span></pre>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Problem B — "how many pings in the last 3000 ms?" — live stream → sliding-window queue, two-pointer cannot apply</span></div>
+<pre class="swift"><span class="cm">// Input: timestamps arrive ONE BY ONE. We never "go back" to a previous index.</span>
+<span class="cm">// Tool: a queue — enqueue new item at back, evict stale items from front.</span>
+<span class="kw">var</span> window: [<span class="tp">Int</span>] = []
+
+<span class="kw">func</span> <span class="fn">ping</span>(_ timestamp: <span class="tp">Int</span>) -&gt; <span class="tp">Int</span> {
+    window.<span class="fn">append</span>(timestamp)               <span class="cm">// enqueue — always at the back</span>
+    <span class="kw">while</span> <span class="kw">let</span> oldest = window.first,
+          oldest &lt;= timestamp - <span class="nm">3000</span> {
+        window.<span class="fn">removeFirst</span>()               <span class="cm">// evict stale — always from the front</span>
+    }
+    <span class="kw">return</span> window.count
+}
+<span class="cm">// Key point: items are APPENDED — past items cannot be revisited by a left pointer.</span>
+<span class="cm">// The queue IS the window; its count IS the answer. Two pointers have nothing to index.</span></pre>
+
+    <table class="t-versus">
+      <thead><tr><th></th><th>Traditional sliding window</th><th>Sliding-window queue</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Input shape</strong></td><td>Static array — both ends addressable by index</td><td>Live stream — items arrive one by one, never revisited</td></tr>
+        <tr><td><strong>Shrink mechanism</strong></td><td>Advance a <code>left</code> index (O(1), no removal)</td><td><code>removeFirst()</code> / head-index advance (evict from front)</td></tr>
+        <tr><td><strong>Window contents stored?</strong></td><td>No — just two index pointers</td><td>Yes — the queue <em>is</em> the window; its contents are the live items</td></tr>
+        <tr><td><strong>Contiguity required?</strong></td><td>Yes — subarray must be contiguous in the original array</td><td>No — items are contiguous by arrival time, not by index</td></tr>
+        <tr><td><strong>Prototype problems</strong></td><td>LC3 Longest Substring Without Repeating, LC76 Min Window Substring</td><td>LC933 Number of Recent Calls, LC362 Design Hit Counter</td></tr>
+      </tbody>
+    </table>
   </section>
 
   <hr class="wiki-hr">

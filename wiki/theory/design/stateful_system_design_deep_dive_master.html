@@ -24,12 +24,13 @@
     <a href="#pseudocode"    class="toc-link"><span class="toc-num">5</span> Pseudocode Primer</a>
     <a href="#iterative"     class="toc-link"><span class="toc-num">6</span> Iterative-Only Pattern</a>
     <a href="#swift"         class="toc-link"><span class="toc-num">7</span> Swift Foundations</a>
-    <a href="#variants"      class="toc-link"><span class="toc-num">8</span> The Four Variants</a>
+    <a href="#variants"      class="toc-link"><span class="toc-num">8</span> The Five Variants</a>
     <div class="toc-sub">
       <a href="#v-map"      class="toc-link">8.1 Map-backed state</a>
       <a href="#v-derived"  class="toc-link">8.2 Incremental aggregate</a>
-      <a href="#v-validated" class="toc-link">8.3 Validated operations</a>
-      <a href="#v-depgraph" class="toc-link">8.4 Dependency recompute</a>
+      <a href="#v-window"   class="toc-link">8.3 Streaming window state</a>
+      <a href="#v-validated" class="toc-link">8.4 Validated operations</a>
+      <a href="#v-depgraph" class="toc-link">8.5 Dependency recompute</a>
     </div>
     <a href="#complexity"    class="toc-link"><span class="toc-num">9</span> Complexity Analysis</a>
     <a href="#pitfalls"      class="toc-link"><span class="toc-num">10</span> Common Pitfalls</a>
@@ -60,7 +61,7 @@
       <div class="infobox-row"><div class="infobox-k">Space</div><div class="infobox-v">O(size of state) — the data you keep to answer queries without rescanning history</div></div>
       <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"design", "implement a class", "supports the following operations", "create / move / get", "after each call"</div></div>
       <div class="infobox-row"><div class="infobox-k">The fork</div><div class="infobox-v">Store raw and recompute on query, OR maintain a derived aggregate incrementally on each mutation</div></div>
-      <div class="infobox-row"><div class="infobox-k">Walkthroughs</div><div class="infobox-v mono"><a href="../../walkthroughs/LC1166_master.html">LC1166</a> · <a href="../../walkthroughs/LC348_master.html">LC348</a> · LC2043 (coming) · LC631 (coming)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Walkthroughs</div><div class="infobox-v mono"><a href="../../walkthroughs/LC933_master.html">LC933</a> · <a href="../../walkthroughs/LC362_master.html">LC362</a> · <a href="../../walkthroughs/LC1166_master.html">LC1166</a> · <a href="../../walkthroughs/LC348_master.html">LC348</a> · LC2043 (coming) · LC631 (coming)</div></div>
     </div>
 
     <div class="lead">
@@ -80,7 +81,8 @@
       <tbody>
         <tr><td>"create path / set value / get value by key"</td><td>Map-backed state — a dictionary keyed by the identifier. §8.1 (LC1166)</td></tr>
         <tr><td>"after each move, has anyone won?" / "report the aggregate now"</td><td>Incremental aggregate — maintain running sums/counts on each mutation. §8.2 (LC348)</td></tr>
-        <tr><td>"transfer / withdraw / deposit, but reject invalid operations"</td><td>Validated operations — guard every method against its preconditions. §8.3 (LC2043)</td></tr>
+        <tr><td>"how many requests / hits in the last T seconds?" / "implement <code>ping</code> or <code>hit</code> as a class method"</td><td>Streaming window state — the queue IS the state; enqueue on each call, evict stale from front. §8.3 (LC933, LC362)</td></tr>
+        <tr><td>"transfer / withdraw / deposit, but reject invalid operations"</td><td>Validated operations — guard every method against its preconditions. §8.4 (LC2043)</td></tr>
         <tr><td>"set a cell to a formula; getting it recomputes from its inputs"</td><td>Dependency recompute — a graph of cells, cascade updates. §8.4 (LC631)</td></tr>
         <tr><td>"design an iterator / hasNext / next over this structure"</td><td>Not this page — that is the Iterator Design deep dive (coming), the sibling family under the <a href="index.html">Design hub</a>.</td></tr>
         <tr><td>"least-recently-used / evict on capacity"</td><td>A specialized stateful design (LRU) — same store-vs-derive thinking, with a hash map + doubly-linked list. Beyond this block's four targets.</td></tr>
@@ -216,8 +218,8 @@ store[<span class="st">"/a"</span>] = <span class="nm">1</span>                 
 
   <!-- 8. The four variants -->
   <section id="variants">
-    <h2>8 &nbsp; The Four Variants</h2>
-    <p>Ordered by increasing design difficulty. The first two are taught in full walkthroughs; the last two are solve-it-yourself targets — frame and pitfalls here, no solution.</p>
+    <h2>8 &nbsp; The Five Variants</h2>
+    <p>Ordered by increasing design difficulty. The first three are taught in full walkthroughs; the last two are solve-it-yourself targets — frame and pitfalls here, no solution.</p>
 
     <!-- 8.1 Map-backed -->
     <div class="pattern-block" id="v-map">
@@ -249,10 +251,59 @@ store[<span class="st">"/a"</span>] = <span class="nm">1</span>                 
       </div>
     </div>
 
-    <!-- 8.3 Validated operations — FRAME ONLY -->
-    <div class="pattern-block" id="v-validated">
+    <!-- 8.3 Streaming window state -->
+    <div class="pattern-block" id="v-window">
       <div class="block-header">
         <span class="block-kicker">Variant 8.3</span>
+        <span class="block-name">Streaming window state (queue as state)</span>
+        <div class="block-pills"><span class="pill pill-t">O(1) amortized / call</span><span class="pill pill-s">O(w)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> you are implementing a class whose method is called repeatedly over time, and the answer to each call depends on a <em>window</em> of past calls that must be remembered across invocations. The object's state <em>is</em> the queue — it persists between calls, growing and shrinking as items enter and leave the window. Full walkthroughs at <a href="../../walkthroughs/LC933_master.html">LC933</a> and <a href="../../walkthroughs/LC362_master.html">LC362</a>.</div>
+
+        <div class="co-idea">
+          <div class="co-idea-title">This is the key distinction from a one-shot function</div>
+          If this were a single function over a static array, two pointers or a prefix sum would apply — the array is fixed and both ends are addressable. But here you are implementing a <strong>class whose state survives between calls</strong>. Each call adds one item and asks "how many items are in the window right now?" That streaming, call-by-call nature forces a data structure that <em>remembers</em> — specifically a queue that holds the live window and evicts the stale front on each call.
+        </div>
+
+        <p><strong>The frame (LC 933 — Number of Recent Calls):</strong> a <code>RecentCounter</code> class with a single <code>ping(t)</code> method. Each call enqueues <code>t</code> at the back, evicts any front items older than <code>t − 3000</code>, then returns the queue count. The queue is the <em>entire state of the class</em> — there is no other field needed.</p>
+
+        <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Variant 8.3 skeleton — the queue IS the object's state</span></div>
+<pre class="swift"><span class="kw">class</span> <span class="tp">RecentCounter</span> {
+    <span class="kw">private</span> <span class="kw">var</span> window: [<span class="tp">Int</span>] = []   <span class="cm">// this IS the state — it persists across calls</span>
+
+    <span class="kw">func</span> <span class="fn">ping</span>(_ timestamp: <span class="tp">Int</span>) -&gt; <span class="tp">Int</span> {
+        window.<span class="fn">append</span>(timestamp)                     <span class="cm">// enqueue — O(1) amortized</span>
+        <span class="kw">while</span> <span class="kw">let</span> oldest = window.first,
+              oldest &lt; timestamp - <span class="nm">3000</span> {
+            window.<span class="fn">removeFirst</span>()                    <span class="cm">// evict stale — amortized O(1)</span>
+        }
+        <span class="kw">return</span> window.count
+    }
+}
+<span class="cm">// Each timestamp enqueued once, dequeued at most once → O(n) total, O(1) amortized per call.</span>
+<span class="cm">// Compare: a one-shot function over a static array would use two pointers — no queue, no class.</span></pre>
+
+        <div class="co-insight"><strong>What "state persists between calls" actually means.</strong> After <code>ping(1)</code> returns, the window still holds <code>[1]</code>. After <code>ping(100)</code>, it holds <code>[1, 100]</code>. After <code>ping(3001)</code>, the eviction loop removes 1 (since <code>1 &lt; 3001 − 3000 = 1</code> is false — it stays), and after <code>ping(3002)</code> it finally evicts 1. The queue bridges calls; without the class wrapper the queue would vanish between calls. <em>That</em> is the design problem: not what algorithm to run, but what to store so the next call can pick up exactly where the last one left off.</div>
+
+        <table class="t-versus">
+          <thead><tr><th></th><th>One-shot function</th><th>Stateful class (this variant)</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Input</strong></td><td>A static array passed in</td><td>Items arrive call-by-call, not all at once</td></tr>
+            <tr><td><strong>State lives…</strong></td><td>In local variables, discarded after return</td><td>In instance properties, survives between calls</td></tr>
+            <tr><td><strong>Tool</strong></td><td>Two pointers or prefix sums on the fixed array</td><td>A queue held in the class — enqueue back, evict front</td></tr>
+            <tr><td><strong>Prototype</strong></td><td>LC3, LC76 — static input, two-pointer shrink</td><td>LC933, LC362 — streaming input, class holds the window</td></tr>
+          </tbody>
+        </table>
+
+        <p>Canonical problems: LC 933 — Number of Recent Calls (full walkthrough) · LC 362 — Design Hit Counter (full walkthrough).</p>
+      </div>
+    </div>
+
+    <!-- 8.4 Validated operations — FRAME ONLY -->
+    <div class="pattern-block" id="v-validated">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.4</span>
         <span class="block-name">Validated stateful operations</span>
         <div class="block-pills"><span class="pill pill-t">O(1) / op</span><span class="pill pill-s">O(accounts)</span></div>
       </div>
@@ -270,10 +321,10 @@ store[<span class="st">"/a"</span>] = <span class="nm">1</span>                 
       </div>
     </div>
 
-    <!-- 8.4 Dependency recompute — FRAME ONLY -->
+    <!-- 8.5 Dependency recompute — FRAME ONLY -->
     <div class="pattern-block" id="v-depgraph">
       <div class="block-header">
-        <span class="block-kicker">Variant 8.4</span>
+        <span class="block-kicker">Variant 8.5</span>
         <span class="block-name">Dependency graph + recompute</span>
         <div class="block-pills"><span class="pill pill-t">O(cells) / set</span><span class="pill pill-s">O(cells + edges)</span></div>
       </div>
@@ -299,8 +350,9 @@ store[<span class="st">"/a"</span>] = <span class="nm">1</span>                 
       <tbody>
         <tr><td>Map-backed (8.1)</td><td class="tc">O(1)</td><td class="sc">O(keys)</td><td>Dictionary insert/lookup is O(1) average; deriving a parent path is O(path length).</td></tr>
         <tr><td>Incremental aggregate (8.2)</td><td class="tc">O(1)</td><td class="sc">O(n)</td><td>Each move updates a constant number of running totals; the win check is one comparison.</td></tr>
-        <tr><td>Validated operations (8.3)</td><td class="tc">O(1)</td><td class="sc">O(accounts)</td><td>Each op is a few range/balance checks plus a constant-time mutation.</td></tr>
-        <tr><td>Dependency recompute (8.4)</td><td class="tc">O(cells + edges)</td><td class="sc">O(cells + edges)</td><td>A set cascades to all transitive dependents; recompute touches each affected cell once.</td></tr>
+        <tr><td>Streaming window state (8.3)</td><td class="tc">O(1) amortized</td><td class="sc">O(w)</td><td>Each item enqueued once and dequeued at most once. Window holds at most w in-range items.</td></tr>
+        <tr><td>Validated operations (8.4)</td><td class="tc">O(1)</td><td class="sc">O(accounts)</td><td>Each op is a few range/balance checks plus a constant-time mutation.</td></tr>
+        <tr><td>Dependency recompute (8.5)</td><td class="tc">O(cells + edges)</td><td class="sc">O(cells + edges)</td><td>A set cascades to all transitive dependents; recompute touches each affected cell once.</td></tr>
         <tr class="bottleneck"><td>Bottleneck</td><td class="tc">O(n) per query</td><td class="sc">—</td><td>Rescanning the full state on every query instead of maintaining a derived aggregate — the exact mistake the incremental variant exists to avoid.</td></tr>
       </tbody>
     </table>
@@ -355,8 +407,9 @@ store[<span class="st">"/a"</span>] = <span class="nm">1</span>                 
       <tbody>
         <tr><td>"create / set / get by identifier"</td><td>a dictionary keyed by the identifier</td><td>§8.1 Map-backed</td></tr>
         <tr><td>"aggregate / has-won after each move"</td><td>running totals updated by a delta per write</td><td>§8.2 Incremental aggregate</td></tr>
-        <tr><td>"reject invalid operations"</td><td>validate all preconditions, then commit atomically</td><td>§8.3 Validated ops</td></tr>
-        <tr><td>"formula depends on other cells"</td><td>a dependency graph + recompute (read or BFS)</td><td>§8.4 Dependency recompute</td></tr>
+        <tr><td>"how many X in the last T seconds?" / class with <code>ping</code> or <code>hit</code></td><td>a queue held as instance state — enqueue each call, evict stale front, return count</td><td>§8.3 Streaming window</td></tr>
+        <tr><td>"reject invalid operations"</td><td>validate all preconditions, then commit atomically</td><td>§8.4 Validated ops</td></tr>
+        <tr><td>"formula depends on other cells"</td><td>a dependency graph + recompute (read or BFS)</td><td>§8.5 Dependency recompute</td></tr>
         <tr><td>"hasNext / next over a structure"</td><td>lazy cursor — see the Iterator deep dive (coming)</td><td>Sibling family</td></tr>
       </tbody>
     </table>
@@ -385,6 +438,16 @@ store[<span class="st">"/a"</span>] = <span class="nm">1</span>                 
     <h2>13 &nbsp; Demonstrated in Practice</h2>
     <p>Each problem in this block is taught in its own walkthrough — constraint insights, edge-case inventory, interview simulation, and (for the warm-up and walkthrough) a full dry run and iterative Swift solution.</p>
     <div class="ref-grid">
+      <a class="xref-card" href="../../walkthroughs/LC933_master.html">
+        <span class="ref-file">walkthroughs/LC933_master.html</span>
+        <span class="ref-title">LC 933 — Number of Recent Calls (Easy · warm-up)</span>
+        <span class="ref-desc">Streaming window state in its simplest form — a single queue as the entire class state, enqueue on each <code>ping</code>, evict-while-stale from the front, return count. Demonstrates why "implement a class" forces a data structure that persists between calls.</span>
+      </a>
+      <a class="xref-card" href="../../walkthroughs/LC362_master.html">
+        <span class="ref-file">walkthroughs/LC362_master.html</span>
+        <span class="ref-title">LC 362 — Design Hit Counter (Medium)</span>
+        <span class="ref-desc">Streaming window state one step up — two-method API (<code>hit</code> + <code>getHits</code>), 300-second window, head-index O(1) dequeue pattern, and the circular-buffer O(1)-space follow-up. Full walkthrough.</span>
+      </a>
       <a class="xref-card" href="../../walkthroughs/LC1166_master.html">
         <span class="ref-file">walkthroughs/LC1166_master.html</span>
         <span class="ref-title">LC 1166 — Design File System (Medium · warm-up)</span>
@@ -430,6 +493,7 @@ store[<span class="st">"/a"</span>] = <span class="nm">1</span>                 
   <div class="page-footer">
     Stateful System Design · Theory Masterfile (Deep Dive) · Hub:
     <a href="index.html">Object &amp; System Design</a> ·
+    Walkthroughs: <a href="../../walkthroughs/LC933_master.html">LC933</a> · <a href="../../walkthroughs/LC362_master.html">LC362</a> · <a href="../../walkthroughs/LC1166_master.html">LC1166</a> · <a href="../../walkthroughs/LC348_master.html">LC348</a> ·
     Structure per <code>wiki/_standards/THEORY_MASTERFILE_STANDARD.md</code>
   </div>
 
