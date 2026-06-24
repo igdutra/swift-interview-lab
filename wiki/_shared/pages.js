@@ -252,6 +252,15 @@ const WIKI_PAGES = [
   },
   {
     cat: "walkthrough",
+    path: "walkthroughs/LC362_master.html",
+    nav: "LC 362",
+    title: "LC 362 — Design Hit Counter",
+    topics: ["Queue", "Sliding Window", "Design"],
+    difficulty: "M",
+    blurb: "Sliding-window queue — enqueue hits, evict-while-stale on query, return count. Head-index O(1) dequeue, the amortized argument, and the circular-buffer O(1) space follow-up.",
+  },
+  {
+    cat: "walkthrough",
     path: "walkthroughs/LC394_master.html",
     nav: "LC 394",
     title: "LC 394 — Decode String",
