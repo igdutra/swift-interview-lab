@@ -234,6 +234,15 @@ const WIKI_PAGES = [
   },
   {
     cat: "walkthrough",
+    path: "walkthroughs/LC933_master.html",
+    nav: "LC 933",
+    title: "LC 933 — Number of Recent Calls",
+    topics: ["Queue", "Sliding Window", "Design"],
+    difficulty: "E",
+    blurb: "Sliding-window queue in its simplest form — append, evict-while-stale from front, return count. Recognition signals: rolling time window + strictly increasing timestamps + stateful class. Why queue beats stack, two-pointer, and sorted set.",
+  },
+  {
+    cat: "walkthrough",
     path: "walkthroughs/LC986_master.html",
     nav: "LC 986",
     title: "LC 986 — Interval List Intersections",
