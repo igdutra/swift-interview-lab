@@ -18,7 +18,7 @@
   <div class="toc-inner">
     <div class="toc-title toc-cat-theory">Theory · Contents</div>
     <a href="#lead"        class="toc-link"><span class="toc-num">1</span> Overview</a>
-    <a href="#skeletons"   class="toc-link"><span class="toc-num">2</span> The Three Standard Skeletons</a>
+    <a href="#skeletons"   class="toc-link"><span class="toc-num">2</span> The Four Standard Skeletons</a>
     <a href="#toolbox"     class="toc-link"><span class="toc-num">3</span> Swift Tools — the Toolbox</a>
     <a href="#when"        class="toc-link"><span class="toc-num">4</span> When to Use Each Pattern</a>
     <a href="#lifo"        class="toc-link"><span class="toc-num">5</span> LIFO — the Core Mechanic</a>
@@ -66,10 +66,10 @@
 
   <hr class="wiki-hr">
 
-  <!-- 2. The three standard skeletons -->
+  <!-- 2. The four standard skeletons -->
   <section id="skeletons">
-    <h2>2 &nbsp; The Three Standard Skeletons</h2>
-    <p>Every stack problem is one of three loop shapes. Recognize the shape before naming any variable — the skeleton determines the variables, not the other way around.</p>
+    <h2>2 &nbsp; The Four Standard Skeletons</h2>
+    <p>Every stack problem is one of four loop shapes. Recognize the shape before naming any variable — the skeleton determines the variables, not the other way around.</p>
 
     <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Push-openers / pop-match-closers — bracket validation (LC20)</span></div>
 <pre class="swift"><span class="kw">var</span> openStack: [<span class="tp">Character</span>] = []
@@ -116,7 +116,20 @@
 <span class="cm">// The explicit stack IS the call stack — same visit order as recursive DFS,</span>
 <span class="cm">// but no risk of stack overflow on deep inputs.</span></pre>
 
-    <div class="co-insight"><strong>The shape is the recognition signal.</strong> Match openers to closers → skeleton 1. Descend on <code>[</code>, ascend and attach on <code>]</code> → skeleton 2. "Visit this node, then its neighbors" → skeleton 3. Naming variables before identifying the skeleton is the #1 stack bug — you end up with the right pieces wired in the wrong order.</div>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Monotonic stack — next greater element, right-to-left sweep (LC496)</span></div>
+<pre class="swift"><span class="kw">var</span> nextGreater: [<span class="tp">Int</span>: <span class="tp">Int</span>] = [:]
+<span class="kw">var</span> stack: [<span class="tp">Int</span>] = []                       <span class="cm">// decreasing bottom → top</span>
+<span class="kw">for</span> value <span class="kw">in</span> nums.<span class="fn">reversed</span>() {
+    <span class="kw">while let</span> top = stack.last, top <= value {
+        stack.<span class="fn">removeLast</span>()                   <span class="cm">// dominated — evict; can never be next-greater for anything further left</span>
+    }
+    nextGreater[value] = stack.last ?? -<span class="nm">1</span>   <span class="cm">// record AFTER eviction, BEFORE push</span>
+    stack.<span class="fn">append</span>(value)
+}
+<span class="cm">// each element pushed once, popped at most once → O(n) amortized</span>
+<span class="cm">// flip to increasing stack (pop ≥) for next SMALLER element</span></pre>
+
+    <div class="co-insight"><strong>The shape is the recognition signal.</strong> Match openers to closers → skeleton 1. Descend on <code>[</code>, ascend and attach on <code>]</code> → skeleton 2. "Visit this node, then its neighbors" → skeleton 3. <strong>"Next greater / next smaller / nearest element to the right that…"</strong> → skeleton 4 (monotonic stack): evict dominated elements, record top-after-eviction, push current. Naming variables before identifying the skeleton is the #1 stack bug — you end up with the right pieces wired in the wrong order.</div>
   </section>
 
   <hr class="wiki-hr">
@@ -188,27 +201,27 @@ stack.last == <span class="nm">7</span>    <span class="cm">// true — use for 
     </div>
 
     <div class="code-label"><span class="code-lang lang-ascii">Diagram</span><span class="code-desc">routing a new stack problem to its skeleton</span></div>
-<pre class="ascii">                    ┌──────────────────────────────────┐
-                    │     New problem involving a stack  │
-                    └─────────────────┬────────────────┘
-                                      │
-          ┌───────────────────────────┼───────────────────────────┐
-          │                           │                           │
-   "Does a closer          "This token opens a          "Visit nodes /
-    match the most          new LEVEL — I'll             traverse a
-    recent opener?"         need to attach it            tree or graph
-          │                 to its PARENT later"         without recursion"
-          ▼                           │                           │
-  ┌───────────────┐                   ▼                           ▼
-  │   SKELETON 1  │         ┌─────────────────┐       ┌──────────────────┐
-  │ Push openers  │         │   SKELETON 2    │       │   SKELETON 3     │
-  │ Pop-match     │         │ Push containers │       │ Explicit DFS     │
-  │ closers       │         │ Pop-and-attach  │       │ stack            │
-  └───────────────┘         └─────────────────┘       └──────────────────┘
-  LC20 (brackets)           LC385 (nested list)        Trees, graphs
-  LC227 (expression)        LC394 (decode string)      LC341 (iterator)
-  Valid at end:             Top of stack at end
-  stack.isEmpty             is the root result</pre>
+<pre class="ascii">                         ┌──────────────────────────────────┐
+                         │     New problem involving a stack  │
+                         └─────────────────┬────────────────┘
+                                           │
+     ┌─────────────────────────────────────┼──────────────────────┬──────────────────────────┐
+     │                                     │                      │                          │
+"Does a closer                 "This token opens a        "Visit nodes /          "Next greater / smaller /
+ match the most                 new LEVEL — I'll           traverse a              first element to right
+ recent opener?"                need to attach it          tree or graph           satisfying a condition"
+     │                          to its PARENT later"       without recursion"              │
+     ▼                                     │                      │                          ▼
+┌───────────────┐                          ▼                      ▼               ┌───────────────────┐
+│   SKELETON 1  │                ┌─────────────────┐  ┌──────────────────┐        │   SKELETON 4      │
+│ Push openers  │                │   SKELETON 2    │  │   SKELETON 3     │        │ Monotonic stack   │
+│ Pop-match     │                │ Push containers │  │ Explicit DFS     │        │ Evict dominated,  │
+│ closers       │                │ Pop-and-attach  │  │ stack            │        │ record top, push  │
+└───────────────┘                └─────────────────┘  └──────────────────┘        └───────────────────┘
+LC20 (brackets)                  LC385 (nested list)   Trees, graphs               LC496 (next greater)
+LC227 (expression)               LC394 (decode string) LC341 (iterator)            LC503 (circular)
+Valid at end:                    Top of stack at end                               Decreasing→next-greater
+stack.isEmpty                    is the root result                                Increasing→next-smaller</pre>
 
     <h3>Pattern 1 — Push openers, pop-match closers</h3>
     <div class="pattern-block">
