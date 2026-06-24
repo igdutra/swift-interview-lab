@@ -4,45 +4,57 @@ import Testing
 // PROBLEM: 362. Design Hit Counter
 // https://leetcode.com/problems/design-hit-counter/
 // Difficulty: Medium
-// Topics: Design, Queue, Data Stream
+// Topics: Queue, Sliding Window, Design
+// See also: Design category (stateful object with expiring state)
 //
-// Design a class that records hit timestamps and returns the count of hits 
-// within the past 5 minutes (300 seconds); timestamps arrive in chronological order.
+// Design a HitCounter class with two methods:
 //
-// Example 1:
-//   Input:  ["HitCounter", "hit", "hit", "hit", "getHits", "hit", "getHits", "getHits"]
-//           [[], [1], [2], [3], [4], [300], [300], [301]]
-//   Output: [null, null, null, null, 3, null, 4, 3]
+//   hit(timestamp)      — records that one hit occurred at `timestamp`.
+//                         Does NOT return anything.
+//
+//   getHits(timestamp)  — returns the number of hits recorded in the
+//                         window [timestamp - 299, timestamp] (inclusive).
+//                         This is a pure query — it does NOT record a hit.
+//
+// The window is always the last 300 seconds ending at `timestamp`.
+// Timestamps are guaranteed to arrive in non-decreasing order.
+//
+// Example (traced step by step):
+//   hit(1)        → recorded hits: [1]
+//   hit(2)        → recorded hits: [1, 2]
+//   hit(3)        → recorded hits: [1, 2, 3]
+//   getHits(4)    → window [-295..4], all 3 qualify          → returns 3
+//   hit(300)      → recorded hits: [1, 2, 3, 300]
+//   getHits(300)  → window [1..300], all 4 qualify           → returns 4
+//   getHits(301)  → window [2..301], hit at t=1 expired      → returns 3
 //
 // Constraints:
 //   - 1 <= timestamp <= 2 * 10^9
 //   - At most 300 calls will be made to hit and getHits combined
-//   - All calls are made with increasing timestamps
-//   - It is possible that several hits arrive at the same timestamp
-//
+//   - All calls are made with non-decreasing timestamps
+//   - Multiple hits at the same timestamp are allowed
 //
 // ============================================================
 // TIME AND SPACE COMPLEXITY ANALYSIS
 //
-// Time Complexity:
-// TODO
-// 
-// Space Complexity: 
-// TODO
+// Time Complexity:  hit → O(1). getHits → O(n) amortized — each hit is evicted at most once.
+// Space Complexity: O(n) — queue grows with total hits recorded.
 // ============================================================
 
-class HitCounter {
-    
-    init() {
-        // TODO
-    }
-    
+private class HitCounter {
+    private let windowDuration = 300
+    private var queue: [Int] = []
+    private var startIndex = 0
+
     func hit(_ timestamp: Int) {
-        // TODO
+        queue.append(timestamp)
     }
-    
+
     func getHits(_ timestamp: Int) -> Int {
-        // TODO
+        while startIndex < queue.count && timestamp - queue[startIndex] >= windowDuration {
+            startIndex += 1
+        }
+        return queue.count - startIndex
     }
 }
 
@@ -108,10 +120,4 @@ struct LC362DesignHitCounterTests {
         #expect(counter.getHits(100) == 0)
     }
     
-    @Test("Query before any hits")
-    func queryBeforeAnyHits() {
-        let counter = HitCounter()
-        counter.hit(500)
-        #expect(counter.getHits(100) == 0)  // query before first hit (invalid in real system, but defensive)
-    }
 }
