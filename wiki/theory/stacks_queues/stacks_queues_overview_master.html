@@ -64,7 +64,7 @@
   <!-- 2. All skeletons side by side -->
   <section id="skeletons">
     <h2>2 &nbsp; All Skeletons Side by Side</h2>
-    <p>Five canonical skeletons — three stack, two queue. Recognizing which shape fits a problem is the entire skill.</p>
+    <p>Six canonical skeletons — four stack, two queue. Recognizing which shape fits a problem is the entire skill.</p>
 
     <h3>Stack skeletons</h3>
 
@@ -104,6 +104,19 @@
     }
 }</pre>
 
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Stack skeleton 4 — monotonic stack, next greater element (LC496)</span></div>
+<pre class="swift"><span class="kw">var</span> nextGreater: [<span class="tp">Int</span>: <span class="tp">Int</span>] = [:]
+<span class="kw">var</span> stack: [<span class="tp">Int</span>] = []                       <span class="cm">// decreasing bottom → top</span>
+<span class="kw">for</span> value <span class="kw">in</span> nums.<span class="fn">reversed</span>() {             <span class="cm">// right-to-left so stack holds future candidates</span>
+    <span class="kw">while let</span> top = stack.last, top <= value {
+        stack.<span class="fn">removeLast</span>()                   <span class="cm">// dominated — evict; can never be next-greater for anything further left</span>
+    }
+    nextGreater[value] = stack.last ?? -<span class="nm">1</span>   <span class="cm">// record AFTER eviction, BEFORE push</span>
+    stack.<span class="fn">append</span>(value)
+}
+<span class="cm">// each element pushed once, popped at most once → O(n) amortized</span>
+<span class="cm">// flip to increasing stack (pop ≥) for next SMALLER element</span></pre>
+
     <h3>Queue skeletons</h3>
 
     <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Queue skeleton 1 — BFS level-swap (shortest path / level order)</span></div>
@@ -133,7 +146,7 @@
     answer = window.count
 }</pre>
 
-    <div class="co-insight"><strong>The shape is the recognition signal — before the variables.</strong> "Closest-first" or "level-by-level" → BFS queue skeleton. "Evict stale items from the front" → sliding-window queue. "Nested / matching / deepest-first" → one of the three stack skeletons. Naming variables before identifying the skeleton is the #1 source of wiring bugs in both structures.</div>
+    <div class="co-insight"><strong>The shape is the recognition signal — before the variables.</strong> "Closest-first" or "level-by-level" → BFS queue skeleton. "Evict stale items from the front" → sliding-window queue. "Nested / matching / deepest-first" → one of the three classic stack skeletons. <strong>"Next greater / next smaller / first element to the right that…"</strong> → skeleton 4 (monotonic stack): evict dominated elements, record top-after-eviction, push current. Naming variables before identifying the skeleton is the #1 source of wiring bugs in both structures.</div>
   </section>
 
   <hr class="wiki-hr">
@@ -247,6 +260,8 @@ queue.<span class="fn">removeFirst</span>()   <span class="cm">// → 1  queue=[
         <tr><td>Queue vs Dijkstra</td><td>Are all edge weights equal?</td><td>Equal → queue BFS (simpler, same O(V+E)). Unequal → Dijkstra (min-heap).</td></tr>
         <tr><td>Stack DFS vs recursive DFS</td><td>Can the input be deeply nested (&gt; a few hundred levels)?</td><td>Deep → explicit stack (no overflow risk). Shallow → either works.</td></tr>
         <tr><td>Sliding-window queue vs sliding-window array</td><td>Is the input a <em>stream</em> or a <em>static array</em>?</td><td>Stream → queue with front-eviction. Static array → two-pointer window (see sliding window deep dive).</td></tr>
+        <tr><td>Monotonic stack vs suffix-max</td><td>Do I want the <em>nearest</em> qualifying element, or just the <em>maximum</em> value to the right?</td><td>Maximum value only → suffix precomputation (one pass). <strong>Nearest</strong> greater/smaller → skeleton 4 (monotonic stack). The word "first" or "nearest" in the problem is the tell.</td></tr>
+        <tr><td>Monotonic stack vs two pointers</td><td>Am I resolving pending queries for <em>many</em> elements simultaneously, or steering <em>two</em> indices?</td><td>Pending multi-element queries → skeleton 4. Converging / both-rightward pair → two pointers / sliding window.</td></tr>
       </tbody>
     </table>
   </section>
@@ -312,6 +327,11 @@ queue.<span class="fn">removeFirst</span>()   <span class="cm">// → 1  queue=[
         <span class="ref-title">LC 394 — Decode String</span>
         <span class="ref-desc">Stack skeleton 2 — push (count, string) context on [, pop-repeat-attach on ]. The canonical nested-structure decode.</span>
       </a>
+      <a class="xref-card" href="../../walkthroughs/LC496_master.html">
+        <span class="ref-file">walkthroughs/LC496_master.html</span>
+        <span class="ref-title">LC 496 — Next Greater Element I</span>
+        <span class="ref-desc">Stack skeleton 4 (monotonic stack) — decreasing stack, right-to-left sweep, evict dominated elements, record top-after-eviction. The routing signal: "next greater / nearest element satisfying a condition."</span>
+      </a>
       <a class="xref-card" href="../../walkthroughs/LC1091_master.html">
         <span class="ref-file">walkthroughs/LC1091_master.html</span>
         <span class="ref-title">LC 1091 — Shortest Path in Binary Matrix</span>
@@ -363,6 +383,7 @@ queue.<span class="fn">removeFirst</span>()   <span class="cm">// → 1  queue=[
         <tr><td>"level order / nodes at depth k"</td><td>Queue BFS skeleton 1 (level-swap)</td><td>outer loop = one level; inner loop = all nodes at that level</td></tr>
         <tr><td>"requests in the last T seconds / sliding count"</td><td>Queue skeleton 2 (sliding-window)</td><td>enqueue arrival, evict stale front, return count</td></tr>
         <tr><td>"minimum distance from any of these sources"</td><td>Multi-source BFS — seed all sources</td><td>one pass replaces O(sources × V+E) brute force</td></tr>
+        <tr><td>"next greater / next smaller / <strong>first</strong> element to the right that…"</td><td>Stack skeleton 4 — monotonic stack</td><td><em>nearest</em> qualifying neighbor; evict dominated, record top, push; O(n) amortized</td></tr>
       </tbody>
     </table>
 
@@ -370,7 +391,8 @@ queue.<span class="fn">removeFirst</span>()   <span class="cm">// → 1  queue=[
     <table class="t-cmx">
       <thead><tr><th>Structure / Pattern</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
       <tbody>
-        <tr><td>Stack — all skeletons</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td>Each element pushed and popped at most once. Stack depth ≤ n.</td></tr>
+        <tr><td>Stack — skeletons 1 / 2 / 3</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td>Each element pushed and popped at most once. Stack depth ≤ n.</td></tr>
+        <tr><td>Stack — skeleton 4 (monotonic)</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td>Same push-once / pop-at-most-once amortized argument. The inner while-loop can pop many per step, but across the full sweep each element exits at most once.</td></tr>
         <tr><td>Queue — BFS (graph)</td><td class="tc">O(V + E)</td><td class="sc">O(V)</td><td>Each vertex and edge visited once. Visited set holds up to V nodes.</td></tr>
         <tr><td>Queue — BFS (grid n×m)</td><td class="tc">O(n · m)</td><td class="sc">O(n · m)</td><td>Each cell visited once; up to 4/8 directional edges per cell.</td></tr>
         <tr><td>Queue — sliding-window</td><td class="tc">O(n) amortized</td><td class="sc">O(w)</td><td>Each item enqueued and dequeued at most once.</td></tr>
@@ -385,6 +407,8 @@ queue.<span class="fn">removeFirst</span>()   <span class="cm">// → 1  queue=[
       <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Stack skeleton 3 (DFS):</strong> push children in <em>reversed</em> order so the leftmost is on top and processed first — matching recursive DFS visit order.</span></div>
       <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Queue BFS:</strong> mark nodes visited at <em>enqueue</em> time, not dequeue time — otherwise the same node is enqueued multiple times via different paths, corrupting distances.</span></div>
       <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Queue sliding-window:</strong> enqueue the new item <em>before</em> running the eviction loop — if you evict first, the current item may be incorrectly removed at the boundary.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Stack skeleton 4 (monotonic):</strong> record <code>nextGreater[value] = stack.last ?? -1</code> <em>after</em> the eviction while-loop but <em>before</em> pushing the current value — reversing those two steps makes an element its own next-greater.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Stack skeleton 4 — variant choice:</strong> decreasing stack (pop ≤) for next-<em>greater</em>; increasing stack (pop ≥) for next-<em>smaller</em>. Mixing them produces a valid-looking stack that answers the wrong question silently.</span></div>
     </div>
   </section>
 
