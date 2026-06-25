@@ -120,6 +120,77 @@ private func palindromePairs(_ words: [String]) -> [[Int]] {
     return Array(outputIndexes)
 }
 
+// ============================================================
+// OPTIMIZED: single-map variant
+// ============================================================
+//
+// WHY two maps can collapse into one:
+//   Both maps answer the same question — "reverse of the remainder"
+//   — just used in two output directions (partner goes LEFT vs RIGHT).
+//   The key is always the same kind of thing: a string to look up.
+//   The only difference is what pair we emit when we find a hit.
+//
+//   Instead of two [String: [Int]] maps, we store one:
+//     complementMap[key] = [Match]
+//   where Match carries the word index AND a direction flag that
+//   says whether the partner belongs on the left or the right.
+//
+// HOW the direction flag works:
+//   .needsLeft  — word[i] needs its partner prepended (partner, word[i])
+//   .needsRight — word[i] needs its partner appended  (word[i], partner)
+//
+//   When the final loop finds a hit for word[currentIndex]:
+//     .needsLeft  → emit [storedIndex, currentIndex]
+//     .needsRight → emit [currentIndex, storedIndex]
+
+private enum PartnerDirection { case needsLeft, needsRight }
+private struct PalindromeMatch { let index: Int; let direction: PartnerDirection }
+
+private func palindromePairsOptimized(_ words: [String]) -> [[Int]] {
+    func isPalindrome(_ characters: [Character]) -> Bool {
+        isPalindromeTwoPointers(characters)
+    }
+
+    var complementMap: [String: [PalindromeMatch]] = [:]
+
+    for (wordIndex, word) in words.enumerated() {
+        let wordArray = Array(word)
+        for splitPoint in 0...wordArray.count {
+            let leftSplit = Array(wordArray.prefix(splitPoint))
+            let rightSplit = Array(wordArray.suffix(wordArray.count - splitPoint))
+
+            // left palindrome → need reverse(right) to come from the LEFT
+            if isPalindrome(leftSplit) {
+                let key = String(rightSplit.reversed())
+                if key != word {
+                    complementMap[key, default: []].append(PalindromeMatch(index: wordIndex, direction: .needsLeft))
+                }
+            }
+
+            // right palindrome → need reverse(left) to come from the RIGHT
+            if isPalindrome(rightSplit) {
+                let key = String(leftSplit.reversed())
+                if key != word {
+                    complementMap[key, default: []].append(PalindromeMatch(index: wordIndex, direction: .needsRight))
+                }
+            }
+        }
+    }
+
+    var outputIndexes: Set<[Int]> = []
+    for (currentIndex, word) in words.enumerated() {
+        for match in complementMap[word, default: []] where match.index != currentIndex {
+            switch match.direction {
+            // stored word needs a partner on its LEFT → pair is (currentIndex, storedIndex)
+            case .needsLeft:  outputIndexes.insert([currentIndex, match.index])
+            // stored word needs a partner on its RIGHT → pair is (storedIndex, currentIndex)
+            case .needsRight: outputIndexes.insert([match.index, currentIndex])
+            }
+        }
+    }
+    return Array(outputIndexes)
+}
+
 @Suite("LC336 Palindrome Pairs")
 struct LC336Tests {
     private func sorted(_ pairs: [[Int]]) -> [[Int]] {
@@ -158,6 +229,40 @@ struct LC336Tests {
     @Test("Mixed — palindrome word among others with empty")
     func mixedWithEmpty() {
         let result = palindromePairs(["a", "abc", "aba", ""])
+        #expect(sorted(result) == [[0,3],[2,3],[3,0],[3,2]])
+    }
+}
+
+@Suite("LC336 Palindrome Pairs — optimized single map")
+struct LC336OptimizedTests {
+    private func sorted(_ pairs: [[Int]]) -> [[Int]] {
+        pairs.sorted { $0[0] != $1[0] ? $0[0] < $1[0] : $0[1] < $1[1] }
+    }
+
+    @Test("Example 1 — mixed lengths")
+    func example1() {
+        let result = palindromePairsOptimized(["abcd", "dcba", "lls", "s", "sssll"])
+        #expect(sorted(result) == [[0,1],[1,0],[2,4],[3,2]])
+    }
+
+    @Test("Example 2 — exact reverses only")
+    func example2() {
+        #expect(sorted(palindromePairsOptimized(["bat", "tab", "cat"])) == [[0,1],[1,0]])
+    }
+
+    @Test("Example 3 — empty string pairs with palindrome")
+    func example3() {
+        #expect(sorted(palindromePairsOptimized(["a", ""])) == [[0,1],[1,0]])
+    }
+
+    @Test("Single word — no pairs")
+    func singleWord() {
+        #expect(palindromePairsOptimized(["a"]) == [])
+    }
+
+    @Test("Mixed — palindrome word among others with empty")
+    func mixedWithEmpty() {
+        let result = palindromePairsOptimized(["a", "abc", "aba", ""])
         #expect(sorted(result) == [[0,3],[2,3],[3,0],[3,2]])
     }
 }
