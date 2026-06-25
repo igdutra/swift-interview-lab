@@ -356,39 +356,39 @@ word "sssll" (i=2), at p=2: left="ss" (palindrome), right="sll"
 
         <pre class="swift"><span class="kw">func</span> <span class="fn">palindromePairs</span>(<span class="kw">_</span> words: [<span class="tp">String</span>]) -&gt; [[<span class="tp">Int</span>]] {
     <span class="kw">var</span> reversedIndex: [<span class="tp">String</span>: <span class="tp">Int</span>] = [:]
-    <span class="kw">for</span> (index, word) <span class="kw">in</span> words.enumerated() {
-        reversedIndex[<span class="tp">String</span>(word.reversed())] = index
+    <span class="kw">for</span> (wordIndex, word) <span class="kw">in</span> words.enumerated() {
+        reversedIndex[<span class="tp">String</span>(word.reversed())] = wordIndex
     }
 
-    <span class="kw">func</span> <span class="fn">isPalindrome</span>(<span class="kw">_</span> chars: [<span class="tp">Character</span>], <span class="kw">_</span> low: <span class="tp">Int</span>, <span class="kw">_</span> high: <span class="tp">Int</span>) -&gt; <span class="tp">Bool</span> {
-        <span class="kw">var</span> left = low, right = high
-        <span class="kw">while</span> left &lt; right {
-            <span class="kw">if</span> chars[left] != chars[right] { <span class="kw">return</span> <span class="kw">false</span> }
-            left += <span class="nm">1</span>; right -= <span class="nm">1</span>
+    <span class="kw">func</span> <span class="fn">isPalindrome</span>(<span class="kw">_</span> characters: [<span class="tp">Character</span>], <span class="kw">_</span> leftBound: <span class="tp">Int</span>, <span class="kw">_</span> rightBound: <span class="tp">Int</span>) -&gt; <span class="tp">Bool</span> {
+        <span class="kw">var</span> leftPointer = leftBound, rightPointer = rightBound
+        <span class="kw">while</span> leftPointer &lt; rightPointer {
+            <span class="kw">if</span> characters[leftPointer] != characters[rightPointer] { <span class="kw">return</span> <span class="kw">false</span> }
+            leftPointer += <span class="nm">1</span>; rightPointer -= <span class="nm">1</span>
         }
         <span class="kw">return</span> <span class="kw">true</span>
     }
 
     <span class="kw">var</span> result: [[<span class="tp">Int</span>]] = []
 
-    <span class="kw">for</span> (index, word) <span class="kw">in</span> words.enumerated() {
-        <span class="kw">let</span> chars = <span class="tp">Array</span>(word)
-        <span class="kw">let</span> length = chars.count
+    <span class="kw">for</span> (wordIndex, word) <span class="kw">in</span> words.enumerated() {
+        <span class="kw">let</span> characters = <span class="tp">Array</span>(word)
+        <span class="kw">let</span> wordLength = characters.count
 
-        <span class="cm">// split point p: left = chars[0..&lt;p], right = chars[p..&lt;length]</span>
-        <span class="kw">for</span> p <span class="kw">in</span> <span class="nm">0</span>...length {
-            <span class="cm">// Case A: prefix [0..&lt;p] is a palindrome → partner attaches in FRONT</span>
-            <span class="kw">if</span> <span class="fn">isPalindrome</span>(chars, <span class="nm">0</span>, p - <span class="nm">1</span>) {
-                <span class="kw">let</span> suffix = <span class="tp">String</span>(chars[p..&lt;length])
-                <span class="kw">if</span> <span class="kw">let</span> partner = reversedIndex[suffix], partner != index {
-                    result.<span class="fn">append</span>([partner, index])
+        <span class="cm">// splitPoint: left = characters[0..&lt;splitPoint], right = characters[splitPoint..&lt;wordLength]</span>
+        <span class="kw">for</span> splitPoint <span class="kw">in</span> <span class="nm">0</span>...wordLength {
+            <span class="cm">// Case A: prefix [0..&lt;splitPoint] is a palindrome → partner attaches in FRONT</span>
+            <span class="kw">if</span> <span class="fn">isPalindrome</span>(characters, <span class="nm">0</span>, splitPoint - <span class="nm">1</span>) {
+                <span class="kw">let</span> rightRemainder = <span class="tp">String</span>(characters[splitPoint..&lt;wordLength])
+                <span class="kw">if</span> <span class="kw">let</span> partnerIndex = reversedIndex[rightRemainder], partnerIndex != wordIndex {
+                    result.<span class="fn">append</span>([partnerIndex, wordIndex])
                 }
             }
-            <span class="cm">// Case B: suffix [p..&lt;length] is a NON-EMPTY palindrome → partner attaches BEHIND</span>
-            <span class="kw">if</span> p &lt; length, <span class="fn">isPalindrome</span>(chars, p, length - <span class="nm">1</span>) {
-                <span class="kw">let</span> prefix = <span class="tp">String</span>(chars[<span class="nm">0</span>..&lt;p])
-                <span class="kw">if</span> <span class="kw">let</span> partner = reversedIndex[prefix], partner != index {
-                    result.<span class="fn">append</span>([index, partner])
+            <span class="cm">// Case B: suffix [splitPoint..&lt;wordLength] is a NON-EMPTY palindrome → partner attaches BEHIND</span>
+            <span class="kw">if</span> splitPoint &lt; wordLength, <span class="fn">isPalindrome</span>(characters, splitPoint, wordLength - <span class="nm">1</span>) {
+                <span class="kw">let</span> leftRemainder = <span class="tp">String</span>(characters[<span class="nm">0</span>..&lt;splitPoint])
+                <span class="kw">if</span> <span class="kw">let</span> partnerIndex = reversedIndex[leftRemainder], partnerIndex != wordIndex {
+                    result.<span class="fn">append</span>([wordIndex, partnerIndex])
                 }
             }
         }
@@ -396,7 +396,7 @@ word "sssll" (i=2), at p=2: left="ss" (palindrome), right="sll"
 
     <span class="kw">return</span> result
 }</pre>
-        <div class="co-note"><strong>On the two lookups.</strong> Case A looks up <code>suffix</code> directly (not its reverse) because the map is already keyed on reversed words — <code>reversedIndex[suffix]</code> finds the word whose reverse is <code>suffix</code>, i.e. the word equal to <code>reverse(suffix)</code>. Same logic in Case B for <code>prefix</code>. The <code>p &lt; length</code> guard in Case B is the non-empty-suffix rule that stops exact reverses being emitted twice.</div>
+        <div class="co-note"><strong>On the two lookups.</strong> Case A looks up <code>rightRemainder</code> directly (not its reverse) because the map is already keyed on reversed words — <code>reversedIndex[rightRemainder]</code> finds the word whose reverse equals <code>rightRemainder</code>. Same logic in Case B for <code>leftRemainder</code>. The <code>splitPoint &lt; wordLength</code> guard in Case B is the non-empty-suffix rule that stops exact reverses being emitted twice.</div>
       </div>
     </div>
   </section>
@@ -561,7 +561,53 @@ RESULT
       </ul>
     </div>
 
-    <div class="co-note"><strong>Note:</strong> A.1 (two-map + Set) reached <strong>134/136</strong> test cases before hitting Time Limit Exceeded on a pathological input of 5000 long repeated words. This is not a WA — the algorithm is correct. The TLE comes from <code>Set&lt;[Int]&gt;</code> hashing overhead on large outputs. A.2 (single-map + array dedup via the <code>p &lt; length</code> guard) avoids the Set entirely and passes all 136 test cases. In an interview, A.1 is the solution to present — correctness is the goal. A.2 is the production-ready form.</div>
+    <div class="co-note"><strong>Note:</strong> A.1 (two-map + Set) reached <strong>134/136</strong> test cases before hitting Time Limit Exceeded on a pathological input of 5000 long repeated words. This is not a WA — the algorithm is correct. The TLE comes from <code>Set&lt;[Int]&gt;</code> hashing overhead on large outputs. A.2 (single-map + array dedup via the <code>splitPoint &lt; wordLength</code> guard) avoids the Set entirely and passes all 136 test cases. In an interview, A.1 is the solution to present — correctness is the goal. A.2 is the production-ready form.</div>
+
+    <p>The exact code submitted for A.1 that reached 134/136:</p>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">submitted to LeetCode — 134/136, TLE on pathological input only</span></div>
+    <pre class="swift"><span class="kw">class</span> <span class="tp">Solution</span> {
+    <span class="kw">func</span> <span class="fn">palindromePairs</span>(<span class="kw">_</span> words: [<span class="tp">String</span>]) -&gt; [[<span class="tp">Int</span>]] {
+        <span class="kw">func</span> <span class="fn">isPalindrome</span>(<span class="kw">_</span> characters: [<span class="tp">Character</span>]) -&gt; <span class="tp">Bool</span> {
+            <span class="kw">var</span> leftPointer = <span class="nm">0</span>, rightPointer = characters.count - <span class="nm">1</span>
+            <span class="kw">while</span> leftPointer &lt;= rightPointer {
+                <span class="kw">if</span> characters[leftPointer] != characters[rightPointer] { <span class="kw">return</span> <span class="kw">false</span> }
+                leftPointer += <span class="nm">1</span>
+                rightPointer -= <span class="nm">1</span>
+            }
+            <span class="kw">return</span> <span class="kw">true</span>
+        }
+
+        <span class="kw">var</span> leftWordToRightIndex: [<span class="tp">String</span>: [<span class="tp">Int</span>]] = [:]
+        <span class="kw">var</span> rightWordToLeftIndex: [<span class="tp">String</span>: [<span class="tp">Int</span>]] = [:]
+
+        <span class="kw">for</span> (wordIndex, word) <span class="kw">in</span> words.enumerated() {
+            <span class="kw">let</span> wordArray = <span class="tp">Array</span>(word)
+            <span class="kw">for</span> splitPoint <span class="kw">in</span> <span class="nm">0</span>...wordArray.count {
+                <span class="kw">let</span> leftSplit = <span class="tp">Array</span>(wordArray.prefix(splitPoint))
+                <span class="kw">let</span> rightSplit = <span class="tp">Array</span>(wordArray.suffix(wordArray.count - splitPoint))
+                <span class="kw">if</span> <span class="fn">isPalindrome</span>(leftSplit) {
+                    <span class="kw">let</span> targetLeft = <span class="tp">String</span>(rightSplit.reversed())
+                    <span class="kw">if</span> word != targetLeft { leftWordToRightIndex[targetLeft, default: []].<span class="fn">append</span>(wordIndex) }
+                }
+                <span class="kw">if</span> <span class="fn">isPalindrome</span>(rightSplit) {
+                    <span class="kw">let</span> targetRight = <span class="tp">String</span>(leftSplit.reversed())
+                    <span class="kw">if</span> targetRight != word { rightWordToLeftIndex[targetRight, default: []].<span class="fn">append</span>(wordIndex) }
+                }
+            }
+        }
+
+        <span class="kw">var</span> outputIndexes: <span class="tp">Set</span>&lt;[<span class="tp">Int</span>]&gt; = []
+        <span class="kw">for</span> (currentIndex, word) <span class="kw">in</span> words.enumerated() {
+            <span class="kw">for</span> rightIndex <span class="kw">in</span> leftWordToRightIndex[word, default: []] <span class="kw">where</span> rightIndex != currentIndex {
+                outputIndexes.<span class="fn">insert</span>([currentIndex, rightIndex])
+            }
+            <span class="kw">for</span> leftIndex <span class="kw">in</span> rightWordToLeftIndex[word, default: []] <span class="kw">where</span> leftIndex != currentIndex {
+                outputIndexes.<span class="fn">insert</span>([leftIndex, currentIndex])
+            }
+        }
+        <span class="kw">return</span> <span class="tp">Array</span>(outputIndexes)
+    }
+}</pre>
   </section>
 
   <hr class="wiki-hr">
