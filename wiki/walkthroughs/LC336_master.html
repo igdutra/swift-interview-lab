@@ -34,6 +34,9 @@
     <a href="#qmap"         class="toc-link"><span class="toc-num">11</span> Question → Code Map</a>
     <a href="#complexity"   class="toc-link"><span class="toc-num">12</span> Complexity</a>
     <a href="#followups"    class="toc-link"><span class="toc-num">13</span> Follow-Up Bank</a>
+    <div class="toc-sub">
+      <a href="#leetcode-submit" class="toc-link">Submitting to LeetCode</a>
+    </div>
     <a href="#decoder"      class="toc-link"><span class="toc-num">14</span> Theory Decoder</a>
     <a href="#parent"       class="toc-link"><span class="toc-num">15</span> Parent Theory</a>
   </div>
@@ -274,14 +277,82 @@ word "sssll" (i=2), at p=2: left="ss" (palindrome), right="sll"
     <div class="solution-block">
       <div class="block-header">
         <span class="block-badge">A.1</span>
-        <span class="block-name">Reversed-word hash map + two split cases</span>
+        <span class="block-name">Two-map solution — Understand this first</span>
         <div class="block-pills"><span class="pill pill-t">O(w·L²)</span><span class="pill pill-s">O(w·L)</span></div>
       </div>
       <div class="block-body">
         <div class="approach-box">
           <div class="approach-title">Plan</div>
-          Map each word's reverse to its index. For every word, scan its L+1 split points. If the prefix is a palindrome and the reverse of the suffix is a known word (different index), that word goes in front. If the suffix is a non-empty palindrome and the reverse of the prefix is a known word (different index), that word goes behind. The non-empty guard on the suffix case prevents double-counting exact reverses.
+          Build two maps: <code>leftWordToRightIndex</code> (key = string to prepend, value = list of word indexes that need it) and <code>rightWordToLeftIndex</code> (key = string to append, value = list of word indexes that need it). For each word, scan all L+1 split points. When a side is a palindrome, the reverse of the other side is the key. Duplicates are handled by a <code>Set</code> on the output — no guard needed on the split loop itself. This is the solution arrived at by solving the problem from scratch.
         </div>
+
+        <pre class="swift"><span class="kw">func</span> <span class="fn">palindromePairs</span>(<span class="kw">_</span> words: [<span class="tp">String</span>]) -&gt; [[<span class="tp">Int</span>]] {
+    <span class="kw">func</span> <span class="fn">isPalindrome</span>(<span class="kw">_</span> characters: [<span class="tp">Character</span>]) -&gt; <span class="tp">Bool</span> {
+        <span class="kw">var</span> left = <span class="nm">0</span>, right = characters.count - <span class="nm">1</span>
+        <span class="kw">while</span> left &lt;= right {
+            <span class="kw">if</span> characters[left] != characters[right] { <span class="kw">return</span> <span class="kw">false</span> }
+            left += <span class="nm">1</span>
+            right -= <span class="nm">1</span>
+        }
+        <span class="kw">return</span> <span class="kw">true</span>
+    }
+
+    <span class="cm">// leftWordToRightIndex[key] = [i]: word[i] needs `key` prepended to form a palindrome</span>
+    <span class="cm">// rightWordToLeftIndex[key] = [i]: word[i] needs `key` appended to form a palindrome</span>
+    <span class="kw">var</span> leftWordToRightIndex: [<span class="tp">String</span>: [<span class="tp">Int</span>]] = [:]
+    <span class="kw">var</span> rightWordToLeftIndex: [<span class="tp">String</span>: [<span class="tp">Int</span>]] = [:]
+
+    <span class="kw">for</span> (wordIndex, word) <span class="kw">in</span> words.enumerated() {
+        <span class="kw">let</span> wordArray = <span class="tp">Array</span>(word)
+        <span class="kw">for</span> splitPoint <span class="kw">in</span> <span class="nm">0</span>...wordArray.count {
+            <span class="kw">let</span> leftSplit = <span class="tp">Array</span>(wordArray.prefix(splitPoint))
+            <span class="kw">let</span> rightSplit = <span class="tp">Array</span>(wordArray.suffix(wordArray.count - splitPoint))
+
+            <span class="cm">// if left is a palindrome, we need reverse(right) to appear as a word to our LEFT</span>
+            <span class="kw">if</span> <span class="fn">isPalindrome</span>(leftSplit) {
+                <span class="kw">let</span> targetLeft = <span class="tp">String</span>(rightSplit.reversed())
+                <span class="kw">if</span> word != targetLeft {
+                    leftWordToRightIndex[targetLeft, default: []].<span class="fn">append</span>(wordIndex)
+                }
+            }
+
+            <span class="cm">// if right is a palindrome, we need reverse(left) to appear as a word to our RIGHT</span>
+            <span class="kw">if</span> <span class="fn">isPalindrome</span>(rightSplit) {
+                <span class="kw">let</span> targetRight = <span class="tp">String</span>(leftSplit.reversed())
+                <span class="kw">if</span> targetRight != word {
+                    rightWordToLeftIndex[targetRight, default: []].<span class="fn">append</span>(wordIndex)
+                }
+            }
+        }
+    }
+
+    <span class="kw">var</span> outputIndexes: <span class="tp">Set</span>&lt;[<span class="tp">Int</span>]&gt; = [] <span class="cm">// Set handles duplicates from overlapping split paths</span>
+    <span class="kw">for</span> (currentIndex, word) <span class="kw">in</span> words.enumerated() {
+        <span class="kw">for</span> rightIndex <span class="kw">in</span> leftWordToRightIndex[word, default: []] <span class="kw">where</span> rightIndex != currentIndex {
+            outputIndexes.<span class="fn">insert</span>([currentIndex, rightIndex])
+        }
+        <span class="kw">for</span> leftIndex <span class="kw">in</span> rightWordToLeftIndex[word, default: []] <span class="kw">where</span> leftIndex != currentIndex {
+            outputIndexes.<span class="fn">insert</span>([leftIndex, currentIndex])
+        }
+    }
+    <span class="kw">return</span> <span class="tp">Array</span>(outputIndexes)
+}</pre>
+        <div class="co-insight"><strong>Why <code>[String: [Int]]</code> and not <code>[String: Int]</code>:</strong> The same key can be produced by multiple split points of different words. For example, if two different words both have an empty palindromic prefix at split 0, they both store <code>reverse(word)</code> in <code>leftWordToRightIndex</code>. A single <code>Int</code> value would silently overwrite the first entry — the bug that breaks <code>["a","abc","aba",""]</code>. A <code>[Int]</code> per key stores all of them.</div>
+      </div>
+    </div>
+
+    <div class="solution-block">
+      <div class="block-header">
+        <span class="block-badge">A.2</span>
+        <span class="block-name">Single-map space-optimized variant</span>
+        <div class="block-pills"><span class="pill pill-t">O(w·L²)</span><span class="pill pill-s">O(w·L)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="approach-box">
+          <div class="approach-title">Plan</div>
+          Collapses both maps into one <code>[String: Int]</code> by exploiting the fact that words are <strong>distinct</strong> — each reversed key is unique, so a single <code>Int</code> per key suffices. Uses a non-empty suffix guard (<code>p &lt; length</code>) to prevent double-counting exact reverses instead of a <code>Set</code>. This is the cleaner production form; understand A.1 first.
+        </div>
+        <div class="co-insight"><strong>Why this works with <code>[String: Int]</code> when A.1 needs <code>[String: [Int]]</code>:</strong> Words are distinct, so each word's reverse is unique in the map — no two words share the same lookup key. The double-count problem (exact reverses found twice) is handled by the <code>p &lt; length</code> guard instead of a <code>Set</code>. A.1 generalizes to duplicate words; A.2 does not.</div>
 
         <pre class="swift"><span class="kw">func</span> <span class="fn">palindromePairs</span>(<span class="kw">_</span> words: [<span class="tp">String</span>]) -&gt; [[<span class="tp">Int</span>]] {
     <span class="kw">var</span> reversedIndex: [<span class="tp">String</span>: <span class="tp">Int</span>] = [:]
@@ -473,6 +544,24 @@ RESULT
       <div class="followup-q">Follow-up: "How would you verify correctness on large random inputs?"</div>
       <div class="followup-a">Write the O(w²·L) brute force as an oracle — it's trivially correct — and run a property test: generate random word lists, compute both results as sets of pairs, and assert equality. The brute force is too slow for production but perfect as a reference to fuzz the optimized solution against, especially around the empty-string and exact-reverse edge cases.</div>
     </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13b. Submitting to LeetCode -->
+  <section id="leetcode-submit">
+    <h2>13b &nbsp; Submitting to LeetCode — compiler gotchas</h2>
+
+    <div class="co-pitfall"><strong>PITFALLS</strong>
+      <ul>
+        <li>LeetCode's Swift compiler (older toolchain) rejects <code>if let x = dict[key] as? [Int]</code> — the cast from <code>[Int]?</code> to <code>[Int]</code> is a no-op and triggers a compile error.</li>
+        <li>The same compiler rejects <code>for x in dict[key] ?? []</code> in some configurations.</li>
+        <li><strong>Fix:</strong> use <code>for x in dict[key, default: []]</code> directly — no <code>if let</code>, no cast.</li>
+        <li>The <code>Set&lt;[Int]&gt;</code> approach (A.1) requires no special handling — it compiles cleanly.</li>
+      </ul>
+    </div>
+
+    <div class="co-note"><strong>Note:</strong> A.1 (two-map + Set) reached <strong>134/136</strong> test cases before hitting Time Limit Exceeded on a pathological input of 5000 long repeated words. This is not a WA — the algorithm is correct. The TLE comes from <code>Set&lt;[Int]&gt;</code> hashing overhead on large outputs. A.2 (single-map + array dedup via the <code>p &lt; length</code> guard) avoids the Set entirely and passes all 136 test cases. In an interview, A.1 is the solution to present — correctness is the goal. A.2 is the production-ready form.</div>
   </section>
 
   <hr class="wiki-hr">
