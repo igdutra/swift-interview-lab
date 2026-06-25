@@ -522,6 +522,7 @@ nums.<span class="fn">reduce</span>(into: [<span class="nm">0</span>]) { acc, va
         <tr><td>"range sum", <strong>many queries</strong>, array immutable</td><td>Prefix sum</td><td>build once O(n), then O(1) per query via one subtraction</td></tr>
         <tr><td>"product <strong>except self</strong>", no division</td><td>Prefix × suffix</td><td>division breaks on zeros; the gap at i is excluded structurally</td></tr>
         <tr><td>"next greater / next smaller / <strong>first</strong> element to the right that…"</td><td>Monotonic Stack (Stack theory, Pattern 4)</td><td><em>nearest</em> qualifying neighbor → not suffix-max (which gives maximum, not nearest); not two pointers (wrong motion); monotonic stack resolves queries in O(n) with one push and at most one pop per element</td></tr>
+        <tr><td>"split a word at every position" / try all prefix+suffix halves</td><td>Split-point loop: <code>prefix(k) + suffix(n−k)</code> for k in 0...n</td><td>n+1 valid splits including both empty halves; prefix/suffix methods clamp — subscript ranges with negative indices are undefined and crash unpredictably</td></tr>
       </tbody>
     </table>
 
@@ -574,6 +575,16 @@ nums.<span class="fn">reduce</span>(into: [<span class="nm">0</span>]) { acc, va
 }.<span class="fn">reversed</span>()
 <span class="cm">// nums=[1,2,3,4] → [24, 12, 4, 1]   (products of everything RIGHT of each index)</span>
 <span class="cm">// reverse twice: once to feed reduce right-to-left, once to restore order</span></pre>
+
+    <h4 style="margin-top:28px">Split-point enumeration — a different use of prefix/suffix</h4>
+    <div class="co-insight"><strong>Not a prefix array — a split-point loop.</strong> When the problem asks you to try all ways of splitting a word into a left half and a right half (palindrome pairs, word breaks), use Swift's <code>prefix(_:)</code> and <code>suffix(_:)</code> methods, not subscript ranges. Loop <code>0...word.count</code> — that is exactly <em>n+1</em> split points, one for each gap between characters plus both ends. <code>prefix(0)</code> gives <code>""</code> (empty left, full right) and <code>prefix(count)</code> gives the full word (full left, empty right). Both are valid splits and both are returned safely — <code>prefix</code>/<code>suffix</code> clamp to the collection bounds, so no out-of-bounds crash is possible. See <a href="prefix_suffix_master.html#split-enumeration">prefix_suffix_master.html §7.1</a> for the full trace and the subscript-trap pitfall.</div>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">split-point enumeration — all n+1 splits in three lines</span></div>
+<pre class="swift"><span class="kw">for</span> splitPoint <span class="kw">in</span> <span class="nm">0</span>...word.count {
+    <span class="kw">let</span> left  = <span class="tp">String</span>(word.<span class="fn">prefix</span>(splitPoint))
+    <span class="kw">let</span> right = <span class="tp">String</span>(word.<span class="fn">suffix</span>(word.count - splitPoint))
+}
+<span class="cm">// word="lls" → ("","lls") ("l","ls") ("ll","s") ("lls","") — all four splits, zero crashes</span></pre>
 
     <div class="co-note"><strong>When to drop the boundary — the one question:</strong> should position <em>i</em> be ABSENT from its own accumulated value? <strong>Yes</strong> (product-except-self) → <code>dropLast()</code> for prefix, <code>dropFirst()</code> for suffix; the exclusion is <em>structural</em>. <strong>No</strong> (range sum, LC303) → no drop, every element is included and the query formula <code>prefix[right+1] − prefix[left]</code> handles the boundary.</div>
 

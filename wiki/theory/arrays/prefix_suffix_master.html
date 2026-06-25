@@ -24,6 +24,9 @@
     <a href="#pseudocode"    class="toc-link"><span class="toc-num">5</span> Pseudocode Primer</a>
     <a href="#iterative"     class="toc-link"><span class="toc-num">6</span> Iterative-Only Pattern</a>
     <a href="#swift"         class="toc-link"><span class="toc-num">7</span> Swift Translation</a>
+    <div class="toc-sub">
+      <a href="#split-enumeration" class="toc-link">7.1 Split-point enumeration</a>
+    </div>
     <a href="#variants"      class="toc-link"><span class="toc-num">8</span> Variant Catalog</a>
     <div class="toc-sub">
       <a href="#v-range-sum"    class="toc-link">8.1 Range sum (LC 303)</a>
@@ -247,6 +250,44 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
     }
 }</pre>
     <div class="co-note"><strong>Swift-specific cost to say out loud:</strong> <code>[Int](repeating:count:)</code> is O(n) and allocates a contiguous block — far cheaper than appending in a loop. <code>stride(from:through:by:)</code> is the idiomatic descending range in Swift; <code>for index in (0..&lt;count).reversed()</code> is equally valid and more readable to some reviewers.</div>
+
+    <hr class="wiki-hr" style="margin:32px 0">
+    <h3 id="split-enumeration">Enumerating all splits with <code>prefix(_:)</code> / <code>suffix(_:)</code></h3>
+
+    <div class="co-idea">
+      <div class="co-idea-title">The one idea — split enumeration vs. sentinel</div>
+      Looping <code>0...word.count</code> is <strong>not</strong> a sentinel pattern. It is an enumeration of <em>split points</em>. An n-character word has exactly <strong>n+1</strong> ways to split into a left part and a right part: before the first character, between every adjacent pair, and after the last character. The loop visits all of them. The empty string on either side is not a degenerate edge case — it is the valid "take nothing from this side" split, and Swift's <code>prefix(_:)</code> / <code>suffix(_:)</code> produce it for free at <code>splitPoint = 0</code> and <code>splitPoint = count</code> respectively.
+    </div>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">split-point enumeration — all n+1 splits of a word</span></div>
+<pre class="swift"><span class="kw">let</span> word = <span class="tp">Array</span>(<span class="st">"lls"</span>)   <span class="cm">// count = 3 → 4 split points: 0, 1, 2, 3</span>
+
+<span class="kw">for</span> splitPoint <span class="kw">in</span> <span class="nm">0</span>...word.count {
+    <span class="kw">let</span> leftPart  = <span class="tp">String</span>(word.<span class="fn">prefix</span>(splitPoint))            <span class="cm">// "" | "l" | "ll" | "lls"</span>
+    <span class="kw">let</span> rightPart = <span class="tp">String</span>(word.<span class="fn">suffix</span>(word.count - splitPoint)) <span class="cm">// "lls" | "ls" | "s" | ""</span>
+}</pre>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">all four split points for word = "lls"</span></div>
+    <pre class="dry"><span class="tr-var">splitPoint</span>   leftPart   rightPart
+──────────────────────────────────
+    0            ""        "lls"     ← splitPoint=0  → prefix(0)=""   suffix(3)="lls"
+    1            "l"       "ls"      ← splitPoint=1  → prefix(1)="l"  suffix(2)="ls"
+    2            "ll"      "s"       ← splitPoint=2  → prefix(2)="ll" suffix(1)="s"
+    3            "lls"     ""        ← splitPoint=3  → prefix(3)="lls" suffix(0)=""</pre>
+
+    <div class="co-insight">
+      <strong>Why <code>prefix(_:)</code> / <code>suffix(_:)</code> — not subscript ranges.</strong>
+      <p style="margin:8px 0 0">Subscript ranges (<code>array[...(-1)]</code>, <code>array[index-1...]</code>) require the index to be valid. At the boundary split points (0 and count), the math produces out-of-bounds indices — behavior becomes undefined. <code>prefix(_:)</code> and <code>suffix(_:)</code> <strong>clamp silently</strong>: <code>prefix(0)</code> returns an empty slice, <code>prefix(999)</code> on a 3-element array returns all 3 elements. Safe by design. Always prefer them for split enumeration.</p>
+    </div>
+
+    <div class="co-pitfall">
+      <div class="co-pitfall-title">The subscript trap — why it "works" until it doesn't</div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong><code>array[...(-1)]</code> compiling does NOT mean it is safe.</strong> Negative indices land in undefined behavior territory in Swift's Array subscript. It may return an empty slice, it may crash, or it may return garbage — the outcome depends on the runtime's internal bounds-check path, which is not a contract. <code>array[...(-6)]</code> hitting a different path and crashing while <code>array[...(-1)]</code> silently "works" is a perfect illustration: you got lucky, not correct. Use <code>prefix(splitPoint)</code> and this edge case disappears entirely.</span></div>
+    </div>
+
+    <div class="co-note">
+      <strong>Naming the pattern:</strong> this loop is called <em>split-point enumeration</em> or <em>split-position scan</em> in interview settings — not "sentinel" and not "prefix array." The sentinels on this page (<code>prefix[0] = 0</code>, <code>prefix[0] = 1</code>) are a different concept: they are the identity element placed at index 0 of a <em>precomputed accumulation array</em>. A split-point loop and a prefix-sum array both use the word "prefix," but they are different tools. LC 336 (Palindrome Pairs) is where you will see the split-point loop most commonly — every word is split at each of its n+1 positions, and each half is checked against a dictionary.
+    </div>
   </section>
 
   <hr class="wiki-hr">
@@ -385,6 +426,7 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
         <tr><td>"product except self" / "no division"</td><td>8.2</td><td>product</td><td>1</td><td><code>prefix[pos] × suffix[pos+1]</code></td></tr>
         <tr><td>"water trapped" / "per-bar capacity"</td><td>8.3</td><td>max</td><td>0</td><td><code>min(prefix[pos], suffix[pos]) − height[pos]</code></td></tr>
         <tr><td>"coverage split" / "handoff valid"</td><td>8.4</td><td>set / bool</td><td>∅ / false</td><td>union covers all days AND split condition holds</td></tr>
+        <tr><td>"split a word at every position" / palindrome pair halves</td><td>Split-point loop (§7.1)</td><td>—</td><td>—</td><td><code>prefix(k)</code> + <code>suffix(n−k)</code> for k in 0...n; clamp-safe, no subscript math</td></tr>
         <tr><td>array mutates between queries</td><td>Not this pattern</td><td>—</td><td>—</td><td>Use Fenwick tree (O(log n) update)</td></tr>
       </tbody>
     </table>
