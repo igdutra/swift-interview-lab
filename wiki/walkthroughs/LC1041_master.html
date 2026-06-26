@@ -30,6 +30,10 @@
     <a href="#structures"   class="toc-link"><span class="toc-num">7</span> Data Structures</a>
     <a href="#dryrun"       class="toc-link"><span class="toc-num">8</span> Pseudocode Dry Run</a>
     <a href="#swift"        class="toc-link"><span class="toc-num">9</span> Swift Solution</a>
+    <div class="toc-sub">
+      <a href="#swift" class="toc-link">A.1 Direction index + table</a>
+      <a href="#swift" class="toc-link">A.2 Direction enum (your solution)</a>
+    </div>
     <a href="#code-dry-run" class="toc-link"><span class="toc-num">10</span> Code Dry Run</a>
     <a href="#qmap"         class="toc-link"><span class="toc-num">11</span> Question → Code Map</a>
     <a href="#complexity"   class="toc-link"><span class="toc-num">12</span> Complexity</a>
@@ -286,6 +290,75 @@ final: x=0, y=2, d=0(N)
     <span class="cm">// Bounded iff at origin OR rotated off North after one cycle</span>
     <span class="kw">return</span> (posX == <span class="nm">0</span> &amp;&amp; posY == <span class="nm">0</span>) || dirIndex != <span class="nm">0</span>
 }</pre>
+      </div>
+    </div>
+    <div class="solution-block">
+      <div class="block-header">
+        <span class="block-badge">A.2</span>
+        <span class="block-name">Direction enum with computed properties — readable rotation</span>
+        <div class="block-pills"><span class="pill pill-t">O(n)</span><span class="pill pill-s">O(1)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="approach-box">
+          <div class="approach-title">Plan</div>
+          Same one-cycle simulation, but direction is an enum with computed properties for the displacement vector and for turning left/right. The rotation logic lives on the type itself — the main loop never sees a switch over direction. Trades the compact index math of A.1 for self-documenting case names and zero risk of the <code>(d−1)%4</code> negative-remainder bug.
+        </div>
+
+        <pre class="swift"><span class="kw">func</span> <span class="fn">isRobotBounded</span>(<span class="kw">_</span> instructions: <span class="tp">String</span>) -&gt; <span class="tp">Bool</span> {
+    <span class="kw">enum</span> <span class="tp">Direction</span> {
+        <span class="kw">case</span> north, south, east, west
+
+        <span class="kw">var</span> delta: (x: <span class="tp">Int</span>, y: <span class="tp">Int</span>) {
+            <span class="kw">switch self</span> {
+            <span class="kw">case</span> .north: (<span class="nm">0</span>,  <span class="nm">1</span>)
+            <span class="kw">case</span> .south: (<span class="nm">0</span>, -<span class="nm">1</span>)
+            <span class="kw">case</span> .east:  (<span class="nm">1</span>,  <span class="nm">0</span>)
+            <span class="kw">case</span> .west:  (-<span class="nm">1</span>, <span class="nm">0</span>)
+            }
+        }
+
+        <span class="kw">var</span> turnedLeft: <span class="tp">Direction</span> {
+            <span class="kw">switch self</span> {
+            <span class="kw">case</span> .north: .west
+            <span class="kw">case</span> .west:  .south
+            <span class="kw">case</span> .south: .east
+            <span class="kw">case</span> .east:  .north
+            }
+        }
+
+        <span class="kw">var</span> turnedRight: <span class="tp">Direction</span> {
+            <span class="kw">switch self</span> {
+            <span class="kw">case</span> .north: .east
+            <span class="kw">case</span> .east:  .south
+            <span class="kw">case</span> .south: .west
+            <span class="kw">case</span> .west:  .north
+            }
+        }
+    }
+
+    <span class="kw">var</span> position: (x: <span class="tp">Int</span>, y: <span class="tp">Int</span>) = (<span class="nm">0</span>, <span class="nm">0</span>)
+    <span class="kw">var</span> direction: <span class="tp">Direction</span> = .north
+
+    <span class="kw">for</span> instruction <span class="kw">in</span> instructions {
+        <span class="kw">switch</span> instruction {
+        <span class="kw">case</span> <span class="st">"G"</span>:
+            position.x += direction.delta.x
+            position.y += direction.delta.y
+        <span class="kw">case</span> <span class="st">"L"</span>: direction = direction.turnedLeft
+        <span class="kw">case</span> <span class="st">"R"</span>: direction = direction.turnedRight
+        <span class="kw">default</span>: <span class="kw">break</span>
+        }
+    }
+
+    <span class="cm">// Not facing north → each repeat rotates the net displacement 90°,</span>
+    <span class="cm">// so 4 cycles always cancel out and the robot returns to origin.</span>
+    <span class="kw">return</span> (position.x == <span class="nm">0</span> &amp;&amp; position.y == <span class="nm">0</span>) || direction != .north
+}</pre>
+
+        <div class="approach-box" style="margin-top:1rem">
+          <div class="approach-title">A.1 vs A.2</div>
+          A.1 compresses direction into an Int index — short, interview-fast, but the <code>(d+3)%4</code> trick needs a comment. A.2 is longer but every case is named; a reader never has to mentally map an index to a compass heading. Both are O(n) / O(1). In an interview, A.1 is faster to write; in production, A.2 is easier to maintain.
+        </div>
       </div>
     </div>
   </section>
