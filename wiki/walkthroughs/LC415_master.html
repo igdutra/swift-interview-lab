@@ -132,8 +132,8 @@
     <h2>4 &nbsp; Try It Yourself First</h2>
     <p>This is a warm-up, but the carry handling has a sharp edge. Try it cold, then open hints one at a time.</p>
     <details class="hint"><summary>Hint 1 — the constraint</summary><p>You cannot turn the strings into <code>Int</code>. That forces you to add them digit by digit, exactly the way you do by hand: start from the rightmost column, add the two digits plus any carry, write the low digit, carry the rest.</p></details>
-    <details class="hint"><summary>Hint 2 — the pattern</summary><p>Digit-buffer build. Use two read pointers starting at the last index of each string and a result buffer. Each step: read a digit from each pointer (0 if that pointer has run off the left edge), add them with the carry, append <code>sum % 10</code>, set <code>carry = sum / 10</code>, and step both pointers left.</p></details>
-    <details class="hint"><summary>Hint 3 — the loop condition</summary><p>Don't stop when the pointers run out — stop when the pointers run out <em>and</em> the carry is gone. Use <code>while left &gt;= 0 || right &gt;= 0 || carry &gt; 0</code>. That single condition handles unequal lengths and a final carry-out without any post-loop special case. Build the buffer backward, then reverse it once at the end.</p></details>
+    <details class="hint"><summary>Hint 2 — the pattern</summary><p>Digit-buffer build. Use two read pointers starting at the last index of each string and a result buffer. Each step: read a digit from each pointer (0 if that pointer has run off the left edge), add them with the carry, append <code>columnSum % 10</code>, set <code>carry = columnSum / 10</code>, and step both pointers left.</p></details>
+    <details class="hint"><summary>Hint 3 — the loop condition</summary><p>Don't stop when the pointers run out — stop when the pointers run out <em>and</em> the carry is gone. Use <code>while leftIndex &gt;= 0 || rightIndex &gt;= 0 || carry &gt; 0</code>. That single condition handles unequal lengths and a final carry-out without any post-loop special case. Build the buffer backward, then reverse it once at the end.</p></details>
   </section>
 
   <hr class="wiki-hr">
@@ -166,9 +166,9 @@
         <div class="speech">
           <div class="speech-kicker">The plan, spoken</div>
           <p>"This is a digit-buffer build — Variant 8.1 of the Text Formatting and Simulation family. The signal is 'do arithmetic on numbers given as strings, with no BigInt allowed.' I simulate grade-school column addition right to left."</p>
-          <p>"Let me pin the governing conditions before naming any structure. The loop's continuation condition is the heart of the problem: I keep going <em>while there is still a digit to read in either number, or a carry left to flush</em> — <code>left &gt;= 0 || right &gt;= 0 || carry &gt; 0</code>. The invariant each pass maintains is that everything to the right of the current column is already correctly summed and sitting in the buffer, and <code>carry</code> holds exactly the overflow from that already-summed suffix. The stop condition is the negation: both pointers off the left edge AND no carry — at that moment the buffer holds the complete reversed result."</p>
-          <p>"The structures follow from those conditions. I need two read pointers, <code>left</code> and <code>right</code>, starting at the last index of each string, because the conditions reference 'a digit still to read in either number.' I need one Int <code>carry</code>, because the invariant says I carry exactly the suffix overflow and that is never more than 1. And I need a result buffer — an array of characters I append the low digit to each step, because the loop produces digits in reverse order and I want O(1) appends rather than O(n) string prepends."</p>
-          <p>"The walk: each pass, read <code>digit1</code> from <code>left</code> (or 0 if <code>left &lt; 0</code>), <code>digit2</code> from <code>right</code> (or 0 if <code>right &lt; 0</code>), compute <code>sum = digit1 + digit2 + carry</code>, append <code>sum % 10</code> to the buffer, set <code>carry = sum / 10</code>, and decrement both pointers. When the loop's stop condition holds, reverse the buffer and join it into a string. Time is O(max(n, m)) — one pass over the longer number; space is O(max(n, m)) for the result buffer."</p>
+          <p>"Let me pin the governing conditions before naming any structure. The loop's continuation condition is the heart of the problem: I keep going <em>while there is still a digit to read in either number, or a carry left to flush</em> — <code>leftIndex &gt;= 0 || rightIndex &gt;= 0 || carry &gt; 0</code>. The invariant each pass maintains is that everything to the right of the current column is already correctly summed and sitting in the buffer, and <code>carry</code> holds exactly the overflow from that already-summed suffix. The stop condition is the negation: both pointers off the left edge AND no carry — at that moment the buffer holds the complete reversed result."</p>
+          <p>"The structures follow from those conditions. I need two read pointers, <code>leftIndex</code> and <code>rightIndex</code>, starting at the last index of each string, because the conditions reference 'a digit still to read in either number.' I need one Int <code>carry</code>, because the invariant says I carry exactly the suffix overflow and that is never more than 1. And I need a result buffer — an array of characters I append the low digit to each step, because the loop produces digits in reverse order and I want O(1) appends rather than O(n) string prepends."</p>
+          <p>"The walk: each pass, read <code>digit1</code> from <code>leftIndex</code> (or 0 if <code>leftIndex &lt; 0</code>), <code>digit2</code> from <code>rightIndex</code> (or 0 if <code>rightIndex &lt; 0</code>), compute <code>columnSum = digit1 + digit2 + carry</code>, append <code>columnSum % 10</code> to the buffer, set <code>carry = columnSum / 10</code>, and decrement both pointers. When the loop's stop condition holds, reverse the buffer and join it into a string. Time is O(max(n, m)) — one pass over the longer number; space is O(max(n, m)) for the result buffer."</p>
         </div>
       </div>
     </div>
@@ -215,21 +215,21 @@
     <h2>8 &nbsp; Pseudocode Dry Run</h2>
 
     <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">right-to-left column addition with carry folded into the loop</span></div>
-    <pre class="pseudo">left  ← lastIndex(num1)
-right ← lastIndex(num2)
+    <pre class="pseudo">leftIndex  ← lastIndex(num1)
+rightIndex ← lastIndex(num2)
 carry ← 0
-result ← empty buffer
+resultBuffer ← empty buffer
 
-<span class="pk">WHILE</span> left ≥ 0 <span class="pk">OR</span> right ≥ 0 <span class="pk">OR</span> carry &gt; 0:
-    d1 ← (left ≥ 0)  ? digitAt(num1, left)  : 0
-    d2 ← (right ≥ 0) ? digitAt(num2, right) : 0
-    sum ← d1 + d2 + carry
-    append(result, sum mod 10)        <span class="pc">// low digit, buffer grows backward</span>
-    carry ← sum / 10                  <span class="pc">// 0 or 1</span>
-    left  ← left  − 1
-    right ← right − 1
+<span class="pk">WHILE</span> leftIndex ≥ 0 <span class="pk">OR</span> rightIndex ≥ 0 <span class="pk">OR</span> carry &gt; 0:
+    digit1 ← (leftIndex ≥ 0)  ? digitAt(num1, leftIndex)  : 0
+    digit2 ← (rightIndex ≥ 0) ? digitAt(num2, rightIndex) : 0
+    columnSum ← digit1 + digit2 + carry
+    append(resultBuffer, columnSum mod 10)   <span class="pc">// low digit, buffer grows backward</span>
+    carry ← columnSum / 10                   <span class="pc">// 0 or 1</span>
+    leftIndex  ← leftIndex  − 1
+    rightIndex ← rightIndex − 1
 
-<span class="pk">RETURN</span> reverse(result) as string</pre>
+<span class="pk">RETURN</span> reverse(resultBuffer) as string</pre>
 
     <p>Trace on <code>num1 = "456", num2 = "77"</code> — expected <code>"533"</code>:</p>
 
@@ -397,8 +397,8 @@ RESULT
         <tr><td>"Clean digit strings, no validation"</td><td>No guard clauses; <code>wholeNumberValue!</code> force-unwrap is safe on guaranteed digits</td></tr>
         <tr><td>"O(1) indexing for the pointer walk"</td><td><code>let digits1 = Array(num1)</code> / <code>Array(num2)</code></td></tr>
         <tr><td>"Two independent pointers from the right"</td><td><code>var leftIndex = digits1.count - 1</code>, <code>var rightIndex = digits2.count - 1</code></td></tr>
-        <tr><td>"Off-the-edge pointer contributes 0"</td><td><code>leftIndex >= 0 ? digits1[leftIndex]… : 0</code></td></tr>
-        <tr><td>"Keep going while a digit or carry remains"</td><td><code>while leftIndex >= 0 || rightIndex >= 0 || carry > 0</code></td></tr>
+        <tr><td>"Off-the-edge pointer contributes 0"</td><td><code>leftIndex &gt;= 0 ? digits1[leftIndex]… : 0</code></td></tr>
+        <tr><td>"Keep going while a digit or carry remains"</td><td><code>while leftIndex &gt;= 0 || rightIndex &gt;= 0 || carry &gt; 0</code></td></tr>
         <tr><td>"Column math, write low digit, keep carry"</td><td><code>columnSum = digit1 + digit2 + carry</code>; append <code>% 10</code>; <code>carry = columnSum / 10</code></td></tr>
         <tr><td>"Build backward, reverse once"</td><td><code>return String(resultDigits.reversed())</code></td></tr>
       </tbody>

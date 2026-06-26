@@ -123,7 +123,7 @@
       </tbody>
     </table>
 
-    <div class="co-insight"><strong>The rotation insight is the whole problem.</strong> A robot that ends one cycle facing East will, over four cycles, trace a closed path (each cycle is a 90° rotation of the last). A robot facing South closes after two cycles. A robot facing West closes after four. Only a robot that ends facing North and is not at the origin drifts — every "forward" cycle sends it in the same direction. The Boolean test <code>(x == 0 &amp;&amp; y == 0) || d != 0</code> captures this exactly.</div>
+    <div class="co-insight"><strong>The rotation insight is the whole problem.</strong> A robot that ends one cycle facing East will, over four cycles, trace a closed path (each cycle is a 90° rotation of the last). A robot facing South closes after two cycles. A robot facing West closes after four. Only a robot that ends facing North and is not at the origin drifts — every "forward" cycle sends it in the same direction. The Boolean test <code>(posX == 0 &amp;&amp; posY == 0) || dirIndex != 0</code> captures this exactly.</div>
   </section>
 
   <hr class="wiki-hr">
@@ -167,8 +167,8 @@
         <div class="speech">
           <div class="speech-kicker">The plan, spoken</div>
           <p>"This is a state-machine simulation — Variant 8.2 of the Text Formatting and Simulation pattern. The signal is 'an agent follows a fixed instruction sequence and we need a property of its final state.' The phrase 'repeats the instructions forever' looks scary, but it's the key insight: I only need to simulate one cycle."</p>
-          <p>"Let me state the governing condition before I touch any data structure. The validity condition — the test that decides the return value — is: the robot is bounded if and only if, after one cycle, either (a) it is back at the origin, or (b) it is not facing North. Why? If it's back at the origin, it trivially loops. If it's rotated — say, facing East — then after four cycles its net displacement vectors point North, East, South, and West respectively, and they sum to zero. The only unbounded case is: the robot drifted away from the origin AND is still facing North, because then every subsequent cycle adds the same net displacement northward. The Boolean <code>(x == 0 &amp;&amp; y == 0) || d != 0</code> is the entire answer."</p>
-          <p>"The data structures follow directly: I need (x, y) for position and a direction index d into a four-vector table. The table encodes the (dx, dy) for each of the four compass headings in clockwise order: North (0,1), East (1,0), South (0,−1), West (−1,0). A left turn is <code>(d + 3) % 4</code> — not <code>(d − 1) % 4</code>, which gives negative indices in Swift. A right turn is <code>(d + 1) % 4</code>. Forward is <code>x += dirs[d].0; y += dirs[d].1</code>."</p>
+          <p>"Let me state the governing condition before I touch any data structure. The validity condition — the test that decides the return value — is: the robot is bounded if and only if, after one cycle, either (a) it is back at the origin, or (b) it is not facing North. Why? If it's back at the origin, it trivially loops. If it's rotated — say, facing East — then after four cycles its net displacement vectors point North, East, South, and West respectively, and they sum to zero. The only unbounded case is: the robot drifted away from the origin AND is still facing North, because then every subsequent cycle adds the same net displacement northward. The Boolean <code>(posX == 0 &amp;&amp; posY == 0) || dirIndex != 0</code> is the entire answer."</p>
+          <p>"The data structures follow directly: I need (posX, posY) for position and a direction index dirIndex into a four-vector table. The table encodes the (dx, dy) for each of the four compass headings in clockwise order: North (0,1), East (1,0), South (0,−1), West (−1,0). A left turn is <code>(dirIndex + 3) % 4</code> — not <code>(dirIndex − 1) % 4</code>, which gives negative indices in Swift. A right turn is <code>(dirIndex + 1) % 4</code>. Forward is <code>posX += dirs[dirIndex].0; posY += dirs[dirIndex].1</code>."</p>
           <p>"I loop once over the instruction string, apply each instruction to mutate the pose, then read the final pose and return the Boolean. Time is O(n) where n is the instruction length; space is O(1) — four scalar variables and a four-element constant array."</p>
         </div>
       </div>
@@ -199,12 +199,12 @@
     <table class="t-decoder">
       <thead><tr><th>Structure</th><th>Holds</th><th>Why this and not weaker/stronger</th></tr></thead>
       <tbody>
-        <tr><td><code>x: Int, y: Int</code></td><td>Robot's current position on the integer plane</td><td>Unit-step moves on an integer grid — plain Int, no Float. Initialized to (0,0) per the problem.</td></tr>
-        <tr><td><code>d: Int</code></td><td>Direction index (0=N, 1=E, 2=S, 3=W, clockwise)</td><td>An index into the direction table avoids a Direction enum and keeps turn arithmetic to one modular expression. Initialized to 0 (North).</td></tr>
+        <tr><td><code>posX: Int, posY: Int</code></td><td>Robot's current position on the integer plane</td><td>Unit-step moves on an integer grid — plain Int, no Float. Initialized to (0,0) per the problem.</td></tr>
+        <tr><td><code>dirIndex: Int</code></td><td>Direction index (0=N, 1=E, 2=S, 3=W, clockwise)</td><td>An index into the direction table avoids a Direction enum and keeps turn arithmetic to one modular expression. Initialized to 0 (North).</td></tr>
         <tr><td><code>dirs: [(Int,Int)]</code></td><td>The four unit displacement vectors, in clockwise order</td><td>A constant array of four tuples maps an index to a (dx,dy) pair. Clockwise ordering makes right-turn <code>(d+1)%4</code> and left-turn <code>(d+3)%4</code>. A dictionary or switch over direction names is slower and more verbose.</td></tr>
       </tbody>
     </table>
-    <div class="co-insight"><strong>Why left turn is <code>(d + 3) % 4</code>.</strong> In Swift, <code>(0 − 1) % 4</code> returns −1 — a negative remainder, not the expected 3. Adding the modulus first (<code>d + 3</code>) keeps the expression always non-negative. This is the single most common bug in direction-table code: writing <code>(d − 1) % 4</code> and getting an out-of-range index.</div>
+    <div class="co-insight"><strong>Why left turn is <code>(dirIndex + 3) % 4</code>.</strong> In Swift, <code>(0 − 1) % 4</code> returns −1 — a negative remainder, not the expected 3. Adding the modulus first (<code>dirIndex + 3</code>) keeps the expression always non-negative. This is the single most common bug in direction-table code: writing <code>(dirIndex − 1) % 4</code> and getting an out-of-range index.</div>
   </section>
 
   <hr class="wiki-hr">
@@ -214,16 +214,16 @@
     <h2>8 &nbsp; Pseudocode Dry Run</h2>
 
     <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">simulate one instruction cycle, then read the final pose</span></div>
-    <pre class="pseudo">x ← 0, y ← 0, d ← 0   <span class="pc">// start at origin facing North</span>
-dirs ← [(0,1),(1,0),(0,−1),(−1,0)]   <span class="pc">// N,E,S,W clockwise</span>
+    <pre class="pseudo">posX ← 0, posY ← 0, dirIndex ← 0   <span class="pc">// start at origin facing North</span>
+dirs ← [(0,1),(1,0),(0,−1),(−1,0)]  <span class="pc">// N,E,S,W clockwise</span>
 
-<span class="pk">FOR</span> each ins <span class="pk">IN</span> instructions:
-    <span class="pk">SWITCH</span> ins:
-        'G': x += dirs[d].0;  y += dirs[d].1
-        'L': d ← (d + 3) mod 4          <span class="pc">// left = −1 mod 4, done safely</span>
-        'R': d ← (d + 1) mod 4
+<span class="pk">FOR</span> each instruction <span class="pk">IN</span> instructions:
+    <span class="pk">SWITCH</span> instruction:
+        'G': posX += dirs[dirIndex].0;  posY += dirs[dirIndex].1
+        'L': dirIndex ← (dirIndex + 3) mod 4   <span class="pc">// left = −1 mod 4, done safely</span>
+        'R': dirIndex ← (dirIndex + 1) mod 4
 
-<span class="pk">RETURN</span> (x == 0 <span class="pk">AND</span> y == 0) <span class="pk">OR</span> d ≠ 0   <span class="pc">// bounded iff origin OR rotated</span></pre>
+<span class="pk">RETURN</span> (posX == 0 <span class="pk">AND</span> posY == 0) <span class="pk">OR</span> dirIndex ≠ 0   <span class="pc">// bounded iff origin OR rotated</span></pre>
 
     <p>Trace on <code>"GGLLGG"</code> — expected <code>true</code>:</p>
 
@@ -271,20 +271,20 @@ final: x=0, y=2, d=0(N)
         </div>
 
         <pre class="swift"><span class="kw">func</span> <span class="fn">isRobotBounded</span>(<span class="kw">_</span> instructions: <span class="tp">String</span>) -&gt; <span class="tp">Bool</span> {
-    <span class="kw">var</span> x = <span class="nm">0</span>, y = <span class="nm">0</span>, d = <span class="nm">0</span>
+    <span class="kw">var</span> posX = <span class="nm">0</span>, posY = <span class="nm">0</span>, dirIndex = <span class="nm">0</span>
     <span class="kw">let</span> dirs = [(<span class="nm">0</span>, <span class="nm">1</span>), (<span class="nm">1</span>, <span class="nm">0</span>), (<span class="nm">0</span>, -<span class="nm">1</span>), (-<span class="nm">1</span>, <span class="nm">0</span>)]  <span class="cm">// N E S W</span>
 
-    <span class="kw">for</span> ins <span class="kw">in</span> instructions {
-        <span class="kw">switch</span> ins {
-        <span class="kw">case</span> <span class="st">"G"</span>: x += dirs[d].<span class="nm">0</span>; y += dirs[d].<span class="nm">1</span>
-        <span class="kw">case</span> <span class="st">"L"</span>: d = (d + <span class="nm">3</span>) % <span class="nm">4</span>   <span class="cm">// (d-1)%4 gives -1 in Swift</span>
-        <span class="kw">case</span> <span class="st">"R"</span>: d = (d + <span class="nm">1</span>) % <span class="nm">4</span>
+    <span class="kw">for</span> instruction <span class="kw">in</span> instructions {
+        <span class="kw">switch</span> instruction {
+        <span class="kw">case</span> <span class="st">"G"</span>: posX += dirs[dirIndex].<span class="nm">0</span>; posY += dirs[dirIndex].<span class="nm">1</span>
+        <span class="kw">case</span> <span class="st">"L"</span>: dirIndex = (dirIndex + <span class="nm">3</span>) % <span class="nm">4</span>   <span class="cm">// (dirIndex-1)%4 gives -1 in Swift</span>
+        <span class="kw">case</span> <span class="st">"R"</span>: dirIndex = (dirIndex + <span class="nm">1</span>) % <span class="nm">4</span>
         <span class="kw">default</span>: <span class="kw">break</span>
         }
     }
 
     <span class="cm">// Bounded iff at origin OR rotated off North after one cycle</span>
-    <span class="kw">return</span> (x == <span class="nm">0</span> &amp;&amp; y == <span class="nm">0</span>) || d != <span class="nm">0</span>
+    <span class="kw">return</span> (posX == <span class="nm">0</span> &amp;&amp; posY == <span class="nm">0</span>) || dirIndex != <span class="nm">0</span>
 }</pre>
       </div>
     </div>
@@ -305,79 +305,79 @@ Input:   instructions = "GGLLGG"
 ────────────────────────────────
 
 isRobotBounded
-  x    = 0
-  y    = 0
-  d    = 0
-  dirs = [(0,1),(1,0),(0,-1),(-1,0)]
+  posX     = 0
+  posY     = 0
+  dirIndex = 0
+  dirs     = [(0,1),(1,0),(0,-1),(-1,0)]
 
 ────────────────────────────────
-ITERATION 1  ins='G'
+ITERATION 1  instruction='G'
 ────────────────────────────────
 
-  ins='G' → case "G"
-  x += dirs[0].0 = 0  →  x = 0
-  y += dirs[0].1 = 1  →  y = 1
+  instruction='G' → case "G"
+  posX += dirs[0].0 = 0  →  posX = 0
+  posY += dirs[0].1 = 1  →  posY = 1
 
-  State: x=0, y=1, d=0(N)
-
-────────────────────────────────
-ITERATION 2  ins='G'
-────────────────────────────────
-
-  ins='G' → case "G"
-  x += dirs[0].0 = 0  →  x = 0
-  y += dirs[0].1 = 1  →  y = 2
-
-  State: x=0, y=2, d=0(N)
+  State: posX=0, posY=1, dirIndex=0(N)
 
 ────────────────────────────────
-ITERATION 3  ins='L'
+ITERATION 2  instruction='G'
 ────────────────────────────────
 
-  ins='L' → case "L"
-  d = (0 + 3) % 4 = 3  →  d=3(W)
-  ↑ (d-1)%4 would be -1 in Swift — we use +3 to stay non-negative
+  instruction='G' → case "G"
+  posX += dirs[0].0 = 0  →  posX = 0
+  posY += dirs[0].1 = 1  →  posY = 2
 
-  State: x=0, y=2, d=3(W)
-
-────────────────────────────────
-ITERATION 4  ins='L'
-────────────────────────────────
-
-  ins='L' → case "L"
-  d = (3 + 3) % 4 = 6 % 4 = 2  →  d=2(S)
-
-  State: x=0, y=2, d=2(S)
+  State: posX=0, posY=2, dirIndex=0(N)
 
 ────────────────────────────────
-ITERATION 5  ins='G'
+ITERATION 3  instruction='L'
 ────────────────────────────────
 
-  ins='G' → case "G"
+  instruction='L' → case "L"
+  dirIndex = (0 + 3) % 4 = 3  →  dirIndex=3(W)
+  ↑ (dirIndex-1)%4 would be -1 in Swift — we use +3 to stay non-negative
+
+  State: posX=0, posY=2, dirIndex=3(W)
+
+────────────────────────────────
+ITERATION 4  instruction='L'
+────────────────────────────────
+
+  instruction='L' → case "L"
+  dirIndex = (3 + 3) % 4 = 6 % 4 = 2  →  dirIndex=2(S)
+
+  State: posX=0, posY=2, dirIndex=2(S)
+
+────────────────────────────────
+ITERATION 5  instruction='G'
+────────────────────────────────
+
+  instruction='G' → case "G"
   dirs[2] = (0,-1)
-  x += 0  →  x = 0
-  y += -1  →  y = 1
+  posX += 0   →  posX = 0
+  posY += -1  →  posY = 1
 
-  State: x=0, y=1, d=2(S)
+  State: posX=0, posY=1, dirIndex=2(S)
 
 ────────────────────────────────
-ITERATION 6  ins='G'
+ITERATION 6  instruction='G'
 ────────────────────────────────
 
-  ins='G' → case "G"
+  instruction='G' → case "G"
   dirs[2] = (0,-1)
-  x += 0  →  x = 0
-  y += -1  →  y = 0
+  posX += 0   →  posX = 0
+  posY += -1  →  posY = 0
 
-  State: x=0, y=0, d=2(S)
+  State: posX=0, posY=0, dirIndex=2(S)
 
 ────────────────────────────────
 LOOP EXIT — all 6 characters consumed
 ────────────────────────────────
 
 RETURN CHECK
-  (x == 0 && y == 0) = (0==0 && 0==0) = true
-  d != 0             = (2 != 0)        = true
+  (posX == 0 && posY == 0) = (0==0 && 0==0) = true
+  dirIndex != 0            = (2 != 0)        = true
   true || true → true
 
 ────────────────────────────────
@@ -396,12 +396,12 @@ RESULT
       <thead><tr><th>What you asked / planned</th><th>What it became</th></tr></thead>
       <tbody>
         <tr><td>"Non-empty input, only G/L/R"</td><td>No guard clauses; <code>switch</code> with <code>default: break</code> silently ignores anything else</td></tr>
-        <tr><td>"Integer plane, unit steps"</td><td><code>var x = 0, y = 0</code> — plain Int, no Float</td></tr>
+        <tr><td>"Integer plane, unit steps"</td><td><code>var posX = 0, posY = 0</code> — plain Int, no Float</td></tr>
         <tr><td>"Direction table, clockwise N/E/S/W"</td><td><code>let dirs = [(0,1),(1,0),(0,-1),(-1,0)]</code></td></tr>
-        <tr><td>"Left turn = −1 mod 4, done safely"</td><td><code>d = (d + 3) % 4</code></td></tr>
-        <tr><td>"Right turn"</td><td><code>d = (d + 1) % 4</code></td></tr>
-        <tr><td>"Move forward in current direction"</td><td><code>x += dirs[d].0; y += dirs[d].1</code></td></tr>
-        <tr><td>"Bounded iff at-origin OR rotated"</td><td><code>return (x == 0 &amp;&amp; y == 0) || d != 0</code></td></tr>
+        <tr><td>"Left turn = −1 mod 4, done safely"</td><td><code>dirIndex = (dirIndex + 3) % 4</code></td></tr>
+        <tr><td>"Right turn"</td><td><code>dirIndex = (dirIndex + 1) % 4</code></td></tr>
+        <tr><td>"Move forward in current direction"</td><td><code>posX += dirs[dirIndex].0; posY += dirs[dirIndex].1</code></td></tr>
+        <tr><td>"Bounded iff at-origin OR rotated"</td><td><code>return (posX == 0 &amp;&amp; posY == 0) || dirIndex != 0</code></td></tr>
       </tbody>
     </table>
   </section>
@@ -456,9 +456,9 @@ RESULT
     <table class="t-decoder">
       <thead><tr><th>General concept</th><th>Instantiated in this solution as</th><th>General form</th></tr></thead>
       <tbody>
-        <tr><td>State-machine simulation</td><td>The robot's full state = (x, y, d). Each instruction is a state transition. After one full pass we read the final state.</td><td><a href="../theory/strings/text_formatting_deep_dive_master.html#v-state">theory §8.2</a></td></tr>
+        <tr><td>State-machine simulation</td><td>The robot's full state = (posX, posY, dirIndex). Each instruction is a state transition. After one full pass we read the final state.</td><td><a href="../theory/strings/text_formatting_deep_dive_master.html#v-state">theory §8.2</a></td></tr>
         <tr><td>Direction table</td><td><code>let dirs = [(0,1),(1,0),(0,-1),(-1,0)]</code> — maps direction index to (dx,dy). Avoids a switch over compass strings.</td><td><a href="../theory/strings/text_formatting_deep_dive_master.html#v-state">theory §8.2</a></td></tr>
-        <tr><td>Modular turn arithmetic</td><td><code>d = (d + 3) % 4</code> for left (safe negative), <code>(d + 1) % 4</code> for right — cycles through four headings.</td><td><a href="../theory/strings/text_formatting_deep_dive_master.html#v-state">theory §8.2</a></td></tr>
+        <tr><td>Modular turn arithmetic</td><td><code>dirIndex = (dirIndex + 3) % 4</code> for left (safe negative), <code>(dirIndex + 1) % 4</code> for right — cycles through four headings.</td><td><a href="../theory/strings/text_formatting_deep_dive_master.html#v-state">theory §8.2</a></td></tr>
         <tr><td>One-cycle sufficiency</td><td>The bounded test reads two fields of the final pose and returns a Boolean — no multi-cycle simulation needed.</td><td><a href="../theory/strings/text_formatting_deep_dive_master.html#complexity">theory §9</a></td></tr>
       </tbody>
     </table>

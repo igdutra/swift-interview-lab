@@ -120,31 +120,31 @@
     <p>Trace the digit-buffer build adding <code>"99" + "1"</code> — the case where the carry survives to the very end and must be flushed:</p>
 
     <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">add "99" + "1" — carry propagates past both strings</span></div>
-<pre class="dry"><span class="tr-var">i→last of "99", j→last of "1", carry=0, buf=[]</span>
+<pre class="dry"><span class="tr-var">leftIndex→last of "99", rightIndex→last of "1", carry=0, resultBuffer=[]</span>
 
-step  i='9', j='1'  sum = 9 + 1 + 0 = 10 → digit 0, <span class="tr-aha">carry 1</span>
-                    buf=[0]   i--, j-- (j now past)
-step  i='9', j past sum = 9 + 0 + 1 = 10 → digit 0, <span class="tr-aha">carry 1</span>
-                    buf=[0,0]  i-- (now past)
+step  leftIndex='9', rightIndex='1'  columnSum = 9 + 1 + 0 = 10 → digit 0, <span class="tr-aha">carry 1</span>
+                    resultBuffer=[0]   leftIndex--, rightIndex-- (rightIndex now past)
+step  leftIndex='9', rightIndex past columnSum = 9 + 0 + 1 = 10 → digit 0, <span class="tr-aha">carry 1</span>
+                    resultBuffer=[0,0]  leftIndex-- (now past)
 loop ends, but <span class="tr-bad">carry = 1 still set</span>  → must flush
-                    buf=[0,0,1]
-result = reverse(buf) = "100"   <span class="tr-ok">correct</span></pre>
+                    resultBuffer=[0,0,1]
+result = reverse(resultBuffer) = "100"   <span class="tr-ok">correct</span></pre>
     <p class="ascii-caption">If you stop at the loop you get "00" — wrong. The post-loop carry flush is the whole game.</p>
 
     <p>And the state-machine simulation — a robot at the origin facing North applies <code>"GGLGG"</code> (G=go forward, L=turn left). The question is whether, after one cycle of the instructions, it has either returned to the origin or changed its facing — either means it is bounded forever:</p>
 
     <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">robot pose after "GGLGG" from (0,0) facing North</span></div>
-<pre class="dry"><span class="tr-var">pose: x=0, y=0, dir=N (0,+1)</span>
+<pre class="dry"><span class="tr-var">pose: posX=0, posY=0, facing=N (0,+1)</span>
 
-'G'  move: y += 1 → (0,1)
-'G'  move: y += 1 → (0,2)
-'L'  turn left: N→W, dir=(−1,0)
-'G'  move: x −= 1 → (−1,2)
-'G'  move: x −= 1 → (−2,2)
+'G'  move: posY += 1 → (0,1)
+'G'  move: posY += 1 → (0,2)
+'L'  turn left: N→W, facing=(−1,0)
+'G'  move: posX −= 1 → (−1,2)
+'G'  move: posX −= 1 → (−2,2)
 
-end: position (−2,2) ≠ origin, but <span class="tr-aha">dir = W ≠ N (rotated)</span>
+end: position (−2,2) ≠ origin, but <span class="tr-aha">facing = W ≠ N (rotated)</span>
      → bounded (returns to a cycle). <span class="tr-ok">answer: true</span></pre>
-    <p class="ascii-caption">The pose (x, y, dir) is the complete state. The bounded test reads two fields of it after one pass.</p>
+    <p class="ascii-caption">The pose (posX, posY, facing) is the complete state. The bounded test reads two fields of it after one pass.</p>
   </section>
 
   <hr class="wiki-hr">
@@ -155,33 +155,33 @@ end: position (−2,2) ≠ origin, but <span class="tr-aha">dir = W ≠ N (rotat
     <p>The produce family is two canonical loops. The digit-buffer build (8.1):</p>
     <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">add two number strings</span></div>
 <pre class="pseudo"><span class="pk">FUNCTION</span> addStrings(a, b):
-    i ← a.length − 1,  j ← b.length − 1,  carry ← 0
-    buf ← []
+    leftIndex ← a.length − 1,  rightIndex ← b.length − 1,  carry ← 0
+    resultBuffer ← []
 
-    <span class="pk">WHILE</span> i ≥ 0 <span class="pk">OR</span> j ≥ 0 <span class="pk">OR</span> carry &gt; 0:   <span class="pc">carry keeps the loop alive</span>
-        da ← (i ≥ 0) ? digit(a[i]) : 0
-        db ← (j ≥ 0) ? digit(b[j]) : 0
-        sum ← da + db + carry
-        buf.append(sum mod 10)
-        carry ← sum / 10
-        i ← i − 1,  j ← j − 1
+    <span class="pk">WHILE</span> leftIndex ≥ 0 <span class="pk">OR</span> rightIndex ≥ 0 <span class="pk">OR</span> carry &gt; 0:   <span class="pc">carry keeps the loop alive</span>
+        digitA ← (leftIndex ≥ 0) ? digit(a[leftIndex]) : 0
+        digitB ← (rightIndex ≥ 0) ? digit(b[rightIndex]) : 0
+        columnSum ← digitA + digitB + carry
+        resultBuffer.append(columnSum mod 10)
+        carry ← columnSum / 10
+        leftIndex ← leftIndex − 1,  rightIndex ← rightIndex − 1
 
-    <span class="pk">RETURN</span> reverse(buf) as string</pre>
+    <span class="pk">RETURN</span> reverse(resultBuffer) as string</pre>
     <div class="co-insight"><strong>Why <code>OR carry &gt; 0</code> in the loop condition:</strong> it folds the post-loop flush <em>into</em> the loop. As long as a carry remains, the loop runs one more time and emits it — so <code>"99"+"1"="100"</code> works without a separate finalize step. This is the cleanest way to never forget the flush.</div>
 
     <p>The state-machine simulation (8.2):</p>
     <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">simulate an instruction sequence over a pose</span></div>
 <pre class="pseudo"><span class="pk">FUNCTION</span> simulate(instructions):
-    x ← 0, y ← 0
+    posX ← 0, posY ← 0
     dirs ← [(0,1),(1,0),(0,−1),(−1,0)]   <span class="pc">N, E, S, W — clockwise</span>
-    d ← 0                                <span class="pc">index into dirs</span>
+    dirIndex ← 0                         <span class="pc">index into dirs</span>
 
-    <span class="pk">FOR</span> each ins <span class="pk">IN</span> instructions:
-        <span class="pk">IF</span> ins = 'G': x += dirs[d].0; y += dirs[d].1
-        <span class="pk">IF</span> ins = 'L': d ← (d + 3) mod 4    <span class="pc">turn left = −1 mod 4</span>
-        <span class="pk">IF</span> ins = 'R': d ← (d + 1) mod 4
+    <span class="pk">FOR</span> each instruction <span class="pk">IN</span> instructions:
+        <span class="pk">IF</span> instruction = 'G': posX += dirs[dirIndex].0; posY += dirs[dirIndex].1
+        <span class="pk">IF</span> instruction = 'L': dirIndex ← (dirIndex + 3) mod 4    <span class="pc">turn left = −1 mod 4</span>
+        <span class="pk">IF</span> instruction = 'R': dirIndex ← (dirIndex + 1) mod 4
 
-    <span class="pk">RETURN</span> read fields of (x, y, d)        <span class="pc">problem-specific test</span></pre>
+    <span class="pk">RETURN</span> read fields of (posX, posY, dirIndex)   <span class="pc">problem-specific test</span></pre>
   </section>
 
   <hr class="wiki-hr">
@@ -205,37 +205,37 @@ end: position (−2,2) ≠ origin, but <span class="tr-aha">dir = W ≠ N (rotat
     <p>The two full-solution variants, compilable. First, digit-buffer addition (LC415):</p>
     <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">LC 415 — add two number strings</span></div>
 <pre class="swift"><span class="kw">func</span> <span class="fn">addStrings</span>(<span class="kw">_</span> num1: <span class="tp">String</span>, <span class="kw">_</span> num2: <span class="tp">String</span>) -&gt; <span class="tp">String</span> {
-    <span class="kw">let</span> a = <span class="tp">Array</span>(num1), b = <span class="tp">Array</span>(num2)   <span class="cm">// O(1) indexing</span>
-    <span class="kw">var</span> i = a.count - <span class="nm">1</span>, j = b.count - <span class="nm">1</span>, carry = <span class="nm">0</span>
-    <span class="kw">var</span> buf: [<span class="tp">Character</span>] = []
+    <span class="kw">let</span> digits1 = <span class="tp">Array</span>(num1), digits2 = <span class="tp">Array</span>(num2)   <span class="cm">// O(1) indexing</span>
+    <span class="kw">var</span> leftIndex = digits1.count - <span class="nm">1</span>, rightIndex = digits2.count - <span class="nm">1</span>, carry = <span class="nm">0</span>
+    <span class="kw">var</span> resultBuffer: [<span class="tp">Character</span>] = []
 
-    <span class="kw">while</span> i &gt;= <span class="nm">0</span> || j &gt;= <span class="nm">0</span> || carry &gt; <span class="nm">0</span> {
-        <span class="kw">let</span> da = i &gt;= <span class="nm">0</span> ? a[i].wholeNumberValue! : <span class="nm">0</span>
-        <span class="kw">let</span> db = j &gt;= <span class="nm">0</span> ? b[j].wholeNumberValue! : <span class="nm">0</span>
-        <span class="kw">let</span> sum = da + db + carry
-        buf.append(<span class="tp">Character</span>(<span class="tp">String</span>(sum % <span class="nm">10</span>)))
-        carry = sum / <span class="nm">10</span>
-        i -= <span class="nm">1</span>; j -= <span class="nm">1</span>
+    <span class="kw">while</span> leftIndex &gt;= <span class="nm">0</span> || rightIndex &gt;= <span class="nm">0</span> || carry &gt; <span class="nm">0</span> {
+        <span class="kw">let</span> digitA = leftIndex &gt;= <span class="nm">0</span> ? digits1[leftIndex].wholeNumberValue! : <span class="nm">0</span>
+        <span class="kw">let</span> digitB = rightIndex &gt;= <span class="nm">0</span> ? digits2[rightIndex].wholeNumberValue! : <span class="nm">0</span>
+        <span class="kw">let</span> columnSum = digitA + digitB + carry
+        resultBuffer.append(<span class="tp">Character</span>(<span class="tp">String</span>(columnSum % <span class="nm">10</span>)))
+        carry = columnSum / <span class="nm">10</span>
+        leftIndex -= <span class="nm">1</span>; rightIndex -= <span class="nm">1</span>
     }
-    <span class="kw">return</span> <span class="tp">String</span>(buf.reversed())
+    <span class="kw">return</span> <span class="tp">String</span>(resultBuffer.reversed())
 }</pre>
 
     <p>And state-machine simulation (LC1041 — the bounded test reads the final pose):</p>
     <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">LC 1041 — is the robot's path bounded in a circle?</span></div>
 <pre class="swift"><span class="kw">func</span> <span class="fn">isRobotBounded</span>(<span class="kw">_</span> instructions: <span class="tp">String</span>) -&gt; <span class="tp">Bool</span> {
-    <span class="kw">var</span> x = <span class="nm">0</span>, y = <span class="nm">0</span>, d = <span class="nm">0</span>           <span class="cm">// d: 0=N 1=E 2=S 3=W</span>
+    <span class="kw">var</span> posX = <span class="nm">0</span>, posY = <span class="nm">0</span>, dirIndex = <span class="nm">0</span>   <span class="cm">// dirIndex: 0=N 1=E 2=S 3=W</span>
     <span class="kw">let</span> dirs = [(<span class="nm">0</span>,<span class="nm">1</span>), (<span class="nm">1</span>,<span class="nm">0</span>), (<span class="nm">0</span>,-<span class="nm">1</span>), (-<span class="nm">1</span>,<span class="nm">0</span>)]
 
-    <span class="kw">for</span> ins <span class="kw">in</span> instructions {
-        <span class="kw">switch</span> ins {
-        <span class="kw">case</span> <span class="st">"G"</span>: x += dirs[d].<span class="nm">0</span>; y += dirs[d].<span class="nm">1</span>
-        <span class="kw">case</span> <span class="st">"L"</span>: d = (d + <span class="nm">3</span>) % <span class="nm">4</span>          <span class="cm">// left = −1 mod 4</span>
-        <span class="kw">case</span> <span class="st">"R"</span>: d = (d + <span class="nm">1</span>) % <span class="nm">4</span>
+    <span class="kw">for</span> instruction <span class="kw">in</span> instructions {
+        <span class="kw">switch</span> instruction {
+        <span class="kw">case</span> <span class="st">"G"</span>: posX += dirs[dirIndex].<span class="nm">0</span>; posY += dirs[dirIndex].<span class="nm">1</span>
+        <span class="kw">case</span> <span class="st">"L"</span>: dirIndex = (dirIndex + <span class="nm">3</span>) % <span class="nm">4</span>   <span class="cm">// left = −1 mod 4</span>
+        <span class="kw">case</span> <span class="st">"R"</span>: dirIndex = (dirIndex + <span class="nm">1</span>) % <span class="nm">4</span>
         <span class="kw">default</span>: <span class="kw">break</span>
         }
     }
     <span class="cm">// Bounded iff back at origin OR no longer facing North</span>
-    <span class="kw">return</span> (x == <span class="nm">0</span> &amp;&amp; y == <span class="nm">0</span>) || d != <span class="nm">0</span>
+    <span class="kw">return</span> (posX == <span class="nm">0</span> &amp;&amp; posY == <span class="nm">0</span>) || dirIndex != <span class="nm">0</span>
 }</pre>
     <div class="co-note"><strong>Why the bounded test works:</strong> if after one instruction cycle the robot is back at the origin, it loops forever — bounded. If it is <em>not</em> at the origin but is facing a different direction than it started, then four cycles rotate the net displacement around a closed square — also bounded. The only unbounded case is "moved and still facing North," i.e. a straight drift. That is the entire insight; the simulation just computes the final pose.</div>
   </section>
@@ -389,16 +389,16 @@ end: position (−2,2) ≠ origin, but <span class="tr-aha">dir = W ≠ N (rotat
       </tbody>
     </table>
     <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">copy-paste digit-buffer skeleton</span></div>
-<pre class="swift"><span class="kw">var</span> i = a.count - <span class="nm">1</span>, j = b.count - <span class="nm">1</span>, carry = <span class="nm">0</span>
-<span class="kw">var</span> buf: [<span class="tp">Character</span>] = []
-<span class="kw">while</span> i &gt;= <span class="nm">0</span> || j &gt;= <span class="nm">0</span> || carry &gt; <span class="nm">0</span> {
-    <span class="kw">let</span> da = i &gt;= <span class="nm">0</span> ? a[i].wholeNumberValue! : <span class="nm">0</span>
-    <span class="kw">let</span> db = j &gt;= <span class="nm">0</span> ? b[j].wholeNumberValue! : <span class="nm">0</span>
-    <span class="kw">let</span> s = da + db + carry
-    buf.append(<span class="tp">Character</span>(<span class="tp">String</span>(s % <span class="nm">10</span>))); carry = s / <span class="nm">10</span>
-    i -= <span class="nm">1</span>; j -= <span class="nm">1</span>
+<pre class="swift"><span class="kw">var</span> leftIndex = digits1.count - <span class="nm">1</span>, rightIndex = digits2.count - <span class="nm">1</span>, carry = <span class="nm">0</span>
+<span class="kw">var</span> resultBuffer: [<span class="tp">Character</span>] = []
+<span class="kw">while</span> leftIndex &gt;= <span class="nm">0</span> || rightIndex &gt;= <span class="nm">0</span> || carry &gt; <span class="nm">0</span> {
+    <span class="kw">let</span> digitA = leftIndex &gt;= <span class="nm">0</span> ? digits1[leftIndex].wholeNumberValue! : <span class="nm">0</span>
+    <span class="kw">let</span> digitB = rightIndex &gt;= <span class="nm">0</span> ? digits2[rightIndex].wholeNumberValue! : <span class="nm">0</span>
+    <span class="kw">let</span> columnSum = digitA + digitB + carry
+    resultBuffer.append(<span class="tp">Character</span>(<span class="tp">String</span>(columnSum % <span class="nm">10</span>))); carry = columnSum / <span class="nm">10</span>
+    leftIndex -= <span class="nm">1</span>; rightIndex -= <span class="nm">1</span>
 }
-<span class="kw">let</span> result = <span class="tp">String</span>(buf.reversed())</pre>
+<span class="kw">let</span> result = <span class="tp">String</span>(resultBuffer.reversed())</pre>
   </section>
 
   <hr class="wiki-hr">
