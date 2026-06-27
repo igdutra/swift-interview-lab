@@ -71,25 +71,49 @@ import Playgrounds
 
 /* PLAN
 
- PATTERN  simulation, V times: roll unit to lowest REACHABLE spot, L then R, else rise@K.
-          reachable = scan outward from K, BREAK on rise (wall hides what's behind). O(V*N).
+ QUESTIONS
+ - On a flat surface with no lower spot: water rises at K itself, right? → yes
+ - Input is trusted (K within bounds, no negatives)? → assume yes
 
- SEQUENCE  per unit: minL = scanOut(left); minR = scanOut(right)
-                     map[minL]<map[K] ? +1 : map[minR]<map[K] ? +1 : map[K]+1
+ # PATTERN
+ - Direct simulation — the rules of physics are the algorithm
+ - Drop each unit one at a time, V times, mutating the map in place
+ - Key insight: "lowest reachable" is NOT the global min — a taller wall blocks everything behind it
 
- STATE  map:[Int] (mutated)   scanOut → bestIndex:Int?
+ # SEQUENCE
+ - For each water unit:
+   - Scan LEFT from K outward — find the lowest reachable spot
+   - If that spot is strictly lower than K → water settles there, done
+   - Otherwise scan RIGHT the same way
+   - If still nothing lower → water rises at K
+ - "Scan outward" helper:
+   - Walk away from K one step at a time, tracking the best (lowest) index seen
+   - The moment terrain goes UP above your current best → stop (wall found, rest is hidden)
+   - Ties? First hit wins — that's the spot nearest K, which is physically correct
 
- CONDITIONS
-   for _ in 0..<V:
-       l = scanOut(leftward); r = scanOut(rightward)        // nil at edges
-       if l, map[l]<map[K] -> map[l]+=1
-       elif r, map[r]<map[K] -> map[r]+=1
-       else map[K]+=1
-   scanOut: for i outward { if best, map[i]>map[best] {break}; if map[i]<map[best] {best=i} }
+ # STATE
+ - currentHeightMap: [Int]  — the terrain, mutated each drop
+ - bestIndex: Int?           — lowest reachable index found during one scan
 
- WALK [2,1,1,2,1,2,2] V4 K3:  @2 -> @1 -> @4(R) -> rise@K  => [2,2,2,3,2,2,2] ✓
+ # CONDITIONS
+ - Repeat V times:
+   - Scan left (skip if K is already at index 0), scan right (skip if K is at the last index)
+   - Got a lower spot on the left? Settle there
+   - No? Got a lower spot on the right? Settle there
+   - No lower spot either side? Rise at K
 
- EDGES  K=0 noL / K=last noR / wall->break / tie->nearest wins / flat->rise@K
+ # WALK
+ [2,1,1,K=2,1,2,2]  V=4
+ - drop1: scan left → hits 2,1,1 → best=idx2(h1), 1<2 → settle @2    [2,1,2,2,1,2,2]
+ - drop2: scan left → hits 2,1   → best=idx1(h1), 1<2 → settle @1    [2,2,2,2,1,2,2]
+ - drop3: scan left → all flat   → no left; scan right → idx4(h1) → settle @4  [2,2,2,2,2,2,2]
+ - drop4: flat everywhere → rise @K                                    [2,2,2,3,2,2,2] ✓
+
+ # EDGE CASES
+ - Slices: always check K > 0 before scanning left, K < count-1 before scanning right
+ - Wall before a deeper valley: break on first rise → reachable-min, not global-min
+ - Fully flat surface: both scans return nothing lower → rise at K
+
 */
 
 #Playground("Reachable min") {
