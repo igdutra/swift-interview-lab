@@ -14,6 +14,17 @@ import Testing
 // Example 2: heights=[1,2,3,4],       V=2, K=2 → [2,3,3,4]
 // Example 3: heights=[3,1,3],         V=5, K=1 → [4,4,4]
 // ============================================================
+// TIME AND SPACE COMPLEXITY ANALYSIS
+//
+// Time Complexity:  O(V * N) — for each of the V water units we scan left and
+//                   right from K, visiting at most N elements total per drop.
+//                   In the worst case (e.g. K at one end, water always flows
+//                   all the way to the other end) every drop costs O(N).
+//
+// Space Complexity: O(N) — we copy the input array into currentHeightMap.
+//                   The helper closure uses O(1) extra space (a single index
+//                   variable), and no auxiliary data structures are allocated.
+// ============================================================
 
 private func pourWater(_ heights: [Int], _ volume: Int, _ dropIndex: Int) -> [Int] {
     var currentHeightMap = heights

@@ -69,6 +69,29 @@ import Playgrounds
 
 // MARK: - THIRD TRY - Fixed wall bug: reachable min, not global min
 
+/* PLAN
+
+ PATTERN  simulation, V times: roll unit to lowest REACHABLE spot, L then R, else rise@K.
+          reachable = scan outward from K, BREAK on rise (wall hides what's behind). O(V*N).
+
+ SEQUENCE  per unit: minL = scanOut(left); minR = scanOut(right)
+                     map[minL]<map[K] ? +1 : map[minR]<map[K] ? +1 : map[K]+1
+
+ STATE  map:[Int] (mutated)   scanOut → bestIndex:Int?
+
+ CONDITIONS
+   for _ in 0..<V:
+       l = scanOut(leftward); r = scanOut(rightward)        // nil at edges
+       if l, map[l]<map[K] -> map[l]+=1
+       elif r, map[r]<map[K] -> map[r]+=1
+       else map[K]+=1
+   scanOut: for i outward { if best, map[i]>map[best] {break}; if map[i]<map[best] {best=i} }
+
+ WALK [2,1,1,2,1,2,2] V4 K3:  @2 -> @1 -> @4(R) -> rise@K  => [2,2,2,3,2,2,2] ✓
+
+ EDGES  K=0 noL / K=last noR / wall->break / tie->nearest wins / flat->rise@K
+*/
+
 #Playground("Reachable min") {
     let heights = [2,1,1,2,1,2,2], v = 4, k = 3
 

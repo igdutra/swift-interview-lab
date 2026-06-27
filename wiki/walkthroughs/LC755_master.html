@@ -306,6 +306,56 @@ func pourWater(heights, volume, dropIndex):
     </pre>
 
     <div class="co-insight"><strong>Why two helper functions?</strong> The left and right scans are structurally identical except for direction and bounds. Extracting them names the operation ("settle left"), makes the main loop read like the spoken plan, and removes the need for <code>continue</code> after each settle. The <code>inout</code> parameter avoids copying the array on each call.</div>
+
+    <div style="margin-top:32px;border:1px solid #c8ccd1;border-radius:4px;overflow:hidden;">
+      <div style="background:#eaecf0;padding:10px 16px;display:flex;align-items:baseline;gap:12px;">
+        <span style="font:700 11px 'Source Code Pro',monospace;color:#3366cc;background:#eaf3fb;padding:2px 8px;border-radius:3px;border:1px solid #c8ddf0;">A.1</span>
+        <span style="font:700 16px 'Source Sans 3',sans-serif;color:#202122;">Single nested helper — reachable-min via ClosedRange scan</span>
+      </div>
+      <div style="padding:20px 24px;">
+        <div class="co-tip"><strong>PLAN</strong> — Same reachable-min settle rule, different structure. Instead of two top-level <code>inout</code> helpers, a single private inner function <code>getReachableMinIndex(scanning:leftward:)</code> handles both directions. It receives the full range to scan as a <code>ClosedRange&lt;Int&gt;</code> and a <code>leftward</code> flag that reverses iteration order. The caller compares the returned optional index against <code>heights[dropIndex]</code> to decide whether to settle there, making the settle-or-not logic visible in one place.</div>
+
+        <div class="code-label" style="margin-top:20px;"><span class="code-lang lang-swift">Swift</span><span class="code-desc">LC 755 — Pour Water · A.1 single nested helper</span></div>
+        <pre class="swift">
+<span class="kw">private func</span> <span class="fn">pourWater</span>(_ heights: [<span class="tp">Int</span>], _ volume: <span class="tp">Int</span>, _ dropIndex: <span class="tp">Int</span>) -> [<span class="tp">Int</span>] {
+    <span class="kw">var</span> currentHeightMap = heights
+
+    <span class="kw">func</span> <span class="fn">getReachableMinIndex</span>(scanning range: <span class="tp">ClosedRange</span>&lt;<span class="tp">Int</span>&gt;, leftward: <span class="tp">Bool</span>) -> <span class="tp">Int</span>? {
+        <span class="kw">var</span> bestIndex: <span class="tp">Int</span>? = <span class="kw">nil</span>
+        <span class="kw">let</span> indices = leftward ? <span class="tp">Array</span>(range.<span class="fn">reversed</span>()) : <span class="tp">Array</span>(range)
+        <span class="kw">for</span> index <span class="kw">in</span> indices {
+            <span class="kw">if let</span> currentBest = bestIndex, currentHeightMap[index] > currentHeightMap[currentBest] { <span class="kw">break</span> }
+            <span class="kw">if</span> bestIndex == <span class="kw">nil</span> || currentHeightMap[index] < currentHeightMap[bestIndex!] { bestIndex = index }
+        }
+        <span class="kw">return</span> bestIndex
+    }
+
+    <span class="kw">for</span> _ <span class="kw">in</span> <span class="nm">1</span>...volume {
+        <span class="kw">let</span> kHeight = currentHeightMap[dropIndex]
+
+        <span class="kw">let</span> lowestIndexLeft: <span class="tp">Int</span>? = dropIndex > <span class="nm">0</span>
+            ? <span class="fn">getReachableMinIndex</span>(scanning: <span class="nm">0</span>...(dropIndex - <span class="nm">1</span>), leftward: <span class="kw">true</span>)
+            : <span class="kw">nil</span>
+        <span class="kw">let</span> lowestIndexRight: <span class="tp">Int</span>? = dropIndex < currentHeightMap.count - <span class="nm">1</span>
+            ? <span class="fn">getReachableMinIndex</span>(scanning: (dropIndex + <span class="nm">1</span>)...(currentHeightMap.count - <span class="nm">1</span>), leftward: <span class="kw">false</span>)
+            : <span class="kw">nil</span>
+
+        <span class="kw">if let</span> leftIndex = lowestIndexLeft, currentHeightMap[leftIndex] < kHeight {
+            currentHeightMap[leftIndex] += <span class="nm">1</span>
+        } <span class="kw">else if let</span> rightIndex = lowestIndexRight, currentHeightMap[rightIndex] < kHeight {
+            currentHeightMap[rightIndex] += <span class="nm">1</span>
+        } <span class="kw">else</span> {
+            currentHeightMap[dropIndex] += <span class="nm">1</span>
+        }
+    }
+
+    <span class="kw">return</span> currentHeightMap
+}
+        </pre>
+
+        <div class="co-insight"><strong>Structural difference from the primary solution.</strong> The primary solution uses two <code>inout</code> top-level helpers and a short-circuit <code>&amp;&amp;</code> chain; this variant consolidates direction handling into one inner function. The tradeoff: the inner function must both scan and pre-build a reversed array (<code>Array(range.reversed())</code>), costing an O(W) allocation per call. The primary solution avoids that by using <code>stride</code> directly. Both are O(V × W) overall; the primary is lighter on allocations.</div>
+      </div>
+    </div>
   </section>
 
   <hr class="wiki-hr">
