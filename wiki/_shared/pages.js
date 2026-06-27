@@ -302,7 +302,7 @@ const WIKI_PAGES = [
     title: "LC 755 — Pour Water",
     topics: ["Strings", "Simulation", "Arrays"],
     difficulty: "M",
-    blurb: "Physics / grid simulation (Variant 8.3) — settle each unit by a local rule. ATTEMPT: coach-only, no solution. Settle rule, left tie-break, wall reachability, edge-case spec, graduated hints.",
+    blurb: "Physics / grid simulation (Variant 8.3) — settle each unit by reachable-min scan, stop at first rise, left ties win. Full solution, code dry run, Q→code map, interview simulation, follow-ups.",
   },
   {
     cat: "walkthrough",

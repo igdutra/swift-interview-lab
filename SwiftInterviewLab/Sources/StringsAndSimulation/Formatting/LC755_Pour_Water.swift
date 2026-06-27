@@ -67,18 +67,108 @@ import Playgrounds
 //   - 0 <= K < heights.length
 // ============================================================
 
+// MARK: - THIRD TRY - Fixed wall bug: reachable min, not global min
+
+#Playground("Reachable min") {
+    let heights = [2,1,1,2,1,2,2], v = 4, k = 3
+
+    // KEY FIX: stop at first rise — a wall blocks everything beyond it.
+    // We scan outward tracking bestIndex; the moment terrain goes UP we break.
+    // This is reachable-min, not global-min.
+    func getReachableMinIndex(in array: [Int], scanning range: ClosedRange<Int>, leftward: Bool) -> Int? {
+        var bestIndex: Int? = nil
+        let indices = leftward ? Array(range.reversed()) : Array(range)
+        for index in indices {
+            if let currentBest = bestIndex, array[index] > array[currentBest] { break }
+            if bestIndex == nil || array[index] < array[bestIndex!] { bestIndex = index }
+        }
+        return bestIndex
+    }
+
+    func getFinalElevationMap(for heigths: [Int], pouring volume: Int, at kIndex: Int) -> [Int] {
+        var currentHeightMap = heigths
+
+        for _ in 1...volume {
+            let kHeight = currentHeightMap[kIndex]
+
+            let lowestIndexLeft: Int? = kIndex > 0
+                ? getReachableMinIndex(in: currentHeightMap, scanning: 0...(kIndex - 1), leftward: true)
+                : nil
+            let lowestIndexRight: Int? = kIndex < currentHeightMap.count - 1
+                ? getReachableMinIndex(in: currentHeightMap, scanning: (kIndex + 1)...(currentHeightMap.count - 1), leftward: false)
+                : nil
+
+//            print("left:", lowestIndexLeft as Any, "right:", lowestIndexRight as Any)
+
+            if let leftIndex = lowestIndexLeft, currentHeightMap[leftIndex] < kHeight {
+                currentHeightMap[leftIndex] += 1
+            } else if let rightIndex = lowestIndexRight, currentHeightMap[rightIndex] < kHeight {
+                currentHeightMap[rightIndex] += 1
+            } else {
+                currentHeightMap[kIndex] += 1
+            }
+        }
+
+        return currentHeightMap
+    }
+
+    print(getFinalElevationMap(for: heights, pouring: v, at: k)) // [2,2,2,3,2,2,2]
+}
+
 // MARK: - SECOND TRY - Found the bug - but i can make it beeter.
 
 #Playground("Prefix try") {
     let heights = [2,1,1,2,1,2,2], v = 4, k = 3
-    
-    let oi = heights[(k+1)...]
-    
-    func getSmallerIndex
+
+    // WORKING WITH CLOSED RAGES!
+    func getSmallerHeightIndex(in array: [Int], considering range: ClosedRange<Int>) -> Int {
+        var currentMin = Int.max
+        var currentMinIndex = 0
+
+        for index in range {
+            if array[index] < currentMin {
+                currentMin = array[index]
+                currentMinIndex = index
+            }
+        }
+        return currentMinIndex
+    }
+    // Testing
+//    let range = (k+1)...(heights.count - 1)
+//    print(getSmallerIndex(in: heights, considering:(range)))
+
+    func getFinalElevationMap(for heigths: [Int], pouring v: Int, at kIndex: Int) -> [Int] {
+        var lowestIndexLeft: Int? = 0
+        var lowestIndexRight: Int? = 0
+        var currentHeightMap = heights
+
+        let leftRange = 0...(k-1)
+        let rightRange = (k+1)...(currentHeightMap.count - 1)
+
+        for _ in 1...v {
+
+            lowestIndexLeft = kIndex > 0 ? getSmallerHeightIndex(in: currentHeightMap, considering: leftRange) : nil
+            lowestIndexRight = kIndex < (currentHeightMap.count - 1) ? getSmallerHeightIndex(in: currentHeightMap, considering: rightRange) : nil
+
+            let kHeight = currentHeightMap[kIndex]
+            let leftMinHeight = currentHeightMap[lowestIndexLeft ?? 0]
+            let rightMinHeight = currentHeightMap[lowestIndexRight ?? 0]
+
+    //        print(lowestIndexLeft, lowestIndexRight)
+
+            // 1st: check to pour on k
+            if leftMinHeight > kHeight, rightMinHeight > kHeight {
+                currentHeightMap[kIndex] += 1
+            }
+
+            // 2nd
+
+//            ...
+        }
+
+        return currentHeightMap
+    }
 }
-
-
-
 
 //
 //#Playground {
