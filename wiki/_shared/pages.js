@@ -414,6 +414,14 @@ const WIKI_PAGES = [
   },
   {
     cat: "reference",
+    path: "reference/final_glance.html",
+    nav: "Final Glance",
+    title: "Final Glance",
+    topics: ["Checklist", "Pre-Interview", "Reflexes"],
+    blurb: "The one-page pre-interview glance — read 30 minutes before the round. Cross-cutting coding reflexes (forgotten reset, n−1 separators, bounds/divisor guards), process and routing reflexes, plus a printable 'before I say done' checklist. Every trap links to its full snippet.",
+  },
+  {
+    cat: "reference",
     path: "reference/code_snippets.html",
     nav: "Code Snippets",
     title: "Code Snippets & Gotchas",

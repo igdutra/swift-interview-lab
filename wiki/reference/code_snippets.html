@@ -18,7 +18,7 @@
   <a href="#accumulate">1 · Multi-digit accumulation</a>
   <a href="#digit-math">2 · Digit math &amp; char casting</a>
   <a href="#lifo">3 · Stack nesting (LIFO)</a>
-  <a href="#trio">4 · Accumulator trio + seen-flag</a>
+  <a href="#trio">4 · Centralize state in resetState()</a>
   <a href="#stack-last">5 · stack.last struct-copy trap</a>
   <a href="#monotonic">6 · Monotonic stack record-order</a>
   <a href="#two-pointer-pal">7 · Two-pointer palindrome check</a>
@@ -117,9 +117,12 @@ resultDigits.<span class="fn">append</span>(<span class="tp">Character</span>(<s
   <hr class="wiki-hr">
 
   <!-- 4 -->
-  <h2 id="trio"><span class="sec-num">4</span> Reset accumulators as a trio + the seen-flag guard</h2>
-  <p>A character parser with a sign flag tracks three things together: the number, its sign, and whether a number was seen at all. Reset them as a unit — one missing reset is a silent bug. And <code>currentNumber == 0</code> alone cannot distinguish "no number" from "the number zero", so an empty list <code>[]</code> would get a phantom <code>0</code>.</p>
-  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">the seen-flag and the single reset point</span></div>
+  <h2 id="trio"><span class="sec-num">4</span> Centralize multi-variable state in one <code>resetState()</code> helper</h2>
+  <div class="co co-idea">
+    <strong>THE ONE IDEA:</strong> The moment you carry <strong>two or more related state variables</strong> that must be cleared together between iterations, extract a single <code>resetState()</code> (or <code>resetAccumulators()</code>) helper and call it in <em>one</em> place. Never reset them inline, one by one — the day you add a third variable you <em>will</em> forget to reset one of them, and it bleeds silently into the next iteration. A helper makes "all the state I manage" a single named, auditable list.
+  </div>
+  <p>The classic case is a character parser with a sign flag: it tracks three things together — the number, its sign, and whether a number was seen at all. Reset them as a unit. And <code>currentNumber == 0</code> alone cannot distinguish "no number" from "the number zero", so an empty list <code>[]</code> would get a phantom <code>0</code> — hence the seen-flag.</p>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">a parser — the seen-flag and the single reset point</span></div>
   <pre class="swift"><span class="kw">var</span> currentNumber = <span class="nm">0</span>
 <span class="kw">var</span> isNegative = <span class="kw">false</span>
 <span class="kw">var</span> hasSeenNumber = <span class="kw">false</span>
@@ -144,12 +147,26 @@ resultDigits.<span class="fn">append</span>(<span class="tp">Character</span>(<s
     isNegative = <span class="kw">false</span>
     hasSeenNumber = <span class="kw">false</span>
 }</pre>
+  <p>The exact same discipline applies far outside parsers. In <strong>greedy line-batching</strong> (LC 68) a "line" is also a bundle of state — the words on it <em>and</em> its running character length — that must be cleared together every time a line commits:</p>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">a batcher — the line's state cleared as a unit on commit</span></div>
+  <pre class="swift"><span class="kw">var</span> currentLineWords: [<span class="tp">String</span>] = []
+<span class="kw">var</span> currentLineLength = <span class="nm">0</span>
+
+<span class="kw">func</span> <span class="fn">resetLine</span>() {     <span class="cm">// one place that knows EVERY per-line variable</span>
+    currentLineWords = []
+    currentLineLength = <span class="nm">0</span>
+}
+
+<span class="cm">// on overflow: commit the line, then reset BOTH — never just one</span>
+outputLines.<span class="fn">append</span>(<span class="fn">justify</span>(currentLineWords))
+<span class="fn">resetLine</span>()</pre>
+  <div class="co co-insight"><strong>Why it works:</strong> a <code>resetState()</code> helper turns "what state do I manage?" into a single readable list. When I solved LC 68 I reset <code>currentLineLength</code> but forgot to clear <code>currentLineWords</code> inline — every line after the first carried words from the previous one. Had both lived inside one <code>resetLine()</code>, the omission would have been impossible. The helper is cheap insurance against the single most common simulation bug: a forgotten reset.</div>
   <div class="co co-pitfall">
     <strong>PITFALLS</strong>
-    <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Resetting the three separately, inline.</strong> Extract one <code>resetAccumulators()</code> and call it in one place. Forgetting to clear <code>isNegative</code> or <code>hasSeenNumber</code> bleeds the sign or a phantom number into the next token.</span></div>
+    <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Resetting related variables separately, inline.</strong> Extract one <code>resetState()</code> and call it in one place. Forgetting to clear even one (a sign flag, a seen-flag, a line's word list) bleeds it into the next iteration — a silent wrong answer, not a crash.</span></div>
     <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Committing unconditionally on <code>]</code>.</strong> Without the <code>hasSeenNumber</code> guard, an empty list gets a stray <code>0</code> appended.</span></div>
   </div>
-  <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC385_master.html">LC 385 Mini Parser</a>, LC 224 / <a href="../walkthroughs/LC227_master.html">LC 227</a> Basic Calculator — every character-by-character parser with a sign flag.</p>
+  <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC385_master.html">LC 385 Mini Parser</a>, LC 224 / <a href="../walkthroughs/LC227_master.html">LC 227</a> Basic Calculator (parser state trio), and <a href="../walkthroughs/LC68_master.html">LC 68 Text Justification</a> (per-line batch state) — any loop that carries multiple variables it must clear between iterations.</p>
 
   <hr class="wiki-hr">
 
@@ -498,8 +515,8 @@ runningMax = input.last!
 <span class="cm">// Closed-range slice with a computed index that can run past the end:</span>
 <span class="kw">let</span> prefix = words[...someIndex]               <span class="cm">// CRASH when someIndex >= words.count</span>
 <span class="cm">// Prefer building the result by iterating valid indices — no slicing at all.</span></pre>
-  <div class="co co-idea">
-    <strong>THE ONE IDEA:</strong> Before you write <code>array[i]</code>, <code>array[...i]</code>, <code>a / b</code>, or <code>a % b</code>, ask: <em>can the index be out of range? can the divisor be zero?</em> In string problems the answer is "yes" far more often than in array problems, because the empty line, the single word, and the last element are all special cases.
+  <div class="co co-insight">
+    <strong>The reflex:</strong> Before you write <code>array[i]</code>, <code>array[...i]</code>, <code>a / b</code>, or <code>a % b</code>, ask: <em>can the index be out of range? can the divisor be zero?</em> In string problems the answer is "yes" far more often than in array problems, because the empty line, the single word, and the last element are all special cases.
   </div>
   <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC68_master.html">LC 68 Text Justification</a> — discovered while reviewing the first attempt: the strategy was correct, every bug was bounds arithmetic.</p>
 
