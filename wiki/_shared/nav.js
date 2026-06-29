@@ -46,8 +46,8 @@
     var hasTips = WIKI_PAGES.some(function (p) { return p.cat === "tips"; });
     if (hasTips) {
       var tipsActive = /\/tips\//.test(path);
-      html += '<span class="nav-cat">Tips</span>';
-      html += '<a href="' + fromRoot + 'tips/"' + (tipsActive ? ' class="current"' : "") + ">All Tips</a>";
+      html += '<span class="nav-cat">Review &amp; Reference</span>';
+      html += '<a href="' + fromRoot + 'tips/"' + (tipsActive ? ' class="current"' : "") + ">All Reference</a>";
     }
     nav.innerHTML = html;
   }

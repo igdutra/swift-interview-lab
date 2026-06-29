@@ -414,6 +414,22 @@ const WIKI_PAGES = [
   },
   {
     cat: "tips",
+    path: "tips/code_snippets.html",
+    nav: "Code Snippets",
+    title: "Code Snippets & Gotchas",
+    topics: ["Swift", "Snippets", "Gotchas"],
+    blurb: "Reusable Swift moves organised by technique (arrays & strings intertwined) — accumulate-and-commit, monotonic stack, reachable-min scan, split-point enumeration, greedy line-packing. Every snippet traced back to the LeetCode problem it came from.",
+  },
+  {
+    cat: "tips",
+    path: "tips/pattern_recognition.html",
+    nav: "Pattern Recognition",
+    title: "Pattern Recognition",
+    topics: ["Routing", "Patterns", "Reference"],
+    blurb: "The 'I see X → reach for Y' routing layer. Master signal table covering every pattern in this wiki, input-size heuristics, inline Big-O, and the easily-confused tie-breakers. Each row links to a worked walkthrough.",
+  },
+  {
+    cat: "tips",
     path: "tips/interview_stages.html",
     nav: "Interview Stages",
     title: "Stages of an Interview",

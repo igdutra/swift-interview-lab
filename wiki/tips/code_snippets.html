@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Code Snippets &amp; Gotchas · Study Wiki</title>
+<link rel="stylesheet" href="../_shared/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="tips">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+<nav class="toc-col">
+  <div class="toc-title">Contents</div>
+  <a href="#how">How to use this page</a>
+  <a href="#accumulate">1 · Multi-digit accumulation</a>
+  <a href="#digit-math">2 · Digit math &amp; char casting</a>
+  <a href="#lifo">3 · Stack nesting (LIFO)</a>
+  <a href="#trio">4 · Accumulator trio + seen-flag</a>
+  <a href="#stack-last">5 · stack.last struct-copy trap</a>
+  <a href="#monotonic">6 · Monotonic stack record-order</a>
+  <a href="#two-pointer-pal">7 · Two-pointer palindrome check</a>
+  <a href="#reachable">8 · Reachable-min outward scan</a>
+  <a href="#argmin">9 · Argmin in a subrange</a>
+  <a href="#pivot-guard">10 · Pivot-side nil guard</a>
+  <a href="#reverse-range">11 · Reverse-range &amp; stride</a>
+  <a href="#split-points">12 · Split-point enumeration</a>
+  <a href="#window">13 · Window: two-pointer vs queue</a>
+  <a href="#conversions">14 · String ↔ collection casts</a>
+  <a href="#greedy-lines">15 · Greedy line batching</a>
+  <a href="#distribute">16 · Remainder-biased distribution</a>
+  <a href="#prefix-suffix">17 · Prefix / suffix precompute</a>
+  <a href="#bounds">18 · The bounds-arithmetic rule</a>
+</nav>
+
+<main class="content">
+
+  <h1 class="page-title">Code Snippets &amp; Gotchas</h1>
+  <div class="page-meta">
+    <span>Review &amp; Reference</span>
+    <span>·</span>
+    <span>Swift carry-ons · every snippet traced to its LeetCode problem</span>
+  </div>
+
+  <div class="lead">
+    <p>The <strong>reusable Swift moves</strong> pulled out of every problem already solved — the code you will reach for again, plus the gotcha that bites if you don't. Organised <strong>by technique, not by data structure</strong>: a string is an array of characters, so two pointers, sliding window, prefix/suffix and accumulate-and-commit cross freely between arrays and strings — they sit side by side here. Every snippet ends with the LeetCode problem(s) it came from, so you can jump to the full walkthrough.</p>
+  </div>
+
+  <div class="co co-when" style="max-width: 72ch;">
+    <strong>How to use it:</strong> this is the <em>how-to-write-it</em> layer. When you already know <em>which</em> pattern a problem wants but have forgotten the exact Swift idiom or the trap inside it, this is the page. For <em>which</em> pattern to reach for, see the companion <a href="pattern_recognition.html">Pattern Recognition</a> page.
+  </div>
+
+  <h2 id="how"><span class="sec-num">0</span> Reading the back-links</h2>
+  <p>Each snippet closes with a <strong>Where this appears</strong> line naming the LeetCode problem(s) the move was extracted from. Problems with a walkthrough in this wiki are live links; the rest name the canonical LC number so you can find them.</p>
+  <table class="t-decoder">
+    <thead><tr><th>In this wiki (clickable)</th><th>Referenced only (no page yet)</th></tr></thead>
+    <tbody>
+      <tr><td>LC 3, 11, 15, 20, 42, 125, 209, 227, 238, 336, 385, 394, 415, 496, 68, 755, 933, 362</td><td>LC 224, 43, 84, 739, 503, 131</td></tr>
+    </tbody>
+  </table>
+
+  <hr class="wiki-hr">
+
+  <!-- 1 -->
+  <h2 id="accumulate"><span class="sec-num">1</span> Multi-digit number accumulation</h2>
+  <p>The input is a <code>String</code>, so the integer <code>142</code> arrives as three separate characters <code>'1' '4' '2'</code>. Rebuild the number as you scan: multiply the running value by 10 (shifting every digit one decimal place left) and add the new digit on the right.</p>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">accumulate one digit per character</span></div>
+  <pre class="swift"><span class="kw">var</span> currentNumber = <span class="nm">0</span>
+
+<span class="kw">if let</span> digit = character.wholeNumberValue {
+    currentNumber = currentNumber * <span class="nm">10</span> + digit
+}</pre>
+  <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">"142"</span></div>
+  <pre class="dry">character='1'  →  currentNumber = 0  * 10 + 1 = 1
+character='4'  →  currentNumber = 1  * 10 + 4 = 14
+character='2'  →  currentNumber = 14 * 10 + 2 = 142</pre>
+  <div class="co co-note"><strong>Note:</strong> commit the moment you hit a non-digit (an operator, a boundary space, or the last index) — then reset <code>currentNumber = 0</code>. The <code>* 10</code> is decimal positional notation: each existing digit is worth 10× the one to its right, so the multiply makes room for the incoming digit.</div>
+  <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC227_master.html">LC 227 Basic Calculator II</a>, LC 224 Basic Calculator, <a href="../walkthroughs/LC385_master.html">LC 385 Mini Parser</a> — any problem that parses integers out of a raw string character by character.</p>
+
+  <hr class="wiki-hr">
+
+  <!-- 2 -->
+  <h2 id="digit-math"><span class="sec-num">2</span> Digit math &amp; character casting</h2>
+  <p>The two operations you need every time you simulate arithmetic on numeric strings without converting to <code>Int</code>.</p>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">column digit + carry, and the casts</span></div>
+  <pre class="swift"><span class="cm">// Digit math — split a column sum into the kept digit and the carry</span>
+<span class="kw">let</span> currentDigit = columnSum % <span class="nm">10</span>   <span class="cm">// units place: what gets appended</span>
+carry            = columnSum / <span class="nm">10</span>   <span class="cm">// 0 or 1: what carries left</span>
+
+<span class="cm">// Character → Int</span>
+<span class="kw">let</span> digit = character.wholeNumberValue ?? <span class="nm">0</span>   <span class="cm">// '7' → 7; ?? 0 when exhausted</span>
+
+<span class="cm">// Int → Character — no direct cast, go through String</span>
+resultDigits.<span class="fn">append</span>(<span class="tp">Character</span>(<span class="tp">String</span>(currentDigit)))</pre>
+  <div class="co co-note"><strong>Note:</strong> with single-digit inputs the carry is always 0 or 1 (max column sum is 9 + 9 + 1 = 19). There is <em>no</em> direct <code>Int → Character</code> cast — you must go through <code>String</code> first.</div>
+  <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC415_master.html">LC 415 Add Strings</a>, LC 43 Multiply Strings — any problem simulating arithmetic on numeric strings.</p>
+
+  <hr class="wiki-hr">
+
+  <!-- 3 -->
+  <h2 id="lifo"><span class="sec-num">3</span> Stack-based nesting — it is physically LIFO</h2>
+  <p>When you read a nested structure like <code>[12,[13,14]]</code> left to right, the innermost bracket always closes before the outer one. The thing you opened most recently is always the thing you close next — that is the definition of LIFO, and why a stack is the natural fit for any bracket parser.</p>
+  <table class="t-clue">
+    <thead><tr><th>Character</th><th>Action</th></tr></thead>
+    <tbody>
+      <tr><td>[</td><td>Push a new empty container onto the stack</td></tr>
+      <tr><td>digit / -</td><td>Accumulate into <code>currentNumber</code></td></tr>
+      <tr><td>, or ]</td><td>Commit <code>currentNumber</code> (if any) into the top container, then reset</td></tr>
+      <tr><td>] only</td><td>Also pop the top container and add it to the new top (or save as result)</td></tr>
+    </tbody>
+  </table>
+  <div class="co co-insight"><strong>Why it works:</strong> the stack <em>is</em> recursion made explicit. The call stack in a recursive DFS does exactly what this bucket-tower does — it remembers "where was I before I went deeper." You could recurse instead; the explicit stack is the iterative form the wiki standard prefers.</div>
+  <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC385_master.html">LC 385 Mini Parser</a>, <a href="../walkthroughs/LC394_master.html">LC 394 Decode String</a>, <a href="../walkthroughs/LC227_master.html">LC 227</a> / LC 224 Basic Calculator — any problem where <code>[</code> or <code>(</code> opens a scope and <code>]</code> or <code>)</code> collapses it back into the parent.</p>
+
+  <hr class="wiki-hr">
+
+  <!-- 4 -->
+  <h2 id="trio"><span class="sec-num">4</span> Reset accumulators as a trio + the seen-flag guard</h2>
+  <p>A character parser with a sign flag tracks three things together: the number, its sign, and whether a number was seen at all. Reset them as a unit — one missing reset is a silent bug. And <code>currentNumber == 0</code> alone cannot distinguish "no number" from "the number zero", so an empty list <code>[]</code> would get a phantom <code>0</code>.</p>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">the seen-flag and the single reset point</span></div>
+  <pre class="swift"><span class="kw">var</span> currentNumber = <span class="nm">0</span>
+<span class="kw">var</span> isNegative = <span class="kw">false</span>
+<span class="kw">var</span> hasSeenNumber = <span class="kw">false</span>
+
+<span class="kw">if let</span> digit = character.wholeNumberValue {
+    currentNumber = currentNumber * <span class="nm">10</span> + digit
+    hasSeenNumber = <span class="kw">true</span>
+}
+<span class="kw">if</span> character == <span class="st">"-"</span> {
+    isNegative = <span class="kw">true</span>
+    hasSeenNumber = <span class="kw">true</span>
+}
+
+<span class="kw">func</span> <span class="fn">commitNumber</span>() {
+    <span class="kw">guard</span> hasSeenNumber <span class="kw">else</span> { <span class="kw">return</span> }   <span class="cm">// no phantom zero on empty lists</span>
+    <span class="cm">// commit currentNumber * (isNegative ? -1 : 1) …</span>
+    <span class="fn">resetAccumulators</span>()
+}
+
+<span class="kw">func</span> <span class="fn">resetAccumulators</span>() {
+    currentNumber = <span class="nm">0</span>
+    isNegative = <span class="kw">false</span>
+    hasSeenNumber = <span class="kw">false</span>
+}</pre>
+  <div class="co co-pitfall">
+    <strong>PITFALLS</strong>
+    <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Resetting the three separately, inline.</strong> Extract one <code>resetAccumulators()</code> and call it in one place. Forgetting to clear <code>isNegative</code> or <code>hasSeenNumber</code> bleeds the sign or a phantom number into the next token.</span></div>
+    <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Committing unconditionally on <code>]</code>.</strong> Without the <code>hasSeenNumber</code> guard, an empty list gets a stray <code>0</code> appended.</span></div>
+  </div>
+  <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC385_master.html">LC 385 Mini Parser</a>, LC 224 / <a href="../walkthroughs/LC227_master.html">LC 227</a> Basic Calculator — every character-by-character parser with a sign flag.</p>
+
+  <hr class="wiki-hr">
+
+  <!-- 5 -->
+  <h2 id="stack-last"><span class="sec-num">5</span> <code>stack.last</code> is a copy for structs — mutate by index</h2>
+  <p>When you do <code>var top = stack.last</code> and call a mutating method on it, you may be mutating a throwaway copy — the stack never changes.</p>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">value-type vs reference-type top-of-stack</span></div>
+  <pre class="swift"><span class="cm">// BUG if the element is a struct (value type): mutates a copy</span>
+<span class="kw">var</span> lastObject = stack.last
+lastObject?.<span class="fn">add</span>(something)
+
+<span class="cm">// Always safe — works for both class and struct: mutate in place by index</span>
+stack[stack.count - <span class="nm">1</span>].<span class="fn">add</span>(something)</pre>
+  <div class="co co-note"><strong>Note:</strong> if the element type is a <code>class</code> (reference type / <code>AnyObject</code>), <code>stack.last</code> hands back a reference and mutation works. If it is a <code>struct</code>, <code>stack.last</code> is a copy — mutate by index. Check the declaration: <code>class Foo</code> / <code>protocol Foo: AnyObject</code> → reference; <code>struct Foo</code> → value.</div>
+  <p><strong>Where this appears:</strong> any stack-based parser that appends into the top container — <a href="../walkthroughs/LC385_master.html">LC 385 Mini Parser</a>, <a href="../walkthroughs/LC394_master.html">LC 394 Decode String</a>, calculator problems.</p>
+
+  <hr class="wiki-hr">
+
+  <!-- 6 -->
+  <h2 id="monotonic"><span class="sec-num">6</span> Monotonic stack — record AFTER eviction, BEFORE push</h2>
+  <p>The routing signal is "<strong>next greater / next smaller / first element to the right satisfying condition X</strong>". The word <em>nearest</em> or <em>first</em> is what picks a monotonic stack over a suffix-max pass (which gives the maximum, not the nearest) or two pointers (which converge or both run right, not pending-query resolution).</p>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">decreasing stack → next greater</span></div>
+  <pre class="swift"><span class="kw">var</span> nextGreater: [<span class="tp">Int</span>: <span class="tp">Int</span>] = [:]
+<span class="kw">var</span> stack: [<span class="tp">Int</span>] = []              <span class="cm">// monotonically DECREASING bottom → top</span>
+
+<span class="kw">for</span> value <span class="kw">in</span> numbers.reversed() {   <span class="cm">// right-to-left so the stack holds future candidates</span>
+    <span class="kw">while let</span> top = stack.last, top &lt;= value {
+        stack.<span class="fn">removeLast</span>()         <span class="cm">// dominated — never the answer for anything further left</span>
+    }
+    nextGreater[value] = stack.last ?? -<span class="nm">1</span>  <span class="cm">// record AFTER eviction, BEFORE push</span>
+    stack.<span class="fn">append</span>(value)
+}
+<span class="cm">// each element pushed once, popped at most once → O(n) amortized</span></pre>
+  <div class="co co-pitfall">
+    <strong>PITFALLS</strong>
+    <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Recording after the push.</strong> Reversing the record and push makes the current element its own next-greater — a silent wrong answer. Record between the eviction loop and the append.</span></div>
+    <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Flip for next-smaller:</strong> evict on <code>top &gt;= value</code> (pop ≥ instead of ≤), keep the same record-then-push order.</span></div>
+  </div>
+  <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC496_master.html">LC 496 Next Greater Element I</a>, LC 503 (circular), next-smaller variants, LC 84 Largest Rectangle in Histogram.</p>
+
+  <hr class="wiki-hr">
+
+  <!-- 7 -->
+  <h2 id="two-pointer-pal"><span class="sec-num">7</span> Two-pointer palindrome check (the converging core)</h2>
+  <p>The reflex for "is this a palindrome": converge from both ends, return <code>false</code> on the first mismatch. Boolean output means no map and no counting — just compare ends inward. An empty or single-element range returns <code>true</code> because the loop never runs.</p>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">range check + the LC 125 skip-and-fold flavor</span></div>
+  <pre class="swift"><span class="cm">// Clean range, every character matters — reused as a building block everywhere</span>
+<span class="kw">func</span> <span class="fn">isPalindrome</span>(<span class="kw">_</span> characters: [<span class="tp">Character</span>], <span class="kw">_</span> low: <span class="tp">Int</span>, <span class="kw">_</span> high: <span class="tp">Int</span>) -&gt; <span class="tp">Bool</span> {
+    <span class="kw">var</span> leftPointer = low, rightPointer = high
+    <span class="kw">while</span> leftPointer &lt; rightPointer {
+        <span class="kw">if</span> characters[leftPointer] != characters[rightPointer] { <span class="kw">return false</span> }
+        leftPointer += <span class="nm">1</span>
+        rightPointer -= <span class="nm">1</span>
+    }
+    <span class="kw">return true</span>
+}
+
+<span class="cm">// LC 125 flavor — skip non-alphanumeric on the fly, case-insensitive.</span>
+<span class="cm">// Bounds check FIRST in the inner loops, THEN the character test.</span>
+<span class="kw">func</span> <span class="fn">isValidPalindrome</span>(<span class="kw">_</span> string: <span class="tp">String</span>) -&gt; <span class="tp">Bool</span> {
+    <span class="kw">let</span> characters = <span class="tp">Array</span>(string)
+    <span class="kw">var</span> leftPointer = <span class="nm">0</span>
+    <span class="kw">var</span> rightPointer = characters.count - <span class="nm">1</span>
+    <span class="kw">while</span> leftPointer &lt; rightPointer {
+        <span class="kw">while</span> leftPointer &lt; rightPointer &amp;&amp; !characters[leftPointer].<span class="fn">isLetter</span> &amp;&amp; !characters[leftPointer].<span class="fn">isNumber</span> {
+            leftPointer += <span class="nm">1</span>
+        }
+        <span class="kw">while</span> leftPointer &lt; rightPointer &amp;&amp; !characters[rightPointer].<span class="fn">isLetter</span> &amp;&amp; !characters[rightPointer].<span class="fn">isNumber</span> {
+            rightPointer -= <span class="nm">1</span>
+        }
+        <span class="kw">if</span> characters[leftPointer].<span class="fn">lowercased</span>() != characters[rightPointer].<span class="fn">lowercased</span>() {
+            <span class="kw">return false</span>
+        }
+        leftPointer += <span class="nm">1</span>
+        rightPointer -= <span class="nm">1</span>
+    }
+    <span class="kw">return true</span>
+}</pre>
+  <div class="co co-note"><strong>Note:</strong> <code>Character.lowercased()</code> returns a <code>String</code>, not a <code>Character</code> — the comparison is String-vs-String (correct, but surprising). <code>Array("")</code> is empty, so <code>rightPointer = -1</code> and the loop never runs — empty string returns <code>true</code> (Swift <code>Int</code> is signed, no underflow). For O(1) space, keep the <code>String</code> and walk <code>String.Index</code> with <code>index(after:)</code> / <code>index(before:)</code>.</div>
+  <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC125_master.html">LC 125 Valid Palindrome</a> (the standalone check) and <a href="../walkthroughs/LC336_master.html">LC 336 Palindrome Pairs</a> (the range check is the building block whose empty-range-returns-true behavior makes the inclusive split scan correct).</p>
+
+  <hr class="wiki-hr">
+
+  <!-- 8 -->
+  <h2 id="reachable"><span class="sec-num">8</span> Reachable-min: scan outward, stop at the first wall</h2>
+  <p>You need the lowest index reachable from a pivot moving in one direction — but "reachable" means you can never climb higher than your current footing. A valley hidden behind a taller peak is invisible. <code>.min()</code> over a slice finds the global minimum and is <em>wrong</em> here.</p>
+  <div class="code-label"><span class="code-lang lang-trace">Why .min() fails</span><span class="code-desc">heights = [0,2,1], pivot=0, scanning right</span></div>
+  <pre class="dry">Global min of right side  →  index 2 (height 1)   ← WRONG (behind a wall)
+Reachable min from pivot  →  none (index 1 is higher than pivot, wall blocks)</pre>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">break the moment terrain rises above the best</span></div>
+  <pre class="swift"><span class="kw">func</span> <span class="fn">getReachableMinIndex</span>(<span class="kw">_</span> array: [<span class="tp">Int</span>], scanning range: <span class="tp">ClosedRange</span>&lt;<span class="tp">Int</span>&gt;, leftward: <span class="tp">Bool</span>) -&gt; <span class="tp">Int</span>? {
+    <span class="kw">var</span> bestIndex: <span class="tp">Int</span>? = <span class="kw">nil</span>
+    <span class="kw">let</span> indices = leftward ? <span class="tp">Array</span>(range.reversed()) : <span class="tp">Array</span>(range)
+    <span class="kw">for</span> index <span class="kw">in</span> indices {
+        <span class="kw">if let</span> currentBest = bestIndex, array[index] &gt; array[currentBest] { <span class="kw">break</span> } <span class="cm">// wall — stop</span>
+        <span class="kw">if</span> bestIndex == <span class="kw">nil</span> || array[index] &lt; array[bestIndex!] { bestIndex = index }
+    }
+    <span class="kw">return</span> bestIndex <span class="cm">// nil → nothing reachable (pivot is already the local min)</span>
+}</pre>
+  <div class="co co-insight"><strong>Why it works:</strong> this scan is O(n) per element → O(n²) total. Recognizing the reachable-scan shape is exactly what tells you to reach for a <a href="#monotonic">monotonic stack</a> (§6) instead — the histogram and daily-temperatures stacks exist precisely to kill this O(n²).</div>
+  <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC755_master.html">LC 755 Pour Water</a> (scan left/right from drop index, stop at first rise), LC 84 Largest Rectangle (naive nearest-shorter scan), LC 739 Daily Temperatures (naive next-warmer scan).</p>
+
+  <hr class="wiki-hr">
+
+  <!-- 9 -->
+  <h2 id="argmin"><span class="sec-num">9</span> Argmin in a subrange — single pass, real indices</h2>
+  <p>You need both the minimum value and its index within a subrange. <code>.min()</code> + <code>.firstIndex(of:)</code> is two passes and loses index information on slices. Loop the range directly — the loop variable is already the real position in the original array, so no offset math.</p>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">argmin without allocating a slice</span></div>
+  <pre class="swift"><span class="kw">func</span> <span class="fn">getSmallerIndex</span>(<span class="kw">_</span> array: [<span class="tp">Int</span>], range: <span class="tp">ClosedRange</span>&lt;<span class="tp">Int</span>&gt;) -&gt; <span class="tp">Int</span> {
+    <span class="kw">var</span> currentMin = <span class="tp">Int</span>.max
+    <span class="kw">var</span> currentMinIndex = range.lowerBound
+    <span class="kw">for</span> index <span class="kw">in</span> range {
+        <span class="kw">if</span> array[index] &lt; currentMin {
+            currentMin = array[index]
+            currentMinIndex = index
+        }
+    }
+    <span class="kw">return</span> currentMinIndex
+}</pre>
+  <div class="co co-note"><strong>Note:</strong> avoid <code>array[range].enumerated()</code> — on a slice, <code>.enumerated()</code> resets the offset to <code>0</code>, so the returned index is relative to the slice, not the original array. You'd have to add <code>range.lowerBound</code> back: easy to forget, a classic off-by-one.</div>
+  <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC755_master.html">LC 755 Pour Water</a> — any problem needing the argmin of a subarray without a new slice.</p>
+
+  <hr class="wiki-hr">
+
+  <!-- 10 -->
+  <h2 id="pivot-guard"><span class="sec-num">10</span> Pivot-side <code>nil</code> guard — both sides are independent candidates</h2>
+  <p>Whenever you split a collection at a pivot and scan each side, one or both sides may not exist — at the left edge there is no left side, at the right edge no right side. Calling <code>.min()</code>, iterating a <code>ClosedRange</code>, or subscripting an empty region crashes. Produce a candidate per side only when that side exists; <code>nil</code> means "cannot settle / not a candidate".</p>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">guard each side, then let-bind in the decision</span></div>
+  <pre class="swift"><span class="kw">let</span> leftMinIndex  = pivotIndex &gt; <span class="nm">0</span>
+    ? <span class="fn">getSmallerIndex</span>(array, range: <span class="nm">0</span>...(pivotIndex - <span class="nm">1</span>))
+    : <span class="kw">nil</span>
+
+<span class="kw">let</span> rightMinIndex = pivotIndex &lt; array.count - <span class="nm">1</span>
+    ? <span class="fn">getSmallerIndex</span>(array, range: (pivotIndex + <span class="nm">1</span>)...(array.count - <span class="nm">1</span>))
+    : <span class="kw">nil</span>
+
+<span class="kw">if let</span> leftIndex = leftMinIndex, array[leftIndex] &lt; array[pivotIndex] {
+    array[leftIndex] += <span class="nm">1</span>
+} <span class="kw">else if let</span> rightIndex = rightMinIndex, array[rightIndex] &lt; array[pivotIndex] {
+    array[rightIndex] += <span class="nm">1</span>
+} <span class="kw">else</span> {
+    array[pivotIndex] += <span class="nm">1</span>
+}</pre>
+  <div class="co co-note"><strong>Note:</strong> don't use a <code>guard/continue</code> — you don't want to bail out of the whole iteration, just skip the side that doesn't exist. And prefer <code>nil</code> over a sentinel like <code>Int.max</code>: an optional forces the compiler to make the caller check; a sentinel only hopes they remember.</div>
+  <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC755_master.html">LC 755 Pour Water</a> — any problem that splits at a pivot and searches each half independently.</p>
+
+  <hr class="wiki-hr">
+
+  <!-- 11 -->
+  <h2 id="reverse-range"><span class="sec-num">11</span> Iterating a range in reverse — <code>reversed()</code> vs <code>stride</code></h2>
+  <p>You have a <code>ClosedRange&lt;Int&gt;</code> for the left side of an array and need to walk it right-to-left (closest to the pivot first). A plain <code>for index in range</code> walks left-to-right.</p>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">two ways to walk outward-leftward</span></div>
+  <pre class="swift"><span class="kw">let</span> leftRange = <span class="nm">0</span>...(pivotIndex - <span class="nm">1</span>)
+
+<span class="cm">// Clear, but allocates O(range) — ClosedRange.reversed() is not directly for-iterable</span>
+<span class="kw">for</span> index <span class="kw">in</span> <span class="tp">Array</span>(leftRange.reversed()) { … }   <span class="cm">// pivotIndex-1, …, 0</span>
+
+<span class="cm">// Zero-allocation alternative — lazy, same order</span>
+<span class="kw">for</span> index <span class="kw">in</span> stride(from: pivotIndex - <span class="nm">1</span>, through: <span class="nm">0</span>, by: -<span class="nm">1</span>) { … }</pre>
+  <table class="t-versus">
+    <thead><tr><th>Approach</th><th>Allocation</th><th>Use when</th></tr></thead>
+    <tbody>
+      <tr><td>Array(range.reversed())</td><td>O(n)</td><td>Range is small, clarity matters</td></tr>
+      <tr><td>stride(from:through:by:&nbsp;-1)</td><td>O(1)</td><td>Range is large or you're in a tight loop</td></tr>
+    </tbody>
+  </table>
+  <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC755_master.html">LC 755 Pour Water</a> (left scan starts nearest the pivot), <a href="../walkthroughs/LC238_master.html">LC 238 Product of Array Except Self</a> (right-to-left suffix pass), <a href="../walkthroughs/LC42_master.html">LC 42 Trapping Rain Water</a> (suffix-max precompute).</p>
+
+  <hr class="wiki-hr">
+
+  <!-- 12 -->
+  <h2 id="split-points"><span class="sec-num">12</span> Enumerating every split point of a word (prefix + suffix pairs)</h2>
+  <p>Try every way to cut a word into a left part and a right part — including cuts that leave one side empty — so you can check a condition on each side independently.</p>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">count + 1 iterations, one per gap including the ends</span></div>
+  <pre class="swift"><span class="kw">let</span> wordArray = <span class="tp">Array</span>(word)      <span class="cm">// O(1) indexing — String is not integer-indexable</span>
+<span class="kw">for</span> splitPoint <span class="kw">in</span> <span class="nm">0</span>...wordArray.count {
+    <span class="kw">let</span> leftSplit  = <span class="tp">Array</span>(wordArray.prefix(splitPoint))
+    <span class="kw">let</span> rightSplit = <span class="tp">Array</span>(wordArray.suffix(wordArray.count - splitPoint))
+    <span class="cm">// splitPoint=0 → left=[], right=full word   (empty left)</span>
+    <span class="cm">// splitPoint=n → left=full word, right=[]    (empty right)</span>
+}</pre>
+  <div class="co co-note"><strong>Note:</strong> <code>0...count</code> is <code>count + 1</code> iterations — one for each gap between characters, including both ends. <code>0..&lt;count</code> misses the empty-right split; <code>1..&lt;count</code> misses both empty sides. Convert with <code>Array(word)</code> first because Swift <code>String</code> is not integer-indexable — subscripting with an <code>Int</code> is a compile error.</div>
+  <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC336_master.html">LC 336 Palindrome Pairs</a> (check one side palindrome, look up the other's reverse), LC 131 Palindrome Partitioning — any problem decomposing a string into two parts and checking a property of each.</p>
+
+  <hr class="wiki-hr">
+
+  <!-- 13 -->
+  <h2 id="window"><span class="sec-num">13</span> Sliding window: two-pointer vs queue — same name, different tool</h2>
+  <p>Both say "sliding window," but they solve different problems with different structures. Route with one question: is your input a <strong>static array</strong> you can index freely → two-pointer window. Is it a <strong>live stream</strong> arriving one item at a time → sliding-window queue.</p>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">traditional — static array, two index pointers, no queue</span></div>
+  <pre class="swift"><span class="kw">func</span> <span class="fn">longestSubarrayWithSumAtMost</span>(<span class="kw">_</span> numbers: [<span class="tp">Int</span>], <span class="kw">_</span> limit: <span class="tp">Int</span>) -&gt; <span class="tp">Int</span> {
+    <span class="kw">var</span> leftPointer = <span class="nm">0</span>
+    <span class="kw">var</span> windowSum = <span class="nm">0</span>
+    <span class="kw">var</span> best = <span class="nm">0</span>
+    <span class="kw">for</span> rightPointer <span class="kw">in</span> numbers.indices {
+        windowSum += numbers[rightPointer]
+        <span class="kw">while</span> windowSum &gt; limit {
+            windowSum -= numbers[leftPointer]   <span class="cm">// shrink: jump the left index directly</span>
+            leftPointer += <span class="nm">1</span>
+        }
+        best = max(best, rightPointer - leftPointer + <span class="nm">1</span>)
+    }
+    <span class="kw">return</span> best
+}</pre>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">queue — live stream, FIFO eviction from the front</span></div>
+  <pre class="swift"><span class="kw">var</span> window: [<span class="tp">Int</span>] = []
+<span class="kw">func</span> <span class="fn">ping</span>(<span class="kw">_</span> timestamp: <span class="tp">Int</span>) -&gt; <span class="tp">Int</span> {
+    window.<span class="fn">append</span>(timestamp)                 <span class="cm">// enqueue at the back</span>
+    <span class="kw">while let</span> oldest = window.first, oldest &lt;= timestamp - <span class="nm">3000</span> {
+        window.<span class="fn">removeFirst</span>()                 <span class="cm">// evict stale from the front</span>
+    }
+    <span class="kw">return</span> window.count               <span class="cm">// the queue IS the window; its count IS the answer</span>
+}</pre>
+  <table class="t-versus">
+    <thead><tr><th>&nbsp;</th><th>Traditional window</th><th>Sliding-window queue</th></tr></thead>
+    <tbody>
+      <tr><td>Input</td><td>Static array, both ends indexable</td><td>Live stream, items arrive one by one</td></tr>
+      <tr><td>Shrink</td><td>Advance <code>left</code> index (no removal)</td><td><code>removeFirst()</code> / head-index eviction</td></tr>
+      <tr><td>Window stored?</td><td>No — just two index pointers</td><td>Yes — the queue holds live items</td></tr>
+      <tr><td>Prototype</td><td>LC 3, LC 76</td><td>LC 933, LC 362</td></tr>
+    </tbody>
+  </table>
+  <p><strong>Where this appears:</strong> two-pointer — <a href="../walkthroughs/LC3_master.html">LC 3 Longest Substring</a>, <a href="../walkthroughs/LC76_master.html">LC 76 Minimum Window Substring</a>, <a href="../walkthroughs/LC209_master.html">LC 209 Minimum Size Subarray Sum</a>; queue — <a href="../walkthroughs/LC933_master.html">LC 933 Number of Recent Calls</a>, <a href="../walkthroughs/LC362_master.html">LC 362 Design Hit Counter</a>.</p>
+
+  <hr class="wiki-hr">
+
+  <!-- 14 -->
+  <h2 id="conversions"><span class="sec-num">14</span> String ↔ collection conversions (the small casts that bite)</h2>
+  <p>The recurring conversions between <code>String</code>, <code>SubSequence</code>, <code>[Character]</code>, and dictionary accumulators — each with one trap.</p>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">the four conversions you reach for constantly</span></div>
+  <pre class="swift"><span class="cm">// [String.SubSequence] → [String] — .split returns views, not String values</span>
+<span class="kw">let</span> parts = <span class="st">"a,b,c"</span>.split(separator: <span class="st">","</span>)
+<span class="kw">let</span> strings = parts.map(<span class="tp">String</span>.<span class="kw">init</span>)        <span class="cm">// shorthand for { String($0) }</span>
+
+<span class="cm">// [Character] accumulator → String — String.init takes any Sequence&lt;Character&gt;</span>
+<span class="kw">var</span> currentKey: [<span class="tp">Character</span>] = []
+<span class="kw">let</span> key = <span class="tp">String</span>(currentKey)               <span class="cm">// no .map or .joined() needed</span>
+
+<span class="cm">// Dictionary accumulator — default [] not [""]</span>
+outputMap[key, default: []].<span class="fn">append</span>(value)   <span class="cm">// [""] would seed a ghost "" before your append</span>
+
+<span class="cm">// Empty string value via [Character] is the empty array, NOT [""]</span>
+currentValue = []                          <span class="cm">// String([]) == ""  ✓   ([""] is a compile error)</span>
+currentValue = [<span class="st">"t"</span>, <span class="st">"r"</span>, <span class="st">"u"</span>, <span class="st">"e"</span>]       <span class="cm">// String(...) == "true"</span></pre>
+  <div class="co co-pitfall">
+    <strong>PITFALLS</strong>
+    <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong><code>default: [""]</code> on a dictionary append.</strong> Seeds the array with one empty string before your append, so every first entry for a key gets a ghost <code>""</code> prepended. Use <code>default: []</code>.</span></div>
+    <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Storing a <code>SubSequence</code> where a <code>String</code> is expected.</strong> <code>.split()</code> and index-slicing return lightweight views into the original storage — convert with <code>String.init</code> before storing in dicts, returning, or comparing across collections.</span></div>
+  </div>
+  <p><strong>Where this appears:</strong> any grouping problem (grouping anagrams, adjacency lists), query-string parsing, and every character-by-character tokenizer.</p>
+
+  <hr class="wiki-hr">
+
+  <!-- 15 -->
+  <h2 id="greedy-lines"><span class="sec-num">15</span> Greedy line batching — commit on overflow, flush the leftover</h2>
+  <p>Pack items greedily into lines: keep adding until the next item won't fit, then <em>commit</em> the current line and start a fresh one with the overflowing item. Two subtleties bite, and both are about <em>where the overflowing item goes</em> and <em>who commits the last batch</em>.</p>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">overflow commits, the word starts the NEW line, last batch flushed</span></div>
+  <pre class="swift"><span class="kw">for</span> (index, word) <span class="kw">in</span> words.enumerated() {
+    <span class="kw">let</span> widthWithWord = currentLineLength + currentLineWords.count + word.count
+    <span class="cm">//                  ^ word chars only   ^ one space per EXISTING word = the gaps</span>
+
+    <span class="kw">if</span> widthWithWord &gt; maxWidth {              <span class="cm">// overflow → commit what we have</span>
+        outputLines.<span class="fn">append</span>(<span class="fn">justify</span>(currentLineWords))
+        currentLineWords = []
+        currentLineLength = <span class="nm">0</span>
+    }
+
+    currentLineWords.<span class="fn">append</span>(word)              <span class="cm">// the overflowing word starts the NEW line</span>
+    currentLineLength += word.count
+
+    <span class="kw">if</span> index == words.count - <span class="nm">1</span> {              <span class="cm">// the last batch never overflows…</span>
+        outputLines.<span class="fn">append</span>(<span class="fn">leftJustify</span>(currentLineWords))   <span class="cm">// …so commit it here</span>
+    }
+}</pre>
+  <div class="co co-pitfall">
+    <strong>PITFALLS</strong>
+    <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Resetting the count but not re-adding the overflowing word.</strong> After committing, reset the counters <em>and then</em> append the word — its length counts into the fresh line, not lost. Forgetting this undercounts every new line by its first word.</span></div>
+    <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Treating the last commit as an <code>if/else</code> with the overflow.</strong> One iteration can be both the last word <em>and</em> an overflow, and each needs its own rule (in LC 68 the last line is left-justified, every other line fully justified). Keep them as two separate branches, or flush once after the loop.</span></div>
+  </div>
+  <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC68_master.html">LC 68 Text Justification</a> — any greedy row/bin packing where items flow left to right and a row seals the moment the next item won't fit.</p>
+
+  <hr class="wiki-hr">
+
+  <!-- 16 -->
+  <h2 id="distribute"><span class="sec-num">16</span> Distribute a quantity evenly, remainder biased left + the gap-count trap</h2>
+  <p>You have <code>totalSpaces</code> to spread across <code>gapCount</code> gaps and it doesn't divide evenly; the leftover goes to the leftmost gaps first. And remember: <strong>n items make n−1 separators</strong> — counting one separator per item instead of per gap is the single most common off-by-one in string assembly.</p>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">floor everyone shares, remainder to the left gaps</span></div>
+  <pre class="swift"><span class="kw">let</span> gapCount = lineWords.count - <span class="nm">1</span>          <span class="cm">// NOT lineWords.count</span>
+<span class="kw">let</span> baseSpacePerGap = totalSpaces / gapCount   <span class="cm">// everyone gets this many</span>
+<span class="kw">let</span> extraSpaceGaps  = totalSpaces % gapCount   <span class="cm">// the leftmost this-many get +1</span>
+
+<span class="kw">var</span> line = lineWords[<span class="nm">0</span>]
+<span class="kw">for</span> gapIndex <span class="kw">in</span> <span class="nm">0</span>..&lt;gapCount {
+    <span class="kw">let</span> spacesForThisGap = baseSpacePerGap + (gapIndex &lt; extraSpaceGaps ? <span class="nm">1</span> : <span class="nm">0</span>)
+    line += <span class="tp">String</span>(repeating: <span class="st">" "</span>, count: spacesForThisGap)
+    line += lineWords[gapIndex + <span class="nm">1</span>]
+}</pre>
+  <div class="co co-note"><strong>Note:</strong> the <code>gapIndex &lt; extraSpaceGaps</code> test puts the extras on the left by construction — no array splitting, no slice arithmetic. Keep your running length as <strong>word characters only</strong> and add the gap count separately when you test the fit, so the accumulator never silently includes phantom trailing spaces.</div>
+  <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC68_master.html">LC 68 Text Justification</a> — any "share K things across N slots, leftover to the front" distribution.</p>
+
+  <hr class="wiki-hr">
+
+  <!-- 17 -->
+  <h2 id="prefix-suffix"><span class="sec-num">17</span> Prefix / suffix precompute — expensive walk once, O(1) per query</h2>
+  <p>Scan once forward (prefix) and/or once backward (suffix), building a secondary array where each position stores the "best so far" from that direction. A third pass combines both in O(1) per position — no nested loops. The signature: at each position the answer depends on something to the <em>left AND right simultaneously</em>, and neither array depends on the other.</p>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">forward prefix max, backward suffix max, combine</span></div>
+  <pre class="swift"><span class="cm">// FORWARD — build prefix max</span>
+<span class="kw">var</span> runningMax = input[<span class="nm">0</span>]
+<span class="kw">let</span> prefixMax = input.map { value <span class="kw">in</span>
+    runningMax = max(runningMax, value)
+    <span class="kw">return</span> runningMax
+}
+
+<span class="cm">// BACKWARD — build suffix max, then re-orient so index 0 = leftmost</span>
+runningMax = input.last!
+<span class="kw">let</span> suffixMax = <span class="tp">Array</span>(input.reversed().map { value <span class="kw">in</span>
+    runningMax = max(runningMax, value)
+    <span class="kw">return</span> runningMax
+}.reversed())
+
+<span class="cm">// COMBINE — each position uses both arrays in O(1)</span>
+<span class="kw">for</span> index <span class="kw">in</span> input.indices {
+    <span class="kw">let</span> answer = min(prefixMax[index], suffixMax[index]) - input[index]
+}</pre>
+  <table class="t-clue">
+    <thead><tr><th>You see this…</th><th>Prefix/suffix is the move</th></tr></thead>
+    <tbody>
+      <tr><td>"best value to my left AND right simultaneously"</td><td>Two-pass: one prefix, one suffix, combine</td></tr>
+      <tr><td>"running max/min/sum up to k, reused across many k's"</td><td>One prefix array, O(1) query per position</td></tr>
+      <tr><td>"split into two contiguous segments, each must satisfy a condition"</td><td>Prefix covers left, suffix covers right, match them</td></tr>
+    </tbody>
+  </table>
+  <div class="co co-note"><strong>Note — when it is NOT the move:</strong> arbitrary subarray <code>[i…j]</code> sums → cumulative <strong>prefix sum</strong> array (not max/min). Left and right values depend on each other → <strong>two pointers</strong>. Each position depends on the previous answer → <strong>DP</strong>. Nearest smaller/larger element → <a href="#monotonic">monotonic stack</a>.</div>
+  <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC42_master.html">LC 42 Trapping Rain Water</a> (min of two running maxes minus height), <a href="../walkthroughs/LC238_master.html">LC 238 Product of Array Except Self</a> (prefix × suffix product), <a href="../walkthroughs/LC336_master.html">LC 336 Palindrome Pairs</a> (the reversed-word map is the precomputed "other side"), <a href="../walkthroughs/CUSTOM1_Relay_Handoff_Coverage_master.html">CUSTOM 1 Relay Handoff</a> (prefix/suffix on coverage runs).</p>
+
+  <hr class="wiki-hr">
+
+  <!-- 18 -->
+  <h2 id="bounds"><span class="sec-num">18</span> The big gotcha: string problems are bounds arithmetic — guard relentlessly</h2>
+  <p>Almost every bug in a string-building problem is an off-by-one or an out-of-bounds, <em>not</em> a logic error in the strategy. The strategy is usually right; the arithmetic on lengths, gaps, slices, and ranges is where it breaks. Treat every index expression and every divisor as a potential crash until you've guarded it.</p>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">the recurring offenders</span></div>
+  <pre class="swift"><span class="cm">// Divisor that can be zero — a single-word line has zero gaps:</span>
+<span class="kw">guard</span> gapCount &gt; <span class="nm">0</span> <span class="kw">else</span> { <span class="cm">/* handle the single-word case separately */</span> }
+<span class="kw">let</span> baseSpacePerGap = totalSpaces / gapCount   <span class="cm">// CRASH when gapCount == 0</span>
+
+<span class="cm">// Closed-range slice with a computed index that can run past the end:</span>
+<span class="kw">let</span> prefix = words[...someIndex]               <span class="cm">// CRASH when someIndex >= words.count</span>
+<span class="cm">// Prefer building the result by iterating valid indices — no slicing at all.</span></pre>
+  <div class="co co-idea">
+    <strong>THE ONE IDEA:</strong> Before you write <code>array[i]</code>, <code>array[...i]</code>, <code>a / b</code>, or <code>a % b</code>, ask: <em>can the index be out of range? can the divisor be zero?</em> In string problems the answer is "yes" far more often than in array problems, because the empty line, the single word, and the last element are all special cases.
+  </div>
+  <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC68_master.html">LC 68 Text Justification</a> — discovered while reviewing the first attempt: the strategy was correct, every bug was bounds arithmetic.</p>
+
+  <div class="page-footer">
+    Study Wiki · Review &amp; Reference · Companion: <a href="pattern_recognition.html">Pattern Recognition</a> · See also: Theory masterfiles and LeetCode walkthroughs
+  </div>
+
+</main>
+</div>
+
+<script src="../_shared/pages.js"></script>
+<script src="../_shared/nav.js"></script>
+</body>
+</html>
