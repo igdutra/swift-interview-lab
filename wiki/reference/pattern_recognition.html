@@ -25,7 +25,8 @@
   <a href="#palindrome">8 · Palindrome routing</a>
   <a href="#design">9 · Design / state signal</a>
   <a href="#graph-tree">10 · Graph &amp; tree signals</a>
-  <a href="#confusions">11 · Easily-confused pairs</a>
+  <a href="#hashmap">11 · Hashmap &amp; pairs matching</a>
+  <a href="#confusions">12 · Easily-confused pairs</a>
 </nav>
 
 <main class="content">
@@ -62,6 +63,7 @@
       <tr><td>Sorted array, pair/triple summing to a target, O(1) space wanted</td><td>Converging two pointers</td><td><a href="../walkthroughs/LC11_master.html">LC 11</a>, <a href="../walkthroughs/LC15_master.html">LC 15</a></td></tr>
       <tr><td>Answer at each position needs the best to its LEFT and RIGHT at once</td><td>Prefix / suffix precompute</td><td><a href="../walkthroughs/LC42_master.html">LC 42</a>, <a href="../walkthroughs/LC238_master.html">LC 238</a></td></tr>
       <tr><td>"subarray sum equals k" with negatives, or "range sum query"</td><td>Prefix sum (+ frequency map)</td><td><a href="../walkthroughs/LC303_master.html">LC 303</a>, <a href="../walkthroughs/LC560_master.html">LC 560</a></td></tr>
+      <tr><td>"does the <em>partner</em> exist" — find/count pairs by value, a fixed open↔close mapping, or match a transformed key</td><td>Hashmap lookup (complement / config / transformed-key)</td><td><a href="../walkthroughs/LC20_master.html">LC 20</a>, <a href="../walkthroughs/LC336_master.html">LC 336</a> (and 2Sum)</td></tr>
       <tr><td>"next greater / nearest / first element to the right satisfying X"</td><td>Monotonic stack</td><td><a href="../walkthroughs/LC496_master.html">LC 496</a></td></tr>
       <tr><td>Nested brackets / scopes that open and collapse — <code>[ ] ( )</code></td><td>Stack parse (LIFO)</td><td><a href="../walkthroughs/LC20_master.html">LC 20</a>, <a href="../walkthroughs/LC385_master.html">LC 385</a>, <a href="../walkthroughs/LC394_master.html">LC 394</a>, <a href="../walkthroughs/LC227_master.html">LC 227</a></td></tr>
       <tr><td>Live stream + "in the last T units" / rolling time window</td><td>Sliding-window queue</td><td><a href="../walkthroughs/LC933_master.html">LC 933</a>, <a href="../walkthroughs/LC362_master.html">LC 362</a></td></tr>
@@ -233,13 +235,35 @@
   <hr class="wiki-hr">
 
   <!-- 11 -->
-  <h2 id="confusions"><span class="sec-num">11</span> Easily-confused pairs — the tie-breakers</h2>
+  <h2 id="hashmap"><span class="sec-num">11</span> Hashmap &amp; pairs matching — the "does the partner exist?" signal</h2>
+  <p>The most easily-missed move in the whole wiki, because it hides inside problems that look like something else. The signal is small but reliable: <strong>you are matching one element against another</strong> — its complement, its closer, or its transformed twin — and you want that lookup to be <strong>O(1)</strong> instead of an O(n) rescan. The instant you catch yourself about to write a nested loop "for each element, scan the rest to find its partner," that quadratic shape is the cue to replace the inner scan with a hashmap.</p>
+
+  <p>A hashmap shows up in three distinct roles. They feel different but are the same trick — <em>turn a search for the matching element into a constant-time lookup keyed on what makes the match.</em></p>
+  <table class="t-clue">
+    <thead><tr><th>The role…</th><th>What the map holds</th><th>Recognition cue · example</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Static config map</strong> — a fixed, known pairing</td><td>The pairing literal itself, written once: <code>[")": "(", "]": "[", "}": "{"]</code></td><td>A small finite set of "this matches that" rules (open↔close brackets, char↔char, code↔name). Don't <code>if/else</code> the cases — table them. <a href="../walkthroughs/LC20_master.html">LC 20</a></td></tr>
+      <tr><td><strong>Complement / seen map</strong> — built as you scan</td><td>value&nbsp;→&nbsp;index (or count) of elements <em>already passed</em>; you ask "have I seen <code>target − current</code>?"</td><td>"two numbers that sum to k", "a pair with a given difference", "first repeat" — one pass, ask the map for the partner before inserting yourself. 2Sum (the archetype)</td></tr>
+      <tr><td><strong>Transformed-key map</strong> — match on a derived form</td><td>transformed(element)&nbsp;→&nbsp;index, e.g. the <em>reversed</em> word, the sorted-letter signature (anagrams), the canonical form</td><td>"pairs whose concatenation is a palindrome", "group anagrams" — the partner isn't equal to you, it's equal to <em>some function of</em> you, so key the map on that function. <a href="../walkthroughs/LC336_master.html">LC 336</a></td></tr>
+    </tbody>
+  </table>
+
+  <div class="co co-insight"><strong>Why it works:</strong> finding a partner by rescanning is O(n) per element → O(n²) overall. A hashmap pre-indexes every candidate by the exact key the match is defined on, so the "is my partner here?" question collapses to one O(1) probe. The art is naming the right key: for 2Sum it's the value, for <a href="../walkthroughs/LC20_master.html">LC 20</a> it's the bracket character, for <a href="../walkthroughs/LC336_master.html">LC 336</a> it's the reversed word. Pick the key that makes "match" mean "equal."</div>
+
+  <div class="co co-note"><strong>Note — map vs set vs the alternatives:</strong> if you only need "does it exist," a <code>Set</code> is enough; if you need <em>where / how many / which index</em>, you need a <code>Dictionary</code> (the 2Sum answer is the partner's <em>index</em>, so a set won't do). If the input is <strong>sorted</strong> and you want O(1) space, converging <a href="#two-pointers">two pointers</a> beats a map for pair-sum problems — the map is what you reach for when the input is <em>unsorted</em> and sorting would cost more than it saves, or when an index/order must be preserved. And for bracket-style nesting the map only names the pairing; the <a href="#stack-queue">stack</a> still does the matching (most-recent-open closes first).</div>
+
+  <hr class="wiki-hr">
+
+  <!-- 12 -->
+  <h2 id="confusions"><span class="sec-num">12</span> Easily-confused pairs — the tie-breakers</h2>
   <table class="t-versus">
     <thead><tr><th>Looks like both…</th><th>Tie-breaker</th></tr></thead>
     <tbody>
       <tr><td>Sliding window vs two pointers</td><td>Contiguous range with a grow/shrink validity rule → window. Pair/area from sorted ends → converging two pointers.</td></tr>
       <tr><td>Sliding window vs sliding-window queue</td><td>Static indexable array → two index pointers. Live stream arriving one at a time → a queue holds the window.</td></tr>
       <tr><td>Prefix/suffix vs prefix sum</td><td>Need best (max/min) to both sides at a fixed position → prefix/suffix arrays. Need the sum of an arbitrary <code>[i…j]</code> at runtime → cumulative prefix sum.</td></tr>
+      <tr><td>Hashmap complement vs converging two pointers (pair-sum)</td><td>Unsorted input, or you must return an <em>index</em> → hashmap (value → index, one pass). Sorted input and O(1) space wanted → converging two pointers.</td></tr>
+      <tr><td>Hashmap config map vs <code>if/else</code> chain</td><td>A fixed set of "this matches that" rules → table it in a literal map, don't branch. The map is data; the branch is code that drifts.</td></tr>
       <tr><td>Monotonic stack vs suffix-max</td><td>Nearest qualifying element → stack. The maximum regardless of distance → suffix-max.</td></tr>
       <tr><td>BFS vs Dijkstra</td><td>Unweighted (every move costs 1) → BFS. Weighted / min-max edges → Dijkstra.</td></tr>
       <tr><td>Backtracking vs DP</td><td>"list all / enumerate every" → backtracking. "count / min / max" with overlapping subproblems → memoized DP.</td></tr>
