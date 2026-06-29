@@ -15,7 +15,7 @@
 <nav class="toc-col">
   <div class="toc-title">Contents</div>
   <a href="#how">How to use this page</a>
-  <a href="#accumulate">1 · Multi-digit accumulation</a>
+  <a href="#bounds">1 · The bounds-arithmetic gotcha</a>
   <a href="#digit-math">2 · Digit math &amp; char casting</a>
   <a href="#lifo">3 · Stack nesting (LIFO)</a>
   <a href="#trio">4 · Centralize state in resetState()</a>
@@ -32,7 +32,7 @@
   <a href="#greedy-lines">15 · Accumulate-and-commit: overflow, delimiter, or guaranteed close</a>
   <a href="#distribute">16 · Distribute N things across K buckets</a>
   <a href="#prefix-suffix">17 · Prefix / suffix precompute</a>
-  <a href="#bounds">18 · The bounds-arithmetic rule</a>
+  <a href="#accumulate">18 · Multi-digit accumulation</a>
   <a href="#closed-range">19 · ClosedRange&lt;Int&gt; — create &amp; traverse</a>
 </nav>
 
@@ -65,20 +65,72 @@
   <hr class="wiki-hr">
 
   <!-- 1 -->
-  <h2 id="accumulate"><span class="sec-num">1</span> Multi-digit number accumulation</h2>
-  <p>The input is a <code>String</code>, so the integer <code>142</code> arrives as three separate characters <code>'1' '4' '2'</code>. Rebuild the number as you scan: multiply the running value by 10 (shifting every digit one decimal place left) and add the new digit on the right.</p>
-  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">accumulate one digit per character</span></div>
-  <pre class="swift"><span class="kw">var</span> currentNumber = <span class="nm">0</span>
+  <h2 id="bounds"><span class="sec-num">1</span> The big gotcha: string problems are bounds arithmetic — guard relentlessly</h2>
+  <p>Almost every bug in a string-building problem is an off-by-one or an out-of-bounds, <em>not</em> a logic error in the strategy. The strategy is usually right; the arithmetic on lengths, gaps, slices, and ranges is where it breaks. Treat every index expression and every divisor as a potential crash until you've guarded it.</p>
 
-<span class="kw">if let</span> digit = character.wholeNumberValue {
-    currentNumber = currentNumber * <span class="nm">10</span> + digit
+  <h3>Pattern 1 — guard the divisor (zero-gap line)</h3>
+  <p>A line with a single word has zero gaps. Any division or modulo on <code>gapCount</code> crashes without this guard.</p>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">LC 68 — justify(), guarding the single-word case</span></div>
+  <pre class="swift"><span class="kw">guard</span> gapCount &gt; <span class="nm">0</span> <span class="kw">else</span> {
+    <span class="cm">// single word — left-justify with trailing padding, skip the division entirely</span>
+    <span class="kw">return</span> lineWords[<span class="nm">0</span>] + <span class="tp">String</span>(repeating: <span class="st">" "</span>, count: maxWidth - lineWords[<span class="nm">0</span>].count)
+}
+<span class="kw">let</span> baseSpacePerGap = totalSpaces / gapCount   <span class="cm">// safe: gapCount >= 1 here</span>
+<span class="kw">let</span> extraSpaceGaps  = totalSpaces % gapCount</pre>
+
+  <h3>Pattern 2 — ternary to distribute remainder left-first</h3>
+  <p>When spaces don't divide evenly, leftmost gaps get one extra. A ternary on the gap index is the cleanest expression of "left-first".</p>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">LC 68 — iterating gaps, giving +1 to the leftmost remainder gaps</span></div>
+  <pre class="swift"><span class="kw">for</span> gapIndex <span class="kw">in</span> <span class="nm">0</span>..&lt;gapCount {
+    <span class="kw">let</span> spacesForThisGap = baseSpacePerGap + (gapIndex &lt; extraSpaceGaps ? <span class="nm">1</span> : <span class="nm">0</span>)
+    line += <span class="tp">String</span>(repeating: <span class="st">" "</span>, count: spacesForThisGap)
+    line += lineWords[gapIndex + <span class="nm">1</span>]
 }</pre>
-  <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">"142"</span></div>
-  <pre class="dry">character='1'  →  currentNumber = 0  * 10 + 1 = 1
-character='4'  →  currentNumber = 1  * 10 + 4 = 14
-character='2'  →  currentNumber = 14 * 10 + 2 = 142</pre>
-  <div class="co co-note"><strong>Note:</strong> commit the moment you hit a non-digit (an operator, a boundary space, or the last index) — then reset <code>currentNumber = 0</code>. The <code>* 10</code> is decimal positional notation: each existing digit is worth 10× the one to its right, so the multiply makes room for the incoming digit.</div>
-  <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC227_master.html">LC 227 Basic Calculator II</a>, LC 224 Basic Calculator, <a href="../walkthroughs/LC385_master.html">LC 385 Mini Parser</a> — any problem that parses integers out of a raw string character by character.</p>
+
+  <h3>Pattern 3 — ternary before building a range whose lower bound can go negative</h3>
+  <p>Constructing <code>0...(dropIndex - 1)</code> when <code>dropIndex == 0</code> produces <code>0...(-1)</code> — a runtime crash. Guard the boundary first and return <code>nil</code> when that side doesn't exist.</p>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">LC 755 — building left/right scan ranges only when in-bounds</span></div>
+  <pre class="swift"><span class="kw">let</span> lowestIndexLeft: <span class="tp">Int</span>? = dropIndex &gt; <span class="nm">0</span>
+    ? getReachableMinIndex(scanning: <span class="nm">0</span>...(dropIndex - <span class="nm">1</span>), leftward: <span class="kw">true</span>)
+    : <span class="kw">nil</span>
+<span class="kw">let</span> lowestIndexRight: <span class="tp">Int</span>? = dropIndex &lt; currentHeightMap.count - <span class="nm">1</span>
+    ? getReachableMinIndex(scanning: (dropIndex + <span class="nm">1</span>)...(currentHeightMap.count - <span class="nm">1</span>), leftward: <span class="kw">false</span>)
+    : <span class="kw">nil</span></pre>
+
+  <h3>Pattern 4 — ternary on an exhausted pointer contributing a default</h3>
+  <p>When two strings have different lengths, the shorter one runs out first. Rather than branching the whole loop, use a ternary to contribute <code>0</code> once the index goes negative.</p>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">LC 415 — reading digits from two strings of different lengths</span></div>
+  <pre class="swift"><span class="kw">let</span> digit1 = indexNum1 &gt;= <span class="nm">0</span> ? array1[indexNum1].wholeNumberValue ?? <span class="nm">0</span> : <span class="nm">0</span>
+<span class="kw">let</span> digit2 = indexNum2 &gt;= <span class="nm">0</span> ? array2[indexNum2].wholeNumberValue ?? <span class="nm">0</span> : <span class="nm">0</span></pre>
+
+  <h3>The recurring off-by-one: "gap before word" counted unconditionally</h3>
+  <p>There is one off-by-one that appears in greedy line-packing problems more than any other. When checking whether a new word fits on the current line, it is tempting to add <code>+1</code> for the space that precedes the word — unconditionally. But the space only exists when the line already has at least one word. The first word on a fresh line has no gap before it. When the buffer is empty, the fit check fires one character too early, and the string you build ends up with a leading space.</p>
+
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">string-buffer variant (bordered-box formatter)</span></div>
+  <pre class="swift"><span class="cm">// WRONG — +1 is unconditional, phantom gap fires on the first word of every fresh line</span>
+<span class="kw">let</span> isOverflow = currentLine.count + <span class="nm">1</span> + nextWord.count &gt; lineMaxWidth
+
+<span class="cm">// CORRECT — gap only exists when the line already has words</span>
+<span class="kw">let</span> gapCount = currentLineWords.isEmpty ? <span class="nm">0</span> : currentLineWords.count
+<span class="kw">let</span> isOverflow = currentLine.count + gapCount + nextWord.count &gt; lineMaxWidth</pre>
+
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">running-integer variant (LC 68 text justification)</span></div>
+  <pre class="swift"><span class="cm">// WRONG — +1 added for every word, including the first on a fresh line</span>
+currentLineCount += word.count
+currentLineCount += <span class="nm">1</span>
+<span class="kw">if</span> currentLineCount &gt;= maxWidth { ... }
+
+<span class="cm">// CORRECT — use word count as gap count: 0 on an empty line, always n-1 gaps for n words</span>
+<span class="kw">let</span> widthWithWord = currentLineLength + currentLineWords.count + word.count
+<span class="kw">if</span> widthWithWord &gt; maxWidth { ... }</pre>
+
+  <div class="co co-insight">
+    <strong>The rule:</strong> <strong>n words have n−1 gaps, never n.</strong> The space belongs to the gap between two words, not to the word itself. <code>existingWordCount</code> is naturally 0 on an empty line and always one fewer than the total words after adding the new one — that is the correct gap count, with no conditional needed.
+  </div>
+  <div class="co co-insight">
+    <strong>The reflex:</strong> Before you write <code>array[i]</code>, <code>array[...i]</code>, <code>a / b</code>, or <code>a % b</code>, ask: <em>can the index be out of range? can the divisor be zero?</em> In string problems the answer is "yes" far more often than in array problems, because the empty line, the single word, and the last element are all special cases.
+  </div>
+  <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC68_master.html">LC 68 Text Justification</a> (patterns 1, 2, and the gap off-by-one), <a href="../walkthroughs/LC755_master.html">LC 755 Pour Water</a> (pattern 3), LC 415 Add Strings (pattern 4), and a bordered-box formatter (the gap off-by-one again — same mistake, two independent problems).</p>
 
   <hr class="wiki-hr">
 
@@ -771,20 +823,20 @@ runningMax = input.last!
   <hr class="wiki-hr">
 
   <!-- 18 -->
-  <h2 id="bounds"><span class="sec-num">18</span> The big gotcha: string problems are bounds arithmetic — guard relentlessly</h2>
-  <p>Almost every bug in a string-building problem is an off-by-one or an out-of-bounds, <em>not</em> a logic error in the strategy. The strategy is usually right; the arithmetic on lengths, gaps, slices, and ranges is where it breaks. Treat every index expression and every divisor as a potential crash until you've guarded it.</p>
-  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">the recurring offenders</span></div>
-  <pre class="swift"><span class="cm">// Divisor that can be zero — a single-word line has zero gaps:</span>
-<span class="kw">guard</span> gapCount &gt; <span class="nm">0</span> <span class="kw">else</span> { <span class="cm">/* handle the single-word case separately */</span> }
-<span class="kw">let</span> baseSpacePerGap = totalSpaces / gapCount   <span class="cm">// CRASH when gapCount == 0</span>
+  <h2 id="accumulate"><span class="sec-num">18</span> Multi-digit number accumulation</h2>
+  <p>The input is a <code>String</code>, so the integer <code>142</code> arrives as three separate characters <code>'1' '4' '2'</code>. Rebuild the number as you scan: multiply the running value by 10 (shifting every digit one decimal place left) and add the new digit on the right.</p>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">accumulate one digit per character</span></div>
+  <pre class="swift"><span class="kw">var</span> currentNumber = <span class="nm">0</span>
 
-<span class="cm">// Closed-range slice with a computed index that can run past the end:</span>
-<span class="kw">let</span> prefix = words[...someIndex]               <span class="cm">// CRASH when someIndex >= words.count</span>
-<span class="cm">// Prefer building the result by iterating valid indices — no slicing at all.</span></pre>
-  <div class="co co-insight">
-    <strong>The reflex:</strong> Before you write <code>array[i]</code>, <code>array[...i]</code>, <code>a / b</code>, or <code>a % b</code>, ask: <em>can the index be out of range? can the divisor be zero?</em> In string problems the answer is "yes" far more often than in array problems, because the empty line, the single word, and the last element are all special cases.
-  </div>
-  <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC68_master.html">LC 68 Text Justification</a> — discovered while reviewing the first attempt: the strategy was correct, every bug was bounds arithmetic.</p>
+<span class="kw">if let</span> digit = character.wholeNumberValue {
+    currentNumber = currentNumber * <span class="nm">10</span> + digit
+}</pre>
+  <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">"142"</span></div>
+  <pre class="dry">character='1'  →  currentNumber = 0  * 10 + 1 = 1
+character='4'  →  currentNumber = 1  * 10 + 4 = 14
+character='2'  →  currentNumber = 14 * 10 + 2 = 142</pre>
+  <div class="co co-note"><strong>Note:</strong> commit the moment you hit a non-digit (an operator, a boundary space, or the last index) — then reset <code>currentNumber = 0</code>. The <code>* 10</code> is decimal positional notation: each existing digit is worth 10× the one to its right, so the multiply makes room for the incoming digit.</div>
+  <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC227_master.html">LC 227 Basic Calculator II</a>, LC 224 Basic Calculator, <a href="../walkthroughs/LC385_master.html">LC 385 Mini Parser</a> — any problem that parses integers out of a raw string character by character.</p>
 
   <hr class="wiki-hr">
 
