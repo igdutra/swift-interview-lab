@@ -163,6 +163,55 @@ import Playgrounds
     object.hasNext() // false
 }
 
+#Playground("stack based — struct version") {
+    // Struct vs class: the only mechanical change is `mutating` on every method that
+    // touches stored properties. Under the hood `mutating` desugars to `inout self` —
+    // the compiler passes the address of the caller's variable and writes mutations back
+    // in place. No allocation, no new copy — just a direct write to the caller's storage.
+    // Consequence: the caller's binding must be `var`, not `let`.
+
+    struct Vector2D {
+        private var input: [[Int]]
+        private var stack: [Int]
+
+        init(input: [[Int]]) {
+            self.input = input.reversed()
+            stack = []
+            advanceToNextVector()
+        }
+
+        mutating func hasNext() -> Bool {
+            advanceToNextVector()
+            return !stack.isEmpty || !input.isEmpty
+        }
+
+        mutating func next() -> Int? {
+            advanceToNextVector()
+            return stack.popLast()
+        }
+
+        mutating func remove() -> Int? {
+            return stack.popLast()
+        }
+
+        private mutating func advanceToNextVector() {
+            while !input.isEmpty && stack.isEmpty {
+                if let popped = input.popLast(), !popped.isEmpty {
+                    stack.append(contentsOf: popped.reversed())
+                }
+            }
+        }
+    }
+
+    var object = Vector2D(input: [[1, 2], [3], [4]])
+    print(object.hasNext()) // true
+    print(object.next() as Any) // 1
+    print(object.next() as Any) // 2
+    print(object.next() as Any) // 3
+    print(object.next() as Any) // 4
+    print(object.hasNext()) // false
+}
+
 #Playground("pointer based") {
     var input = [[1,2],[3],[4]]
     
