@@ -8,7 +8,7 @@
 // automatically. Nothing else to edit.
 //
 // Fields:
-//   cat        "theory" | "walkthrough" | "tips"
+//   cat        "theory" | "walkthrough" | "reference"
 //   path       relative to the wiki/ root
 //   nav        short label for the top nav bar
 //   title      full title for hub cards
@@ -413,40 +413,40 @@ const WIKI_PAGES = [
     blurb: "Min-max Dijkstra on a grid (Variant 8.3). A path's effort is its worst step, so relax with max instead of +; a hand-rolled min-heap settles least-effort first. Full Swift (with the Heap struct) + dry run.",
   },
   {
-    cat: "tips",
-    path: "tips/code_snippets.html",
+    cat: "reference",
+    path: "reference/code_snippets.html",
     nav: "Code Snippets",
     title: "Code Snippets & Gotchas",
     topics: ["Swift", "Snippets", "Gotchas"],
     blurb: "Reusable Swift moves organised by technique (arrays & strings intertwined) — accumulate-and-commit, monotonic stack, reachable-min scan, split-point enumeration, greedy line-packing. Every snippet traced back to the LeetCode problem it came from.",
   },
   {
-    cat: "tips",
-    path: "tips/pattern_recognition.html",
+    cat: "reference",
+    path: "reference/pattern_recognition.html",
     nav: "Pattern Recognition",
     title: "Pattern Recognition",
     topics: ["Routing", "Patterns", "Reference"],
     blurb: "The 'I see X → reach for Y' routing layer. Master signal table covering every pattern in this wiki, input-size heuristics, inline Big-O, and the easily-confused tie-breakers. Each row links to a worked walkthrough.",
   },
   {
-    cat: "tips",
-    path: "tips/interview_stages.html",
+    cat: "reference",
+    path: "reference/interview_stages.html",
     nav: "Interview Stages",
     title: "Stages of an Interview",
     topics: ["Process", "Soft Skills"],
     blurb: "7-stage breakdown of a technical interview round with a condensed cheat sheet.",
   },
   {
-    cat: "tips",
-    path: "tips/sort_complexity.html",
+    cat: "reference",
+    path: "reference/sort_complexity.html",
     nav: "Sort Complexity",
     title: "Sorting Algorithm Complexity",
     topics: ["Complexity", "Sorting"],
     blurb: "Timsort vs Heapsort vs Counting Sort — when theory and practice diverge.",
   },
   {
-    cat: "tips",
-    path: "tips/cheatsheet.html",
+    cat: "reference",
+    path: "reference/cheatsheet.html",
     nav: "Big-O Cheatsheet",
     title: "Big-O & DS/A Cheatsheet",
     topics: ["Complexity", "DS&A", "Reference"],

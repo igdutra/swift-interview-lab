@@ -14,11 +14,11 @@
   var path = location.pathname.replace(/\/+$/, "");
   var depth = (path.match(/\//g) || []).length;
   // Strip trailing-slash directory URLs count one fewer slash than file URLs.
-  // /tips/         → stripped to /tips      → depth 1 → but we want "../"
-  // /tips/index.html                        → depth 2 → "../"
+  // /reference/    → stripped to /reference → depth 1 → but we want "../"
+  // /reference/index.html                   → depth 2 → "../"
   // /theory/arrays/index.html               → depth 3 → "../../"
   // So: check if path contains a known first-level folder with no further slash.
-  var isFirstLevel = /^\/(theory|walkthroughs|tips)$/.test(path);
+  var isFirstLevel = /^\/(theory|walkthroughs|reference)$/.test(path);
   var fromRoot = (depth <= 1 && !isFirstLevel) ? "./" : depth === 2 || isFirstLevel ? "../" : "../../";
 
   function isCurrent(pagePath) {
@@ -30,7 +30,7 @@
   if (nav) {
     // Home links to the directory root, not index.html — some static
     // servers only serve the hub at "/", and "./" works everywhere.
-    var isHub = !/\/(theory|walkthroughs|tips)\//.test(path);
+    var isHub = !/\/(theory|walkthroughs|reference)\//.test(path);
     var html = '<a href="' + fromRoot + '"' +
       (isHub ? ' class="current"' : "") +
       ">Home</a>";
@@ -43,11 +43,11 @@
           (isCurrent(p.path) ? ' class="current"' : "") + ">" + p.nav + "</a>";
       });
     });
-    var hasTips = WIKI_PAGES.some(function (p) { return p.cat === "tips"; });
-    if (hasTips) {
-      var tipsActive = /\/tips\//.test(path);
+    var hasReference = WIKI_PAGES.some(function (p) { return p.cat === "reference"; });
+    if (hasReference) {
+      var referenceActive = /\/reference\//.test(path);
       html += '<span class="nav-cat">Review &amp; Reference</span>';
-      html += '<a href="' + fromRoot + 'tips/"' + (tipsActive ? ' class="current"' : "") + ">All Reference</a>";
+      html += '<a href="' + fromRoot + 'reference/"' + (referenceActive ? ' class="current"' : "") + ">All Reference</a>";
     }
     nav.innerHTML = html;
   }
