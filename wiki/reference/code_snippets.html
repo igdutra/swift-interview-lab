@@ -21,7 +21,7 @@
   <a href="#trio">4 · Centralize state in resetState()</a>
   <a href="#stack-last">5 · stack.last struct-copy trap</a>
   <a href="#monotonic">6 · Monotonic stack record-order</a>
-  <a href="#two-pointer-pal">7 · Two-pointer palindrome check</a>
+  <a href="#two-pointer-pal">7 · Palindrome check</a>
   <a href="#reachable">8 · Reachable-min outward scan</a>
   <a href="#argmin">9 · Argmin in a subrange</a>
   <a href="#pivot-guard">10 · Pivot-side nil guard</a>
@@ -29,10 +29,11 @@
   <a href="#split-points">12 · Split-point enumeration</a>
   <a href="#window">13 · Window: two-pointer vs queue</a>
   <a href="#conversions">14 · String ↔ collection casts</a>
-  <a href="#greedy-lines">15 · Greedy line batching</a>
+  <a href="#greedy-lines">15 · Accumulate-and-commit: overflow, delimiter, or guaranteed close</a>
   <a href="#distribute">16 · Distribute N things across K buckets</a>
   <a href="#prefix-suffix">17 · Prefix / suffix precompute</a>
   <a href="#bounds">18 · The bounds-arithmetic rule</a>
+  <a href="#closed-range">19 · ClosedRange&lt;Int&gt; — create &amp; traverse</a>
 </nav>
 
 <main class="content">
@@ -210,12 +211,12 @@ stack[stack.count - <span class="nm">1</span>].<span class="fn">add</span>(somet
   <hr class="wiki-hr">
 
   <!-- 7 -->
-  <h2 id="two-pointer-pal"><span class="sec-num">7</span> Two-pointer palindrome check (the converging core)</h2>
+  <h2 id="two-pointer-pal"><span class="sec-num">7</span> Palindrome check</h2>
   <p>The reflex for "is this a palindrome": converge from both ends, return <code>false</code> on the first mismatch. Boolean output means no map and no counting — just compare ends inward. An empty or single-element range returns <code>true</code> because the loop never runs.</p>
   <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">range check + the LC 125 skip-and-fold flavor</span></div>
   <pre class="swift"><span class="cm">// Clean range, every character matters — reused as a building block everywhere</span>
-<span class="kw">func</span> <span class="fn">isPalindrome</span>(<span class="kw">_</span> characters: [<span class="tp">Character</span>], <span class="kw">_</span> low: <span class="tp">Int</span>, <span class="kw">_</span> high: <span class="tp">Int</span>) -&gt; <span class="tp">Bool</span> {
-    <span class="kw">var</span> leftPointer = low, rightPointer = high
+<span class="kw">func</span> <span class="fn">isPalindrome</span>(<span class="kw">_</span> characters: [<span class="tp">Character</span>], <span class="kw">_</span> startIndex: <span class="tp">Int</span>, <span class="kw">_</span> endIndex: <span class="tp">Int</span>) -&gt; <span class="tp">Bool</span> {
+    <span class="kw">var</span> leftPointer = startIndex, rightPointer = endIndex
     <span class="kw">while</span> leftPointer &lt; rightPointer {
         <span class="kw">if</span> characters[leftPointer] != characters[rightPointer] { <span class="kw">return false</span> }
         leftPointer += <span class="nm">1</span>
@@ -248,6 +249,59 @@ stack[stack.count - <span class="nm">1</span>].<span class="fn">add</span>(somet
   <div class="co co-note"><strong>Note:</strong> <code>Character.lowercased()</code> returns a <code>String</code>, not a <code>Character</code> — the comparison is String-vs-String (correct, but surprising). <code>Array("")</code> is empty, so <code>rightPointer = -1</code> and the loop never runs — empty string returns <code>true</code> (Swift <code>Int</code> is signed, no underflow). For O(1) space, keep the <code>String</code> and walk <code>String.Index</code> with <code>index(after:)</code> / <code>index(before:)</code>.</div>
   <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC125_master.html">LC 125 Valid Palindrome</a> (the standalone check) and <a href="../walkthroughs/LC336_master.html">LC 336 Palindrome Pairs</a> (the range check is the building block whose empty-range-returns-true behavior makes the inclusive split scan correct).</p>
 
+  <h3>LC 336 gotcha — palindrome definition + dictionary of all split variants</h3>
+  <p>A palindrome obeys one rule: <code>string == String(string.reversed())</code>. That identity is the key: if you split a word into <code>left + right</code> and <code>left</code> is already a palindrome, then prepending <code>reverse(right)</code> gives <code>reverse(right) + left + right</code> — which collapses to a palindrome because the middle reads the same forwards and backwards. The trap is trying to enumerate pairs with a nested loop (O(w²·L)); you beat it by turning the check inside-out: for every word, enumerate every split point, and record what each half <em>needs</em> in a dictionary instead of searching for it.</p>
+  <div class="co co-insight"><strong>Core insight:</strong> <code>word + word.reversed()</code> is always a palindrome — it reads the same forwards and backwards by construction. LC 336 generalises this: <em>any</em> concatenation of two words forms a palindrome if, at some split point, one half is already a palindrome and the other half matches the reverse of some other word in the list. The dictionary captures all those "reverse of the remainder" keys up front so lookup is O(1).</div>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">enumerate split points, store what each half needs in a dictionary</span></div>
+  <pre class="swift"><span class="cm">// Helper — full-array variant (no index params needed when slices are pre-extracted)</span>
+<span class="kw">func</span> <span class="fn">isSlicePalindrome</span>(<span class="kw">_</span> characters: [<span class="tp">Character</span>]) -&gt; <span class="tp">Bool</span> {
+    <span class="kw">var</span> leftPointer = <span class="nm">0</span>, rightPointer = characters.count - <span class="nm">1</span>
+    <span class="kw">while</span> leftPointer &lt; rightPointer {
+        <span class="kw">if</span> characters[leftPointer] != characters[rightPointer] { <span class="kw">return false</span> }
+        leftPointer += <span class="nm">1</span>; rightPointer -= <span class="nm">1</span>
+    }
+    <span class="kw">return true</span>
+}
+
+<span class="cm">// For every word and every split point, record what complement is needed.</span>
+<span class="cm">// leftNeedsMap[key] = [wordIndex]  →  word[wordIndex] needs `key` prepended</span>
+<span class="cm">// rightNeedsMap[key] = [wordIndex] →  word[wordIndex] needs `key` appended</span>
+<span class="kw">var</span> leftNeedsMap:  [<span class="tp">String</span>: [<span class="tp">Int</span>]] = [:]
+<span class="kw">var</span> rightNeedsMap: [<span class="tp">String</span>: [<span class="tp">Int</span>]] = [:]
+
+<span class="kw">for</span> (wordIndex, word) <span class="kw">in</span> words.<span class="fn">enumerated</span>() {
+    <span class="kw">let</span> wordChars = <span class="tp">Array</span>(word)
+    <span class="kw">for</span> splitPoint <span class="kw">in</span> <span class="nm">0</span>...wordChars.count {
+        <span class="kw">let</span> leftSlice  = <span class="tp">Array</span>(wordChars.<span class="fn">prefix</span>(splitPoint))
+        <span class="kw">let</span> rightSlice = <span class="tp">Array</span>(wordChars.<span class="fn">suffix</span>(wordChars.count - splitPoint))
+
+        <span class="cm">// left half is a palindrome → need reverse(right) to arrive from the LEFT</span>
+        <span class="kw">if</span> <span class="fn">isSlicePalindrome</span>(leftSlice) {
+            <span class="kw">let</span> neededKey = <span class="tp">String</span>(rightSlice.<span class="fn">reversed</span>())
+            <span class="kw">if</span> neededKey != word { leftNeedsMap[neededKey, <span class="kw">default</span>: []].<span class="fn">append</span>(wordIndex) }
+        }
+
+        <span class="cm">// right half is a palindrome → need reverse(left) to arrive from the RIGHT</span>
+        <span class="kw">if</span> <span class="fn">isSlicePalindrome</span>(rightSlice) {
+            <span class="kw">let</span> neededKey = <span class="tp">String</span>(leftSlice.<span class="fn">reversed</span>())
+            <span class="kw">if</span> neededKey != word { rightNeedsMap[neededKey, <span class="kw">default</span>: []].<span class="fn">append</span>(wordIndex) }
+        }
+    }
+}
+
+<span class="cm">// Now match: for each word, look it up in both maps</span>
+<span class="kw">var</span> resultPairs: <span class="tp">Set</span>&lt;[<span class="tp">Int</span>]&gt; = []
+<span class="kw">for</span> (currentIndex, word) <span class="kw">in</span> words.<span class="fn">enumerated</span>() {
+    <span class="kw">for</span> partnerIndex <span class="kw">in</span> leftNeedsMap[word, <span class="kw">default</span>: []] <span class="kw">where</span> partnerIndex != currentIndex {
+        resultPairs.<span class="fn">insert</span>([currentIndex, partnerIndex])   <span class="cm">// current goes LEFT of partner</span>
+    }
+    <span class="kw">for</span> partnerIndex <span class="kw">in</span> rightNeedsMap[word, <span class="kw">default</span>: []] <span class="kw">where</span> partnerIndex != currentIndex {
+        resultPairs.<span class="fn">insert</span>([partnerIndex, currentIndex])   <span class="cm">// partner goes LEFT of current</span>
+    }
+}</pre>
+  <div class="co co-note"><strong>Gotcha — split point range is <code>0...wordChars.count</code> inclusive:</strong> <code>splitPoint = 0</code> means the entire word is the right slice (left is empty — the empty string is trivially a palindrome). <code>splitPoint = wordChars.count</code> means the entire word is the left slice (right is empty). Both boundary cases are essential: they handle empty-string partners and exact-reverse pairs. A <code>0..&lt;wordChars.count</code> range silently misses them.</div>
+  <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC336_master.html">LC 336 Palindrome Pairs</a>.</p>
+
   <hr class="wiki-hr">
 
   <!-- 8 -->
@@ -267,6 +321,35 @@ Reachable min from pivot  →  none (index 1 is higher than pivot, wall blocks)<
     <span class="kw">return</span> bestIndex <span class="cm">// nil → nothing reachable (pivot is already the local min)</span>
 }</pre>
   <div class="co co-insight"><strong>Why it works:</strong> this scan is O(n) per element → O(n²) total. Recognizing the reachable-scan shape is exactly what tells you to reach for a <a href="#monotonic">monotonic stack</a> (§6) instead — the histogram and daily-temperatures stacks exist precisely to kill this O(n²).</div>
+
+  <p>The combined helper above handles both directions via the <code>leftward</code> flag. When the two directions are called separately — as in LC 755 where left and right scans are always both needed — you can split them into two named functions. The bodies are <strong>identical</strong>; only the sequence fed to <code>for</code> changes:</p>
+
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">left→right using ClosedRange directly (no allocation)</span></div>
+  <pre class="swift"><span class="cm">// A ClosedRange&lt;Int&gt; is already a Sequence that counts upward — hand it to for directly.</span>
+<span class="kw">func</span> <span class="fn">getReachableMinIndexLeft</span>(<span class="kw">_</span> array: [<span class="tp">Int</span>], scanning range: <span class="tp">ClosedRange</span>&lt;<span class="tp">Int</span>&gt;) -&gt; <span class="tp">Int</span>? {
+    <span class="kw">var</span> bestIndex: <span class="tp">Int</span>? = <span class="kw">nil</span>
+    <span class="kw">for</span> currentIndex <span class="kw">in</span> range {
+        <span class="kw">if let</span> confirmedBest = bestIndex, array[currentIndex] &gt; array[confirmedBest] { <span class="kw">break</span> }
+        <span class="kw">if</span> bestIndex == <span class="kw">nil</span> || array[currentIndex] &lt; array[bestIndex!] { bestIndex = currentIndex }
+    }
+    <span class="kw">return</span> bestIndex
+}</pre>
+
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">right→left using stride — O(1), no Array allocation</span></div>
+  <pre class="swift"><span class="cm">// ClosedRange has no built-in reversed() that stays lazy — stride gives O(1) reverse iteration.</span>
+<span class="cm">// from: upperBound starts at the pivot's edge; through: lowerBound is the far wall.</span>
+<span class="kw">func</span> <span class="fn">getReachableMinIndexRight</span>(<span class="kw">_</span> array: [<span class="tp">Int</span>], scanning range: <span class="tp">ClosedRange</span>&lt;<span class="tp">Int</span>&gt;) -&gt; <span class="tp">Int</span>? {
+    <span class="kw">var</span> bestIndex: <span class="tp">Int</span>? = <span class="kw">nil</span>
+    <span class="kw">for</span> currentIndex <span class="kw">in</span> stride(from: range.upperBound, through: range.lowerBound, by: -<span class="nm">1</span>) {
+        <span class="kw">if let</span> confirmedBest = bestIndex, array[currentIndex] &gt; array[confirmedBest] { <span class="kw">break</span> }
+        <span class="kw">if</span> bestIndex == <span class="kw">nil</span> || array[currentIndex] &lt; array[bestIndex!] { bestIndex = currentIndex }
+    }
+    <span class="kw">return</span> bestIndex
+}</pre>
+
+  <div class="co co-insight"><strong>Why the bodies are identical:</strong> the wall logic and best-tracking don't care about direction — they only care about the sequence of indices they receive. The direction is a property of the iterator, not the algorithm. Splitting into two functions gives each a clear name and removes the <code>leftward: Bool</code> flag, at the cost of one extra function.</div>
+  <div class="co co-note"><strong>stride vs Array(range.reversed()):</strong> <code>Array(range.reversed())</code> allocates the full index list upfront — O(n) memory. <code>stride(from:through:by:&nbsp;-1)</code> is a lazy sequence that yields one index at a time — O(1) allocation. Prefer <code>stride</code> in a tight loop or when the range can be large.</div>
+
   <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC755_master.html">LC 755 Pour Water</a> (scan left/right from drop index, stop at first rise), LC 84 Largest Rectangle (naive nearest-shorter scan), LC 739 Daily Temperatures (naive next-warmer scan).</p>
 
   <hr class="wiki-hr">
@@ -351,6 +434,45 @@ Reachable min from pivot  →  none (index 1 is higher than pivot, wall blocks)<
   <div class="co co-note"><strong>Note:</strong> <code>0...count</code> is <code>count + 1</code> iterations — one for each gap between characters, including both ends. <code>0..&lt;count</code> misses the empty-right split; <code>1..&lt;count</code> misses both empty sides. Convert with <code>Array(word)</code> first because Swift <code>String</code> is not integer-indexable — subscripting with an <code>Int</code> is a compile error.</div>
   <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC336_master.html">LC 336 Palindrome Pairs</a> (check one side palindrome, look up the other's reverse), LC 131 Palindrome Partitioning — any problem decomposing a string into two parts and checking a property of each.</p>
 
+  <h3>The other two slice patterns — anchor-then-walk</h3>
+  <p>The split-point loop above needs <em>both halves as values</em> because it immediately inspects or transforms each part. But there is a second family: you already know a fixed anchor index (found via <code>firstIndex(of:)</code>) and you just need to <strong>walk forward or backward from it</strong>. Here you use subscript range operators — and they are safe because the anchor index is always validated before use.</p>
+
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">anchor-then-walk forward — CUSTOM 1 Relay Handoff, prefix phase</span></div>
+  <pre class="swift"><span class="cm">// "Walk every date AFTER startDate and stop when continuity breaks."</span>
+<span class="cm">// The anchor is guarded by the line below — if startDate isn't in the array, we skip entirely.</span>
+<span class="cm">// That guard is what makes array[(startIndex + 1)...] always safe.</span>
+<span class="kw">guard let</span> startIndex = dates.<span class="fn">firstIndex</span>(of: startDate) <span class="kw">else</span> { <span class="kw">continue</span> }
+<span class="kw">var</span> lastCoveredDay = startDate
+<span class="kw">for</span> date <span class="kw">in</span> dates[(startIndex + <span class="nm">1</span>)...] {
+    <span class="kw">guard</span> date == lastCoveredDay + <span class="nm">1</span>, date &lt; endDate <span class="kw">else</span> { <span class="kw">break</span> }
+    lastCoveredDay = date
+}</pre>
+
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">anchor-then-walk backward — CUSTOM 1 Relay Handoff, suffix phase</span></div>
+  <pre class="swift"><span class="cm">// "Walk every date BEFORE endDate in reverse and stop when continuity breaks."</span>
+<span class="cm">// The anchor is guarded by the line below — if endDate isn't in the array, we skip entirely.</span>
+<span class="cm">// [..<endIndex] is then always a valid half-open range (endIndex >= 0 is guaranteed).</span>
+<span class="kw">guard let</span> endIndex = dates.<span class="fn">firstIndex</span>(of: endDate) <span class="kw">else</span> { <span class="kw">continue</span> }
+<span class="kw">var</span> earliestCoveredDay = endDate
+<span class="kw">for</span> date <span class="kw">in</span> dates[..&lt;endIndex].reversed() {
+    <span class="kw">guard</span> date == earliestCoveredDay - <span class="nm">1</span> <span class="kw">else</span> { <span class="kw">break</span> }
+    earliestCoveredDay = date
+}</pre>
+
+  <div class="co co-insight"><strong>Why subscript ranges are safe here — but not in split enumeration.</strong> In split enumeration, the index is computed from a loop counter that can legally be 0 or <code>count</code>. At those boundaries, <code>array[...(splitPoint - 1)]</code> produces a negative index (undefined behavior) and <code>array[(splitPoint)...]</code> at <code>splitPoint = count</code> is an out-of-bounds crash. <code>prefix(_:)</code> / <code>suffix(_:)</code> clamp silently instead. In anchor-then-walk, the anchor is always a real, validated index from <code>firstIndex(of:)</code> — the <code>guard let</code> means the subscript math can never go out of bounds.</div>
+
+  <table class="t-versus">
+    <thead><tr><th>&nbsp;</th><th>Split-point enumeration</th><th>Anchor-then-walk</th></tr></thead>
+    <tbody>
+      <tr><td>What you have</td><td>A loop counter 0…n</td><td>A validated index from <code>firstIndex(of:)</code></td></tr>
+      <tr><td>What you need</td><td>Both halves as values to inspect/transform</td><td>To iterate elements in one direction from a known position</td></tr>
+      <tr><td>Slice tool</td><td><code>prefix(k)</code> / <code>suffix(n−k)</code> — clamp-safe</td><td><code>array[(anchor+1)...]</code> or <code>array[..<anchor]</code> — safe because anchor is guarded</td></tr>
+      <tr><td>Prototype</td><td>LC 336 (palindrome halves), LC 131</td><td>CUSTOM 1 Relay Handoff (prefix/suffix walk)</td></tr>
+    </tbody>
+  </table>
+
+  <p><strong>Where this appears:</strong> <a href="../walkthroughs/CUSTOM1_Relay_Handoff_Coverage_master.html">CUSTOM 1 Relay Handoff Coverage</a> (forward walk from <code>startDate</code>, backward walk from <code>endDate</code>) — any problem that finds an anchor in a sorted array and then scans contiguously from that anchor in one direction.</p>
+
   <hr class="wiki-hr">
 
   <!-- 13 -->
@@ -421,9 +543,14 @@ currentValue = [<span class="st">"t"</span>, <span class="st">"r"</span>, <span 
   <hr class="wiki-hr">
 
   <!-- 15 -->
-  <h2 id="greedy-lines"><span class="sec-num">15</span> Greedy line batching — commit on overflow, flush the leftover</h2>
-  <p>Pack items greedily into lines: keep adding until the next item won't fit, then <em>commit</em> the current line and start a fresh one with the overflowing item. Two subtleties bite, and both are about <em>where the overflowing item goes</em> and <em>who commits the last batch</em>.</p>
-  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">overflow commits, the word starts the NEW line, last batch flushed</span></div>
+  <h2 id="greedy-lines"><span class="sec-num">15</span> Accumulate-and-commit — overflow, delimiter, or guaranteed close</h2>
+  <p>Every scanner that builds a result token-by-token follows the same skeleton: accumulate characters into a buffer, then <em>commit</em> that buffer when a trigger fires. The trigger varies — overflow, delimiter character, or a structurally guaranteed close — and the trigger determines how you handle the last token, which may never be followed by one.</p>
+
+  <div class="co co-idea"><strong>THE ONE IDEA:</strong> a commit fires on a trigger. The last-token problem is: what if the input ends without one? Pick exactly one of the three strategies below and never mix them in the same parser.</div>
+
+  <h3>Strategy A — overflow trigger, last item different (LC 68 greedy line batching)</h3>
+  <p>Commit fires when the next item won't fit. The last batch never overflows, so it needs an explicit flush — and in LC 68 it needs <em>different</em> treatment (left-justify vs full-justify), which is why post-loop is cleaner than an index check inside the loop.</p>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">overflow commits, overflowing word starts the NEW line, last batch flushed after</span></div>
   <pre class="swift"><span class="kw">for</span> (index, word) <span class="kw">in</span> words.enumerated() {
     <span class="kw">let</span> widthWithWord = currentLineLength + currentLineWords.count + word.count
     <span class="cm">//                  ^ word chars only   ^ one space per EXISTING word = the gaps</span>
@@ -438,15 +565,59 @@ currentValue = [<span class="st">"t"</span>, <span class="st">"r"</span>, <span 
     currentLineLength += word.count
 
     <span class="kw">if</span> index == words.count - <span class="nm">1</span> {              <span class="cm">// the last batch never overflows…</span>
-        outputLines.<span class="fn">append</span>(<span class="fn">leftJustify</span>(currentLineWords))   <span class="cm">// …so commit it here</span>
+        outputLines.<span class="fn">append</span>(<span class="fn">leftJustify</span>(currentLineWords))   <span class="cm">// …so commit it here, differently</span>
     }
 }</pre>
   <div class="co co-pitfall">
     <strong>PITFALLS</strong>
     <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Resetting the count but not re-adding the overflowing word.</strong> After committing, reset the counters <em>and then</em> append the word — its length counts into the fresh line, not lost. Forgetting this undercounts every new line by its first word.</span></div>
-    <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Treating the last commit as an <code>if/else</code> with the overflow.</strong> One iteration can be both the last word <em>and</em> an overflow, and each needs its own rule (in LC 68 the last line is left-justified, every other line fully justified). Keep them as two separate branches, or flush once after the loop.</span></div>
+    <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Treating the last commit as an <code>if/else</code> with the overflow.</strong> One iteration can be both the last word <em>and</em> an overflow; each needs its own rule. Keep them as two separate branches.</span></div>
   </div>
-  <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC68_master.html">LC 68 Text Justification</a> — any greedy row/bin packing where items flow left to right and a row seals the moment the next item won't fit.</p>
+
+  <h3>Strategy B — delimiter trigger, last item identical (CUSTOM 2 query parser)</h3>
+  <p>Commit fires on a delimiter character (<code>&amp;</code>). The last token has no trailing delimiter, but its commit behavior is <em>identical</em> to a mid-stream commit — so fold end-of-input into the same branch with an index check. No post-loop flush needed.</p>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">delimiter OR last character — same branch, single commit point</span></div>
+  <pre class="swift"><span class="kw">for</span> (index, character) <span class="kw">in</span> stringArray.enumerated() {
+    <span class="kw">if</span> character == <span class="st">"&amp;"</span> || index == stringArray.count - <span class="nm">1</span> {
+        <span class="kw">guard</span> !currentKey.isEmpty <span class="kw">else</span> { <span class="kw">continue</span> }   <span class="cm">// skip double-delimiter tokens (e.g. "&&")</span>
+        outputMap[<span class="tp">String</span>(currentKey), default: []].<span class="fn">append</span>(<span class="tp">String</span>(currentValue))
+        currentKey = []; currentValue = []; hasSeenEqual = <span class="kw">false</span>
+    } <span class="kw">else</span> {
+        <span class="cm">// accumulate into currentKey / currentValue</span>
+    }
+}
+<span class="cm">// no post-loop flush — the last-index branch handles it</span></pre>
+  <div class="co co-note"><strong>Note:</strong> requires <code>enumerated()</code> for the index, so iterate a <code>[Character]</code> (not a raw <code>String</code>) to get an <code>Int</code> index. Works cleanly here because <code>"&amp;"</code> is a pure separator — never part of key or value — so the commit branch and the accumulate branch are mutually exclusive. If the last character <em>is</em> a value character (not a separator), accumulate it before the commit fires.</div>
+
+  <h3>Strategy C — structurally guaranteed closing delimiter, bare-value fallthrough (LC 385 Mini Parser)</h3>
+  <p>The input format guarantees every nested list ends with <code>"]"</code>, which commits and pops the stack. No post-loop flush needed for that case. The only exception: a plain number like <code>"324"</code> has no brackets at all, so the loop ends with the accumulator full. One post-loop line catches exactly this edge case.</p>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">"]" commits; post-loop is only for bracket-free plain numbers</span></div>
+  <pre class="swift"><span class="kw">for</span> character <span class="kw">in</span> stringArray {
+    <span class="kw">switch</span> character {
+    <span class="kw">case</span> <span class="st">","</span>, <span class="st">"]"</span>:
+        <span class="kw">if</span> hasSeenNumber {
+            stack[stack.count - <span class="nm">1</span>].<span class="fn">add</span>(<span class="tp">NestedInteger</span>(currentNumber))
+            currentNumber = <span class="nm">0</span>; hasSeenNumber = <span class="kw">false</span>         <span class="cm">// commit on delimiter</span>
+        }
+        <span class="kw">if</span> character == <span class="st">"]"</span> { <span class="cm">/* pop and merge stack */</span> }
+    <span class="kw">default</span>:
+        <span class="cm">// accumulate digit</span>
+    }
+}
+<span class="cm">// Only reached for plain numbers like "324" — no bracket ever fired a commit</span>
+<span class="kw">if</span> hasSeenNumber { <span class="kw">return</span> <span class="tp">NestedInteger</span>(currentNumber) }</pre>
+  <div class="co co-insight"><strong>Why <code>hasSeenNumber</code> guards every commit.</strong> <code>currentNumber == 0</code> cannot distinguish "nothing accumulated" from the literal value zero — without the flag, an empty list <code>[]</code> commits a phantom <code>0</code> on the <code>"]"</code>. See also §4.</div>
+
+  <table class="t-versus">
+    <thead><tr><th>Strategy</th><th>Trigger</th><th>Post-loop flush?</th><th>Use when</th></tr></thead>
+    <tbody>
+      <tr><td>A — overflow</td><td>Item won't fit</td><td>Yes — last item is different</td><td>Last item needs different treatment (LC 68: left-justify vs full-justify)</td></tr>
+      <tr><td>B — delimiter</td><td>Separator char + last index</td><td>No — folded into loop</td><td>Last item is identical to mid-stream; use <code>enumerated()</code>; guard empty tokens</td></tr>
+      <tr><td>C — guaranteed close</td><td>Closing bracket</td><td>Only for bare-value edge case</td><td>Format guarantees a closing delimiter for the main path; one bare fallthrough</td></tr>
+    </tbody>
+  </table>
+
+  <p><strong>Where this appears:</strong> Strategy A — <a href="../walkthroughs/LC68_master.html">LC 68 Text Justification</a>. Strategy B — CUSTOM 2 Decode Runtime Filters. Strategy C — <a href="../walkthroughs/LC385_master.html">LC 385 Mini Parser</a> (and <a href="../walkthroughs/LC227_master.html">LC 227</a> / LC 224 Basic Calculator, which commit on <code>"+"</code>/<code>"-"</code>/<code>")"</code> with a post-loop fallthrough for the trailing number).</p>
 
   <hr class="wiki-hr">
 
@@ -497,7 +668,10 @@ gapIndex 1: 1 &lt; 1 ✗  spacesForThisGap = 1  →  "example  of text"   ✓</p
 
   <!-- 17 -->
   <h2 id="prefix-suffix"><span class="sec-num">17</span> Prefix / suffix precompute — expensive walk once, O(1) per query</h2>
-  <p>Scan once forward (prefix) and/or once backward (suffix), building a secondary array where each position stores the "best so far" from that direction. A third pass combines both in O(1) per position — no nested loops. The signature: at each position the answer depends on something to the <em>left AND right simultaneously</em>, and neither array depends on the other.</p>
+  <p>The unifying idea: do the expensive work <em>once</em> per entity and store the result, so every later lookup is O(1). The three variants below all share this shape but differ in what they store and why.</p>
+
+  <h3>Variant A — running array (LC 42, LC 238)</h3>
+  <p>Scan once forward and once backward, building arrays where each position stores the running best from that direction. A third pass combines both in O(1) per position. The signature: at each position the answer depends on something to the <em>left AND right simultaneously</em>.</p>
   <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">forward prefix max, backward suffix max, combine</span></div>
   <pre class="swift"><span class="cm">// FORWARD — build prefix max</span>
 <span class="kw">var</span> runningMax = input[<span class="nm">0</span>]
@@ -506,7 +680,7 @@ gapIndex 1: 1 &lt; 1 ✗  spacesForThisGap = 1  →  "example  of text"   ✓</p
     <span class="kw">return</span> runningMax
 }
 
-<span class="cm">// BACKWARD — build suffix max, then re-orient so index 0 = leftmost</span>
+<span class="cm">// BACKWARD — build suffix max, re-orient so index 0 = leftmost</span>
 runningMax = input.last!
 <span class="kw">let</span> suffixMax = <span class="tp">Array</span>(input.reversed().map { value <span class="kw">in</span>
     runningMax = max(runningMax, value)
@@ -517,16 +691,82 @@ runningMax = input.last!
 <span class="kw">for</span> index <span class="kw">in</span> input.indices {
     <span class="kw">let</span> answer = min(prefixMax[index], suffixMax[index]) - input[index]
 }</pre>
-  <table class="t-clue">
-    <thead><tr><th>You see this…</th><th>Prefix/suffix is the move</th></tr></thead>
+
+  <h3>Variant B — scalar-per-entity map (CUSTOM 1 Relay Handoff)</h3>
+  <p>Walk each entity (team) exactly once forward and once backward, distilling its entire date list into a single scalar. Store those scalars in a dictionary. The pair-matching phase then reads the dictionary — no date arrays touched again. Replaces O(t²·d) brute force with O(t·d) precompute + O(t²) matching.</p>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">one scalar per team, stored in a dict, queried in pair phase</span></div>
+  <pre class="swift"><span class="cm">// PHASE 1 — prefix walk: for each team, how far forward can it run from startDate?</span>
+<span class="kw">var</span> handoffDayByTeam: [<span class="tp">String</span>: <span class="tp">Int</span>] = [:]
+<span class="kw">for</span> team <span class="kw">in</span> teams {
+    <span class="kw">guard let</span> startIndex = team.availableDates.<span class="fn">firstIndex</span>(of: startDate) <span class="kw">else</span> { <span class="kw">continue</span> }
+    <span class="kw">var</span> lastCoveredDay = startDate
+    <span class="kw">for</span> date <span class="kw">in</span> team.availableDates[(startIndex + <span class="nm">1</span>)...] {
+        <span class="kw">guard</span> date == lastCoveredDay + <span class="nm">1</span>, date &lt; endDate <span class="kw">else</span> { <span class="kw">break</span> }
+        lastCoveredDay = date
+    }
+    handoffDayByTeam[team.name] = lastCoveredDay + <span class="nm">1</span>   <span class="cm">// first day Team B must own</span>
+}
+
+<span class="cm">// PHASE 2 — suffix walk: for each team, how far back can it run to reach endDate?</span>
+<span class="kw">var</span> earliestDayByTeam: [<span class="tp">String</span>: <span class="tp">Int</span>] = [:]
+<span class="kw">for</span> team <span class="kw">in</span> teams {
+    <span class="kw">guard let</span> endIndex = team.availableDates.<span class="fn">firstIndex</span>(of: endDate) <span class="kw">else</span> { <span class="kw">continue</span> }
+    <span class="kw">var</span> earliestCoveredDay = endDate
+    <span class="kw">for</span> date <span class="kw">in</span> team.availableDates[..&lt;endIndex].reversed() {
+        <span class="kw">guard</span> date == earliestCoveredDay - <span class="nm">1</span> <span class="kw">else</span> { <span class="kw">break</span> }
+        earliestCoveredDay = date
+    }
+    earliestDayByTeam[team.name] = earliestCoveredDay
+}
+
+<span class="cm">// PHASE 3 — pair matching: pure dict lookups, no date arrays touched</span>
+<span class="kw">for</span> startingTeam <span class="kw">in</span> teams {
+    <span class="kw">guard let</span> handoffDay = handoffDayByTeam[startingTeam.name] <span class="kw">else</span> { <span class="kw">continue</span> }
+    <span class="kw">for</span> finishingTeam <span class="kw">in</span> teams {
+        <span class="kw">guard</span> finishingTeam.name != startingTeam.name <span class="kw">else</span> { <span class="kw">continue</span> }
+        <span class="kw">if let</span> earliestDay = earliestDayByTeam[finishingTeam.name], earliestDay &lt;= handoffDay {
+            validPairs.<span class="fn">append</span>([startingTeam.name, finishingTeam.name])
+        }
+    }
+}</pre>
+  <div class="co co-insight"><strong>Why ≤ not ==:</strong> if Team B's contiguous run starts at day 3 and handoffDay is 5, Team B still covers day 5 through endDate — extra early coverage is fine. Strict equality would miss valid pairs.</div>
+
+  <h3>Variant C — reverse-lookup map built from split-point enumeration (LC 336)</h3>
+  <p>For each word, enumerate all n+1 split points, check which half is a palindrome, and store <code>reverse(other half)</code> as a key in a dictionary. The "precomputed suffix" here is the reversed string stored as a lookup key, not a running array. The final pass is one O(1) dict lookup per word — replacing the O(w²·L) brute force.</p>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">build a reverse-lookup map, then query it in one pass</span></div>
+  <pre class="swift"><span class="cm">// PRECOMPUTE — for every split of every word, register what complement is needed</span>
+<span class="kw">var</span> complementMap: [<span class="tp">String</span>: [<span class="tp">Int</span>]] = [:]
+<span class="kw">for</span> (wordIndex, word) <span class="kw">in</span> words.enumerated() {
+    <span class="kw">let</span> wordArray = <span class="tp">Array</span>(word)
+    <span class="kw">for</span> splitPoint <span class="kw">in</span> <span class="nm">0</span>...wordArray.count {
+        <span class="kw">let</span> leftSplit  = <span class="tp">Array</span>(wordArray.<span class="fn">prefix</span>(splitPoint))
+        <span class="kw">let</span> rightSplit = <span class="tp">Array</span>(wordArray.<span class="fn">suffix</span>(wordArray.count - splitPoint))
+        <span class="cm">// if left is a palindrome, we need reverse(right) to appear somewhere as a partner</span>
+        <span class="kw">if</span> <span class="fn">isPalindrome</span>(leftSplit) {
+            complementMap[<span class="tp">String</span>(rightSplit.reversed()), default: []].<span class="fn">append</span>(wordIndex)
+        }
+    }
+}
+
+<span class="cm">// QUERY — one dict lookup per word, O(1) each</span>
+<span class="kw">for</span> (currentIndex, word) <span class="kw">in</span> words.enumerated() {
+    <span class="kw">for</span> partnerIndex <span class="kw">in</span> complementMap[word, default: []] <span class="kw">where</span> partnerIndex != currentIndex {
+        outputIndexes.<span class="fn">insert</span>([currentIndex, partnerIndex])
+    }
+}</pre>
+  <div class="co co-insight"><strong>What makes this "prefix/suffix":</strong> for each word you enumerate every prefix (left split) and check if it's a palindrome. If it is, you need the reverse of the suffix (right split) to exist somewhere as a standalone word. You're precomputing "given this suffix, who needs it" — paying O(L) per word up front so the query phase pays O(1) per word instead of O(w·L) per pair.</div>
+
+  <table class="t-versus">
+    <thead><tr><th>Variant</th><th>What's stored</th><th>Brute force</th><th>After precompute</th></tr></thead>
     <tbody>
-      <tr><td>"best value to my left AND right simultaneously"</td><td>Two-pass: one prefix, one suffix, combine</td></tr>
-      <tr><td>"running max/min/sum up to k, reused across many k's"</td><td>One prefix array, O(1) query per position</td></tr>
-      <tr><td>"split into two contiguous segments, each must satisfy a condition"</td><td>Prefix covers left, suffix covers right, match them</td></tr>
+      <tr><td>A — running array</td><td>Best-so-far at each index</td><td>O(n²)</td><td>O(n) build + O(1) combine</td></tr>
+      <tr><td>B — scalar per entity</td><td>One Int per team in a dict</td><td>O(t²·d)</td><td>O(t·d) build + O(t²) match</td></tr>
+      <tr><td>C — reverse-lookup map</td><td>reverse(half) → [wordIndex] in a dict</td><td>O(w²·L)</td><td>O(w·L²) build + O(w) query</td></tr>
     </tbody>
   </table>
-  <div class="co co-note"><strong>Note — when it is NOT the move:</strong> arbitrary subarray <code>[i…j]</code> sums → cumulative <strong>prefix sum</strong> array (not max/min). Left and right values depend on each other → <strong>two pointers</strong>. Each position depends on the previous answer → <strong>DP</strong>. Nearest smaller/larger element → <a href="#monotonic">monotonic stack</a>.</div>
-  <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC42_master.html">LC 42 Trapping Rain Water</a> (min of two running maxes minus height), <a href="../walkthroughs/LC238_master.html">LC 238 Product of Array Except Self</a> (prefix × suffix product), <a href="../walkthroughs/LC336_master.html">LC 336 Palindrome Pairs</a> (the reversed-word map is the precomputed "other side"), <a href="../walkthroughs/CUSTOM1_Relay_Handoff_Coverage_master.html">CUSTOM 1 Relay Handoff</a> (prefix/suffix on coverage runs).</p>
+
+  <div class="co co-note"><strong>When it is NOT the move:</strong> arbitrary subarray <code>[i…j]</code> sums → cumulative prefix sum array. Left and right values depend on each other → two pointers. Each position depends on the previous answer → DP. Nearest smaller/larger → <a href="#monotonic">monotonic stack</a>.</div>
+  <p><strong>Where this appears:</strong> Variant A — <a href="../walkthroughs/LC42_master.html">LC 42 Trapping Rain Water</a>, <a href="../walkthroughs/LC238_master.html">LC 238 Product of Array Except Self</a>. Variant B — <a href="../walkthroughs/CUSTOM1_Relay_Handoff_Coverage_master.html">CUSTOM 1 Relay Handoff Coverage</a>. Variant C — <a href="../walkthroughs/LC336_master.html">LC 336 Palindrome Pairs</a>.</p>
 
   <hr class="wiki-hr">
 
@@ -545,6 +785,57 @@ runningMax = input.last!
     <strong>The reflex:</strong> Before you write <code>array[i]</code>, <code>array[...i]</code>, <code>a / b</code>, or <code>a % b</code>, ask: <em>can the index be out of range? can the divisor be zero?</em> In string problems the answer is "yes" far more often than in array problems, because the empty line, the single word, and the last element are all special cases.
   </div>
   <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC68_master.html">LC 68 Text Justification</a> — discovered while reviewing the first attempt: the strategy was correct, every bug was bounds arithmetic.</p>
+
+  <hr class="wiki-hr">
+
+  <!-- 19 -->
+  <h2 id="closed-range"><span class="sec-num">19</span> <code>ClosedRange&lt;Int&gt;</code> — create, store, and traverse</h2>
+  <p>A <code>ClosedRange&lt;Int&gt;</code> captures both endpoints as a typed value you can pass around, store as an optional, and iterate directly. It is the right tool when the range itself is part of your algorithm's state — not just a loop bound you inline.</p>
+
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">creating a ClosedRange</span></div>
+  <pre class="swift"><span class="cm">// Literal — both bounds known at the call site</span>
+<span class="kw">let</span> leftSide: <span class="tp">ClosedRange</span>&lt;<span class="tp">Int</span>&gt; = <span class="nm">0</span>...(pivotIndex - <span class="nm">1</span>)
+<span class="kw">let</span> rightSide: <span class="tp">ClosedRange</span>&lt;<span class="tp">Int</span>&gt; = (pivotIndex + <span class="nm">1</span>)...(array.count - <span class="nm">1</span>)
+
+<span class="cm">// Stored as optional — nil means "this side doesn't exist"</span>
+<span class="kw">let</span> leftRange: <span class="tp">ClosedRange</span>&lt;<span class="tp">Int</span>&gt;? = pivotIndex &gt; <span class="nm">0</span> ? <span class="nm">0</span>...(pivotIndex - <span class="nm">1</span>) : <span class="kw">nil</span>
+
+<span class="cm">// Passed as a function parameter (LC 755 Pour Water, §8–§9)</span>
+<span class="kw">func</span> <span class="fn">getSmallerIndex</span>(<span class="kw">_</span> array: [<span class="tp">Int</span>], range: <span class="tp">ClosedRange</span>&lt;<span class="tp">Int</span>&gt;) -&gt; <span class="tp">Int</span> { ... }
+
+<span class="cm">// Reconstructed from its bounds (useful after storing lowerBound / upperBound separately)</span>
+<span class="kw">let</span> range = range.lowerBound...range.upperBound</pre>
+
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">traversing — three forms, different allocation and direction</span></div>
+  <pre class="swift"><span class="kw">let</span> range: <span class="tp">ClosedRange</span>&lt;<span class="tp">Int</span>&gt; = <span class="nm">2</span>...<span class="nm">5</span>   <span class="cm">// lowerBound=2, upperBound=5</span>
+
+<span class="cm">// ① Left → right: ClosedRange is a Sequence — hand it directly to for</span>
+<span class="kw">for</span> currentIndex <span class="kw">in</span> range { … }        <span class="cm">// 2, 3, 4, 5   — O(1) allocation</span>
+
+<span class="cm">// ② Right → left: stride is O(1) and lazy (see §11)</span>
+<span class="kw">for</span> currentIndex <span class="kw">in</span> stride(from: range.upperBound, through: range.lowerBound, by: -<span class="nm">1</span>) { … }   <span class="cm">// 5, 4, 3, 2</span>
+
+<span class="cm">// ③ Right → left: Array(range.reversed()) is simpler to read but allocates O(n)</span>
+<span class="kw">for</span> currentIndex <span class="kw">in</span> <span class="tp">Array</span>(range.reversed()) { … }   <span class="cm">// 5, 4, 3, 2   — prefer stride in tight loops</span>
+
+<span class="cm">// Inspect bounds without iterating</span>
+range.lowerBound   <span class="cm">// 2</span>
+range.upperBound   <span class="cm">// 5</span>
+range.count        <span class="cm">// 4  (upperBound - lowerBound + 1)</span>
+range.contains(<span class="nm">3</span>) <span class="cm">// true</span></pre>
+
+  <div class="co co-insight"><strong>Why store it as <code>ClosedRange&lt;Int&gt;</code> instead of two loose integers?</strong> A <code>ClosedRange</code> is a single typed value: you can make it optional (<code>nil</code> = "side doesn't exist"), pass it to a helper as one argument, and iterate it directly without reconstructing the bounds. Two loose integers require you to always carry them together and manually compute the half that's missing — an optional <code>ClosedRange</code> gives you the same nil-safety the compiler enforces on any optional.</div>
+
+  <table class="t-versus">
+    <thead><tr><th>Traversal</th><th>Allocation</th><th>Direction</th><th>Use when</th></tr></thead>
+    <tbody>
+      <tr><td><code>for index in range</code></td><td>O(1)</td><td>left → right</td><td>Default — ClosedRange is already a Sequence</td></tr>
+      <tr><td><code>stride(from: upper, through: lower, by: -1)</code></td><td>O(1)</td><td>right → left</td><td>Large range or tight loop — lazy, zero allocation</td></tr>
+      <tr><td><code>Array(range.reversed())</code></td><td>O(n)</td><td>right → left</td><td>Small range, clarity over performance</td></tr>
+    </tbody>
+  </table>
+
+  <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC755_master.html">LC 755 Pour Water</a> (passed as parameter to <code>getReachableMinIndex</code> and <code>getSmallerIndex</code>), <a href="../walkthroughs/LC3_master.html">LC 3 Longest Substring Without Repeating Characters</a> and <a href="../walkthroughs/LC209_master.html">LC 209 Minimum Size Subarray Sum</a> (stored as <code>ClosedRange&lt;Int&gt;?</code> to track the best window found so far) — any problem where the range itself is part of the answer or needs to be passed as a typed unit.</p>
 
   <div class="page-footer">
     Study Wiki · Review &amp; Reference · Companion: <a href="pattern_recognition.html">Pattern Recognition</a> · See also: Theory masterfiles and LeetCode walkthroughs
