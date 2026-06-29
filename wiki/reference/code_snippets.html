@@ -30,7 +30,7 @@
   <a href="#window">13 · Window: two-pointer vs queue</a>
   <a href="#conversions">14 · String ↔ collection casts</a>
   <a href="#greedy-lines">15 · Greedy line batching</a>
-  <a href="#distribute">16 · Remainder-biased distribution</a>
+  <a href="#distribute">16 · Distribute N things across K buckets</a>
   <a href="#prefix-suffix">17 · Prefix / suffix precompute</a>
   <a href="#bounds">18 · The bounds-arithmetic rule</a>
 </nav>
@@ -451,10 +451,20 @@ currentValue = [<span class="st">"t"</span>, <span class="st">"r"</span>, <span 
   <hr class="wiki-hr">
 
   <!-- 16 -->
-  <h2 id="distribute"><span class="sec-num">16</span> Distribute a quantity evenly, remainder biased left + the gap-count trap</h2>
-  <p>You have <code>totalSpaces</code> to spread across <code>gapCount</code> gaps and it doesn't divide evenly; the leftover goes to the leftmost gaps first. And remember: <strong>n items make n−1 separators</strong> — counting one separator per item instead of per gap is the single most common off-by-one in string assembly.</p>
-  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">floor everyone shares, remainder to the left gaps</span></div>
-  <pre class="swift"><span class="kw">let</span> gapCount = lineWords.count - <span class="nm">1</span>          <span class="cm">// NOT lineWords.count</span>
+  <h2 id="distribute"><span class="sec-num">16</span> Distribute N things across K buckets evenly — remainder biased left</h2>
+  <p>You have <code>total</code> things to share across <code>bucketCount</code> buckets and it doesn't divide evenly. The floor division gives every bucket the minimum; the modulo tells you exactly <em>how many</em> buckets get one extra. Hand them left-to-right — the first <code>remainder</code> buckets each get <code>base + 1</code>, the rest get <code>base</code>.</p>
+  <div class="co co-idea">
+    <strong>THE ONE IDEA:</strong> <code>total % bucketCount</code> is the count of "lucky" buckets. Loop with an index and ask <code>bucketIndex &lt; remainder</code> — while true, you're still in the lucky ones. Once false, everyone gets just the base. No splitting, no slice arithmetic — the modulo <em>is</em> the counter.
+  </div>
+  <div class="code-label"><span class="code-lang lang-pseudo">Skeleton</span><span class="code-desc">general form — works for spaces, jobs, items, pages</span></div>
+  <pre class="pseudo"><span class="pk">base</span>      ← total / bucketCount       <span class="pc">// floor — everyone gets at least this</span>
+<span class="pk">remainder</span> ← total % bucketCount       <span class="pc">// how many buckets get one extra</span>
+
+<span class="pk">for</span> bucketIndex <span class="kw">in</span> 0..&lt;bucketCount:
+    amount ← base + (bucketIndex &lt; remainder ? 1 : 0)
+    <span class="pc">// buckets 0 … remainder-1 are the lucky ones; the rest get base</span></pre>
+  <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">LC 68 — full-justify a line; gapCount = n words − 1</span></div>
+  <pre class="swift"><span class="kw">let</span> gapCount = lineWords.count - <span class="nm">1</span>          <span class="cm">// NOT lineWords.count — n words = n-1 gaps</span>
 <span class="kw">let</span> baseSpacePerGap = totalSpaces / gapCount   <span class="cm">// everyone gets this many</span>
 <span class="kw">let</span> extraSpaceGaps  = totalSpaces % gapCount   <span class="cm">// the leftmost this-many get +1</span>
 
@@ -464,8 +474,24 @@ currentValue = [<span class="st">"t"</span>, <span class="st">"r"</span>, <span 
     line += <span class="tp">String</span>(repeating: <span class="st">" "</span>, count: spacesForThisGap)
     line += lineWords[gapIndex + <span class="nm">1</span>]
 }</pre>
-  <div class="co co-note"><strong>Note:</strong> the <code>gapIndex &lt; extraSpaceGaps</code> test puts the extras on the left by construction — no array splitting, no slice arithmetic. Keep your running length as <strong>word characters only</strong> and add the gap count separately when you test the fit, so the accumulator never silently includes phantom trailing spaces.</div>
-  <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC68_master.html">LC 68 Text Justification</a> — any "share K things across N slots, leftover to the front" distribution.</p>
+  <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">["example","of","text"], maxWidth=16 → totalSpaces=3, gapCount=2</span></div>
+  <pre class="dry">base      = 3 / 2 = 1
+remainder = 3 % 2 = 1      ← one gap is lucky
+
+gapIndex 0: 0 &lt; 1 ✓  spacesForThisGap = 2  →  "example  of"
+gapIndex 1: 1 &lt; 1 ✗  spacesForThisGap = 1  →  "example  of text"   ✓</pre>
+  <div class="co co-insight"><strong>Why it works:</strong> the modulo gives you the <em>count</em> of leftmost buckets that need the bonus — and <code>bucketIndex &lt; remainder</code> is just a counter running from zero up to that count. Once the index exceeds the remainder the counter saturates and everyone gets the base. The index itself does the work; no extra variable needed.</div>
+  <table class="t-clue">
+    <thead><tr><th>You see this shape…</th><th>The move</th></tr></thead>
+    <tbody>
+      <tr><td>Spaces / items that don't divide evenly across gaps/slots, leftover to the left</td><td>Remainder-biased distribution — this snippet</td></tr>
+      <tr><td>Distribute jobs across workers, first <code>n%k</code> workers get one extra</td><td>Same skeleton, <code>bucketCount</code> = worker count</td></tr>
+      <tr><td>Split array into K nearly-equal chunks</td><td>Same skeleton, each chunk's size is <code>base + (index &lt; remainder ? 1 : 0)</code></td></tr>
+      <tr><td>Paginate N items across K pages evenly</td><td>Same skeleton, items per page follows the formula</td></tr>
+    </tbody>
+  </table>
+  <div class="co co-note"><strong>Gap-count trap:</strong> <strong>n items make n−1 separators</strong>, not n. Using <code>lineWords.count</code> instead of <code>lineWords.count - 1</code> as the divisor is the single most common off-by-one in string-assembly problems — and a division-by-zero on a single-word line. Guard <code>gapCount > 0</code> before dividing.</div>
+  <p><strong>Where this appears:</strong> <a href="../walkthroughs/LC68_master.html">LC 68 Text Justification</a> (the justify helper) — and structurally in any "share K things across N slots, remainder to the front" problem: round-robin scheduling, array chunking, pagination.</p>
 
   <hr class="wiki-hr">
 
