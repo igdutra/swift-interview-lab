@@ -141,6 +141,8 @@
       <tr><td><a href="../walkthroughs/CUSTOM1_Relay_Handoff_Coverage_master.html">CUSTOM 1</a> Relay Handoff</td><td>a calendar day</td><td>handoff day / earliest reachable day</td></tr>
     </tbody>
   </table>
+  <div class="co co-insight"><strong>The one diagnostic question:</strong> "Am I computing the same thing from scratch for every position or pair?" If yes — you have repeated work. One left pass + one right pass eliminates it. Then ask: "what am I indexing by when I retrieve the answer?" Position in the array → store in an <strong>array</strong>. Value or content of the key → store in a <strong>hashmap</strong>. See <a href="../theory/arrays/prefix_suffix_master.html#precompute-question">§4.1 of the theory page</a> for the full problem-by-problem breakdown.</div>
+
   <div class="co co-note"><strong>Note — when it is NOT prefix/suffix:</strong> arbitrary subarray <code>[i…j]</code> sums at runtime → cumulative <strong>prefix sum</strong> array. Left and right depend on each other → <strong>two pointers</strong>. Each position depends on the previous answer → <strong>DP</strong>. Nearest smaller/larger → <a href="#monotonic">monotonic stack</a>.</div>
 
   <hr class="wiki-hr">

@@ -21,6 +21,9 @@
     <a href="#signals"       class="toc-link"><span class="toc-num">2</span> Recognition Signals</a>
     <a href="#terminology"   class="toc-link"><span class="toc-num">3</span> Terminology Decoder</a>
     <a href="#mental-model"  class="toc-link"><span class="toc-num">4</span> Mental Model</a>
+    <div class="toc-sub">
+      <a href="#precompute-question" class="toc-link">4.1 The one question to ask</a>
+    </div>
     <a href="#pseudocode"    class="toc-link"><span class="toc-num">5</span> Pseudocode Primer</a>
     <a href="#iterative"     class="toc-link"><span class="toc-num">6</span> Iterative-Only Pattern</a>
     <a href="#swift"         class="toc-link"><span class="toc-num">7</span> Swift Translation</a>
@@ -159,6 +162,57 @@ suffix:    24   12   4    1       <span class="tr-ok">suffix[pos] = product of n
 <span class="tr-var">combine</span>    prefix[pos] * suffix[pos]
 result:    24   12   8    6       <span class="tr-aha">each cell = product of everything EXCEPT nums[pos]</span></pre>
     <p class="ascii-caption">Division is never needed. The "gap" at position <em>pos</em> is bridged by placing the left product in <code>prefix[pos]</code> and the right product in <code>suffix[pos]</code>, then multiplying — neither array knows about position <em>pos</em> itself.</p>
+
+    <h3 id="precompute-question">4.1 &nbsp; The one question to ask</h3>
+
+    <div class="co-idea">
+      <div class="co-idea-title">The single interview question</div>
+      "Am I computing the same thing from scratch for every position or pair?"
+      If yes — you have repeated work, and precomputation eliminates it.
+    </div>
+
+    <p>Every prefix/suffix problem is the same diagnosis in a different costume. The brute force always contains a nested loop where the inner loop restarts from the beginning or the end for each outer element. That restart is the signal. Below is every problem on this page, reduced to that single question:</p>
+
+    <table class="t-clue">
+      <thead>
+        <tr>
+          <th>Problem</th>
+          <th>What you'd recompute naively (the repeated work)</th>
+          <th>What you precompute instead</th>
+          <th>Where to store it</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>LC 42</strong> — Trapping Rain Water</td>
+          <td>For each bar: scan left for tallest wall, scan right for tallest wall → O(n) per bar</td>
+          <td>One left pass → <code>leftMax[]</code>; one right pass → <code>rightMax[]</code>; combine in O(1)</td>
+          <td>Array indexed by position</td>
+        </tr>
+        <tr>
+          <td><strong>LC 238</strong> — Product Except Self</td>
+          <td>For each index: multiply all other elements → O(n) per index</td>
+          <td>Left products pass + right products pass; combine at each index</td>
+          <td>Array indexed by position</td>
+        </tr>
+        <tr>
+          <td><strong>CUSTOM 1</strong> — Relay Handoff Coverage</td>
+          <td>For each team pair: recheck whether coverage ranges connect → O(teams²)</td>
+          <td>Left pass: furthest day each team reaches forward; right pass: earliest day reachable backward; combine at each split</td>
+          <td>Map indexed by team / day</td>
+        </tr>
+        <tr>
+          <td><strong>LC 336</strong> — Palindrome Pairs</td>
+          <td>For each word: check every other word as a partner → O(w²·L)</td>
+          <td>For each word at every split point: precompute the complement string that would complete a palindrome; store it so lookups are O(1)</td>
+          <td>Hashmap indexed by the complement string</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="co-insight"><strong>Why the storage shape differs:</strong> if retrieval is by <em>position in the array</em> ("what is the max to my left at index 3?"), an array is the right structure — O(1) access by index. If retrieval is by <em>the value or content</em> of what you're looking for ("does the reverse of this string exist as a word?"), a hashmap is the right structure — O(1) lookup by key. The precomputation logic is the same; only the index changes.</div>
+
+    <div class="co-when"><strong>The follow-up question:</strong> once you've confirmed "yes, repeated work," ask "what am I indexing by when I retrieve the precomputed answer?" Position → array. Value/content → hashmap.</div>
   </section>
 
   <hr class="wiki-hr">
