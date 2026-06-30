@@ -51,6 +51,11 @@ import Testing
 //   (O(1) extra if we sort in place, ignoring the sort's own overhead.)
 // ============================================================
 
+//The Pattern Fingerprint
+//
+//    -> Passenger counts are noise.
+//    -> Seats are the only resource. Minimize cars used = maximize seats consumed per car chosen = pick biggest first.
+
 private func minimumCarsNeeded(passengers passengersPerCar: [Int],
                                seats seatsPerCar: [Int]) -> Int {
     let totalPassengers = passengersPerCar.reduce(0, +)

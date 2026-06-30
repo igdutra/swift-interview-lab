@@ -54,8 +54,28 @@ import Testing
 //   container, so we track up to n remaining-capacity values.
 // ============================================================
 
+// ============================================================
+// DRY RUN — Example 1: weights=[2,3,8,3,5], capacity=10
+//
+// weightsHeaviestFirst = [8, 5, 3, 3, 2]
+// remainingCapacity=[]
+//
+// itemWeight=8 → no open containers → open new → remainingCapacity=[2]
+// itemWeight=5 → remainingCapacity=[2]: 2<5 skip → open new → remainingCapacity=[2, 5]
+// itemWeight=3 → remainingCapacity=[2]: 2<3 skip → remainingCapacity=[5]: 5≥3 place → remainingCapacity=[2, 2]
+// itemWeight=3 → remainingCapacity=[2]: 2<3 skip → remainingCapacity=[2]: 2<3 skip → open new → remainingCapacity=[2, 2, 7]
+// itemWeight=2 → remainingCapacity=[2]: 2≥2 place → remainingCapacity=[0, 2, 7]
+//
+// containers.count = 3  ✓
+//   Container 1: [8,2] → 0 space left
+//   Container 2: [5,3] → 2 space left
+//   Container 3: [3]   → 7 space left
+// ============================================================
+
 private func minimumContainersNeeded(_ weights: [Int], capacity containerCapacity: Int) -> Int {
-    // Greedy heuristic: First-Fit Decreasing — place heavy items first.
+    // Greedy heuristic: First-Fit Decreasing (FFD) — sort heaviest first, then for each item
+    // scan open containers and place it in the first one that fits; open a new container only
+    // when none can hold it.
     let weightsHeaviestFirst = weights.sorted(by: >)
 
     // Each entry is the remaining free space in one opened container.

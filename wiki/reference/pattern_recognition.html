@@ -27,6 +27,7 @@
   <a href="#graph-tree">10 · Graph &amp; tree signals</a>
   <a href="#hashmap">11 · Hashmap &amp; pairs matching</a>
   <a href="#confusions">12 · Easily-confused pairs</a>
+  <a href="#greedy">13 · Greedy signal</a>
 </nav>
 
 <main class="content">
@@ -78,6 +79,7 @@
       <tr><td>Shortest path on a grid, unweighted / fewest moves</td><td>BFS (grid / state-space)</td><td><a href="../walkthroughs/LC1091_master.html">LC 1091</a>, <a href="../walkthroughs/LC1284_master.html">LC 1284</a></td></tr>
       <tr><td>Shortest path with weights, or min-max cost on a grid</td><td>Dijkstra (min-heap)</td><td><a href="../walkthroughs/LC1631_master.html">LC 1631</a></td></tr>
       <tr><td>"min cost / best choice" with overlapping subproblems, no-overshoot</td><td>DFS + memoization (top-down DP)</td><td><a href="../walkthroughs/LC638_master.html">LC 638</a></td></tr>
+      <tr><td>"fewest X to cover Y" where items are interchangeable or freely redistributable — passengers, seats, weights, resources</td><td>Greedy — sort largest first, accumulate until covered</td><td>CUSTOM Car Pooling, CUSTOM Container Packing</td></tr>
     </tbody>
   </table>
 
@@ -270,8 +272,45 @@
       <tr><td>BFS vs Dijkstra</td><td>Unweighted (every move costs 1) → BFS. Weighted / min-max edges → Dijkstra.</td></tr>
       <tr><td>Backtracking vs DP</td><td>"list all / enumerate every" → backtracking. "count / min / max" with overlapping subproblems → memoized DP.</td></tr>
       <tr><td>Stack parse vs recursion</td><td>Same algorithm — the explicit stack IS the call stack. Prefer the iterative stack per the wiki standard.</td></tr>
+      <tr><td>Greedy vs DP</td><td>Greedy: each item is independent, a locally-best pick is globally optimal (exchange argument holds). DP: choices affect future options, the exchange argument fails — you need to track state across decisions.</td></tr>
+      <tr><td>Greedy sort-largest vs greedy sort-smallest</td><td>"Cover a total with fewest containers" → sort largest first (each big item buys down remaining demand fastest). "Fill fewest gaps, minimize leftover" → depends on the pairing rule — trace a small example to confirm direction.</td></tr>
     </tbody>
   </table>
+
+  <hr class="wiki-hr">
+
+  <!-- 13 -->
+  <h2 id="greedy"><span class="sec-num">13</span> Greedy signal — sort &amp; commit</h2>
+  <p>A greedy algorithm makes one locally-optimal decision at a time and never revisits it. It works when the <strong>exchange argument</strong> holds: swapping any two choices in the optimal set can only make things worse, so "always take the best available" leads to the global optimum.</p>
+
+  <div class="co co-idea">
+    <strong>THE TELL:</strong> The problem lets you ignore <em>who</em> owns what and only cares about <em>totals</em> or <em>capacity</em>. Passengers can move freely. Weights can be repacked. Slots are interchangeable. The moment individual assignments stop mattering, collapse to totals and sort.
+  </div>
+
+  <table class="t-clue">
+    <thead><tr><th>Signal in the problem</th><th>Greedy move</th><th>Example</th></tr></thead>
+    <tbody>
+      <tr><td>"Fewest containers / cars / slots to cover all passengers / weight / demand" — items are freely redistributable</td><td>Sum the total demand. Sort capacities largest first. Accumulate until covered. Count how many you took.</td><td>CUSTOM Car Pooling</td></tr>
+      <tr><td>"Fit items of fixed individual sizes into fewest bins" — items cannot be split or merged</td><td>First-Fit Decreasing (FFD): sort items heaviest first, scan open bins and place in first that fits, else open a new bin.</td><td>CUSTOM Container Packing</td></tr>
+      <tr><td>"Minimum number of intervals / ranges to cover a span"</td><td>Sort by start, greedily extend reach as far right as possible before moving to the next interval.</td><td>Classic interval covering</td></tr>
+    </tbody>
+  </table>
+
+  <div class="co co-insight">
+    <strong>Why sort largest first?</strong> Each large item buys down remaining demand faster than any smaller item. If you pick a small item when a large one is available, you can always swap them and do no worse — that's the exchange argument. Sorting largest first just applies every such swap upfront.
+  </div>
+
+  <div class="co co-note">
+    <strong>The red herring disguise:</strong> greedy problems often dress up the input to look like it matters (car passengers in specific seats, items in specific boxes). Strip the story: if there's no cost to moving things and no constraint on how many moves, the current assignment is noise. Only the capacity and the total demand are real.
+  </div>
+
+  <div class="co co-note">
+    <strong>When greedy fails — reach for DP instead:</strong> if items have individual sizes that create packing interactions (bin packing, knapsack), a locally-best pick can block a better global solution. Bin packing is NP-hard; FFD is a heuristic, not an exact solver. The cue to switch to DP: "does picking this item now change what I can pick later?" If yes, greedy cannot commit blindly.
+  </div>
+
+  <div class="co co-note">
+    <strong>What is NP-hard?</strong> A problem is NP-hard when no known algorithm can solve it <em>optimally</em> in polynomial time — O(n), O(n log n), O(n²), etc. The only guaranteed-exact approach is to try every possible combination, which grows exponentially: 20 items already means millions of possibilities, 50 items is astronomical. In practice we accept a fast heuristic (like FFD) that gets very close but cannot promise the absolute minimum in every case. The famous open question — whether a polynomial-time exact solution <em>could</em> exist but hasn't been found yet — is the <strong>P vs NP</strong> problem, unsolved since 1971. For interviews: if you hear "bin packing", "knapsack", or "job scheduling" — those are NP-hard flags. The expected answer is a greedy heuristic or DP approximation, not an exact solver.
+  </div>
 
   <div class="page-footer">
     Study Wiki · Review &amp; Reference · Companion: <a href="code_snippets.html">Code Snippets &amp; Gotchas</a> · Full Big-O: <a href="cheatsheet.html">Big-O &amp; DS/A Cheatsheet</a> · See also: Theory masterfiles and LeetCode walkthroughs
