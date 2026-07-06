@@ -210,3 +210,7 @@ Next: implement {functionName}(...) in {NUMBER}_{Slug}.swift, then run:
 - **Never use `@testable import`.** The private function lives in the test file.
 - **Never zero-pad problem numbers.** `3` stays `3`, not `0003`.
 - **Always scaffold the complexity block** with `// TODO` — never pre-fill it; the user writes it after solving.
+
+## Companion reference
+
+- `references/plan-comments.md` — the canonical six-pillar `/* PLAN */` comment standard for `Sources/` playground files (Pattern → Sequence → State → Conditions → Walk → Edge cases). The wiki skill's walkthrough §5b spoken plan mirrors this structure; this file is the single source of truth for it.

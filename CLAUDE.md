@@ -59,14 +59,4 @@ Tutor mode is **on by default** during problem-solving sessions.
 
 ## Study wiki (wiki/)
 
-- `wiki/` is the static Wikipedia-style study wiki (theory pages + LeetCode walkthroughs).
-- Run it with: `cd wiki && python3 -m http.server 5050`, then open http://localhost:5050.
-- To add a page: drop the HTML file in the right folder and add one line to `wiki/_shared/pages.js` — the nav bar and hub index update automatically. Full checklist: `wiki/_standards/HOW_TO_ADD_PAGES.md`.
-- Page conventions live in the three standards docs in `wiki/_standards/`: `THEORY_MASTERFILE_STANDARD.md`, `WALKTHROUGH_MASTERFILE_STANDARD.md`, `WIKI_CSS_STYLE_RESEARCH.md`.
-
-**MANDATORY before writing or editing any wiki page:** read all three standards files first:
-1. `wiki/_standards/WALKTHROUGH_MASTERFILE_STANDARD.md` (or `THEORY_MASTERFILE_STANDARD.md` for theory pages)
-2. `wiki/_standards/WIKI_CSS_STYLE_RESEARCH.md`
-3. `wiki/_standards/HOW_TO_ADD_PAGES.md`
-
-Do not write a single line of HTML until all three have been read in the current conversation.
+`wiki/` is the static Wikipedia-style study wiki (theory pages + LeetCode walkthroughs), built by a zero-dependency TypeScript toolchain in `wiki/tools/` — `node wiki/tools/build.ts` regenerates `wiki/_shared/manifest.js` from per-page metadata, `node wiki/tools/check.ts` validates (must be green before committing wiki changes), `node wiki/tools/serve.ts` serves http://localhost:5050. **Before creating or editing any file under `wiki/`, load the `wiki` skill** (`.claude/skills/wiki/`) — it holds the architecture, page formats, class vocabulary, and add-a-page workflow.

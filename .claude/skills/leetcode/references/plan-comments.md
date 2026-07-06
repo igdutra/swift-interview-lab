@@ -4,8 +4,8 @@ The canonical structure for the `/* PLAN */` block that opens every playground
 source file in `Sources/`. This is the spoken plan you would deliver in a real
 interview — write it as if narrating out loud before touching any code.
 
-Companion to `WALKTHROUGH_MASTERFILE_STANDARD.md` §6b, which mirrors this
-structure in wiki walkthroughs. Both must stay in sync.
+Companion to the wiki skill's `references/walkthrough-format.md` §5b, which mirrors
+this structure in wiki walkthroughs. This file is the canonical definition.
 
 ---
 
@@ -118,4 +118,4 @@ contact with "what if the value contains `=`?"
 - [Mastering Pseudocode in Coding Interviews — asierr.dev](https://medium.com/@asierr/mastering-pseudocode-in-coding-interviews-a-strategic-approach-95305f187a72)
 - [Ace the Coding Interview: Google and Facebook, twice — Matthew Leong](https://mjbleong.medium.com/ace-the-coding-interview-how-i-got-offers-at-google-and-facebook-twice-d5083fcca17d)
 - [Tech Interview Handbook — Coding Interview Study Plan](https://www.techinterviewhandbook.org/coding-interview-study-plan/)
-- Companion: [`WALKTHROUGH_MASTERFILE_STANDARD.md`](./WALKTHROUGH_MASTERFILE_STANDARD.md) §6b
+- Companion: the wiki skill's `references/walkthrough-format.md` §5b
