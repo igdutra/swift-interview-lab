@@ -79,6 +79,8 @@ code {
 .page-meta { font: 400 13px var(--sans); color: var(--text3); margin-bottom: 24px; }
 .page-meta span { margin-right: 12px; }
 
+.sec-num { color: var(--text3); margin-right: 8px; }
+
 /* ---------- §4 Layout & spacing ---------- */
 .page { display: flex; min-height: 100vh; }
 
@@ -89,6 +91,8 @@ code {
   border-left: 1px solid var(--border-xlt);
   border-right: 1px solid var(--border-xlt);
 }
+/* hub pages have no TOC column — center the sheet instead */
+.content-centered { margin: 0 auto; }
 
 hr.wiki-hr { border: none; border-top: 1px solid var(--border-xlt); margin: 48px 0; }
 
@@ -98,19 +102,49 @@ hr.wiki-hr { border: none; border-top: 1px solid var(--border-xlt); margin: 48px
   font: 400 12.5px var(--sans); color: var(--text3);
 }
 
-/* ---------- top nav (built by nav.js from pages.js) ---------- */
+/* ---------- top nav (built by nav.js from the manifest) ---------- */
 .topnav {
   background: var(--surface);
   border-bottom: 1px solid var(--border-lt);
-  padding: 8px 24px;
+  padding: 0 24px;
   font: 600 13px var(--sans);
 }
 .topnav a { margin-right: 16px; text-decoration: none; }
+.topnav > a { display: inline-block; padding: 8px 0; }
 .topnav a.current { color: var(--text); border-bottom: 2px solid var(--link); }
 .topnav .nav-cat {
+  display: inline-block; padding: 8px 0;
   color: var(--text3); font-weight: 700; font-size: 11px;
   text-transform: uppercase; letter-spacing: 0.06em; margin-right: 8px;
 }
+
+/* grouped dropdowns — pure CSS, keyboard-friendly via :focus-within */
+.nav-group { position: relative; display: inline-block; margin-right: 16px; }
+.nav-group > .nav-trigger {
+  display: inline-block; padding: 8px 0;
+  margin-right: 0; cursor: pointer; color: var(--link);
+}
+.nav-group > .nav-trigger.current { color: var(--text); border-bottom: 2px solid var(--link); }
+.nav-caret { color: var(--text3); font-size: 10px; }
+.nav-menu {
+  display: none; position: absolute; left: 0; top: 100%;
+  min-width: 280px; max-width: 380px;
+  background: var(--surface);
+  border: 1px solid var(--border-lt); border-radius: 0 0 4px 4px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  padding: 6px 0; z-index: 100;
+}
+.nav-group:hover .nav-menu,
+.nav-group:focus-within .nav-menu { display: block; }
+.nav-menu a {
+  display: block; padding: 4px 14px; margin: 0;
+  font-weight: 400; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+}
+.nav-menu a:hover { background: var(--info-bg); text-decoration: none; }
+.nav-menu a.current { color: var(--text); border-bottom: none; background: var(--info-bg); }
+.nav-menu .tag { margin-right: 6px; }
+.nav-menu-scroll { max-height: 70vh; overflow-y: auto; }
 
 /* ---------- §5 TOC sidebar ---------- */
 .toc-col {
