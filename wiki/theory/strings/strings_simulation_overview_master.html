@@ -17,38 +17,29 @@
 <nav class="toc-col">
   <div class="toc-inner">
     <div class="toc-title toc-cat-theory">Theory · Contents</div>
-    <a href="#lead"          class="toc-link"><span class="toc-num">1</span> Definition</a>
-    <a href="#signals"       class="toc-link"><span class="toc-num">2</span> Recognition Signals</a>
-    <a href="#terminology"   class="toc-link"><span class="toc-num">3</span> Terminology Decoder</a>
-    <a href="#mental-model"  class="toc-link"><span class="toc-num">4</span> Mental Model</a>
-    <a href="#pseudocode"    class="toc-link"><span class="toc-num">5</span> Pseudocode Primer</a>
-    <a href="#iterative"     class="toc-link"><span class="toc-num">6</span> Iterative-Only Pattern</a>
-    <a href="#swift"         class="toc-link"><span class="toc-num">7</span> Swift Foundations</a>
-    <a href="#variants"      class="toc-link"><span class="toc-num">8</span> The Two Families</a>
-    <div class="toc-sub">
-      <a href="#v-produce"   class="toc-link">8.1 Produce / simulate</a>
-      <a href="#v-consume"   class="toc-link">8.2 Consume / parse</a>
-    </div>
-    <a href="#complexity"    class="toc-link"><span class="toc-num">9</span> Complexity Analysis</a>
-    <a href="#pitfalls"      class="toc-link"><span class="toc-num">10</span> Common Pitfalls</a>
-    <a href="#edge-cases"    class="toc-link"><span class="toc-num">11</span> Edge Cases</a>
-    <a href="#cheatsheet"    class="toc-link"><span class="toc-num">12</span> Cheat Sheet</a>
-    <a href="#practice"      class="toc-link"><span class="toc-num">13</span> Demonstrated in Practice</a>
-    <a href="#solo"          class="toc-link"><span class="toc-num">14</span> Solo Problem</a>
+    <a href="#lead"        class="toc-link"><span class="toc-num">1</span> Overview</a>
+    <a href="#skeletons"   class="toc-link"><span class="toc-num">2</span> The Four Standard Skeletons</a>
+    <a href="#toolbox"     class="toc-link"><span class="toc-num">3</span> Swift Tools — the Toolbox</a>
+    <a href="#decision"    class="toc-link"><span class="toc-num">4</span> Produce or Consume?</a>
+    <a href="#terminology" class="toc-link"><span class="toc-num">5</span> Terminology Decoder</a>
+    <a href="#edge-cases"  class="toc-link"><span class="toc-num">6</span> Edge Cases</a>
+    <a href="#practice"    class="toc-link"><span class="toc-num">7</span> Demonstrated in Practice</a>
+    <a href="#solo"        class="toc-link"><span class="toc-num">8</span> Solo Problem</a>
+    <a href="#cheatsheet"  class="toc-link"><span class="toc-num">9</span> Ultimate Cheat Sheet</a>
   </div>
 </nav>
 
 <!-- ── CONTENT ── -->
 <main class="content">
 
-  <h1 class="page-title">Strings &amp; Simulation</h1>
+  <h1 class="page-title">Strings &amp; Simulation — Overview</h1>
   <div class="page-meta">
-    <span>Theory Masterfile · Overview</span><span>·</span>
+    <span>Theory Masterfile</span><span>·</span>
     <span>Language: Swift</span><span>·</span>
     <span>Produce · Simulate · Parse</span>
   </div>
 
-  <!-- 1. Definition -->
+  <!-- 1. Lead -->
   <section id="lead">
     <div class="infobox">
       <div class="infobox-title">At a Glance</div>
@@ -58,43 +49,324 @@
       <div class="infobox-row"><div class="infobox-k">Space</div><div class="infobox-v">O(n) output buffer or stack; O(1) running state</div></div>
       <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"build", "simulate", "step by step", "parse", "evaluate", "format", "without using built-ins"</div></div>
       <div class="infobox-row"><div class="infobox-k">The fork</div><div class="infobox-v">Producing a string/state → Text Formatting; consuming one → String Parsing</div></div>
+      <div class="infobox-row"><div class="infobox-k">Deep dives</div><div class="infobox-v mono">
+        <a href="text_formatting_deep_dive_master.html">text_formatting_deep_dive_master.html</a><br>
+        <a href="string_parsing_deep_dive_master.html">string_parsing_deep_dive_master.html</a>
+      </div></div>
       <div class="infobox-row"><div class="infobox-k">Walkthroughs</div><div class="infobox-v mono">LC415 · LC1041 · LC755 · LC68 · LC227 · LC385 · LC336</div></div>
     </div>
 
     <div class="lead">
       <p><strong>Strings &amp; simulation problems</strong> ask you to process a character sequence — or a small evolving state described by one — in a single left-to-right pass, doing explicit, mechanical work the language's built-ins would normally hide. There is rarely a clever asymptotic trick; the difficulty is in the <em>bookkeeping</em>: carrying a digit, tracking a facing direction, distributing leftover spaces, or deciding exactly when a token ends.</p>
-      <p>Every problem in this block splits along one axis. You are either <strong>producing</strong> output — assembling characters into a buffer, or stepping a state machine forward one instruction at a time — or you are <strong>consuming</strong> input, scanning the characters and folding them into a structure: a number, a stack of operands, a nested list, or a map of tokens. This page teaches you to name which side you are on, because that choice picks the deep dive and, with it, the data structure. The <a href="text_formatting_deep_dive_master.html">Text Formatting deep dive</a> covers producing and simulating; the <a href="string_parsing_deep_dive_master.html">String Parsing deep dive</a> covers consuming.</p>
+      <p>Every problem in this block splits along one axis: you are either <strong>producing</strong> output — assembling characters into a buffer, or stepping a state machine forward — or you are <strong>consuming</strong> input, folding the characters into a structure: a number, a stack of operands, a nested list, or a map of tokens. This overview is the hub's <strong>decision layer and Swift toolbox</strong>: the four loop skeletons that implement the whole block, the language mechanics they lean on, and the fork that picks the right deep dive. The per-family theory lives in the <a href="text_formatting_deep_dive_master.html">Text Formatting deep dive</a> (produce/simulate) and the <a href="string_parsing_deep_dive_master.html">String Parsing deep dive</a> (consume/parse).</p>
     </div>
   </section>
 
   <hr class="wiki-hr">
 
-  <!-- 2. Recognition signals -->
-  <section id="signals">
-    <h2>2 &nbsp; Recognition Signals — which side am I on?</h2>
-    <p>The phrasing of the prompt almost always reveals the axis. Match it, then jump to the named deep dive.</p>
-    <table class="t-clue">
-      <thead><tr><th>When the problem says…</th><th>It means…</th></tr></thead>
-      <tbody>
-        <tr><td>"add / multiply two numbers given as strings"</td><td>Produce → digit-buffer build. Text Formatting §8.1 (LC415)</td></tr>
-        <tr><td>"a robot / pointer follows these instructions; where does it end up?"</td><td>Produce → state-machine simulation. Text Formatting §8.2 (LC1041)</td></tr>
-        <tr><td>"water / sand / particles settle into this terrain"</td><td>Produce → physics/grid simulation. Text Formatting §8.3 (LC755)</td></tr>
-        <tr><td>"format text into lines of width N" / "justify"</td><td>Produce → greedy line-packing + spacing. Text Formatting §8.4 (LC68)</td></tr>
-        <tr><td>"evaluate this expression string" / "+ − × ÷ with precedence"</td><td>Consume → stack-based expression parse. String Parsing §8.2 (LC227)</td></tr>
-        <tr><td>"parse this nested / bracketed string into objects"</td><td>Consume → nested-structure stack parse. String Parsing §8.3 (LC385)</td></tr>
-        <tr><td>"split this query / config line into key-value tokens"</td><td>Consume → tokenize + map. String Parsing §8.1 (Decode Runtime Filters)</td></tr>
-        <tr><td>"which pairs of words form a palindrome when concatenated?"</td><td>Consume → reversed-prefix matching. String Parsing §8.4 (LC336)</td></tr>
-        <tr><td>"return the substring count / longest window"</td><td>Not this block — that is <a href="../arrays/sliding_window_master.html">Sliding Window</a>. No structure is built; a window is maintained.</td></tr>
-      </tbody>
-    </table>
-    <div class="co-when"><strong>The tell:</strong> if the answer is <em>itself a string or a final state</em> you assembled, you are producing. If the answer is a <em>value or structure extracted from</em> the input string, you are consuming. A few problems do both (parse, then reformat) — split them into two passes and treat each half on its own axis.</div>
+  <!-- 2. The four standard skeletons -->
+  <section id="skeletons">
+    <h2>2 &nbsp; The Four Standard Skeletons</h2>
+    <p>Memorize these loop shapes and the bookkeeping comes for free. A skeleton is a <em>control-flow shape</em>, not a problem: every problem in this block is one of these four shapes, a variant of one, or a composition of two.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Skeleton 1 · Digit-buffer build — two indices right-to-left, carry folds the flush into the loop (LC415)</span></div>
+<pre class="swift"><span class="kw">var</span> leftIndex = digits1.count - <span class="nm">1</span>          <span class="cm">// two inputs, two independent indices</span>
+<span class="kw">var</span> rightIndex = digits2.count - <span class="nm">1</span>
+<span class="kw">var</span> carry = <span class="nm">0</span>
+<span class="kw">var</span> resultBuffer: [<span class="tp">Character</span>] = []
+
+<span class="kw">while</span> leftIndex &gt;= <span class="nm">0</span> || rightIndex &gt;= <span class="nm">0</span> || carry &gt; <span class="nm">0</span> {   <span class="cm">// carry&gt;0 IS the final flush</span>
+    <span class="kw">let</span> digitA = leftIndex &gt;= <span class="nm">0</span> ? digits1[leftIndex].wholeNumberValue! : <span class="nm">0</span>
+    <span class="kw">let</span> digitB = rightIndex &gt;= <span class="nm">0</span> ? digits2[rightIndex].wholeNumberValue! : <span class="nm">0</span>
+    <span class="kw">let</span> columnSum = digitA + digitB + carry
+    resultBuffer.append(<span class="tp">Character</span>(<span class="tp">String</span>(columnSum % <span class="nm">10</span>)))   <span class="cm">// keep the low digit</span>
+    carry = columnSum / <span class="nm">10</span>                                    <span class="cm">// carry the high digit left</span>
+    leftIndex -= <span class="nm">1</span>; rightIndex -= <span class="nm">1</span>
+}
+<span class="kw">return</span> <span class="tp">String</span>(resultBuffer.reversed())     <span class="cm">// built low→high — flip once at the end</span></pre>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Skeleton 2 · State-machine simulation — fold each instruction into O(1) state, no buffer (LC1041)</span></div>
+<pre class="swift"><span class="kw">enum</span> <span class="tp">Direction</span> {                       <span class="cm">// the state is a TYPE, not index arithmetic —</span>
+    <span class="kw">case</span> north, east, south, west       <span class="cm">// every transition is spelled out and exhaustive</span>
+
+    <span class="kw">var</span> delta: (x: <span class="tp">Int</span>, y: <span class="tp">Int</span>) {
+        <span class="kw">switch self</span> {
+        <span class="kw">case</span> .north: (<span class="nm">0</span>, <span class="nm">1</span>)
+        <span class="kw">case</span> .east:  (<span class="nm">1</span>, <span class="nm">0</span>)
+        <span class="kw">case</span> .south: (<span class="nm">0</span>, -<span class="nm">1</span>)
+        <span class="kw">case</span> .west:  (-<span class="nm">1</span>, <span class="nm">0</span>)
+        }
+    }
+
+    <span class="kw">var</span> turnedLeft: <span class="tp">Direction</span> {
+        <span class="kw">switch self</span> {
+        <span class="kw">case</span> .north: .west
+        <span class="kw">case</span> .west:  .south
+        <span class="kw">case</span> .south: .east
+        <span class="kw">case</span> .east:  .north
+        }
+    }
+    <span class="cm">// turnedRight mirrors it: north → east → south → west → north</span>
+}
+
+<span class="kw">var</span> position: (x: <span class="tp">Int</span>, y: <span class="tp">Int</span>) = (<span class="nm">0</span>, <span class="nm">0</span>)   <span class="cm">// the pose IS the state</span>
+<span class="kw">var</span> direction: <span class="tp">Direction</span> = .north
+
+<span class="kw">for</span> instruction <span class="kw">in</span> instructions {
+    <span class="kw">switch</span> instruction {
+    <span class="kw">case</span> <span class="st">"G"</span>: position.x += direction.delta.x
+              position.y += direction.delta.y
+    <span class="kw">case</span> <span class="st">"L"</span>: direction = direction.turnedLeft
+    <span class="kw">case</span> <span class="st">"R"</span>: direction = direction.turnedRight
+    <span class="kw">default</span>: <span class="kw">break</span>
+    }
+}
+<span class="cm">// read the answer off the final pose — nothing was ever appended anywhere</span>
+<span class="cm">// LC755 is this shape with a bigger state (the terrain array) + an inner settle scan</span></pre>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Skeleton 3 · Accumulate-and-commit scan — build a token, commit on a trigger (tokenizer / LC227 / LC68)</span></div>
+<pre class="swift"><span class="kw">var</span> currentToken: [<span class="tp">Character</span>] = []   <span class="cm">// or a running number, or a line's word list</span>
+
+<span class="kw">for</span> (characterIndex, character) <span class="kw">in</span> characterArray.enumerated() {
+    <span class="kw">if</span> character == delimiter || characterIndex == characterArray.count - <span class="nm">1</span> {
+        commit(currentToken)          <span class="cm">// fold the finished token into the output</span>
+        currentToken = []             <span class="cm">// reset EVERY per-token variable, in one place</span>
+    } <span class="kw">else</span> {
+        currentToken.append(character)
+    }
+}
+<span class="cm">// The trigger is the only part that changes:</span>
+<span class="cm">//   delimiter char  → tokenizer (fold the last index into the trigger, as above)</span>
+<span class="cm">//   operator boundary → LC227 (commit the running number under the DEFERRED operator)</span>
+<span class="cm">//   overflow ("won't fit") → LC68 (commit BEFORE adding; last batch needs a post-loop flush)</span></pre>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Skeleton 4 · Nested stack parse — push a scope on open, pop-and-merge on close (LC385 / LC394)</span></div>
+<pre class="swift"><span class="kw">var</span> stack: [<span class="tp">NestedContainer</span>] = []
+
+<span class="kw">for</span> character <span class="kw">in</span> characterArray {
+    <span class="kw">switch</span> character {
+    <span class="kw">case</span> <span class="st">"["</span>:
+        stack.append(<span class="tp">NestedContainer</span>())        <span class="cm">// descend — a new open scope</span>
+    <span class="kw">case</span> <span class="st">","</span>, <span class="st">"]"</span>:
+        commitPendingNumber(&amp;stack)             <span class="cm">// boundary — attach the number being built</span>
+        <span class="kw">if</span> character == <span class="st">"]"</span> {
+            <span class="kw">let</span> finishedScope = stack.removeLast()          <span class="cm">// ascend — scope closes…</span>
+            stack[stack.count - <span class="nm">1</span>].add(finishedScope)        <span class="cm">// …into its PARENT, by index</span>
+        }                                       <span class="cm">// (empty stack after the pop → it's the root)</span>
+    <span class="kw">default</span>:
+        accumulateDigit(character)              <span class="cm">// running number: value * 10 + digit</span>
+    }
+}
+<span class="cm">// the innermost bracket always closes first — the stack IS that LIFO fact, made explicit</span></pre>
+
+    <div class="co-insight"><strong>The shape <em>is</em> the recognition — and skeletons compose.</strong> Two number strings → skeleton 1; an agent obeying instructions → skeleton 2; flat tokens with any commit trigger → skeleton 3; open/close scopes → skeleton 4. LC227 (Basic Calculator II) is not a fifth shape: it is skeleton 3 committing <em>into a stack</em>, the way arrays' prefix-sum composes with a hash map. And LC336 (Palindrome Pairs) is not a strings skeleton at all — it is the <a href="../arrays/hash_map_deep_dive_master.html">complement map</a> plus split-point enumeration wearing string clothes. If you feel the urge to recurse on any of these, the right structure is missing: an explicit index or an explicit stack makes the bookkeeping — and therefore the bugs — visible.</div>
   </section>
 
   <hr class="wiki-hr">
 
-  <!-- 3. Terminology decoder -->
+  <!-- 3. Swift tools — the toolbox -->
+  <section id="toolbox">
+    <h2>3 &nbsp; Swift Tools — the Toolbox</h2>
+    <p>The Swift-specific mechanics that turn up again and again in this block. Each tool gets a three-column summary, then a full-width row with a worked example you can read top-to-bottom. (Window state, palindrome checks, and <code>reduce(into:)</code> belong to the <a href="../arrays/arrays_hashing_overview_master.html#toolbox">Arrays &amp; Hashing toolbox</a> — not repeated here.)</p>
+    <table class="t-versus">
+      <thead><tr><th>Swift tool</th><th>What it buys you</th><th>Seen in</th></tr></thead>
+      <tbody>
+        <tr><td><code>Array(string)</code> + <code>[Character]</code> buffer + one <code>String()</code> join</td><td>O(1) indexing and O(1) appends — kills both O(n²) traps in one move</td><td>every problem here</td></tr>
+        <tr><td colspan="3"><pre class="swift"><span class="kw">let</span> characterArray = <span class="tp">Array</span>(string)   <span class="cm">// O(n) ONCE — characterArray[index] is O(1) after</span>
+<span class="kw">var</span> outputBuffer: [<span class="tp">Character</span>] = []   <span class="cm">// build here — appends are O(1) amortized</span>
+outputBuffer.append(<span class="st">"x"</span>)
+<span class="kw">let</span> result = <span class="tp">String</span>(outputBuffer)     <span class="cm">// ONE O(n) join at the very end</span>
+<span class="cm">// the two O(n²) traps this kills:</span>
+<span class="cm">//   string[someIndex]         — String.Index arithmetic costs O(n) PER access</span>
+<span class="cm">//   result += String(char)    — reallocates the whole string EVERY iteration</span></pre></td></tr>
+
+        <tr><td><code>wholeNumberValue</code> / <code>Character(String(digit))</code> + <code>% 10</code>, <code>/ 10</code></td><td>Digit ↔ character casts (no implicit cast exists) and the column-split into kept digit + carry</td><td>LC415, LC43, LC227, LC385</td></tr>
+        <tr><td colspan="3"><pre class="swift"><span class="kw">let</span> digit = character.wholeNumberValue ?? <span class="nm">0</span>      <span class="cm">// '7' → 7  (nil for non-digits — guard it)</span>
+resultBuffer.append(<span class="tp">Character</span>(<span class="tp">String</span>(digit)))     <span class="cm">// 7 → '7'  — Int→Character goes via String</span>
+
+<span class="kw">let</span> keptDigit = columnSum % <span class="nm">10</span>    <span class="cm">// units place: what gets appended</span>
+<span class="kw">let</span> newCarry  = columnSum / <span class="nm">10</span>    <span class="cm">// what moves left — 0 or 1 for addition</span>
+<span class="cm">// max column in addition: 9 + 9 + carry 1 = 19 → keptDigit 9, newCarry 1</span></pre></td></tr>
+
+        <tr><td><code>runningNumber * 10 + digit</code></td><td>Rebuild a multi-digit number during the scan — no slicing, no <code>Int(substring)</code></td><td>LC227, LC224, LC385</td></tr>
+        <tr><td colspan="3"><pre class="swift"><span class="kw">var</span> runningNumber = <span class="nm">0</span>
+<span class="kw">if let</span> digit = character.wholeNumberValue {
+    runningNumber = runningNumber * <span class="nm">10</span> + digit   <span class="cm">// "142": 0→1 → 1*10+4=14 → 14*10+2=142</span>
+}
+<span class="cm">// the *10 is positional notation — every held digit shifts one decimal place left.</span>
+<span class="cm">// commit on the first non-digit (or the final flush), then reset runningNumber = 0</span></pre></td></tr>
+
+        <tr><td><code>split(separator:omittingEmptySubsequences:)</code> + <code>.map(String.init)</code></td><td>Tokenize with all empty tokens dropped in one stroke; convert the <code>SubSequence</code> views before storing</td><td>Decode Runtime Filters</td></tr>
+        <tr><td colspan="3"><pre class="swift"><span class="kw">let</span> tokens = <span class="st">"a=1&amp;&amp;b=2&amp;"</span>.split(separator: <span class="st">"&amp;"</span>, omittingEmptySubsequences: <span class="kw">true</span>)
+<span class="cm">// ["a=1", "b=2"] — the empties from "&amp;&amp;" and the trailing "&amp;" vanish in one stroke</span>
+<span class="kw">let</span> tokenStrings = tokens.map(<span class="tp">String</span>.<span class="kw">init</span>)   <span class="cm">// .split returns SubSequence VIEWS — convert</span>
+                                             <span class="cm">// before storing, returning, or comparing</span>
+<span class="cm">// split on the FIRST "=" only, so "mode=fast=beta" keeps "fast=beta" as its value:</span>
+<span class="kw">if let</span> equalsIndex = token.firstIndex(of: <span class="st">"="</span>) {
+    <span class="kw">let</span> key   = <span class="tp">String</span>(token[token.startIndex..&lt;equalsIndex])
+    <span class="kw">let</span> value = <span class="tp">String</span>(token[token.index(after: equalsIndex)...])   <span class="cm">// "name=" → ""</span>
+}</pre></td></tr>
+
+        <tr><td><code>dictionary[key, default: []].append(value)</code></td><td>Create-or-append into a multi-map in one expression — with the one default that is a trap</td><td>Decode Runtime Filters, LC336</td></tr>
+        <tr><td colspan="3"><pre class="swift"><span class="kw">var</span> outputMap: [<span class="tp">String</span>: [<span class="tp">String</span>]] = [:]
+outputMap[key, <span class="kw">default</span>: []].append(value)   <span class="cm">// makes [] then appends — one step</span>
+<span class="cm">// default: [""] is the classic trap — it seeds a GHOST empty string before your append,</span>
+<span class="cm">// so every key's first entry arrives as ["", value] instead of [value]</span></pre></td></tr>
+
+        <tr><td><code>prefix(k)</code> / <code>suffix(count − k)</code> over <code>0...count</code></td><td>All n+1 word splits including both empty ends — clamp-safe where subscript ranges crash</td><td>LC336, LC131</td></tr>
+        <tr><td colspan="3"><pre class="swift"><span class="kw">for</span> splitPoint <span class="kw">in</span> <span class="nm">0</span>...wordArray.count {              <span class="cm">// count + 1 splits — BOTH empty ends</span>
+    <span class="kw">let</span> leftSlice  = wordArray.prefix(splitPoint)     <span class="cm">// clamps — never out of bounds</span>
+    <span class="kw">let</span> rightSlice = wordArray.suffix(wordArray.count - splitPoint)
+}
+<span class="cm">// 0..&lt;count silently misses the empty-right split — LC336's exact-reverse pairs vanish.</span>
+<span class="cm">// subscript ranges crash here: [...(splitPoint - 1)] at splitPoint 0 builds 0...(-1).</span>
+<span class="cm">// full trace + the subscript trap: arrays hub, prefix_suffix_master.html §7.1</span></pre></td></tr>
+
+        <tr><td><code>String(repeating:count:)</code> + the n−1 gaps rule</td><td>Distribute leftover spaces across gaps, remainder biased left — the LC68 spacing engine</td><td>LC68</td></tr>
+        <tr><td colspan="3"><pre class="swift"><span class="kw">let</span> gapCount = lineWords.count - <span class="nm">1</span>              <span class="cm">// n words → n−1 gaps, NEVER n</span>
+<span class="kw">guard</span> gapCount &gt; <span class="nm">0</span> <span class="kw">else</span> { <span class="cm">/* single word: pad the right, skip the division */</span> }
+
+<span class="kw">let</span> baseSpacesPerGap = totalSpaces / gapCount
+<span class="kw">let</span> luckyGapCount    = totalSpaces % gapCount   <span class="cm">// the LEFTMOST this-many get one extra</span>
+<span class="kw">for</span> gapIndex <span class="kw">in</span> <span class="nm">0</span>..&lt;gapCount {
+    <span class="kw">let</span> spacesForThisGap = baseSpacesPerGap + (gapIndex &lt; luckyGapCount ? <span class="nm">1</span> : <span class="nm">0</span>)
+    line += <span class="tp">String</span>(repeating: <span class="st">" "</span>, count: spacesForThisGap) + lineWords[gapIndex + <span class="nm">1</span>]
+}
+<span class="cm">// the modulo IS the counter: gapIndex &lt; remainder marks exactly the lucky gaps</span></pre></td></tr>
+
+        <tr><td><code>stack[stack.count - 1].add(…)</code></td><td>Mutate the top of a stack in place — <code>.last</code> on a struct element hands you a throwaway copy</td><td>LC385, LC394</td></tr>
+        <tr><td colspan="3"><pre class="swift"><span class="cm">// BUG if the element is a struct (value type): .last is a COPY</span>
+<span class="kw">var</span> topContainer = stack.last
+topContainer?.add(newValue)              <span class="cm">// mutates the copy — the stack never changes</span>
+
+stack[stack.count - <span class="nm">1</span>].add(newValue)     <span class="cm">// always safe: mutate in place by index</span>
+<span class="cm">// class elements are references, so .last happens to work — the index form covers both</span></pre></td></tr>
+
+        <tr><td><code>resetState()</code> + a <code>hasSeenNumber</code> flag</td><td>Clear every per-token variable in one auditable place; distinguish "no number" from "the number zero"</td><td>LC385, LC227, LC68</td></tr>
+        <tr><td colspan="3"><pre class="swift"><span class="kw">var</span> runningNumber = <span class="nm">0</span>
+<span class="kw">var</span> hasSeenNumber = <span class="kw">false</span>        <span class="cm">// 0 alone can't distinguish "nothing" from literal zero</span>
+
+<span class="kw">func</span> <span class="fn">resetTokenState</span>() {          <span class="cm">// ONE place that knows EVERY per-token variable</span>
+    runningNumber = <span class="nm">0</span>
+    hasSeenNumber = <span class="kw">false</span>
+}
+<span class="cm">// commit: guard hasSeenNumber else { return }   → no phantom 0 on an empty list "[]"</span>
+<span class="cm">// then resetTokenState() — resetting the variables inline, one by one, is how a</span>
+<span class="cm">// forgotten flag silently bleeds into the next token</span></pre></td></tr>
+
+        <tr><td>Ternary bounds guards</td><td>An exhausted pointer contributes the identity; a range that could go negative is never built</td><td>LC415, LC68, LC755</td></tr>
+        <tr><td colspan="3"><pre class="swift"><span class="cm">// exhausted pointer contributes 0 — no need to branch the whole loop body</span>
+<span class="kw">let</span> digitA = leftIndex &gt;= <span class="nm">0</span> ? digits1[leftIndex].wholeNumberValue! : <span class="nm">0</span>
+
+<span class="cm">// a range whose lower bound can go negative must not be BUILT at all</span>
+<span class="kw">let</span> leftCandidate: <span class="tp">Int</span>? = dropIndex &gt; <span class="nm">0</span>
+    ? findSettlePoint(scanning: <span class="nm">0</span>...(dropIndex - <span class="nm">1</span>))
+    : <span class="kw">nil</span>                       <span class="cm">// 0...(-1) crashes at construction, before any subscript</span>
+<span class="cm">// the reflex: before array[i], array[...i], a / b, a % b — can the index be out of</span>
+<span class="cm">// range? can the divisor be zero? in string problems the answer is usually YES</span></pre></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Decision layer -->
+  <section id="decision">
+    <h2>4 &nbsp; Produce or Consume? — routing a problem to its skeleton</h2>
+
+    <div class="co-idea">
+      <div class="co-idea-title">The one axis, then one decision per character</div>
+      If the answer is <em>itself a string or a final state you assembled</em>, you are <strong>producing</strong>. If the answer is a <em>value or structure extracted from</em> the input, you are <strong>consuming</strong>. Then make exactly one pass with one index: at every character you make a single, local decision — emit it, fold it into a running value, push it, or skip it — using only O(1) state plus one growing buffer or stack. If you ever want to "go back and look again," your state is incomplete: add a variable (carry, lastOperator, runningNumber) so the past is summarized, not re-read.
+    </div>
+
+    <div class="code-label"><span class="code-lang lang-ascii">Diagram</span><span class="code-desc">the fork, then the trigger — every problem lands on a skeleton from §2</span></div>
+    <pre class="ascii">                      ┌───────────────────────────────────┐
+                      │  New strings / simulation problem  │
+                      └────────────────┬──────────────────┘
+                                       │
+                        what is the ANSWER made of?
+                                       │
+           ┌───────────────────────────┴───────────────────────────┐
+           │                                                       │
+  a string or final state                              a value or structure
+  you ASSEMBLE → PRODUCE                          EXTRACTED from input → CONSUME
+           │                                                       │
+   ┌───────┼────────────┐                            ┌─────────────┼────────────┐
+   │       │            │                            │             │            │
+numbers  an agent     pack items                   flat          nested      expression
+given as follows      into a fixed                 delimited     brackets    with operator
+strings  instructions capacity                     tokens        / scopes    precedence
+   │       │            │                            │             │            │
+   ▼       ▼            ▼                            ▼             ▼            ▼
+┌───────┐┌─────────┐┌────────────┐            ┌─────────────┐┌─────────┐┌─────────────┐
+│ S1    ││ S2      ││ S3 overflow│            │ S3 delimiter││ S4      ││ S3 + S4     │
+│ digit-││ state   ││ trigger    │            │ trigger     ││ stack   ││ compose:    │
+│ buffer││ machine ││ (LC68)     │            │ (tokenizer) ││ parse   ││ commit into │
+└───────┘└─────────┘└────────────┘            └─────────────┘└─────────┘│ a stack     │
+                                                                        │ (LC227)     │
+                                                                        └─────────────┘</pre>
+    <p class="ascii-caption">The fork routes by what the answer is made of; the second row routes by the input's texture to one of the §2 skeletons. A few problems do both (parse, then reformat) — split them into two passes and route each half on its own.</p>
+
+    <h3>Matching the prompt's phrasing</h3>
+    <table class="t-clue">
+      <thead><tr><th>When the problem says…</th><th>It means…</th></tr></thead>
+      <tbody>
+        <tr><td>"add / multiply two numbers given as strings"</td><td>Produce → skeleton 1. Text Formatting §8.1 (LC415)</td></tr>
+        <tr><td>"a robot / pointer follows these instructions; where does it end up?"</td><td>Produce → skeleton 2. Text Formatting §8.2 (LC1041)</td></tr>
+        <tr><td>"water / sand / particles settle into this terrain"</td><td>Produce → skeleton 2 with a terrain-array state + inner settle scan. Text Formatting §8.3 (LC755)</td></tr>
+        <tr><td>"format text into lines of width N" / "justify"</td><td>Produce → skeleton 3, overflow trigger, then a spacing pass. Text Formatting §8.4 (LC68)</td></tr>
+        <tr><td>"split this query / config line into key-value tokens"</td><td>Consume → skeleton 3, delimiter trigger. String Parsing §8.1 (Decode Runtime Filters)</td></tr>
+        <tr><td>"evaluate this expression string" / "+ − × ÷ with precedence"</td><td>Consume → skeleton 3 committing into a stack. String Parsing §8.2 (LC227)</td></tr>
+        <tr><td>"parse this nested / bracketed string into objects"</td><td>Consume → skeleton 4. String Parsing §8.3 (LC385)</td></tr>
+        <tr><td>"which pairs of words form a palindrome when concatenated?"</td><td>Consume → reversed-word complement map + split enumeration. String Parsing §8.4 (LC336) — an <a href="../arrays/hash_map_deep_dive_master.html">arrays-hub pattern</a> on string data</td></tr>
+        <tr><td>"return the substring count / longest window"</td><td>Not this block — that is <a href="../arrays/sliding_window_master.html">Sliding Window</a>. No structure is built; a window is maintained.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Family 1 — Produce / simulate</h3>
+    <div class="pattern-block" id="v-produce">
+      <div class="block-header">
+        <span class="block-kicker">Family 1</span>
+        <span class="block-name">Produce / simulate — build output or step a state forward</span>
+        <div class="block-pills"><span class="pill pill-t">O(n)–O(n·k)</span><span class="pill pill-s">O(n)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>Reach for it when:</strong> the answer is a string you assemble or a final state you reach by applying rules. Carry a small O(1) state (carry digit, robot pose, water level, current line) and append to a buffer as you go. Covered in full by the <a href="text_formatting_deep_dive_master.html">Text Formatting deep dive</a>.</div>
+        <p>Four variants, in increasing bookkeeping difficulty — each is a §2 skeleton or a variant of one:</p>
+        <ul>
+          <li><strong>Digit-buffer build</strong> (skeleton 1) — two indices walk two strings right-to-left, summing with a carry (LC415). <em>Full walkthrough.</em></li>
+          <li><strong>State-machine simulation</strong> (skeleton 2) — apply an instruction sequence to (position, direction); read the final pose (LC1041). <em>Full walkthrough.</em></li>
+          <li><strong>Physics / grid simulation</strong> (skeleton 2, terrain-array state) — drop a unit, settle it by a local lowest-reachable rule (LC755). <em>Frame + pitfalls only.</em></li>
+          <li><strong>Greedy line-packing + spacing</strong> (skeleton 3, overflow trigger) — pack words into width-N lines, then distribute spaces (LC68). <em>Frame + spacing edge cases, no code.</em></li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>Family 2 — Consume / parse</h3>
+    <div class="pattern-block" id="v-consume">
+      <div class="block-header">
+        <span class="block-kicker">Family 2</span>
+        <span class="block-name">Consume / parse — scan input into a structure</span>
+        <div class="block-pills"><span class="pill pill-t">O(n)–O(n·k)</span><span class="pill pill-s">O(n)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>Reach for it when:</strong> the answer is a value or structure extracted from the characters. Fold each character into a running token; at a boundary, commit it to a stack, map, or nested object. Covered in full by the <a href="string_parsing_deep_dive_master.html">String Parsing deep dive</a>.</div>
+        <p>Four variants:</p>
+        <ul>
+          <li><strong>Tokenize + map</strong> (skeleton 3, delimiter trigger) — split on a delimiter, discard empties, build an ordered multi-map (Decode Runtime Filters). <em>Short, edge-case-focused.</em></li>
+          <li><strong>Stack-based expression parse</strong> (skeletons 3 + 4 composed) — scan numbers and operators, honor precedence with a stack (LC227). <em>Full walkthrough.</em></li>
+          <li><strong>Nested-structure stack parse</strong> (skeleton 4) — push on open-bracket, pop on close, accumulate between (LC385). <em>Frame + hints only.</em></li>
+          <li><strong>Reversed-prefix matching</strong> (arrays complement map + split enumeration) — map reversed words, test prefix/suffix palindrome remainders (LC336). <em>Signal + frame, no code.</em></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Terminology decoder -->
   <section id="terminology">
-    <h2>3 &nbsp; Terminology Decoder</h2>
+    <h2>5 &nbsp; Terminology Decoder</h2>
     <table class="t-decoder">
       <thead><tr><th>Term</th><th>Plain meaning</th><th>Example</th></tr></thead>
       <tbody>
@@ -102,254 +374,41 @@
         <tr><td>State machine</td><td>A small set of variables (position, direction, carry) that fully describe "where you are" between steps</td><td>(x, y, facing) for a robot; (carry) for digit addition</td></tr>
         <tr><td>Buffer / accumulator</td><td>A growing array of characters you append to, joined into a string only at the end</td><td>Collect digits, then <code>String(buffer.reversed())</code></td></tr>
         <tr><td>Tokenize</td><td>Splitting a string into meaningful pieces on a delimiter, discarding the empties</td><td><code>"a&amp;&amp;b"</code> → tokens <code>["a", "b"]</code></td></tr>
-        <tr><td>Scan / pass</td><td>A single index moving left to right exactly once over the characters</td><td><code>for c in s</code> or a manual <code>i += 1</code> loop</td></tr>
+        <tr><td>Commit trigger</td><td>The event that ends the current token and folds it into the output: a delimiter, an operator boundary, or an overflow</td><td><code>"&amp;"</code> seen → commit key/value, reset</td></tr>
+        <tr><td>Final flush</td><td>The commit that must happen <em>after</em> the loop because the input ends without a trailing trigger</td><td>The last operand in <code>"3+4"</code>; the last line in LC68</td></tr>
+        <tr><td>Scan / pass</td><td>A single index moving left to right exactly once over the characters</td><td><code>for character in characterArray</code> or a manual index loop</td></tr>
         <tr><td>Precedence</td><td>The rule that some operators bind tighter than others, so they must be applied first</td><td>× and ÷ before + and − in <code>3+4*2</code></td></tr>
         <tr><td>Greedy packing</td><td>Filling a fixed capacity by taking items in order until the next one would overflow, then committing</td><td>Add words to a line until the next word won't fit</td></tr>
-        <tr><td>Character array</td><td>Converting <code>String</code> to <code>[Character]</code> so indexing is O(1) (Swift strings are not randomly indexable)</td><td><code>let chars = Array(s)</code></td></tr>
+        <tr><td>Character array</td><td>Converting <code>String</code> to <code>[Character]</code> so indexing is O(1) (Swift strings are not randomly indexable)</td><td><code>let characterArray = Array(string)</code></td></tr>
       </tbody>
     </table>
   </section>
 
   <hr class="wiki-hr">
 
-  <!-- 4. Mental model -->
-  <section id="mental-model">
-    <h2>4 &nbsp; Mental Model — one index, one decision per character</h2>
-
-    <div class="co-idea">
-      <div class="co-idea-title">The one idea</div>
-      Make exactly one pass with one index. At every character you make a single, local decision — emit it, fold it into a running value, push it, or skip it — using only O(1) state plus one growing buffer or stack. If you ever find yourself wanting to "go back and look again," you have picked the wrong structure: the right one remembers what you need.
-    </div>
-
-    <p>The two families differ only in what the per-character decision <em>does</em>. Watch the same single-pass shape on each side. First, <strong>producing</strong> — adding <code>"45" + "8"</code> digit by digit, right to left, carrying:</p>
-
-    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">produce: walk right-to-left, carry, append to buffer</span></div>
-<pre class="dry"><span class="tr-var">a="45"  b="8"  carry=0  buf=[]</span>
-
-i→'5', j→'8'   sum = 5 + 8 + 0 = 13 → digit 3, <span class="tr-aha">carry 1</span>
-               buf=[3]
-i→'4', j past  sum = 4 + 0 + 1 = 5  → digit 5, carry 0
-               buf=[3,5]
-both past, carry 0 → <span class="tr-ok">stop</span>
-               result = reverse(buf) = "53"</pre>
-    <p class="ascii-caption">Producing: the buffer grows; the carry is the only running state. One pass, no re-reading.</p>
-
-    <p>Now <strong>consuming</strong> — scanning <code>"3+4"</code> into a value, folding each character into a running number:</p>
-
-    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">consume: scan left-to-right, fold digits, defer the operator</span></div>
-<pre class="dry"><span class="tr-var">num=0  lastOp='+'  stack=[]</span>
-
-'3'  digit → num = 0*10 + 3 = 3
-'+'  operator boundary → apply lastOp '+' to num: push +3
-     <span class="tr-aha">reset num=0, lastOp='+'</span>   stack=[3]
-'4'  digit → num = 0*10 + 4 = 4
-end  flush: apply lastOp '+' to num: push +4   stack=[3,4]
-     answer = sum(stack) = <span class="tr-ok">7</span></pre>
-    <p class="ascii-caption">Consuming: the structure (here a stack) grows; <code>num</code> and <code>lastOp</code> are the running state. Same one-pass shape, opposite direction of data flow.</p>
-
-    <p>Recognizing that both sides are <em>the same loop with a different body</em> is what lets you start coding immediately: set up the index, the O(1) state, and the buffer-or-stack, then fill in the one decision.</p>
-  </section>
-
-  <hr class="wiki-hr">
-
-  <!-- 5. Pseudocode primer -->
-  <section id="pseudocode">
-    <h2>5 &nbsp; Pseudocode Primer</h2>
-    <p>Both families are this skeleton. The <code>DECIDE</code> line is the only part that changes between problems — and the choice of <code>state</code> vs <code>structure</code> is the choice of deep dive.</p>
-    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">the universal single-pass shape</span></div>
-<pre class="pseudo"><span class="pk">FUNCTION</span> process(s):
-    chars  ← Array(s)            <span class="pc">O(1) indexing — Swift strings aren't indexable</span>
-    state  ← initial running values (carry, position, num, lastOp…)
-    output ← empty buffer OR empty stack/map
-
-    i ← 0
-    <span class="pk">WHILE</span> i &lt; chars.length:
-        c ← chars[i]
-        DECIDE on c:                <span class="pc">the one per-character decision</span>
-            <span class="pk">produce</span>: append to output, update state
-            <span class="pk">consume</span>: fold c into state; at a boundary, commit state to output
-        i ← i + 1
-
-    finalize output (flush last token / reverse buffer / sum stack)
-    <span class="pk">RETURN</span> output</pre>
-    <div class="co-insight"><strong>Why a single pass is enough:</strong> the running <code>state</code> carries forward everything a later character could need — the carry already holds the overflow, the stack already holds the deferred operands. Nothing earlier in the string needs to be re-read, so a second pass would be redundant work. When a problem genuinely needs two passes (e.g. justify computes line membership first, then spacing), each pass is still a clean single scan.</div>
-  </section>
-
-  <hr class="wiki-hr">
-
-  <!-- 6. Iterative-only pattern -->
-  <section id="iterative">
-    <h2>6 &nbsp; Iterative-Only Pattern — explicit index, explicit stack</h2>
-    <p>This block is iterative by nature, and deliberately so. Two rules keep it that way:</p>
-    <ul>
-      <li><strong>Walk a manual index, not the language.</strong> Many of these problems need two indices moving at different speeds (two number strings of unequal length), look-ahead (is the next char a digit?), or back-tracking the buffer. A <code>for c in s</code> loop hides the index you need; an explicit <code>while i &lt; n</code> exposes it. Convert to <code>[Character]</code> first so <code>chars[i]</code> is O(1).</li>
-      <li><strong>Make the stack explicit.</strong> Nested-structure parses (brackets, expressions) are recursive in spirit, but an explicit stack is safer than recursion: it cannot overflow the call stack on a deeply nested input, and the parse state is a value you can print and inspect mid-loop. Recursion belongs only as an appendix contrast, never as the main solution.</li>
-    </ul>
-    <div class="co-note"><strong>Why this matters here specifically:</strong> the entire difficulty of this block is bookkeeping, and bookkeeping is exactly what an explicit index and an explicit stack make visible. The moment your control flow hides the index or the stack, the off-by-one and the dropped-final-token bugs become invisible too.</div>
-  </section>
-
-  <hr class="wiki-hr">
-
-  <!-- 7. Swift foundations -->
-  <section id="swift">
-    <h2>7 &nbsp; Swift Foundations</h2>
-    <p>Three Swift facts underlie every problem in this block. Say them out loud before coding — they are the source of most "why is this O(n²)?" surprises.</p>
-    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">the three string-handling rules for this block</span></div>
-<pre class="swift"><span class="cm">// 1. Strings are NOT randomly indexable. s[2] does not compile.</span>
-<span class="cm">//    Convert once to [Character] for O(1) indexing.</span>
-<span class="kw">let</span> chars = <span class="tp">Array</span>(s)          <span class="cm">// O(n) once; chars[i] is O(1) after</span>
-
-<span class="cm">// 2. Build into an array, join at the end. Repeated String += is O(n) each.</span>
-<span class="kw">var</span> buf: [<span class="tp">Character</span>] = []
-buf.append(<span class="st">"x"</span>)               <span class="cm">// O(1) amortized</span>
-<span class="kw">let</span> result = <span class="tp">String</span>(buf)      <span class="cm">// one O(n) join</span>
-
-<span class="cm">// 3. Character ↔ digit: there is no implicit cast. Use wholeNumberValue,</span>
-<span class="cm">//    or subtract the ASCII zero via asciiValue.</span>
-<span class="kw">let</span> d = c.wholeNumberValue!     <span class="cm">// '7' → 7  (nil for non-digits — guard it)</span>
-<span class="kw">let</span> back = <span class="tp">Character</span>(<span class="tp">String</span>(d)) <span class="cm">// 7 → '7'</span></pre>
-    <div class="co-pitfall" style="margin-top:12px"><strong>The O(n²) trap.</strong> <code>result += String(c)</code> inside a loop reallocates the whole string every iteration — O(n²) total. Always accumulate into <code>[Character]</code> (or <code>[String]</code> for line-level output) and <code>String(...)</code> / <code>.joined()</code> once at the end. Likewise <code>s.removeFirst()</code> is O(n); walk an index instead.</div>
-  </section>
-
-  <hr class="wiki-hr">
-
-  <!-- 8. The two families -->
-  <section id="variants">
-    <h2>8 &nbsp; The Two Families</h2>
-    <p>This overview catalogs the block at the family level; each deep dive expands its family into concrete variants with full pseudocode, Swift, and worked traces.</p>
-
-    <!-- 8.1 Produce / simulate -->
-    <div class="pattern-block" id="v-produce">
-      <div class="block-header">
-        <span class="block-kicker">Family 8.1</span>
-        <span class="block-name">Produce / simulate — build output or step a state forward</span>
-        <div class="block-pills"><span class="pill pill-t">O(n)–O(n·k)</span><span class="pill pill-s">O(n)</span></div>
-      </div>
-      <div class="block-body">
-        <div class="co-when"><strong>When to use:</strong> the answer is a string you assemble or a final state you reach by applying rules. Carry a small O(1) state (carry digit, robot pose, water level, current line) and append to a buffer as you go. Covered in full by the <a href="text_formatting_deep_dive_master.html">Text Formatting deep dive</a>.</div>
-        <p>Four variants, in increasing bookkeeping difficulty:</p>
-        <ul>
-          <li><strong>Digit-buffer build</strong> — two indices walk two strings right-to-left, summing with a carry (LC415). <em>Full walkthrough.</em></li>
-          <li><strong>State-machine simulation</strong> — apply an instruction sequence to (position, direction); read the final pose (LC1041). <em>Full walkthrough.</em></li>
-          <li><strong>Physics / grid simulation</strong> — drop a unit, settle it by a local lowest-reachable rule (LC755). <em>Frame + pitfalls only.</em></li>
-          <li><strong>Greedy line-packing + spacing</strong> — pack words into width-N lines, then distribute spaces (LC68). <em>Frame + spacing edge cases, no code.</em></li>
-        </ul>
-      </div>
-    </div>
-
-    <!-- 8.2 Consume / parse -->
-    <div class="pattern-block" id="v-consume">
-      <div class="block-header">
-        <span class="block-kicker">Family 8.2</span>
-        <span class="block-name">Consume / parse — scan input into a structure</span>
-        <div class="block-pills"><span class="pill pill-t">O(n)–O(n·k)</span><span class="pill pill-s">O(n)</span></div>
-      </div>
-      <div class="block-body">
-        <div class="co-when"><strong>When to use:</strong> the answer is a value or structure extracted from the characters. Fold each character into a running token; at a boundary, commit it to a stack, map, or nested object. Covered in full by the <a href="string_parsing_deep_dive_master.html">String Parsing deep dive</a>.</div>
-        <p>Four variants:</p>
-        <ul>
-          <li><strong>Tokenize + map</strong> — split on a delimiter, discard empties, build an ordered map (Decode Runtime Filters). <em>Short, edge-case-focused.</em></li>
-          <li><strong>Stack-based expression parse</strong> — scan numbers and operators, honor precedence with a stack (LC227). <em>Full walkthrough.</em></li>
-          <li><strong>Nested-structure stack parse</strong> — push on open-bracket, pop on close, accumulate between (LC385). <em>Frame + hints only.</em></li>
-          <li><strong>Reversed-prefix matching</strong> — map reversed words, test prefix/suffix palindrome remainders (LC336). <em>Signal + frame, no code.</em></li>
-        </ul>
-      </div>
-    </div>
-
-  </section>
-
-  <hr class="wiki-hr">
-
-  <!-- 9. Complexity -->
-  <section id="complexity">
-    <h2>9 &nbsp; Complexity Analysis</h2>
-    <p><strong>The baseline is O(n) — your job is to not lose it.</strong> A single pass that does O(1) work per character is O(n). The complexity questions in this block are almost never "can I get below O(n)?" — they are "did I accidentally go above it?" The three ways people do: rebuilding a string with <code>+=</code> in the loop (O(n²)), re-scanning earlier characters instead of carrying state (O(n²)), or calling an O(n) operation (<code>removeFirst</code>, <code>contains</code>) once per character.</p>
-    <table class="t-cmx">
-      <thead><tr><th>Family / variant</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
-      <tbody>
-        <tr><td>Digit-buffer build (8.1)</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td>One pass over the longer string; buffer holds the result.</td></tr>
-        <tr><td>State-machine simulation (8.1)</td><td class="tc">O(n)</td><td class="sc">O(1)</td><td>Apply each instruction once; only the pose is stored.</td></tr>
-        <tr><td>Physics / grid simulation (8.1)</td><td class="tc">O(v·n)</td><td class="sc">O(n)</td><td>Each of v drops can scan up to the terrain width settling.</td></tr>
-        <tr><td>Greedy line-packing (8.1)</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td>Each word is placed once; spacing is O(line width) per line.</td></tr>
-        <tr><td>Tokenize + map (8.2)</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td>One scan to split; map holds every value seen.</td></tr>
-        <tr><td>Stack expression parse (8.2)</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td>One scan; stack holds at most all deferred operands.</td></tr>
-        <tr><td>Nested-structure parse (8.2)</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td>One scan; stack depth bounded by nesting depth.</td></tr>
-        <tr><td>Reversed-prefix matching (8.2)</td><td class="tc">O(w·L²)</td><td class="sc">O(w·L)</td><td>w words, each of length L; for each word, test each of its L split points for a palindrome remainder.</td></tr>
-        <tr class="bottleneck"><td>Bottleneck</td><td class="tc">O(n²)</td><td class="sc">—</td><td>String <code>+=</code> in a loop, <code>removeFirst()</code> per char, or re-scanning earlier characters instead of carrying state — any of these silently turns an O(n) pass quadratic.</td></tr>
-      </tbody>
-    </table>
-  </section>
-
-  <hr class="wiki-hr">
-
-  <!-- 10. Pitfalls -->
-  <section id="pitfalls">
-    <h2>10 &nbsp; Common Pitfalls</h2>
-    <div class="co-pitfall">
-      <div class="co-pitfall-title">Pitfalls — bugs this block invites</div>
-      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Indexing a Swift String directly.</strong> <code>s[i]</code> does not compile, and <code>s[s.index(s.startIndex, offsetBy: i)]</code> is O(i) — quadratic in a loop. Convert to <code>[Character]</code> once up front.</span></div>
-      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Forgetting the final flush.</strong> The last token, the last carry, the last line, the last operand — almost every consume/produce loop commits on a boundary, and the input ends without a trailing boundary. You must finalize after the loop. This is the single most common bug in the block.</span></div>
-      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Re-scanning instead of carrying state.</strong> If you reach for "let me look back at the previous characters," your state is incomplete. Add a variable (carry, lastOp, runningNum) so the past is summarized, not re-read.</span></div>
-      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Building strings with <code>+=</code>.</strong> O(n²). Accumulate into an array and join once.</span></div>
-      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Char/digit conversion mistakes.</strong> <code>'7'</code> is not <code>7</code>. Use <code>wholeNumberValue</code> (and guard the <code>nil</code> for non-digits) or subtract the ASCII zero — but be consistent.</span></div>
-    </div>
-  </section>
-
-  <hr class="wiki-hr">
-
-  <!-- 11. Edge cases -->
+  <!-- 6. Edge cases -->
   <section id="edge-cases">
-    <h2>11 &nbsp; Edge Cases to Verbalize</h2>
+    <h2>6 &nbsp; Edge Cases to Verbalize</h2>
     <p>These are the cross-family edge cases. Each deep dive adds the cases specific to its variants (LC68's spacing cases; the tokenizer's empty-token cases).</p>
     <table class="t-edge">
       <thead><tr><th>Input</th><th>Expected behavior</th><th>What it exercises</th></tr></thead>
       <tbody>
         <tr><td>Empty string <code>""</code></td><td>Return the empty result (<code>""</code>, <code>[]</code>, or <code>[:]</code>) — loop body never runs</td><td>Guard / loop that tolerates zero iterations</td></tr>
         <tr><td>Single character</td><td>One iteration, then the final flush produces the answer</td><td>The post-loop finalize step on a minimal input</td></tr>
-        <tr><td>Trailing carry / final token</td><td>The answer includes the piece committed <em>after</em> the loop ends</td><td>Whether you flush after the loop, not only on boundaries</td></tr>
+        <tr><td>Trailing carry / final token</td><td>The answer includes the piece committed <em>after</em> the loop ends</td><td>Whether you flush after the loop, not only on triggers</td></tr>
         <tr><td>Unequal-length inputs (two strings)</td><td>The shorter index "runs out" and contributes 0 / nothing</td><td>Bounds guards on the second index</td></tr>
         <tr><td>All-delimiter / all-whitespace input</td><td>Every token is empty → empty result, no crash</td><td>Discarding empties; not committing blank tokens</td></tr>
         <tr><td>Leading / trailing delimiter</td><td>Produces an empty token that must be skipped, not stored</td><td>The skip-empty rule at the ends of the scan</td></tr>
+        <tr><td>Single word / single element</td><td>Zero gaps — any division or modulo on the gap count must be guarded</td><td>The <code>gapCount &gt; 0</code> guard before dividing</td></tr>
       </tbody>
     </table>
   </section>
 
   <hr class="wiki-hr">
 
-  <!-- 12. Cheat sheet -->
-  <section id="cheatsheet">
-    <h2>12 &nbsp; Cheat Sheet</h2>
-    <table class="t-versus">
-      <thead><tr><th>You see…</th><th>You use</th><th>Deep dive</th></tr></thead>
-      <tbody>
-        <tr><td>"add/multiply number strings"</td><td>digit-buffer + carry, right-to-left</td><td>Text Formatting §8.1</td></tr>
-        <tr><td>"robot / pointer follows moves"</td><td>(position, direction) state machine</td><td>Text Formatting §8.2</td></tr>
-        <tr><td>"settle water / particles"</td><td>per-drop local settle rule</td><td>Text Formatting §8.3</td></tr>
-        <tr><td>"justify / format into width-N lines"</td><td>greedy pack + space distribution</td><td>Text Formatting §8.4</td></tr>
-        <tr><td>"split key=value tokens"</td><td>tokenize, skip empties, ordered map</td><td>String Parsing §8.1</td></tr>
-        <tr><td>"evaluate expression with precedence"</td><td>scan + stack (defer +/−, apply ×/÷)</td><td>String Parsing §8.2</td></tr>
-        <tr><td>"parse nested / bracketed string"</td><td>explicit stack: push on <code>[</code>, pop on <code>]</code></td><td>String Parsing §8.3</td></tr>
-        <tr><td>"palindrome pairs of words"</td><td>map reversed words + remainder test</td><td>String Parsing §8.4</td></tr>
-      </tbody>
-    </table>
-    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">copy-paste single-pass skeleton</span></div>
-<pre class="swift"><span class="kw">let</span> chars = <span class="tp">Array</span>(s)
-<span class="kw">var</span> i = <span class="nm">0</span>
-<span class="kw">var</span> out: [<span class="tp">Character</span>] = []      <span class="cm">// or: var stack: [Int] = [] / var map: [String:[String]] = [:]</span>
-<span class="kw">while</span> i &lt; chars.count {
-    <span class="kw">let</span> c = chars[i]
-    <span class="cm">// DECIDE: emit c / fold into running state / commit on boundary</span>
-    i += <span class="nm">1</span>
-}
-<span class="cm">// FINALIZE: flush last token / carry / line here — do not forget this</span>
-<span class="kw">let</span> result = <span class="tp">String</span>(out)</pre>
-  </section>
-
-  <hr class="wiki-hr">
-
-  <!-- 13. Cross-reference -->
+  <!-- 7. Demonstrated in practice -->
   <section id="practice">
-    <h2>13 &nbsp; Demonstrated in Practice</h2>
+    <h2>7 &nbsp; Demonstrated in Practice</h2>
     <p>Each problem in this block is taught in its own walkthrough — constraint insights, edge-case inventory, interview simulation, and (for warm-ups and walkthroughs) a full dry run and iterative Swift solution. Producers live in the Text Formatting deep dive; consumers in the String Parsing deep dive.</p>
     <div class="ref-grid">
       <a class="xref-card" href="../../walkthroughs/LC415_master.html">
@@ -392,14 +451,14 @@ buf.append(<span class="st">"x"</span>)               <span class="cm">// O(1) a
 
   <hr class="wiki-hr">
 
-  <!-- 14. Solo problem -->
+  <!-- 8. Solo problem -->
   <section id="solo">
-    <h2>14 &nbsp; Solo Problem — no solution on this page</h2>
+    <h2>8 &nbsp; Solo Problem — no solution on this page</h2>
     <div class="solo-box">
       <div class="solo-banner">Solo problem — no solution on this page</div>
       <p><strong>LC 385 — Mini Parser (Medium).</strong> You are given a string encoding a nested list of integers, such as <code>"[123,[456,[789]]]"</code>. Parse it into the corresponding nested structure. Decide your axis first (you are consuming), then build the structure with one scan and an explicit stack — before opening anything.</p>
       <ul class="checklist">
-        <li>Which family is this — produce or consume — and what structure are you building?</li>
+        <li>Which family is this — produce or consume — and which §2 skeleton does it call for?</li>
         <li>What does each character type do: a digit, a comma, an open bracket, a close bracket, a minus sign?</li>
         <li>Why an explicit stack rather than recursion — and what does the stack hold?</li>
         <li>When do you commit an accumulated number, and what is the final-flush case?</li>
@@ -408,11 +467,63 @@ buf.append(<span class="st">"x"</span>)               <span class="cm">// O(1) a
     </div>
   </section>
 
+  <hr class="wiki-hr">
+
+  <!-- 9. Ultimate cheat sheet -->
+  <section id="cheatsheet">
+    <h2>9 &nbsp; Ultimate Cheat Sheet</h2>
+    <p>The night-before skim: what you <em>see</em>, what you <em>use</em>, and the <em>reason</em> — then the complexity grid and the instant rule-outs.</p>
+
+    <h3>Pick the tool</h3>
+    <table class="t-versus">
+      <thead><tr><th>You see…</th><th>Use…</th><th>Because…</th></tr></thead>
+      <tbody>
+        <tr><td>"add/multiply number strings"</td><td>Skeleton 1 — digit buffer + carry, right-to-left</td><td><code>carry &gt; 0</code> in the loop condition folds the final flush into the loop</td></tr>
+        <tr><td>"robot / pointer follows moves"</td><td>Skeleton 2 — (position, direction) state machine</td><td>the pose summarizes the whole past; the direction table makes turns arithmetic</td></tr>
+        <tr><td>"settle water / particles"</td><td>Skeleton 2 — terrain-array state + per-drop settle scan</td><td>the heights array <em>is</em> the state; each drop is one instruction</td></tr>
+        <tr><td>"justify / format into width-N lines"</td><td>Skeleton 3 — overflow trigger, then a spacing pass</td><td>the last batch never overflows — it needs its own post-loop, differently-formatted flush</td></tr>
+        <tr><td>"split key=value tokens"</td><td>Skeleton 3 — delimiter trigger</td><td><code>omittingEmptySubsequences</code> drops the empties; first-<code>=</code>-only keeps values intact</td></tr>
+        <tr><td>"evaluate expression with precedence"</td><td>Skeletons 3 + 4 — commit into a stack</td><td>defer +/− (push), apply ×/÷ to the stack top now — the stack absorbs precedence</td></tr>
+        <tr><td>"parse nested / bracketed string"</td><td>Skeleton 4 — explicit stack</td><td>innermost closes first — LIFO; push on <code>[</code>, pop-and-attach on <code>]</code></td></tr>
+        <tr><td>"palindrome pairs of words"</td><td>Complement map + split enumeration</td><td>an <a href="../arrays/arrays_hashing_overview_master.html">arrays-hub</a> pattern — index reversed words, test both halves per split</td></tr>
+        <tr><td>"longest/shortest substring under a constraint"</td><td><a href="../arrays/sliding_window_master.html">Sliding window</a></td><td>nothing is built or parsed — a window is maintained; wrong block</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Complexity at a glance</h3>
+    <p><strong>The baseline is O(n) — your job is to not lose it.</strong> The complexity question in this block is almost never "can I get below O(n)?" — it is "did I accidentally go above it?"</p>
+    <table class="t-cmx">
+      <thead><tr><th>Variant</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Digit-buffer build (S1)</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td>One pass over the longer string; buffer holds the result.</td></tr>
+        <tr><td>State-machine simulation (S2)</td><td class="tc">O(n)</td><td class="sc">O(1)</td><td>Apply each instruction once; only the pose is stored.</td></tr>
+        <tr><td>Physics / grid simulation (S2 variant)</td><td class="tc">O(v·n)</td><td class="sc">O(n)</td><td>Each of v drops can scan up to the terrain width while settling.</td></tr>
+        <tr><td>Greedy line-packing (S3)</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td>Each word is placed once; spacing is O(line width) per line.</td></tr>
+        <tr><td>Tokenize + map (S3)</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td>One scan to split; map holds every value seen.</td></tr>
+        <tr><td>Stack expression parse (S3+S4)</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td>One scan; stack holds at most all deferred operands.</td></tr>
+        <tr><td>Nested-structure parse (S4)</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td>One scan; stack depth bounded by nesting depth.</td></tr>
+        <tr><td>Reversed-prefix matching</td><td class="tc">O(w·L²)</td><td class="sc">O(w·L)</td><td>w words of length L; each word tests L split points for a palindrome remainder.</td></tr>
+        <tr class="bottleneck"><td>Bottleneck</td><td class="tc">O(n²)</td><td class="sc">—</td><td>String <code>+=</code> in a loop, <code>removeFirst()</code> per char, <code>String.Index</code> math per access, or re-scanning earlier characters instead of carrying state.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="co-pitfall">
+      <div class="co-pitfall-title">Instant disqualifiers — rule the bug out on sight</div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><code>string[integerIndex]</code> anywhere → does not compile, and the <code>String.Index</code> workaround is O(n) per access → <strong><code>Array(string)</code> first, always</strong>.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><code>result += String(character)</code> in a loop → O(n²) → accumulate into <code>[Character]</code>, join once.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span>No commit after the loop → the last token / carry / line / operand is silently dropped. <strong>The single most common bug in the block</strong> — every trigger-based loop needs its final-flush story.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span>"Let me look back at the previous characters" → your state is incomplete → add a variable; never re-scan.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><code>'7' == 7</code> thinking → there is no implicit cast → <code>wholeNumberValue</code> in, <code>Character(String(…))</code> out.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span>Per-token variables reset inline, one by one → a forgotten flag bleeds into the next token → one <code>resetState()</code>.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span>Dividing by a gap count that can be zero (single-word line) → crash → <code>guard gapCount &gt; 0</code>.</span></div>
+    </div>
+  </section>
+
   <div class="page-footer">
-    Strings &amp; Simulation · Theory Masterfile (Overview) · Deep dives:
+    Strings &amp; Simulation Overview · Theory Masterfile · Deep dives:
     <a href="text_formatting_deep_dive_master.html">Text Formatting / Simulation</a> ·
     <a href="string_parsing_deep_dive_master.html">String Parsing</a> ·
-    Structure per <code>wiki/_standards/THEORY_MASTERFILE_STANDARD.md</code>
+    Hub-overview exemption per <code>wiki/_standards/THEORY_MASTERFILE_STANDARD.md</code>
   </div>
 
 </main>
