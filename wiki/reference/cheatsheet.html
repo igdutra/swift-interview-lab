@@ -4,6 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Big-O &amp; DS/A Cheatsheet · Study Wiki</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Big-O & DS/A Cheatsheet",
+  "nav": "Big-O Cheatsheet",
+  "topics": [
+    "Complexity",
+    "DS&A",
+    "Reference"
+  ],
+  "blurb": "Time/space complexity by data structure, input-size heuristics, and the Big-O chart.",
+  "order": 6
+}
+</script>
 <link rel="stylesheet" href="../_shared/wiki.css">
 <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
@@ -12,24 +25,6 @@
 <nav id="topnav" class="topnav"></nav>
 
 <div class="page">
-<nav class="toc-col">
-  <div class="toc-title">Contents</div>
-  <a href="#chart">Big-O Chart</a>
-  <a href="#arrays">Arrays</a>
-  <a href="#strings">Strings</a>
-  <a href="#linked-lists">Linked Lists</a>
-  <a href="#hash">Hash Table / Set</a>
-  <a href="#stack-queue">Stack &amp; Queue</a>
-  <a href="#trees">Trees &amp; Graphs</a>
-  <a href="#heap">Heap</a>
-  <a href="#search">Binary Search</a>
-  <a href="#misc">Miscellaneous</a>
-  <a href="#input-sizes">Input Sizes</a>
-  <a href="#sorting-algos">Sorting Algorithms</a>
-  <a href="#flowchart">DS/A Flowchart</a>
-  <a href="#stages-cheat">Interview Stages</a>
-</nav>
-
 <main class="content">
 
   <h1 class="page-title">Big-O &amp; DS/A Cheatsheet</h1>
@@ -43,12 +38,12 @@
     <p>Time and space complexity of every common data structure operation, plus input-size heuristics for picking the right approach fast.</p>
   </div>
 
-  <h2 id="chart"><span class="sec-num">1</span> Big-O Complexity Chart</h2>
-  <figure style="margin: 0 0 32px;">
-    <img src="big_o.png" alt="Big-O complexity chart — growth rates from O(1) to O(n!)" style="max-width:100%;border-radius:6px;border:1px solid var(--border);">
+  <h2 id="chart" data-toc-label="Big-O Chart"><span class="sec-num">1</span> Big-O Complexity Chart</h2>
+  <figure class="fig">
+    <img src="big_o.png" alt="Big-O complexity chart — growth rates from O(1) to O(n!)" class="fig-img">
   </figure>
 
-  <h2 id="arrays"><span class="sec-num">2</span> Arrays (Dynamic Array)</h2>
+  <h2 id="arrays" data-toc-label="Arrays"><span class="sec-num">2</span> Arrays (Dynamic Array)</h2>
   <p>Given <code>n = arr.length</code>:</p>
   <table class="t-cmx">
     <thead><tr><th>Operation</th><th>Time</th></tr></thead>
@@ -63,7 +58,7 @@
     </tbody>
   </table>
 
-  <h2 id="strings"><span class="sec-num">3</span> Strings (Immutable)</h2>
+  <h2 id="strings" data-toc-label="Strings"><span class="sec-num">3</span> Strings (Immutable)</h2>
   <p>Given <code>n = s.length</code>:</p>
   <table class="t-cmx">
     <thead><tr><th>Operation</th><th>Time</th></tr></thead>
@@ -77,7 +72,7 @@
     </tbody>
   </table>
 
-  <h2 id="linked-lists"><span class="sec-num">4</span> Linked Lists</h2>
+  <h2 id="linked-lists" data-toc-label="Linked Lists"><span class="sec-num">4</span> Linked Lists</h2>
   <p>Given <code>n</code> = number of nodes:</p>
   <table class="t-cmx">
     <thead><tr><th>Operation</th><th>Time</th></tr></thead>
@@ -92,7 +87,7 @@
     </tbody>
   </table>
 
-  <h2 id="hash"><span class="sec-num">5</span> Hash Table / Set</h2>
+  <h2 id="hash" data-toc-label="Hash Table / Set"><span class="sec-num">5</span> Hash Table / Set</h2>
   <p>Given <code>n = dict.length</code>. Note: O(1) is relative to n; hashing a string key costs O(m) where m = key length.</p>
   <table class="t-cmx">
     <thead><tr><th>Operation</th><th>Time</th></tr></thead>
@@ -107,7 +102,7 @@
     </tbody>
   </table>
 
-  <h2 id="stack-queue"><span class="sec-num">6</span> Stack &amp; Queue</h2>
+  <h2 id="stack-queue" data-toc-label="Stack &amp; Queue"><span class="sec-num">6</span> Stack &amp; Queue</h2>
   <p>Stack (dynamic array implementation), Queue (doubly linked list implementation):</p>
   <table class="t-cmx">
     <thead><tr><th>Operation</th><th>Stack</th><th>Queue</th></tr></thead>
@@ -120,7 +115,7 @@
     </tbody>
   </table>
 
-  <h2 id="trees"><span class="sec-num">7</span> Binary Trees &amp; BST</h2>
+  <h2 id="trees" data-toc-label="Trees &amp; Graphs"><span class="sec-num">7</span> Binary Trees &amp; BST</h2>
   <p>Given <code>n</code> = number of nodes:</p>
   <table class="t-cmx">
     <thead><tr><th>Operation</th><th>Time</th></tr></thead>
@@ -134,7 +129,7 @@
     Average case assumes a well-balanced BST. Worst case is a straight-line tree (effectively a linked list).
   </div>
 
-  <h2 id="heap"><span class="sec-num">8</span> Heap / Priority Queue</h2>
+  <h2 id="heap" data-toc-label="Heap"><span class="sec-num">8</span> Heap / Priority Queue</h2>
   <p>Given <code>n = heap.length</code> (min-heap):</p>
   <table class="t-cmx">
     <thead><tr><th>Operation</th><th>Time</th></tr></thead>
@@ -146,7 +141,7 @@
     </tbody>
   </table>
 
-  <h2 id="search"><span class="sec-num">9</span> Binary Search</h2>
+  <h2 id="search" data-toc-label="Binary Search"><span class="sec-num">9</span> Binary Search</h2>
   <p>Given <code>n</code> = size of initial search space:</p>
   <table class="t-cmx">
     <thead><tr><th>Case</th><th>Time</th></tr></thead>
@@ -155,7 +150,7 @@
     </tbody>
   </table>
 
-  <h2 id="misc"><span class="sec-num">10</span> Miscellaneous</h2>
+  <h2 id="misc" data-toc-label="Miscellaneous"><span class="sec-num">10</span> Miscellaneous</h2>
   <table class="t-cmx">
     <thead><tr><th>Operation</th><th>Time</th><th>Space</th></tr></thead>
     <tbody>
@@ -164,9 +159,9 @@
       <tr><td>Dynamic programming</td><td>O(n·k) states × work</td><td class="tc">O(n) states</td></tr>
     </tbody>
   </table>
-  <p style="font-size:13px;color:var(--text3);">n = nodes, e = edges, k = work per node/state.</p>
+  <p class="u-note-text">n = nodes, e = edges, k = work per node/state.</p>
 
-  <h2 id="input-sizes"><span class="sec-num">11</span> Input Sizes → Expected Complexity</h2>
+  <h2 id="input-sizes" data-toc-label="Input Sizes"><span class="sec-num">11</span> Input Sizes → Expected Complexity</h2>
   <div class="co co-insight">
     Constraints are hints. Use input size to infer the expected time complexity before picking an algorithm. In interviews you won't always be told n explicitly — but it never hurts to ask.
   </div>
@@ -203,7 +198,7 @@
   <p><strong>n &gt; 1,000,000</strong></p>
   <p>Typically n ≥ 10⁹. Expected complexity is O(log n) or O(1). You must either drastically reduce the search space each iteration (binary search) or use constant-time tricks (math, clever hash map usage).</p>
 
-  <table class="t-cmx" style="margin-top:24px;">
+  <table class="t-cmx u-mt-24">
     <thead><tr><th>n</th><th>Expected Complexity</th><th>Typical Approach</th></tr></thead>
     <tbody>
       <tr><td>≤ 10</td><td>O(n!·n²) or O(4ⁿ)</td><td>Brute force, backtracking</td></tr>
@@ -217,12 +212,12 @@
   </table>
 
   <!-- Sorting Algorithms -->
-  <h2 id="sorting-algos"><span class="sec-num">12</span> Sorting Algorithms</h2>
+  <h2 id="sorting-algos" data-toc-label="Sorting Algorithms"><span class="sec-num">12</span> Sorting Algorithms</h2>
   <p>All major programming languages have a built-in sort. It is always correct to say sorting costs <strong>O(n log n)</strong>, where n is the number of elements. The specific algorithm varies by language — Python uses Timsort; C++ is not mandated by spec and varies.</p>
 
-  <figure style="margin: 16px 0 12px;">
-    <img src="sorting.png" alt="Sorting algorithm complexity chart" style="max-width:100%;border-radius:6px;border:1px solid var(--border);">
-    <figcaption style="font-size:13px;color:var(--text3);margin-top:6px;">Sorting algorithm complexity comparison</figcaption>
+  <figure class="u-my-16-12">
+    <img src="sorting.png" alt="Sorting algorithm complexity chart" class="fig-img">
+    <figcaption class="u-note-gap">Sorting algorithm complexity comparison</figcaption>
   </figure>
 
   <div class="co co-note">
@@ -231,44 +226,44 @@
   <p>See <a href="sort_complexity.html">Sorting Algorithm Complexity</a> for a full breakdown of Timsort vs Heapsort vs Counting Sort and when theory diverges from practice.</p>
 
   <!-- DS/A Flowchart -->
-  <h2 id="flowchart"><span class="sec-num">13</span> General DS/A Flowchart</h2>
+  <h2 id="flowchart" data-toc-label="DS/A Flowchart"><span class="sec-num">13</span> General DS/A Flowchart</h2>
   <p>A flowchart to help decide which data structure or algorithm to use. Note: this is intentionally general — it cannot cover every scenario, and more advanced algorithms like Dijkstra's are excluded.</p>
 
-  <figure style="margin: 16px 0 12px;">
-    <img src="flowchart.png" alt="Data structures and algorithms decision flowchart" style="max-width:100%;border-radius:6px;border:1px solid var(--border);">
-    <figcaption style="font-size:13px;color:var(--text3);margin-top:6px;">General DS/A decision flowchart</figcaption>
+  <figure class="u-my-16-12">
+    <img src="flowchart.png" alt="Data structures and algorithms decision flowchart" class="fig-img">
+    <figcaption class="u-note-gap">General DS/A decision flowchart</figcaption>
   </figure>
 
   <!-- Interview Stages Cheat Sheet -->
-  <h2 id="stages-cheat"><span class="sec-num">14</span> Interview Stages Cheat Sheet</h2>
+  <h2 id="stages-cheat" data-toc-label="Interview Stages"><span class="sec-num">14</span> Interview Stages Cheat Sheet</h2>
   <p>A condensed summary of the <a href="interview_stages.html">Stages of an Interview</a> guide. Print this and keep it visible during a remote interview.</p>
 
-  <div style="border:1px solid var(--border-lt);border-radius:4px;padding:20px 24px;margin-bottom:24px;">
+  <div class="u-panel">
 
-    <p style="margin:0 0 4px;"><strong>Stage 1 — Introductions</strong></p>
-    <ul style="margin:0 0 16px;">
+    <p class="u-mb-4"><strong>Stage 1 — Introductions</strong></p>
+    <ul class="u-mb-16">
       <li>Rehearsed 30–60 sec intro (education, experience, interests)</li>
       <li>Smile and speak with confidence</li>
       <li>Pay attention when the interviewer talks about themselves — use it for questions later</li>
     </ul>
 
-    <p style="margin:0 0 4px;"><strong>Stage 2 — Problem Statement</strong></p>
-    <ul style="margin:0 0 16px;">
+    <p class="u-mb-4"><strong>Stage 2 — Problem Statement</strong></p>
+    <ul class="u-mb-16">
       <li>Paraphrase the problem back after they read it</li>
       <li>Ask clarifying questions: input types, sorted/unsorted, empty input, invalid input, expected size</li>
       <li>Walk through one example test case to confirm understanding</li>
     </ul>
 
-    <p style="margin:0 0 4px;"><strong>Stage 3 — Brainstorming DS&amp;A</strong></p>
-    <ul style="margin:0 0 16px;">
+    <p class="u-mb-4"><strong>Stage 3 — Brainstorming DS&amp;A</strong></p>
+    <ul class="u-mb-16">
       <li>Always think out loud</li>
       <li>Break it down: what do I need to do → what DS/A accomplishes it efficiently?</li>
       <li>Be receptive to interviewer hints — they want you to succeed</li>
       <li>Explain your approach and get agreement before coding</li>
     </ul>
 
-    <p style="margin:0 0 4px;"><strong>Stage 4 — Implementation</strong></p>
-    <ul style="margin:0 0 16px;">
+    <p class="u-mb-4"><strong>Stage 4 — Implementation</strong></p>
+    <ul class="u-mb-16">
       <li>Narrate decisions as you code ("this Set prevents revisiting nodes")</li>
       <li>Write clean, convention-following code</li>
       <li>Avoid duplicate logic — use helpers or loops</li>
@@ -276,22 +271,22 @@
       <li>Brute force first is fine — acknowledge it, then optimize together</li>
     </ul>
 
-    <p style="margin:0 0 4px;"><strong>Stage 5 — Testing &amp; Debugging</strong></p>
-    <ul style="margin:0 0 16px;">
+    <p class="u-mb-4"><strong>Stage 5 — Testing &amp; Debugging</strong></p>
+    <ul class="u-mb-16">
       <li>Track variable values in writing as you walk through cases</li>
       <li>Condense trivial steps ("after this loop, prefix sum = …")</li>
       <li>Use print statements if the environment allows running code</li>
     </ul>
 
-    <p style="margin:0 0 4px;"><strong>Stage 6 — Follow-ups</strong></p>
-    <ul style="margin:0 0 16px;">
+    <p class="u-mb-4"><strong>Stage 6 — Follow-ups</strong></p>
+    <ul class="u-mb-16">
       <li>Time and space complexity — worst case, average if significantly different</li>
       <li>Justify your data structure / algorithm choices</li>
       <li>If asked "can it be improved?" — answer is usually yes</li>
     </ul>
 
-    <p style="margin:0 0 4px;"><strong>Stage 7 — Outro</strong></p>
-    <ul style="margin:0;">
+    <p class="u-mb-4"><strong>Stage 7 — Outro</strong></p>
+    <ul class="u-m-0">
       <li>Have 2–3 questions about the company/role ready</li>
       <li>Stay engaged, smile, ask follow-up questions to their answers</li>
     </ul>
@@ -305,7 +300,8 @@
 </main>
 </div>
 
-<script src="../_shared/pages.js"></script>
+<script src="../_shared/manifest.js"></script>
 <script src="../_shared/nav.js"></script>
+<script src="../_shared/toc.js"></script>
 </body>
 </html>

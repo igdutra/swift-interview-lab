@@ -3,7 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Strings &amp; Simulation · Theory Masterfile</title>
+<title>Strings &amp; Simulation Overview · Theory Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Strings & Simulation Overview",
+  "nav": "Strings & Simulation Overview",
+  "topics": [
+    "Strings",
+    "Simulation",
+    "Parsing"
+  ],
+  "blurb": "The decision layer — produce-vs-consume, the four anti-patterns that make string code O(n²), and how to pick which deep dive a new problem belongs to."
+}
+</script>
 <link rel="stylesheet" href="../../_shared/wiki.css">
 <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
@@ -12,22 +24,6 @@
 <nav id="topnav" class="topnav"></nav>
 
 <div class="page">
-
-<!-- ── TOC ── -->
-<nav class="toc-col">
-  <div class="toc-inner">
-    <div class="toc-title toc-cat-theory">Theory · Contents</div>
-    <a href="#lead"        class="toc-link"><span class="toc-num">1</span> Overview</a>
-    <a href="#skeletons"   class="toc-link"><span class="toc-num">2</span> The Four Standard Skeletons</a>
-    <a href="#toolbox"     class="toc-link"><span class="toc-num">3</span> Swift Tools — the Toolbox</a>
-    <a href="#decision"    class="toc-link"><span class="toc-num">4</span> Produce or Consume?</a>
-    <a href="#terminology" class="toc-link"><span class="toc-num">5</span> Terminology Decoder</a>
-    <a href="#edge-cases"  class="toc-link"><span class="toc-num">6</span> Edge Cases</a>
-    <a href="#practice"    class="toc-link"><span class="toc-num">7</span> Demonstrated in Practice</a>
-    <a href="#solo"        class="toc-link"><span class="toc-num">8</span> Solo Problem</a>
-    <a href="#cheatsheet"  class="toc-link"><span class="toc-num">9</span> Ultimate Cheat Sheet</a>
-  </div>
-</nav>
 
 <!-- ── CONTENT ── -->
 <main class="content">
@@ -40,7 +36,7 @@
   </div>
 
   <!-- 1. Lead -->
-  <section id="lead">
+  <section id="lead" data-toc-label="Overview">
     <div class="infobox">
       <div class="infobox-title">At a Glance</div>
       <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Linear single-pass processing of a character sequence or a small state</div></div>
@@ -65,7 +61,7 @@
   <hr class="wiki-hr">
 
   <!-- 2. The four standard skeletons -->
-  <section id="skeletons">
+  <section id="skeletons" data-toc-label="The Four Standard Skeletons">
     <h2>2 &nbsp; The Four Standard Skeletons</h2>
     <p>Memorize these loop shapes and the bookkeeping comes for free. A skeleton is a <em>control-flow shape</em>, not a problem: every problem in this block is one of these four shapes, a variant of one, or a composition of two.</p>
 
@@ -165,7 +161,7 @@
   <hr class="wiki-hr">
 
   <!-- 3. Swift tools — the toolbox -->
-  <section id="toolbox">
+  <section id="toolbox" data-toc-label="Swift Tools — the Toolbox">
     <h2>3 &nbsp; Swift Tools — the Toolbox</h2>
     <p>The Swift-specific mechanics that turn up again and again in this block. Each tool gets a three-column summary, then a full-width row with a worked example you can read top-to-bottom. (Window state, palindrome checks, and <code>reduce(into:)</code> belong to the <a href="../arrays/arrays_hashing_overview_master.html#toolbox">Arrays &amp; Hashing toolbox</a> — not repeated here.)</p>
     <table class="t-versus">
@@ -271,7 +267,7 @@ stack[stack.count - <span class="nm">1</span>].add(newValue)     <span class="cm
   <hr class="wiki-hr">
 
   <!-- 4. Decision layer -->
-  <section id="decision">
+  <section id="decision" data-toc-label="Produce or Consume?">
     <h2>4 &nbsp; Produce or Consume? — routing a problem to its skeleton</h2>
 
     <div class="co-idea">
@@ -365,7 +361,7 @@ strings  instructions capacity                     tokens        / scopes    pre
   <hr class="wiki-hr">
 
   <!-- 5. Terminology decoder -->
-  <section id="terminology">
+  <section id="terminology" data-toc-label="Terminology Decoder">
     <h2>5 &nbsp; Terminology Decoder</h2>
     <table class="t-decoder">
       <thead><tr><th>Term</th><th>Plain meaning</th><th>Example</th></tr></thead>
@@ -387,7 +383,7 @@ strings  instructions capacity                     tokens        / scopes    pre
   <hr class="wiki-hr">
 
   <!-- 6. Edge cases -->
-  <section id="edge-cases">
+  <section id="edge-cases" data-toc-label="Edge Cases">
     <h2>6 &nbsp; Edge Cases to Verbalize</h2>
     <p>These are the cross-family edge cases. Each deep dive adds the cases specific to its variants (LC68's spacing cases; the tokenizer's empty-token cases).</p>
     <table class="t-edge">
@@ -407,7 +403,7 @@ strings  instructions capacity                     tokens        / scopes    pre
   <hr class="wiki-hr">
 
   <!-- 7. Demonstrated in practice -->
-  <section id="practice">
+  <section id="practice" data-toc-label="Demonstrated in Practice">
     <h2>7 &nbsp; Demonstrated in Practice</h2>
     <p>Each problem in this block is taught in its own walkthrough — constraint insights, edge-case inventory, interview simulation, and (for warm-ups and walkthroughs) a full dry run and iterative Swift solution. Producers live in the Text Formatting deep dive; consumers in the String Parsing deep dive.</p>
     <div class="ref-grid">
@@ -452,7 +448,7 @@ strings  instructions capacity                     tokens        / scopes    pre
   <hr class="wiki-hr">
 
   <!-- 8. Solo problem -->
-  <section id="solo">
+  <section id="solo" data-toc-label="Solo Problem">
     <h2>8 &nbsp; Solo Problem — no solution on this page</h2>
     <div class="solo-box">
       <div class="solo-banner">Solo problem — no solution on this page</div>
@@ -470,7 +466,7 @@ strings  instructions capacity                     tokens        / scopes    pre
   <hr class="wiki-hr">
 
   <!-- 9. Ultimate cheat sheet -->
-  <section id="cheatsheet">
+  <section id="cheatsheet" data-toc-label="Ultimate Cheat Sheet">
     <h2>9 &nbsp; Ultimate Cheat Sheet</h2>
     <p>The night-before skim: what you <em>see</em>, what you <em>use</em>, and the <em>reason</em> — then the complexity grid and the instant rule-outs.</p>
 
@@ -529,7 +525,8 @@ strings  instructions capacity                     tokens        / scopes    pre
 </main>
 </div>
 
-<script src="../../_shared/pages.js"></script>
+<script src="../../_shared/manifest.js"></script>
 <script src="../../_shared/nav.js"></script>
+<script src="../../_shared/toc.js"></script>
 </body>
 </html>

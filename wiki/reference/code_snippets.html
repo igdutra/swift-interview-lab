@@ -4,6 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Code Snippets &amp; Gotchas · Study Wiki</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Code Snippets & Gotchas",
+  "nav": "Code Snippets",
+  "topics": [
+    "Swift",
+    "Snippets",
+    "Gotchas"
+  ],
+  "blurb": "Reusable Swift moves organised by technique (arrays & strings intertwined) — accumulate-and-commit, monotonic stack, reachable-min scan, split-point enumeration, greedy line-packing. Every snippet traced back to the LeetCode problem it came from.",
+  "order": 2
+}
+</script>
 <link rel="stylesheet" href="../_shared/wiki.css">
 <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
@@ -12,30 +25,6 @@
 <nav id="topnav" class="topnav"></nav>
 
 <div class="page">
-<nav class="toc-col">
-  <div class="toc-title">Contents</div>
-  <a href="#how">How to use this page</a>
-  <a href="#bounds">1 · The bounds-arithmetic gotcha</a>
-  <a href="#digit-math">2 · Digit math &amp; char casting</a>
-  <a href="#lifo">3 · Stack nesting (LIFO)</a>
-  <a href="#trio">4 · Centralize state in resetState()</a>
-  <a href="#stack-last">5 · stack.last struct-copy trap</a>
-  <a href="#monotonic">6 · Monotonic stack record-order</a>
-  <a href="#two-pointer-pal">7 · Palindrome check</a>
-  <a href="#reachable">8 · Reachable-min outward scan</a>
-  <a href="#argmin">9 · Argmin in a subrange</a>
-  <a href="#pivot-guard">10 · Pivot-side nil guard</a>
-  <a href="#reverse-range">11 · Reverse-range &amp; stride</a>
-  <a href="#split-points">12 · Split-point enumeration</a>
-  <a href="#window">13 · Window: two-pointer vs queue</a>
-  <a href="#conversions">14 · String ↔ collection casts</a>
-  <a href="#greedy-lines">15 · Accumulate-and-commit: overflow, delimiter, or guaranteed close</a>
-  <a href="#distribute">16 · Distribute N things across K buckets</a>
-  <a href="#prefix-suffix">17 · Prefix / suffix precompute</a>
-  <a href="#accumulate">18 · Multi-digit accumulation</a>
-  <a href="#closed-range">19 · ClosedRange&lt;Int&gt; — create &amp; traverse</a>
-</nav>
-
 <main class="content">
 
   <h1 class="page-title">Code Snippets &amp; Gotchas</h1>
@@ -49,11 +38,11 @@
     <p>The <strong>reusable Swift moves</strong> pulled out of every problem already solved — the code you will reach for again, plus the gotcha that bites if you don't. Organised <strong>by technique, not by data structure</strong>: a string is an array of characters, so two pointers, sliding window, prefix/suffix and accumulate-and-commit cross freely between arrays and strings — they sit side by side here. Every snippet ends with the LeetCode problem(s) it came from, so you can jump to the full walkthrough.</p>
   </div>
 
-  <div class="co co-when" style="max-width: 72ch;">
+  <div class="co co-when u-measure">
     <strong>How to use it:</strong> this is the <em>how-to-write-it</em> layer. When you already know <em>which</em> pattern a problem wants but have forgotten the exact Swift idiom or the trap inside it, this is the page. For <em>which</em> pattern to reach for, see the companion <a href="pattern_recognition.html">Pattern Recognition</a> page.
   </div>
 
-  <h2 id="how"><span class="sec-num">0</span> Reading the back-links</h2>
+  <h2 id="how" data-toc-label="How to use this page"><span class="sec-num">0</span> Reading the back-links</h2>
   <p>Each snippet closes with a <strong>Where this appears</strong> line naming the LeetCode problem(s) the move was extracted from. Problems with a walkthrough in this wiki are live links; the rest name the canonical LC number so you can find them.</p>
   <table class="t-decoder">
     <thead><tr><th>In this wiki (clickable)</th><th>Referenced only (no page yet)</th></tr></thead>
@@ -65,7 +54,7 @@
   <hr class="wiki-hr">
 
   <!-- 1 -->
-  <h2 id="bounds"><span class="sec-num">1</span> The big gotcha: string problems are bounds arithmetic — guard relentlessly</h2>
+  <h2 id="bounds" data-toc-label="1 · The bounds-arithmetic gotcha"><span class="sec-num">1</span> The big gotcha: string problems are bounds arithmetic — guard relentlessly</h2>
   <p>Almost every bug in a string-building problem is an off-by-one or an out-of-bounds, <em>not</em> a logic error in the strategy. The strategy is usually right; the arithmetic on lengths, gaps, slices, and ranges is where it breaks. Treat every index expression and every divisor as a potential crash until you've guarded it.</p>
 
   <h3>Pattern 1 — guard the divisor (zero-gap line)</h3>
@@ -135,7 +124,7 @@ currentLineCount += <span class="nm">1</span>
   <hr class="wiki-hr">
 
   <!-- 2 -->
-  <h2 id="digit-math"><span class="sec-num">2</span> Digit math &amp; character casting</h2>
+  <h2 id="digit-math" data-toc-label="2 · Digit math &amp; char casting"><span class="sec-num">2</span> Digit math &amp; character casting</h2>
   <p>The two operations you need every time you simulate arithmetic on numeric strings without converting to <code>Int</code>.</p>
   <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">column digit + carry, and the casts</span></div>
   <pre class="swift"><span class="cm">// Digit math — split a column sum into the kept digit and the carry</span>
@@ -153,7 +142,7 @@ resultDigits.<span class="fn">append</span>(<span class="tp">Character</span>(<s
   <hr class="wiki-hr">
 
   <!-- 3 -->
-  <h2 id="lifo"><span class="sec-num">3</span> Stack-based nesting — it is physically LIFO</h2>
+  <h2 id="lifo" data-toc-label="3 · Stack nesting (LIFO)"><span class="sec-num">3</span> Stack-based nesting — it is physically LIFO</h2>
   <p>When you read a nested structure like <code>[12,[13,14]]</code> left to right, the innermost bracket always closes before the outer one. The thing you opened most recently is always the thing you close next — that is the definition of LIFO, and why a stack is the natural fit for any bracket parser.</p>
   <table class="t-clue">
     <thead><tr><th>Character</th><th>Action</th></tr></thead>
@@ -187,7 +176,7 @@ resultDigits.<span class="fn">append</span>(<span class="tp">Character</span>(<s
   <hr class="wiki-hr">
 
   <!-- 4 -->
-  <h2 id="trio"><span class="sec-num">4</span> Centralize multi-variable state in one <code>resetState()</code> helper</h2>
+  <h2 id="trio" data-toc-label="4 · Centralize state in resetState()"><span class="sec-num">4</span> Centralize multi-variable state in one <code>resetState()</code> helper</h2>
   <div class="co co-idea">
     <strong>THE ONE IDEA:</strong> The moment you carry <strong>two or more related state variables</strong> that must be cleared together between iterations, extract a single <code>resetState()</code> (or <code>resetAccumulators()</code>) helper and call it in <em>one</em> place. Never reset them inline, one by one — the day you add a third variable you <em>will</em> forget to reset one of them, and it bleeds silently into the next iteration. A helper makes "all the state I manage" a single named, auditable list.
   </div>
@@ -241,7 +230,7 @@ outputLines.<span class="fn">append</span>(<span class="fn">justify</span>(curre
   <hr class="wiki-hr">
 
   <!-- 5 -->
-  <h2 id="stack-last"><span class="sec-num">5</span> <code>stack.last</code> is a copy for structs — mutate by index</h2>
+  <h2 id="stack-last" data-toc-label="5 · stack.last struct-copy trap"><span class="sec-num">5</span> <code>stack.last</code> is a copy for structs — mutate by index</h2>
   <p>When you do <code>var top = stack.last</code> and call a mutating method on it, you may be mutating a throwaway copy — the stack never changes.</p>
   <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">value-type vs reference-type top-of-stack</span></div>
   <pre class="swift"><span class="cm">// BUG if the element is a struct (value type): mutates a copy</span>
@@ -256,7 +245,7 @@ stack[stack.count - <span class="nm">1</span>].<span class="fn">add</span>(somet
   <hr class="wiki-hr">
 
   <!-- 6 -->
-  <h2 id="monotonic"><span class="sec-num">6</span> Monotonic stack — record AFTER eviction, BEFORE push</h2>
+  <h2 id="monotonic" data-toc-label="6 · Monotonic stack record-order"><span class="sec-num">6</span> Monotonic stack — record AFTER eviction, BEFORE push</h2>
   <p>The routing signal is "<strong>next greater / next smaller / first element to the right satisfying condition X</strong>". The word <em>nearest</em> or <em>first</em> is what picks a monotonic stack over a suffix-max pass (which gives the maximum, not the nearest) or two pointers (which converge or both run right, not pending-query resolution).</p>
   <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">decreasing stack → next greater</span></div>
   <pre class="swift"><span class="kw">var</span> nextGreater: [<span class="tp">Int</span>: <span class="tp">Int</span>] = [:]
@@ -280,7 +269,7 @@ stack[stack.count - <span class="nm">1</span>].<span class="fn">add</span>(somet
   <hr class="wiki-hr">
 
   <!-- 7 -->
-  <h2 id="two-pointer-pal"><span class="sec-num">7</span> Palindrome check</h2>
+  <h2 id="two-pointer-pal" data-toc-label="7 · Palindrome check"><span class="sec-num">7</span> Palindrome check</h2>
   <p>The reflex for "is this a palindrome": converge from both ends, return <code>false</code> on the first mismatch. Boolean output means no map and no counting — just compare ends inward. An empty or single-element range returns <code>true</code> because the loop never runs.</p>
   <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">range check + the LC 125 skip-and-fold flavor</span></div>
   <pre class="swift"><span class="cm">// Clean range, every character matters — reused as a building block everywhere</span>
@@ -374,7 +363,7 @@ stack[stack.count - <span class="nm">1</span>].<span class="fn">add</span>(somet
   <hr class="wiki-hr">
 
   <!-- 8 -->
-  <h2 id="reachable"><span class="sec-num">8</span> Reachable-min: scan outward, stop at the first wall</h2>
+  <h2 id="reachable" data-toc-label="8 · Reachable-min outward scan"><span class="sec-num">8</span> Reachable-min: scan outward, stop at the first wall</h2>
   <p>You need the lowest index reachable from a pivot moving in one direction — but "reachable" means you can never climb higher than your current footing. A valley hidden behind a taller peak is invisible. <code>.min()</code> over a slice finds the global minimum and is <em>wrong</em> here.</p>
   <div class="code-label"><span class="code-lang lang-trace">Why .min() fails</span><span class="code-desc">heights = [0,2,1], pivot=0, scanning right</span></div>
   <pre class="dry">Global min of right side  →  index 2 (height 1)   ← WRONG (behind a wall)
@@ -424,7 +413,7 @@ Reachable min from pivot  →  none (index 1 is higher than pivot, wall blocks)<
   <hr class="wiki-hr">
 
   <!-- 9 -->
-  <h2 id="argmin"><span class="sec-num">9</span> Argmin in a subrange — single pass, real indices</h2>
+  <h2 id="argmin" data-toc-label="9 · Argmin in a subrange"><span class="sec-num">9</span> Argmin in a subrange — single pass, real indices</h2>
   <p>You need both the minimum value and its index within a subrange. <code>.min()</code> + <code>.firstIndex(of:)</code> is two passes and loses index information on slices. Loop the range directly — the loop variable is already the real position in the original array, so no offset math.</p>
   <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">argmin without allocating a slice</span></div>
   <pre class="swift"><span class="kw">func</span> <span class="fn">getSmallerIndex</span>(<span class="kw">_</span> array: [<span class="tp">Int</span>], range: <span class="tp">ClosedRange</span>&lt;<span class="tp">Int</span>&gt;) -&gt; <span class="tp">Int</span> {
@@ -444,7 +433,7 @@ Reachable min from pivot  →  none (index 1 is higher than pivot, wall blocks)<
   <hr class="wiki-hr">
 
   <!-- 10 -->
-  <h2 id="pivot-guard"><span class="sec-num">10</span> Pivot-side <code>nil</code> guard — both sides are independent candidates</h2>
+  <h2 id="pivot-guard" data-toc-label="10 · Pivot-side nil guard"><span class="sec-num">10</span> Pivot-side <code>nil</code> guard — both sides are independent candidates</h2>
   <p>Whenever you split a collection at a pivot and scan each side, one or both sides may not exist — at the left edge there is no left side, at the right edge no right side. Calling <code>.min()</code>, iterating a <code>ClosedRange</code>, or subscripting an empty region crashes. Produce a candidate per side only when that side exists; <code>nil</code> means "cannot settle / not a candidate".</p>
   <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">guard each side, then let-bind in the decision</span></div>
   <pre class="swift"><span class="kw">let</span> leftMinIndex  = pivotIndex &gt; <span class="nm">0</span>
@@ -468,7 +457,7 @@ Reachable min from pivot  →  none (index 1 is higher than pivot, wall blocks)<
   <hr class="wiki-hr">
 
   <!-- 11 -->
-  <h2 id="reverse-range"><span class="sec-num">11</span> Iterating a range in reverse — <code>reversed()</code> vs <code>stride</code></h2>
+  <h2 id="reverse-range" data-toc-label="11 · Reverse-range &amp; stride"><span class="sec-num">11</span> Iterating a range in reverse — <code>reversed()</code> vs <code>stride</code></h2>
   <p>You have a <code>ClosedRange&lt;Int&gt;</code> for the left side of an array and need to walk it right-to-left (closest to the pivot first). A plain <code>for index in range</code> walks left-to-right.</p>
   <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">two ways to walk outward-leftward</span></div>
   <pre class="swift"><span class="kw">let</span> leftRange = <span class="nm">0</span>...(pivotIndex - <span class="nm">1</span>)
@@ -490,7 +479,7 @@ Reachable min from pivot  →  none (index 1 is higher than pivot, wall blocks)<
   <hr class="wiki-hr">
 
   <!-- 12 -->
-  <h2 id="split-points"><span class="sec-num">12</span> Enumerating every split point of a word (prefix + suffix pairs)</h2>
+  <h2 id="split-points" data-toc-label="12 · Split-point enumeration"><span class="sec-num">12</span> Enumerating every split point of a word (prefix + suffix pairs)</h2>
   <p>Try every way to cut a word into a left part and a right part — including cuts that leave one side empty — so you can check a condition on each side independently.</p>
   <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">count + 1 iterations, one per gap including the ends</span></div>
   <pre class="swift"><span class="kw">let</span> wordArray = <span class="tp">Array</span>(word)      <span class="cm">// O(1) indexing — String is not integer-indexable</span>
@@ -545,7 +534,7 @@ Reachable min from pivot  →  none (index 1 is higher than pivot, wall blocks)<
   <hr class="wiki-hr">
 
   <!-- 13 -->
-  <h2 id="window"><span class="sec-num">13</span> Sliding window: two-pointer vs queue — same name, different tool</h2>
+  <h2 id="window" data-toc-label="13 · Window: two-pointer vs queue"><span class="sec-num">13</span> Sliding window: two-pointer vs queue — same name, different tool</h2>
   <p>Both say "sliding window," but they solve different problems with different structures. Route with one question: is your input a <strong>static array</strong> you can index freely → two-pointer window. Is it a <strong>live stream</strong> arriving one item at a time → sliding-window queue.</p>
   <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">traditional — static array, two index pointers, no queue</span></div>
   <pre class="swift"><span class="kw">func</span> <span class="fn">longestSubarrayWithSumAtMost</span>(<span class="kw">_</span> numbers: [<span class="tp">Int</span>], <span class="kw">_</span> limit: <span class="tp">Int</span>) -&gt; <span class="tp">Int</span> {
@@ -585,7 +574,7 @@ Reachable min from pivot  →  none (index 1 is higher than pivot, wall blocks)<
   <hr class="wiki-hr">
 
   <!-- 14 -->
-  <h2 id="conversions"><span class="sec-num">14</span> String ↔ collection conversions (the small casts that bite)</h2>
+  <h2 id="conversions" data-toc-label="14 · String ↔ collection casts"><span class="sec-num">14</span> String ↔ collection conversions (the small casts that bite)</h2>
   <p>The recurring conversions between <code>String</code>, <code>SubSequence</code>, <code>[Character]</code>, and dictionary accumulators — each with one trap.</p>
   <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">the four conversions you reach for constantly</span></div>
   <pre class="swift"><span class="cm">// [String.SubSequence] → [String] — .split returns views, not String values</span>
@@ -612,7 +601,7 @@ currentValue = [<span class="st">"t"</span>, <span class="st">"r"</span>, <span 
   <hr class="wiki-hr">
 
   <!-- 15 -->
-  <h2 id="greedy-lines"><span class="sec-num">15</span> Accumulate-and-commit — overflow, delimiter, or guaranteed close</h2>
+  <h2 id="greedy-lines" data-toc-label="15 · Accumulate-and-commit: overflow, delimiter, or guaranteed close"><span class="sec-num">15</span> Accumulate-and-commit — overflow, delimiter, or guaranteed close</h2>
   <p>Every scanner that builds a result token-by-token follows the same skeleton: accumulate characters into a buffer, then <em>commit</em> that buffer when a trigger fires. The trigger varies — overflow, delimiter character, or a structurally guaranteed close — and the trigger determines how you handle the last token, which may never be followed by one.</p>
 
   <div class="co co-idea"><strong>THE ONE IDEA:</strong> a commit fires on a trigger. The last-token problem is: what if the input ends without one? Pick exactly one of the three strategies below and never mix them in the same parser.</div>
@@ -691,7 +680,7 @@ currentValue = [<span class="st">"t"</span>, <span class="st">"r"</span>, <span 
   <hr class="wiki-hr">
 
   <!-- 16 -->
-  <h2 id="distribute"><span class="sec-num">16</span> Distribute N things across K buckets evenly — remainder biased left</h2>
+  <h2 id="distribute" data-toc-label="16 · Distribute N things across K buckets"><span class="sec-num">16</span> Distribute N things across K buckets evenly — remainder biased left</h2>
   <p>You have <code>total</code> things to share across <code>bucketCount</code> buckets and it doesn't divide evenly. The floor division gives every bucket the minimum; the modulo tells you exactly <em>how many</em> buckets get one extra. Hand them left-to-right — the first <code>remainder</code> buckets each get <code>base + 1</code>, the rest get <code>base</code>.</p>
   <div class="co co-idea">
     <strong>THE ONE IDEA:</strong> <code>total % bucketCount</code> is the count of "lucky" buckets. Loop with an index and ask <code>bucketIndex &lt; remainder</code> — while true, you're still in the lucky ones. Once false, everyone gets just the base. No splitting, no slice arithmetic — the modulo <em>is</em> the counter.
@@ -736,7 +725,7 @@ gapIndex 1: 1 &lt; 1 ✗  spacesForThisGap = 1  →  "example  of text"   ✓</p
   <hr class="wiki-hr">
 
   <!-- 17 -->
-  <h2 id="prefix-suffix"><span class="sec-num">17</span> Prefix / suffix precompute — expensive walk once, O(1) per query</h2>
+  <h2 id="prefix-suffix" data-toc-label="17 · Prefix / suffix precompute"><span class="sec-num">17</span> Prefix / suffix precompute — expensive walk once, O(1) per query</h2>
   <p>The unifying idea: do the expensive work <em>once</em> per entity and store the result, so every later lookup is O(1). The three variants below all share this shape but differ in what they store and why.</p>
 
   <h3>Variant A — running array (LC 42, LC 238)</h3>
@@ -840,7 +829,7 @@ runningMax = input.last!
   <hr class="wiki-hr">
 
   <!-- 18 -->
-  <h2 id="accumulate"><span class="sec-num">18</span> Multi-digit number accumulation</h2>
+  <h2 id="accumulate" data-toc-label="18 · Multi-digit accumulation"><span class="sec-num">18</span> Multi-digit number accumulation</h2>
   <p>The input is a <code>String</code>, so the integer <code>142</code> arrives as three separate characters <code>'1' '4' '2'</code>. Rebuild the number as you scan: multiply the running value by 10 (shifting every digit one decimal place left) and add the new digit on the right.</p>
   <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">accumulate one digit per character</span></div>
   <pre class="swift"><span class="kw">var</span> currentNumber = <span class="nm">0</span>
@@ -858,7 +847,7 @@ character='2'  →  currentNumber = 14 * 10 + 2 = 142</pre>
   <hr class="wiki-hr">
 
   <!-- 19 -->
-  <h2 id="closed-range"><span class="sec-num">19</span> <code>ClosedRange&lt;Int&gt;</code> — create, store, and traverse</h2>
+  <h2 id="closed-range" data-toc-label="19 · ClosedRange<Int> — create &amp; traverse"><span class="sec-num">19</span> <code>ClosedRange&lt;Int&gt;</code> — create, store, and traverse</h2>
   <p>A <code>ClosedRange&lt;Int&gt;</code> captures both endpoints as a typed value you can pass around, store as an optional, and iterate directly. It is the right tool when the range itself is part of your algorithm's state — not just a loop bound you inline.</p>
 
   <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">creating a ClosedRange</span></div>
@@ -913,7 +902,8 @@ range.contains(<span class="nm">3</span>) <span class="cm">// true</span></pre>
 </main>
 </div>
 
-<script src="../_shared/pages.js"></script>
+<script src="../_shared/manifest.js"></script>
 <script src="../_shared/nav.js"></script>
+<script src="../_shared/toc.js"></script>
 </body>
 </html>

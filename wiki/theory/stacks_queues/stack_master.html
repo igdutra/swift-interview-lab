@@ -4,6 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Stack — LIFO Deep Dive · Theory Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Stack — LIFO Deep Dive",
+  "nav": "Stack — LIFO Deep Dive",
+  "topics": [
+    "Stack",
+    "LIFO",
+    "Parsing",
+    "Nesting",
+    "DFS"
+  ],
+  "blurb": "Three skeletons: push-openers/pop-match (bracket validation, expression eval), push-containers/pop-and-attach (nested decode), and iterative DFS. Swift toolbox, LIFO mechanic, edge cases, and cheat sheet. Directed at LC20, LC394, LC227, LC341, LC385."
+}
+</script>
 <link rel="stylesheet" href="../../_shared/wiki.css">
 <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
@@ -12,24 +26,6 @@
 <nav id="topnav" class="topnav"></nav>
 
 <div class="page">
-
-<!-- ── TOC ── -->
-<nav class="toc-col">
-  <div class="toc-inner">
-    <div class="toc-title toc-cat-theory">Theory · Contents</div>
-    <a href="#lead"        class="toc-link"><span class="toc-num">1</span> Overview</a>
-    <a href="#skeletons"   class="toc-link"><span class="toc-num">2</span> The Four Standard Skeletons</a>
-    <a href="#toolbox"     class="toc-link"><span class="toc-num">3</span> Swift Tools — the Toolbox</a>
-    <a href="#when"        class="toc-link"><span class="toc-num">4</span> When to Use Each Pattern</a>
-    <a href="#lifo"        class="toc-link"><span class="toc-num">5</span> LIFO — the Core Mechanic</a>
-    <a href="#terminology" class="toc-link"><span class="toc-num">6</span> Terminology Decoder</a>
-    <a href="#edge-cases"  class="toc-link"><span class="toc-num">7</span> Edge Cases</a>
-    <a href="#monotonic"   class="toc-link"><span class="toc-num">4.4</span> Pattern 4 — Monotonic Stack</a>
-    <a href="#practice"    class="toc-link"><span class="toc-num">8</span> Demonstrated in Practice</a>
-    <a href="#solo"        class="toc-link"><span class="toc-num">9</span> Solo Problem</a>
-    <a href="#cheatsheet"  class="toc-link"><span class="toc-num">10</span> Ultimate Cheat Sheet</a>
-  </div>
-</nav>
 
 <!-- ── CONTENT ── -->
 <main class="content">
@@ -42,7 +38,7 @@
   </div>
 
   <!-- 1. Lead -->
-  <section id="lead">
+  <section id="lead" data-toc-label="Overview">
     <div class="infobox">
       <div class="infobox-title">At a Glance</div>
       <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Last-In First-Out (LIFO) linear structure</div></div>
@@ -67,7 +63,7 @@
   <hr class="wiki-hr">
 
   <!-- 2. The four standard skeletons -->
-  <section id="skeletons">
+  <section id="skeletons" data-toc-label="The Four Standard Skeletons">
     <h2>2 &nbsp; The Four Standard Skeletons</h2>
     <p>Every stack problem is one of four loop shapes. Recognize the shape before naming any variable — the skeleton determines the variables, not the other way around.</p>
 
@@ -135,7 +131,7 @@
   <hr class="wiki-hr">
 
   <!-- 3. Swift tools — the toolbox -->
-  <section id="toolbox">
+  <section id="toolbox" data-toc-label="Swift Tools — the Toolbox">
     <h2>3 &nbsp; Swift Tools — the Toolbox</h2>
     <p>The Swift-specific mechanics that appear in every stack problem. Stacks in Swift are plain <code>[T]</code> arrays — no special type needed.</p>
     <table class="t-versus">
@@ -191,7 +187,7 @@ stack.last == <span class="nm">7</span>    <span class="cm">// true — use for 
   <hr class="wiki-hr">
 
   <!-- 4. When to use each pattern -->
-  <section id="when">
+  <section id="when" data-toc-label="When to Use Each Pattern">
     <h2>4 &nbsp; When to Use Each Pattern</h2>
     <p>Three stack variants, each solving a structurally different problem. The question that routes you is: <em>what relationship am I tracking between the current token and something I saw earlier?</em></p>
 
@@ -283,7 +279,7 @@ stack.isEmpty                    is the root result                             
       </div>
     </div>
 
-    <h3 id="monotonic">Pattern 4 — Monotonic Stack</h3>
+    <h3 id="monotonic" data-toc-label="4.4 Pattern 4 — Monotonic Stack">Pattern 4 — Monotonic Stack</h3>
     <div class="pattern-block">
       <div class="block-header">
         <span class="block-kicker">Pattern 4</span>
@@ -349,7 +345,7 @@ stack.isEmpty                    is the root result                             
   <hr class="wiki-hr">
 
   <!-- 5. LIFO — the core mechanic -->
-  <section id="lifo">
+  <section id="lifo" data-toc-label="LIFO — the Core Mechanic">
     <h2>5 &nbsp; LIFO — the Core Mechanic</h2>
     <p>Every stack problem reduces to one idea: <em>the most recently added item is the first one removed</em>. Understanding why that matters is the entire theory.</p>
 
@@ -372,7 +368,7 @@ stack.isEmpty                    is the root result                             
   <hr class="wiki-hr">
 
   <!-- 6. Terminology decoder -->
-  <section id="terminology">
+  <section id="terminology" data-toc-label="Terminology Decoder">
     <h2>6 &nbsp; Terminology Decoder</h2>
     <table class="t-decoder">
       <thead><tr><th>Term</th><th>Plain meaning</th><th>Example</th></tr></thead>
@@ -394,7 +390,7 @@ stack.isEmpty                    is the root result                             
   <hr class="wiki-hr">
 
   <!-- 7. Edge cases -->
-  <section id="edge-cases">
+  <section id="edge-cases" data-toc-label="Edge Cases">
     <h2>7 &nbsp; Edge Cases to Verbalize</h2>
     <table class="t-edge">
       <thead><tr><th>Input</th><th>Expected behavior</th><th>Which pattern is most affected</th></tr></thead>
@@ -413,7 +409,7 @@ stack.isEmpty                    is the root result                             
   <hr class="wiki-hr">
 
   <!-- 8. Demonstrated in practice -->
-  <section id="practice">
+  <section id="practice" data-toc-label="Demonstrated in Practice">
     <h2>8 &nbsp; Demonstrated in Practice</h2>
     <p>The walkthroughs below cover the three stack skeletons across all domains where stacks appear. The string-parsing deep dive gives the full theory of how skeletons 1 and 2 are used for expressions and nested encodings.</p>
     <div class="ref-grid">
@@ -449,7 +445,7 @@ stack.isEmpty                    is the root result                             
   <hr class="wiki-hr">
 
   <!-- 9. Solo problem -->
-  <section id="solo">
+  <section id="solo" data-toc-label="Solo Problem">
     <h2>9 &nbsp; Solo Problem — no solution on this page</h2>
     <div class="solo-box">
       <div class="solo-banner">Solo problem — no solution on this page</div>
@@ -467,7 +463,7 @@ stack.isEmpty                    is the root result                             
   <hr class="wiki-hr">
 
   <!-- 10. Ultimate cheat sheet -->
-  <section id="cheatsheet">
+  <section id="cheatsheet" data-toc-label="Ultimate Cheat Sheet">
     <h2>10 &nbsp; Ultimate Cheat Sheet</h2>
     <p>The night-before skim. Pick the skeleton, wire the Swift ops, and know the one pitfall per variant.</p>
 
@@ -531,7 +527,8 @@ stack.isEmpty                       <span class="cm">// empty check    O(1)</spa
 </main>
 </div>
 
-<script src="../../_shared/pages.js"></script>
+<script src="../../_shared/manifest.js"></script>
 <script src="../../_shared/nav.js"></script>
+<script src="../../_shared/toc.js"></script>
 </body>
 </html>

@@ -4,6 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Stacks &amp; Queues Overview · Theory Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Stacks & Queues Overview",
+  "nav": "Stacks & Queues Overview",
+  "topics": [
+    "Decision Guide",
+    "Swift Toolbox",
+    "Cheat Sheet"
+  ],
+  "blurb": "The decision layer — LIFO vs FIFO, when to use each structure and why not the other, the canonical skeletons for both, the Swift toolbox (append, removeLast, popLast, removeFirst, head-index), and the night-before cheat sheet."
+}
+</script>
 <link rel="stylesheet" href="../../_shared/wiki.css">
 <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
@@ -12,22 +24,6 @@
 <nav id="topnav" class="topnav"></nav>
 
 <div class="page">
-
-<!-- ── TOC ── -->
-<nav class="toc-col">
-  <div class="toc-inner">
-    <div class="toc-title toc-cat-theory">Theory · Contents</div>
-    <a href="#lead"        class="toc-link"><span class="toc-num">1</span> Overview</a>
-    <a href="#skeletons"   class="toc-link"><span class="toc-num">2</span> All Skeletons Side by Side</a>
-    <a href="#toolbox"     class="toc-link"><span class="toc-num">3</span> Swift Tools — the Toolbox</a>
-    <a href="#when"        class="toc-link"><span class="toc-num">4</span> When to Use Each Structure</a>
-    <a href="#terminology" class="toc-link"><span class="toc-num">5</span> Terminology Decoder</a>
-    <a href="#edge-cases"  class="toc-link"><span class="toc-num">6</span> Edge Cases</a>
-    <a href="#practice"    class="toc-link"><span class="toc-num">7</span> Demonstrated in Practice</a>
-    <a href="#solo"        class="toc-link"><span class="toc-num">8</span> Solo Problem</a>
-    <a href="#cheatsheet"  class="toc-link"><span class="toc-num">9</span> Ultimate Cheat Sheet</a>
-  </div>
-</nav>
 
 <!-- ── CONTENT ── -->
 <main class="content">
@@ -40,7 +36,7 @@
   </div>
 
   <!-- 1. Lead -->
-  <section id="lead">
+  <section id="lead" data-toc-label="Overview">
     <div class="infobox">
       <div class="infobox-title">At a Glance</div>
       <div class="infobox-row"><div class="infobox-k">Stack (LIFO)</div><div class="infobox-v">Last-In First-Out · nesting, matching, DFS · <code>append</code> + <code>removeLast</code></div></div>
@@ -62,7 +58,7 @@
   <hr class="wiki-hr">
 
   <!-- 2. All skeletons side by side -->
-  <section id="skeletons">
+  <section id="skeletons" data-toc-label="All Skeletons Side by Side">
     <h2>2 &nbsp; All Skeletons Side by Side</h2>
     <p>Six canonical skeletons — four stack, two queue. Recognizing which shape fits a problem is the entire skill.</p>
 
@@ -152,7 +148,7 @@
   <hr class="wiki-hr">
 
   <!-- 3. Swift tools — the toolbox -->
-  <section id="toolbox">
+  <section id="toolbox" data-toc-label="Swift Tools — the Toolbox">
     <h2>3 &nbsp; Swift Tools — the Toolbox</h2>
     <p>All the Swift mechanics for both structures in one place. Both use <code>[T]</code> arrays — the difference is which end you remove from and the O(1) vs O(n) tradeoff on removal.</p>
 
@@ -221,7 +217,7 @@ queue.<span class="fn">removeFirst</span>()   <span class="cm">// → 1  queue=[
   <hr class="wiki-hr">
 
   <!-- 4. When to use each structure -->
-  <section id="when">
+  <section id="when" data-toc-label="When to Use Each Structure">
     <h2>4 &nbsp; When to Use Each Structure</h2>
 
     <div class="co-idea">
@@ -269,7 +265,7 @@ queue.<span class="fn">removeFirst</span>()   <span class="cm">// → 1  queue=[
   <hr class="wiki-hr">
 
   <!-- 5. Terminology decoder -->
-  <section id="terminology">
+  <section id="terminology" data-toc-label="Terminology Decoder">
     <h2>5 &nbsp; Terminology Decoder</h2>
     <table class="t-decoder">
       <thead><tr><th>Term</th><th>Plain meaning</th><th>Stack or Queue?</th></tr></thead>
@@ -294,7 +290,7 @@ queue.<span class="fn">removeFirst</span>()   <span class="cm">// → 1  queue=[
   <hr class="wiki-hr">
 
   <!-- 6. Edge cases -->
-  <section id="edge-cases">
+  <section id="edge-cases" data-toc-label="Edge Cases">
     <h2>6 &nbsp; Edge Cases to Verbalize</h2>
     <table class="t-edge">
       <thead><tr><th>Input</th><th>Expected behavior</th><th>Stack or Queue</th></tr></thead>
@@ -314,7 +310,7 @@ queue.<span class="fn">removeFirst</span>()   <span class="cm">// → 1  queue=[
   <hr class="wiki-hr">
 
   <!-- 7. Demonstrated in practice -->
-  <section id="practice">
+  <section id="practice" data-toc-label="Demonstrated in Practice">
     <h2>7 &nbsp; Demonstrated in Practice</h2>
     <div class="ref-grid">
       <a class="xref-card" href="../../walkthroughs/LC20_master.html">
@@ -348,7 +344,7 @@ queue.<span class="fn">removeFirst</span>()   <span class="cm">// → 1  queue=[
   <hr class="wiki-hr">
 
   <!-- 8. Solo problem -->
-  <section id="solo">
+  <section id="solo" data-toc-label="Solo Problem">
     <h2>8 &nbsp; Solo Problem — no solution on this page</h2>
     <div class="solo-box">
       <div class="solo-banner">Solo problem — no solution on this page</div>
@@ -366,7 +362,7 @@ queue.<span class="fn">removeFirst</span>()   <span class="cm">// → 1  queue=[
   <hr class="wiki-hr">
 
   <!-- 9. Ultimate cheat sheet -->
-  <section id="cheatsheet">
+  <section id="cheatsheet" data-toc-label="Ultimate Cheat Sheet">
     <h2>9 &nbsp; Ultimate Cheat Sheet</h2>
     <p>The night-before skim. Pick the structure, pick the skeleton, know the one pitfall.</p>
 
@@ -422,7 +418,8 @@ queue.<span class="fn">removeFirst</span>()   <span class="cm">// → 1  queue=[
 </main>
 </div>
 
-<script src="../../_shared/pages.js"></script>
+<script src="../../_shared/manifest.js"></script>
 <script src="../../_shared/nav.js"></script>
+<script src="../../_shared/toc.js"></script>
 </body>
 </html>

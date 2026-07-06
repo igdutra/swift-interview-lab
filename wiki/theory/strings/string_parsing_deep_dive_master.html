@@ -3,7 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>String Parsing · Theory Masterfile</title>
+<title>String Parsing Deep Dive · Theory Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "String Parsing Deep Dive",
+  "nav": "String Parsing Deep Dive",
+  "topics": [
+    "Strings",
+    "Stack",
+    "Hash Map"
+  ],
+  "blurb": "Tokenize-and-map, stack-based expression evaluation, nested-structure parsing, and reversed-prefix matching. Directed at Decode Runtime Filters, LC227, LC385, LC336."
+}
+</script>
 <link rel="stylesheet" href="../../_shared/wiki.css">
 <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
@@ -12,33 +24,6 @@
 <nav id="topnav" class="topnav"></nav>
 
 <div class="page">
-
-<!-- ── TOC ── -->
-<nav class="toc-col">
-  <div class="toc-inner">
-    <div class="toc-title toc-cat-theory">Theory · Contents</div>
-    <a href="#lead"          class="toc-link"><span class="toc-num">1</span> Definition</a>
-    <a href="#signals"       class="toc-link"><span class="toc-num">2</span> Recognition Signals</a>
-    <a href="#terminology"   class="toc-link"><span class="toc-num">3</span> Terminology Decoder</a>
-    <a href="#mental-model"  class="toc-link"><span class="toc-num">4</span> Mental Model</a>
-    <a href="#pseudocode"    class="toc-link"><span class="toc-num">5</span> Pseudocode Primer</a>
-    <a href="#iterative"     class="toc-link"><span class="toc-num">6</span> Iterative-Only Pattern</a>
-    <a href="#swift"         class="toc-link"><span class="toc-num">7</span> Swift Translation</a>
-    <a href="#variants"      class="toc-link"><span class="toc-num">8</span> Variant Catalog</a>
-    <div class="toc-sub">
-      <a href="#v-token"     class="toc-link">8.1 Tokenize + map</a>
-      <a href="#v-stack"     class="toc-link">8.2 Stack expression parse</a>
-      <a href="#v-nested"    class="toc-link">8.3 Nested-structure parse</a>
-      <a href="#v-revprefix" class="toc-link">8.4 Reversed-prefix match</a>
-    </div>
-    <a href="#complexity"    class="toc-link"><span class="toc-num">9</span> Complexity Analysis</a>
-    <a href="#pitfalls"      class="toc-link"><span class="toc-num">10</span> Common Pitfalls</a>
-    <a href="#edge-cases"    class="toc-link"><span class="toc-num">11</span> Edge Cases</a>
-    <a href="#cheatsheet"    class="toc-link"><span class="toc-num">12</span> Cheat Sheet</a>
-    <a href="#practice"      class="toc-link"><span class="toc-num">13</span> Demonstrated in Practice</a>
-    <a href="#solo"          class="toc-link"><span class="toc-num">14</span> Solo Problem</a>
-  </div>
-</nav>
 
 <!-- ── CONTENT ── -->
 <main class="content">
@@ -51,7 +36,7 @@
   </div>
 
   <!-- 1. Definition -->
-  <section id="lead">
+  <section id="lead" data-toc-label="Definition">
     <div class="infobox">
       <div class="infobox-title">At a Glance</div>
       <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">The <em>consume</em> family — scan a string and fold it into a structure</div></div>
@@ -72,7 +57,7 @@
   <hr class="wiki-hr">
 
   <!-- 2. Recognition signals -->
-  <section id="signals">
+  <section id="signals" data-toc-label="Recognition Signals">
     <h2>2 &nbsp; Recognition Signals — when to reach for it</h2>
     <table class="t-clue">
       <thead><tr><th>When the problem says…</th><th>It means…</th></tr></thead>
@@ -90,7 +75,7 @@
   <hr class="wiki-hr">
 
   <!-- 3. Terminology decoder -->
-  <section id="terminology">
+  <section id="terminology" data-toc-label="Terminology Decoder">
     <h2>3 &nbsp; Terminology Decoder</h2>
     <table class="t-decoder">
       <thead><tr><th>Term</th><th>Plain meaning</th><th>Example</th></tr></thead>
@@ -110,7 +95,7 @@
   <hr class="wiki-hr">
 
   <!-- 4. Mental model -->
-  <section id="mental-model">
+  <section id="mental-model" data-toc-label="Mental Model">
     <h2>4 &nbsp; Mental Model — accumulate a token, commit on a boundary</h2>
 
     <div class="co-idea">
@@ -149,7 +134,7 @@ result = { a: [1,2], b: [true] }   <span class="tr-ok">empties dropped, repeats 
   <hr class="wiki-hr">
 
   <!-- 5. Pseudocode primer -->
-  <section id="pseudocode">
+  <section id="pseudocode" data-toc-label="Pseudocode Primer">
     <h2>5 &nbsp; Pseudocode Primer</h2>
     <p>The stack expression parse (8.2) is the canonical consume loop — boundary detection plus a deferred operator:</p>
     <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">evaluate +,−,×,÷ without parentheses</span></div>
@@ -192,7 +177,7 @@ result = { a: [1,2], b: [true] }   <span class="tr-ok">empties dropped, repeats 
   <hr class="wiki-hr">
 
   <!-- 6. Iterative-only pattern -->
-  <section id="iterative">
+  <section id="iterative" data-toc-label="Iterative-Only Pattern">
     <h2>6 &nbsp; Iterative-Only Pattern — one scan, an explicit stack</h2>
     <p>Parsing is where "explicit stack over recursion" matters most:</p>
     <ul>
@@ -205,7 +190,7 @@ result = { a: [1,2], b: [true] }   <span class="tr-ok">empties dropped, repeats 
   <hr class="wiki-hr">
 
   <!-- 7. Swift translation -->
-  <section id="swift">
+  <section id="swift" data-toc-label="Swift Translation">
     <h2>7 &nbsp; Swift Translation</h2>
     <p>The stack expression parse (LC227), compilable:</p>
     <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">LC 227 — Basic Calculator II</span></div>
@@ -264,14 +249,14 @@ result = { a: [1,2], b: [true] }   <span class="tr-ok">empties dropped, repeats 
   <hr class="wiki-hr">
 
   <!-- 8. Variant catalog -->
-  <section id="variants">
+  <section id="variants" data-toc-label="Variant Catalog">
     <h2>8 &nbsp; Variant Catalog</h2>
 
     <!-- 8.1 Tokenize + map -->
-    <div class="pattern-block" id="v-token">
+    <div class="pattern-block" id="v-token" data-toc-label="8.1 Tokenize + map">
       <div class="block-header">
         <span class="block-kicker">Variant 8.1</span>
-        <span class="block-name">Tokenize + map &nbsp;<span style="font-weight:400">(edge-case focused)</span></span>
+        <span class="block-name">Tokenize + map &nbsp;<span class="u-plain">(edge-case focused)</span></span>
         <div class="block-pills"><span class="pill pill-t">O(n)</span><span class="pill pill-s">O(n)</span></div>
       </div>
       <div class="block-body">
@@ -281,7 +266,7 @@ result = { a: [1,2], b: [true] }   <span class="tr-ok">empties dropped, repeats 
     </div>
 
     <!-- 8.2 Stack expression parse -->
-    <div class="pattern-block" id="v-stack">
+    <div class="pattern-block" id="v-stack" data-toc-label="8.2 Stack expression parse">
       <div class="block-header">
         <span class="block-kicker">Variant 8.2</span>
         <span class="block-name">Stack-based expression parse</span>
@@ -294,7 +279,7 @@ result = { a: [1,2], b: [true] }   <span class="tr-ok">empties dropped, repeats 
     </div>
 
     <!-- 8.3 Nested-structure parse — FRAME ONLY -->
-    <div class="pattern-block" id="v-nested">
+    <div class="pattern-block" id="v-nested" data-toc-label="8.3 Nested-structure parse">
       <div class="block-header">
         <span class="block-kicker">Variant 8.3</span>
         <span class="block-name">Nested-structure stack parse</span>
@@ -316,7 +301,7 @@ result = { a: [1,2], b: [true] }   <span class="tr-ok">empties dropped, repeats 
     </div>
 
     <!-- 8.4 Reversed-prefix match — FRAME ONLY -->
-    <div class="pattern-block" id="v-revprefix">
+    <div class="pattern-block" id="v-revprefix" data-toc-label="8.4 Reversed-prefix match">
       <div class="block-header">
         <span class="block-kicker">Variant 8.4</span>
         <span class="block-name">Reversed-prefix / palindrome matching</span>
@@ -341,7 +326,7 @@ result = { a: [1,2], b: [true] }   <span class="tr-ok">empties dropped, repeats 
   <hr class="wiki-hr">
 
   <!-- 9. Complexity -->
-  <section id="complexity">
+  <section id="complexity" data-toc-label="Complexity Analysis">
     <h2>9 &nbsp; Complexity Analysis</h2>
     <table class="t-cmx">
       <thead><tr><th>Variant</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
@@ -358,7 +343,7 @@ result = { a: [1,2], b: [true] }   <span class="tr-ok">empties dropped, repeats 
   <hr class="wiki-hr">
 
   <!-- 10. Pitfalls -->
-  <section id="pitfalls">
+  <section id="pitfalls" data-toc-label="Common Pitfalls">
     <h2>10 &nbsp; Common Pitfalls</h2>
     <div class="co-pitfall">
       <div class="co-pitfall-title">Pitfalls — bugs this family invites</div>
@@ -374,7 +359,7 @@ result = { a: [1,2], b: [true] }   <span class="tr-ok">empties dropped, repeats 
   <hr class="wiki-hr">
 
   <!-- 11. Edge cases -->
-  <section id="edge-cases">
+  <section id="edge-cases" data-toc-label="Edge Cases">
     <h2>11 &nbsp; Edge Cases to Verbalize</h2>
     <p>The tokenizer cases below are the full specification for the custom <em>Decode Runtime Filters</em> problem — attention to these is the entire point of that exercise. The remaining rows cover the other variants.</p>
     <table class="t-edge">
@@ -400,7 +385,7 @@ result = { a: [1,2], b: [true] }   <span class="tr-ok">empties dropped, repeats 
   <hr class="wiki-hr">
 
   <!-- 12. Cheat sheet -->
-  <section id="cheatsheet">
+  <section id="cheatsheet" data-toc-label="Cheat Sheet">
     <h2>12 &nbsp; Cheat Sheet</h2>
     <table class="t-versus">
       <thead><tr><th>You see…</th><th>You use</th><th>Key decision</th></tr></thead>
@@ -433,7 +418,7 @@ result = { a: [1,2], b: [true] }   <span class="tr-ok">empties dropped, repeats 
   <hr class="wiki-hr">
 
   <!-- 13. Cross-reference -->
-  <section id="practice">
+  <section id="practice" data-toc-label="Demonstrated in Practice">
     <h2>13 &nbsp; Demonstrated in Practice</h2>
     <div class="ref-grid">
       <a class="xref-card" href="../../walkthroughs/LC227_master.html">
@@ -453,12 +438,14 @@ result = { a: [1,2], b: [true] }   <span class="tr-ok">empties dropped, repeats 
       </a>
     </div>
     <div class="co-note"><strong>Custom problem:</strong> <em>Decode Runtime Filters</em> (Variant 8.1) lives as a test file in the package (<code>Tests/.../StringsAndSimulation/CUSTOM_Build_Runtime_Filters.swift</code>), not as a wiki walkthrough. Its full edge-case specification is the tokenizer block of §11 above and the annotated Swift in §7.</div>
+      <p class="u-note-gap">See also: <a href="../../walkthroughs/LC394_master.html">LC394_master.html</a> — Decode String: the push-context / pop-attach parse this page generalizes.</p>
+
   </section>
 
   <hr class="wiki-hr">
 
   <!-- 14. Solo problem -->
-  <section id="solo">
+  <section id="solo" data-toc-label="Solo Problem">
     <h2>14 &nbsp; Solo Problem — no solution on this page</h2>
     <div class="solo-box">
       <div class="solo-banner">Solo problem — no solution on this page</div>
@@ -483,7 +470,8 @@ result = { a: [1,2], b: [true] }   <span class="tr-ok">empties dropped, repeats 
 </main>
 </div>
 
-<script src="../../_shared/pages.js"></script>
+<script src="../../_shared/manifest.js"></script>
 <script src="../../_shared/nav.js"></script>
+<script src="../../_shared/toc.js"></script>
 </body>
 </html>

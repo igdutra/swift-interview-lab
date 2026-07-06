@@ -4,6 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LC 496 — Next Greater Element I · Walkthrough Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "LC 496 — Next Greater Element I",
+  "nav": "LC 496",
+  "topics": [
+    "Stack",
+    "Monotonic Stack",
+    "Arrays"
+  ],
+  "blurb": "Monotonic decreasing stack (Pattern 4) — right-to-left sweep, evict dominated elements, record next-greater in a map. The canonical routing signal: 'next greater / nearest element satisfying a condition'.",
+  "difficulty": "E"
+}
+</script>
 <link rel="stylesheet" href="../_shared/wiki.css">
 <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
@@ -12,32 +25,6 @@
 <nav id="topnav" class="topnav"></nav>
 
 <div class="page">
-
-<!-- ── TOC ── -->
-<nav class="toc-col">
-  <div class="toc-inner">
-    <div class="toc-title toc-cat-walkthrough">Walkthrough · Contents</div>
-    <a href="#lead"         class="toc-link"><span class="toc-num">1</span> The Problem</a>
-    <a href="#reading"      class="toc-link"><span class="toc-num">2</span> Reading the Problem</a>
-    <a href="#edge-cases"   class="toc-link"><span class="toc-num">3</span> Edge Case Inventory</a>
-    <a href="#hints"        class="toc-link"><span class="toc-num">4</span> Try It Yourself First</a>
-    <a href="#simulation"   class="toc-link"><span class="toc-num">5</span> Interview Simulation</a>
-    <div class="toc-sub">
-      <a href="#sim-questions" class="toc-link">5.1 Clarifying questions</a>
-      <a href="#sim-plan"      class="toc-link">5.2 The plan, spoken</a>
-    </div>
-    <a href="#approach"     class="toc-link"><span class="toc-num">6</span> Why This Approach</a>
-    <a href="#structures"   class="toc-link"><span class="toc-num">7</span> Data Structures</a>
-    <a href="#dryrun"       class="toc-link"><span class="toc-num">8</span> Pseudocode Dry Run</a>
-    <a href="#swift"        class="toc-link"><span class="toc-num">9</span> Swift Solution</a>
-    <a href="#code-dry-run" class="toc-link"><span class="toc-num">10</span> Code Dry Run</a>
-    <a href="#qmap"         class="toc-link"><span class="toc-num">11</span> Question → Code Map</a>
-    <a href="#complexity"   class="toc-link"><span class="toc-num">12</span> Complexity</a>
-    <a href="#followups"    class="toc-link"><span class="toc-num">13</span> Follow-Up Bank</a>
-    <a href="#decoder"      class="toc-link"><span class="toc-num">14</span> Theory Decoder</a>
-    <a href="#parent"       class="toc-link"><span class="toc-num">15</span> Parent Theory</a>
-  </div>
-</nav>
 
 <!-- ── CONTENT ── -->
 <main class="content">
@@ -50,7 +37,7 @@
   </div>
 
   <!-- 1. Restatement -->
-  <section id="lead">
+  <section id="lead" data-toc-label="The Problem">
     <div class="infobox">
       <div class="infobox-title">Problem at a Glance</div>
       <div class="infobox-row"><div class="infobox-k">Difficulty</div><div class="infobox-v"><span class="tag tag-E">Easy</span></div></div>
@@ -80,7 +67,7 @@
   <hr class="wiki-hr">
 
   <!-- 2. Reading the problem -->
-  <section id="reading">
+  <section id="reading" data-toc-label="Reading the Problem">
     <h2>2 &nbsp; Reading the Problem — insights from the constraints</h2>
 
     <div class="co-insight"><strong>"First element to its right that is greater"</strong> — <em>first</em> is the tell. Not the maximum. Not any element. The <em>nearest</em> qualifying element. Any time a problem asks for the nearest element satisfying a condition, a monotonic stack is the O(n) answer — it processes each element exactly once while maintaining a structure that resolves "nearest" queries for free.</div>
@@ -100,7 +87,7 @@
   <hr class="wiki-hr">
 
   <!-- 3. Edge cases -->
-  <section id="edge-cases">
+  <section id="edge-cases" data-toc-label="Edge Case Inventory">
     <h2>3 &nbsp; Edge Case Inventory</h2>
     <table class="t-edge">
       <thead><tr><th>Input</th><th>Expected behavior</th><th>Which line handles it</th></tr></thead>
@@ -117,7 +104,7 @@
   <hr class="wiki-hr">
 
   <!-- 4. Try it yourself -->
-  <section id="hints">
+  <section id="hints" data-toc-label="Try It Yourself First">
     <h2>4 &nbsp; Try It Yourself First</h2>
     <details class="hint">
       <summary>Hint 1 — constraint</summary>
@@ -136,31 +123,31 @@
   <hr class="wiki-hr">
 
   <!-- 5. Interview simulation -->
-  <section id="simulation">
+  <section id="simulation" data-toc-label="Interview Simulation">
     <h2>5 &nbsp; Interview Simulation</h2>
 
     <div class="sim-block">
       <div class="sim-header">Interview Simulation — Say This Out Loud</div>
 
-      <div id="sim-questions" style="padding: 16px 20px 0;">
-        <h3 style="margin-top:0">5.1 &nbsp; Clarifying Questions</h3>
+      <div id="sim-questions" data-toc-label="5.1 Clarifying questions" class="u-pad-16-20-0">
+        <h3 class="u-mt-0">5.1 &nbsp; Clarifying Questions</h3>
 
-        <div class="qa-pair">
-          <div class="qa-q">Q: Can values appear more than once across the two arrays?</div>
-          <div class="qa-a">A: No, all values are unique. → So I can safely key a dictionary by value rather than index — no collision risk.</div>
+        <div>
+          <div class="sim-q">Q: Can values appear more than once across the two arrays?</div>
+          <div class="sim-a">A: No, all values are unique. → So I can safely key a dictionary by value rather than index — no collision risk.</div>
         </div>
-        <div class="qa-pair">
-          <div class="qa-q">Q: Is <code>nums1</code> guaranteed to be a subset of <code>nums2</code>?</div>
-          <div class="qa-a">A: Yes, always. → Every value I query in the final step was definitely processed during the <code>nums2</code> sweep.</div>
+        <div>
+          <div class="sim-q">Q: Is <code>nums1</code> guaranteed to be a subset of <code>nums2</code>?</div>
+          <div class="sim-a">A: Yes, always. → Every value I query in the final step was definitely processed during the <code>nums2</code> sweep.</div>
         </div>
-        <div class="qa-pair">
-          <div class="qa-q">Q: What should I return if no greater element exists to the right?</div>
-          <div class="qa-a">A: Return −1 for that position. → I'll use −1 as the default in my dictionary and as the fallback when the stack is empty at the end of the sweep.</div>
+        <div>
+          <div class="sim-q">Q: What should I return if no greater element exists to the right?</div>
+          <div class="sim-a">A: Return −1 for that position. → I'll use −1 as the default in my dictionary and as the fallback when the stack is empty at the end of the sweep.</div>
         </div>
       </div>
 
-      <div id="sim-plan" style="padding: 16px 20px;">
-        <h3 style="margin-top:0">5.2 &nbsp; The Plan, Spoken</h3>
+      <div id="sim-plan" data-toc-label="5.2 The plan, spoken" class="u-pad-16-20">
+        <h3 class="u-mt-0">5.2 &nbsp; The Plan, Spoken</h3>
         <div class="speech">
 "This is a monotonic stack problem. The signal is 'first element to its right that is greater' — whenever a problem asks for the nearest qualifying element, that phrase maps to a monotonic stack, which resolves nearest-greater queries in O(n) by reusing prior comparisons.
 
@@ -183,7 +170,7 @@ Time is O(n + m) — each element is pushed and popped at most once during the s
   <hr class="wiki-hr">
 
   <!-- 6. Why this approach -->
-  <section id="approach">
+  <section id="approach" data-toc-label="Why This Approach">
     <h2>6 &nbsp; Why This Approach</h2>
 
     <table class="t-versus">
@@ -205,7 +192,7 @@ Time is O(n + m) — each element is pushed and popped at most once during the s
   <hr class="wiki-hr">
 
   <!-- 7. Data structures -->
-  <section id="structures">
+  <section id="structures" data-toc-label="Data Structures">
     <h2>7 &nbsp; Data Structures</h2>
     <table class="t-decoder">
       <thead><tr><th>Structure</th><th>What it stores</th><th>Why this one</th></tr></thead>
@@ -221,7 +208,7 @@ Time is O(n + m) — each element is pushed and popped at most once during the s
   <hr class="wiki-hr">
 
   <!-- 8. Pseudocode dry run -->
-  <section id="dryrun">
+  <section id="dryrun" data-toc-label="Pseudocode Dry Run">
     <h2>8 &nbsp; Pseudocode Dry Run</h2>
 
     <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span></div>
@@ -253,12 +240,12 @@ Time is O(n + m) — each element is pushed and popped at most once during the s
   <hr class="wiki-hr">
 
   <!-- 9. Swift solution -->
-  <section id="swift">
+  <section id="swift" data-toc-label="Swift Solution">
     <h2>9 &nbsp; Swift Solution</h2>
 
     <div class="solution-block">
       <div class="block-header">
-        <span class="badge">A.1</span>
+        <span class="block-badge">A.1</span>
         <span class="block-name">Monotonic Stack — right-to-left sweep</span>
         <div class="block-pills"><span class="pill pill-t">O(n + m)</span><span class="pill pill-s">O(n)</span></div>
       </div>
@@ -287,10 +274,10 @@ Time is O(n + m) — each element is pushed and popped at most once during the s
   <hr class="wiki-hr">
 
   <!-- 10. Code dry run -->
-  <section id="code-dry-run">
+  <section id="code-dry-run" data-toc-label="Code Dry Run">
     <h2>10 &nbsp; Code Dry Run</h2>
 
-    <div class="code-label"><span class="code-lang lang-dry">Trace</span><span class="code-desc">nextGreaterElement([4,1,2], [1,3,4,2])</span></div>
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">nextGreaterElement([4,1,2], [1,3,4,2])</span></div>
 <pre class="dry">────────────────────────────────
 /code-dry-run
 Problem: LC 496 — Next Greater Element I
@@ -349,7 +336,7 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 11. Question → code map -->
-  <section id="qmap">
+  <section id="qmap" data-toc-label="Question → Code Map">
     <h2>11 &nbsp; Question → Code Map</h2>
     <table class="t-qmap">
       <thead><tr><th>Clarifying question / plan decision</th><th>The line it became</th></tr></thead>
@@ -367,7 +354,7 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 12. Complexity -->
-  <section id="complexity">
+  <section id="complexity" data-toc-label="Complexity">
     <h2>12 &nbsp; Complexity</h2>
     <table class="t-cmx">
       <thead><tr><th>Solution</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
@@ -382,25 +369,25 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 13. Follow-up bank -->
-  <section id="followups">
+  <section id="followups" data-toc-label="Follow-Up Bank">
     <h2>13 &nbsp; Follow-Up Bank</h2>
 
-    <div class="followup-entry">
+    <div class="followup">
       <div class="followup-q">Follow-up: Before you push this to production — can you see any improvements you'd make?</div>
       <p>The dictionary allocates O(n) space to store a mapping we only query once at the end. If nums1 is much shorter than nums2, we could filter to only track values that appear in nums1 — building a <code>Set(nums1)</code> and only inserting into the dictionary for those values. Same O(n) sweep, but the dictionary stays smaller: O(m) instead of O(n). The stack itself stays O(n) in the worst case regardless.</p>
     </div>
 
-    <div class="followup-entry">
+    <div class="followup">
       <div class="followup-q">Follow-up: What if nums2 is circular — after the last element, the array wraps around and you look again from the start?</div>
       <p>That is LC 503 — Next Greater Element II. The fix is to sweep the array <em>twice</em> (using index % n to wrap), which simulates the circular view without duplicating the array. Everything else stays the same — same monotonic stack, same eviction rule.</p>
     </div>
 
-    <div class="followup-entry">
+    <div class="followup">
       <div class="followup-q">Follow-up: What if you want the next <em>smaller</em> element instead of the next greater?</div>
       <p>Flip the stack to <em>increasing</em> (pop everything ≥ current instead of ≤). The structure is symmetric — a monotonically increasing stack resolves "nearest smaller to the right" in the same O(n) sweep. The eviction condition is the only line that changes.</p>
     </div>
 
-    <div class="followup-entry">
+    <div class="followup">
       <div class="followup-q">Follow-up: What if nums1 and nums2 can have duplicates?</div>
       <p>The value-keyed dictionary breaks — two identical values would overwrite each other. You'd need to key by index instead. Find each nums1 element's position in nums2 first (O(n) with a value→index map), then build the next-greater by index. Or store a list of indices per value. The monotonic stack logic is unchanged; only the lookup key shifts from value to index.</p>
     </div>
@@ -409,7 +396,7 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 14. Theory decoder -->
-  <section id="decoder">
+  <section id="decoder" data-toc-label="Theory Decoder">
     <h2>14 &nbsp; Theory Decoder</h2>
     <p>This problem uses one concept from the parent stack theory: the <strong>monotonic stack</strong> — Pattern 4 of the stack theory page.</p>
 
@@ -429,7 +416,7 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 15. Parent theory -->
-  <section id="parent">
+  <section id="parent" data-toc-label="Parent Theory">
     <h2>15 &nbsp; Parent Theory</h2>
     <div class="ref-grid">
       <a class="backref-card" href="../theory/stacks_queues/stack_master.html">
@@ -449,7 +436,8 @@ RESULT
 </main>
 </div>
 
-<script src="../_shared/pages.js"></script>
+<script src="../_shared/manifest.js"></script>
 <script src="../_shared/nav.js"></script>
+<script src="../_shared/toc.js"></script>
 </body>
 </html>

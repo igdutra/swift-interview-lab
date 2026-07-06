@@ -4,6 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LC 933 — Number of Recent Calls · Walkthrough Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "LC 933 — Number of Recent Calls",
+  "nav": "LC 933",
+  "topics": [
+    "Queue",
+    "Sliding Window",
+    "Design"
+  ],
+  "blurb": "Sliding-window queue in its simplest form — append, evict-while-stale from front, return count. Recognition signals: rolling time window + strictly increasing timestamps + stateful class. Why queue beats stack, two-pointer, and sorted set.",
+  "difficulty": "E"
+}
+</script>
 <link rel="stylesheet" href="../_shared/wiki.css">
 <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
@@ -12,32 +25,6 @@
 <nav id="topnav" class="topnav"></nav>
 
 <div class="page">
-
-<!-- ── TOC ── -->
-<nav class="toc-col">
-  <div class="toc-inner">
-    <div class="toc-title toc-cat-walkthrough">Walkthrough · Contents</div>
-    <a href="#lead"         class="toc-link"><span class="toc-num">1</span> The Problem</a>
-    <a href="#reading"      class="toc-link"><span class="toc-num">2</span> Reading the Problem</a>
-    <a href="#edge-cases"   class="toc-link"><span class="toc-num">3</span> Edge Case Inventory</a>
-    <a href="#hints"        class="toc-link"><span class="toc-num">4</span> Try It Yourself First</a>
-    <a href="#simulation"   class="toc-link"><span class="toc-num">5</span> Interview Simulation</a>
-    <div class="toc-sub">
-      <a href="#sim-questions" class="toc-link">5.1 Clarifying questions</a>
-      <a href="#sim-plan"      class="toc-link">5.2 The plan, spoken</a>
-    </div>
-    <a href="#approach"     class="toc-link"><span class="toc-num">6</span> Why This Approach</a>
-    <a href="#structures"   class="toc-link"><span class="toc-num">7</span> Data Structures</a>
-    <a href="#dryrun"       class="toc-link"><span class="toc-num">8</span> Pseudocode Dry Run</a>
-    <a href="#swift"        class="toc-link"><span class="toc-num">9</span> Swift Solution</a>
-    <a href="#code-dry-run" class="toc-link"><span class="toc-num">10</span> Code Dry Run</a>
-    <a href="#qmap"         class="toc-link"><span class="toc-num">11</span> Question → Code Map</a>
-    <a href="#complexity"   class="toc-link"><span class="toc-num">12</span> Complexity</a>
-    <a href="#followups"    class="toc-link"><span class="toc-num">13</span> Follow-Up Bank</a>
-    <a href="#decoder"      class="toc-link"><span class="toc-num">14</span> Theory Decoder</a>
-    <a href="#parent"       class="toc-link"><span class="toc-num">15</span> Parent Theory</a>
-  </div>
-</nav>
 
 <!-- ── CONTENT ── -->
 <main class="content">
@@ -50,7 +37,7 @@
   </div>
 
   <!-- 1. Restatement -->
-  <section id="lead">
+  <section id="lead" data-toc-label="The Problem">
     <div class="infobox">
       <div class="infobox-title">Problem at a Glance</div>
       <div class="infobox-row"><div class="infobox-k">Difficulty</div><div class="infobox-v"><span class="tag tag-E">Easy</span></div></div>
@@ -81,7 +68,7 @@
   <hr class="wiki-hr">
 
   <!-- 2. Reading the problem -->
-  <section id="reading">
+  <section id="reading" data-toc-label="Reading the Problem">
     <h2>2 &nbsp; Reading the Problem — Recognition Signals</h2>
 
     <div class="co-idea">
@@ -116,7 +103,7 @@
   <hr class="wiki-hr">
 
   <!-- 3. Edge cases -->
-  <section id="edge-cases">
+  <section id="edge-cases" data-toc-label="Edge Case Inventory">
     <h2>3 &nbsp; Edge Case Inventory</h2>
     <table class="t-edge">
       <thead><tr><th>Input</th><th>Expected behavior</th><th>Which line handles it</th></tr></thead>
@@ -133,7 +120,7 @@
   <hr class="wiki-hr">
 
   <!-- 4. Try it yourself -->
-  <section id="hints">
+  <section id="hints" data-toc-label="Try It Yourself First">
     <h2>4 &nbsp; Try It Yourself First</h2>
     <details class="hint">
       <summary>Hint 1 — constraint</summary>
@@ -152,31 +139,31 @@
   <hr class="wiki-hr">
 
   <!-- 5. Interview simulation -->
-  <section id="simulation">
+  <section id="simulation" data-toc-label="Interview Simulation">
     <h2>5 &nbsp; Interview Simulation</h2>
 
     <div class="sim-block">
       <div class="sim-header">Interview Simulation — Say This Out Loud</div>
 
-      <div id="sim-questions" style="padding: 16px 20px 0;">
-        <h3 style="margin-top:0">5.1 &nbsp; Clarifying Questions</h3>
+      <div id="sim-questions" data-toc-label="5.1 Clarifying questions" class="u-pad-16-20-0">
+        <h3 class="u-mt-0">5.1 &nbsp; Clarifying Questions</h3>
 
-        <div class="qa-pair">
-          <div class="qa-q">Q: Are timestamps guaranteed to be strictly increasing?</div>
-          <div class="qa-a">A: Yes. → Then the oldest request is always at the front of whatever structure I use — I never need to search for stale items. Front-eviction is O(1) amortized.</div>
+        <div>
+          <div class="sim-q">Q: Are timestamps guaranteed to be strictly increasing?</div>
+          <div class="sim-a">A: Yes. → Then the oldest request is always at the front of whatever structure I use — I never need to search for stale items. Front-eviction is O(1) amortized.</div>
         </div>
-        <div class="qa-pair">
-          <div class="qa-q">Q: Is the window inclusive on both ends — does a request at exactly t − 3000 count?</div>
-          <div class="qa-a">A: Yes, [t − 3000, t] is closed. → My eviction condition must be strict less-than: remove the front only when it is strictly less than t − 3000. Equal means it's still valid.</div>
+        <div>
+          <div class="sim-q">Q: Is the window inclusive on both ends — does a request at exactly t − 3000 count?</div>
+          <div class="sim-a">A: Yes, [t − 3000, t] is closed. → My eviction condition must be strict less-than: remove the front only when it is strictly less than t − 3000. Equal means it's still valid.</div>
         </div>
-        <div class="qa-pair">
-          <div class="qa-q">Q: What should ping return — just the count, not the actual requests?</div>
-          <div class="qa-a">A: Just the integer count. → I only need to store the timestamps themselves, not any payload. The queue length after eviction is the answer.</div>
+        <div>
+          <div class="sim-q">Q: What should ping return — just the count, not the actual requests?</div>
+          <div class="sim-a">A: Just the integer count. → I only need to store the timestamps themselves, not any payload. The queue length after eviction is the answer.</div>
         </div>
       </div>
 
-      <div id="sim-plan" style="padding: 16px 20px;">
-        <h3 style="margin-top:0">5.2 &nbsp; The Plan, Spoken</h3>
+      <div id="sim-plan" data-toc-label="5.2 The plan, spoken" class="u-pad-16-20">
+        <h3 class="u-mt-0">5.2 &nbsp; The Plan, Spoken</h3>
         <div class="speech">
 "This is a sliding-window queue problem. The three signals that tell me that: first, 'how many requests in the last 3000ms' — that's a rolling time window, which means I add new items at one end and evict old items from the other. Two different ends, two different operations — that's a queue, not a stack. Second, 'strictly increasing timestamps' — the oldest item is always at the front, so I never need to search for stale items; front-eviction is the only eviction path. Third, it's a stateful class with repeated calls — the window has to survive between pings, so it's an instance variable.
 
@@ -203,7 +190,7 @@ Time is O(1) amortized per ping — each timestamp is appended once and removed 
   <hr class="wiki-hr">
 
   <!-- 6. Why this approach -->
-  <section id="approach">
+  <section id="approach" data-toc-label="Why This Approach">
     <h2>6 &nbsp; Why This Approach</h2>
 
     <table class="t-versus">
@@ -223,7 +210,7 @@ Time is O(1) amortized per ping — each timestamp is appended once and removed 
   <hr class="wiki-hr">
 
   <!-- 7. Data structures -->
-  <section id="structures">
+  <section id="structures" data-toc-label="Data Structures">
     <h2>7 &nbsp; Data Structures</h2>
     <table class="t-decoder">
       <thead><tr><th>Structure</th><th>What it stores</th><th>Why this one</th></tr></thead>
@@ -238,7 +225,7 @@ Time is O(1) amortized per ping — each timestamp is appended once and removed 
   <hr class="wiki-hr">
 
   <!-- 8. Pseudocode dry run -->
-  <section id="dryrun">
+  <section id="dryrun" data-toc-label="Pseudocode Dry Run">
     <h2>8 &nbsp; Pseudocode Dry Run</h2>
 
     <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span></div>
@@ -266,12 +253,12 @@ Time is O(1) amortized per ping — each timestamp is appended once and removed 
   <hr class="wiki-hr">
 
   <!-- 9. Swift solution -->
-  <section id="swift">
+  <section id="swift" data-toc-label="Swift Solution">
     <h2>9 &nbsp; Swift Solution</h2>
 
     <div class="solution-block">
       <div class="block-header">
-        <span class="badge">A.1</span>
+        <span class="block-badge">A.1</span>
         <span class="block-name">Sliding-window queue — removeFirst() form</span>
         <div class="block-pills"><span class="pill pill-t">O(1) amortized</span><span class="pill pill-s">O(w)</span></div>
       </div>
@@ -295,9 +282,9 @@ Time is O(1) amortized per ping — each timestamp is appended once and removed 
       </div>
     </div>
 
-    <div class="solution-block" style="margin-top:24px">
+    <div class="solution-block u-mt-24">
       <div class="block-header">
-        <span class="badge">A.2</span>
+        <span class="block-badge">A.2</span>
         <span class="block-name">Head-index optimization — O(1) amortized dequeue</span>
         <div class="block-pills"><span class="pill pill-t">O(1) amortized</span><span class="pill pill-s">O(n)</span></div>
       </div>
@@ -326,10 +313,10 @@ Time is O(1) amortized per ping — each timestamp is appended once and removed 
   <hr class="wiki-hr">
 
   <!-- 10. Code dry run -->
-  <section id="code-dry-run">
+  <section id="code-dry-run" data-toc-label="Code Dry Run">
     <h2>10 &nbsp; Code Dry Run</h2>
 
-    <div class="code-label"><span class="code-lang lang-dry">Trace</span><span class="code-desc">RecentCounter — ping(1), ping(100), ping(3001), ping(3002)</span></div>
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">RecentCounter — ping(1), ping(100), ping(3001), ping(3002)</span></div>
 <pre class="dry">────────────────────────────────
 /code-dry-run
 Problem: LC 933 — Number of Recent Calls
@@ -386,7 +373,7 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 11. Question → code map -->
-  <section id="qmap">
+  <section id="qmap" data-toc-label="Question → Code Map">
     <h2>11 &nbsp; Question → Code Map</h2>
     <table class="t-qmap">
       <thead><tr><th>Clarifying question / plan decision</th><th>The line it became</th></tr></thead>
@@ -403,7 +390,7 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 12. Complexity -->
-  <section id="complexity">
+  <section id="complexity" data-toc-label="Complexity">
     <h2>12 &nbsp; Complexity</h2>
     <table class="t-cmx">
       <thead><tr><th>Solution</th><th>Time per ping</th><th>Space</th><th>Why</th></tr></thead>
@@ -419,25 +406,25 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 13. Follow-up bank -->
-  <section id="followups">
+  <section id="followups" data-toc-label="Follow-Up Bank">
     <h2>13 &nbsp; Follow-Up Bank</h2>
 
-    <div class="followup-entry">
+    <div class="followup">
       <div class="followup-q">Follow-up: Before you push this to production — can you see any improvements you'd make?</div>
       <p>The <code>removeFirst()</code> call shifts every remaining element in the array — O(current window size) per eviction step. In production with high-throughput pings, I'd swap to the head-index trick (solution A.2): advance a <code>head</code> index instead of shifting, and return <code>window.count - head</code>. Each ping is then a true O(1) operation. The tradeoff is that the array now holds all timestamps ever seen (O(n) space) rather than just the in-window ones (O(w)), but for a rate-limiter that's usually acceptable.</p>
     </div>
 
-    <div class="followup-entry">
+    <div class="followup">
       <div class="followup-q">Follow-up: What if pings could arrive out of order?</div>
       <p>The strictly-increasing guarantee is what makes front-eviction O(1) amortized. Without it, the oldest item is no longer guaranteed to be at the front — stale items could be anywhere. You'd need a min-heap to always find the oldest in O(log n), or a sorted structure. The queue degrades from O(1) amortized to O(log n) per ping in that case.</p>
     </div>
 
-    <div class="followup-entry">
+    <div class="followup">
       <div class="followup-q">Follow-up: What if the window size isn't fixed at 3000ms but is passed per query?</div>
       <p>The same queue structure works — just replace <code>timestamp - 3000</code> with <code>timestamp - windowSize</code> in the eviction condition. If different callers can use different window sizes simultaneously, you'd need one queue per window size. The algorithm is unchanged; only the threshold becomes a parameter.</p>
     </div>
 
-    <div class="followup-entry">
+    <div class="followup">
       <div class="followup-q">Follow-up: How would you implement this in a thread-safe way?</div>
       <p>Wrap the queue in an actor (Swift concurrency) or protect the array and head index with a lock. The queue's single-writer / single-reader pattern maps cleanly to an actor: <code>actor RecentCounter</code> with <code>func ping(_ t: Int) async → Int</code>. The lock-based approach works too but requires careful unlock-on-return handling. In a high-throughput system, a lock-free ring buffer (fixed-size circular buffer) is the production choice — O(1) at both ends with no allocation after init.</p>
     </div>
@@ -446,7 +433,7 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 14. Theory decoder -->
-  <section id="decoder">
+  <section id="decoder" data-toc-label="Theory Decoder">
     <h2>14 &nbsp; Theory Decoder</h2>
     <p>This problem instantiates one concept from the parent queue theory: the <strong>sliding-window queue</strong> — Pattern 2 of the queue theory page.</p>
 
@@ -465,7 +452,7 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 15. Parent theory -->
-  <section id="parent">
+  <section id="parent" data-toc-label="Parent Theory">
     <h2>15 &nbsp; Parent Theory</h2>
     <div class="ref-grid">
       <a class="backref-card" href="../theory/stacks_queues/queue_master.html">
@@ -474,6 +461,8 @@ RESULT
         <span class="ref-desc">Parent theory for this walkthrough. Section §2 has the sliding-window queue skeleton (Pattern 2) this problem instantiates. Section §4 covers when to reach for a queue vs. stack vs. sorted structure, and §5 explains why FIFO guarantees the amortized O(1) argument.</span>
       </a>
     </div>
+      <p class="u-note-gap">See also: <a href="../theory/design/stateful_system_design_deep_dive_master.html">stateful_system_design_deep_dive_master.html</a> — the mutate-and-query design frame this counter instantiates.</p>
+
   </section>
 
   <div class="page-footer">
@@ -485,7 +474,8 @@ RESULT
 </main>
 </div>
 
-<script src="../_shared/pages.js"></script>
+<script src="../_shared/manifest.js"></script>
 <script src="../_shared/nav.js"></script>
+<script src="../_shared/toc.js"></script>
 </body>
 </html>

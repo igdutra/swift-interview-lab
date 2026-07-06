@@ -4,6 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Sorting Algorithm Complexity · Study Wiki</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Sorting Algorithm Complexity",
+  "nav": "Sort Complexity",
+  "topics": [
+    "Complexity",
+    "Sorting"
+  ],
+  "blurb": "Timsort vs Heapsort vs Counting Sort — when theory and practice diverge.",
+  "order": 5
+}
+</script>
 <link rel="stylesheet" href="../_shared/wiki.css">
 <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
@@ -12,15 +24,6 @@
 <nav id="topnav" class="topnav"></nav>
 
 <div class="page">
-<nav class="toc-col">
-  <div class="toc-title">Contents</div>
-  <a href="#overview">Overview</a>
-  <a href="#table">Complexity Table</a>
-  <a href="#winners">Who Wins on Paper</a>
-  <a href="#practice">Theory vs Practice</a>
-  <a href="#interview">Interview Insight</a>
-</nav>
-
 <main class="content">
 
   <h1 class="page-title">Sorting Algorithm Complexity</h1>
@@ -34,14 +37,14 @@
     <p>More optimal on paper ≠ faster in practice. Knowing <em>why</em> is the insight interviewers want to hear.</p>
   </div>
 
-  <h2 id="overview"><span class="sec-num">1</span> Overview</h2>
+  <h2 id="overview" data-toc-label="Overview"><span class="sec-num">1</span> Overview</h2>
   <p>All major programming languages ship a built-in sort. It is always correct to say sorting costs <strong>O(n log n)</strong>. But the specific algorithm — and its real-world behavior — varies by language:</p>
   <ul>
     <li><strong>Swift / Python / Java</strong> → Timsort (hybrid merge + insertion sort)</li>
     <li><strong>C++</strong> → Introsort (hybrid quicksort + heapsort + insertion sort; not mandated by spec)</li>
   </ul>
 
-  <h2 id="table"><span class="sec-num">2</span> Complexity Table</h2>
+  <h2 id="table" data-toc-label="Complexity Table"><span class="sec-num">2</span> Complexity Table</h2>
   <table class="t-cmx">
     <thead>
       <tr>
@@ -65,9 +68,9 @@
       <tr><td>Radix Sort</td>      <td class="sc">O(nk)</td>     <td class="sc">O(nk)</td>      <td class="sc">O(nk)</td>     <td>O(n+k)</td> <td>Yes</td></tr>
     </tbody>
   </table>
-  <p style="font-size:13px;color:var(--text3);">Green = advantageous. Highlighted row = worst-case trap. k = range of input values.</p>
+  <p class="u-note-text">Green = advantageous. Highlighted row = worst-case trap. k = range of input values.</p>
 
-  <h2 id="winners"><span class="sec-num">3</span> Who Wins on Paper</h2>
+  <h2 id="winners" data-toc-label="Who Wins on Paper"><span class="sec-num">3</span> Who Wins on Paper</h2>
 
   <div class="co co-insight">
     <strong>Best case O(n):</strong> Timsort shares this with Bubble Sort, Insertion Sort, and Counting Sort — no advantage there alone.
@@ -87,7 +90,7 @@
 
   <p><strong>Counting Sort / Radix Sort</strong> can beat everyone at O(n+k) or O(nk) — but only when data fits the constraint (integers in a known, bounded range).</p>
 
-  <h2 id="practice"><span class="sec-num">4</span> Theory vs Practice</h2>
+  <h2 id="practice" data-toc-label="Theory vs Practice"><span class="sec-num">4</span> Theory vs Practice</h2>
   <p>Timsort wins in real-world usage despite worse space complexity because:</p>
   <ol>
     <li><strong>Real data is often partially sorted</strong> — Timsort detects and exploits existing "runs"</li>
@@ -99,7 +102,7 @@
     Don't assert that a theoretically superior algorithm is "better" without qualifying the claim. Cache behavior and stability requirements often flip the real-world ranking.
   </div>
 
-  <h2 id="interview"><span class="sec-num">5</span> Interview Insight</h2>
+  <h2 id="interview" data-toc-label="Interview Insight"><span class="sec-num">5</span> Interview Insight</h2>
   <div class="co co-idea">
     <strong>The soundbite worth saying:</strong> "More optimal on paper ≠ faster in practice — Timsort wins real benchmarks because real data is partially sorted and cache locality dominates at scale."
   </div>
@@ -112,7 +115,8 @@
 </main>
 </div>
 
-<script src="../_shared/pages.js"></script>
+<script src="../_shared/manifest.js"></script>
 <script src="../_shared/nav.js"></script>
+<script src="../_shared/toc.js"></script>
 </body>
 </html>

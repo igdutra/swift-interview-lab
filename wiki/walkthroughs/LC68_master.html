@@ -4,6 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LC 68 — Text Justification · Walkthrough Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "LC 68 — Text Justification",
+  "nav": "LC 68",
+  "topics": [
+    "Strings",
+    "Simulation",
+    "Greedy"
+  ],
+  "blurb": "Greedy line-packing + space distribution (Variant 8.4). TARGET: coach-only, no solution. Two-phase frame, even/last/single-word spacing rules, the full spacing edge-case spec, graduated hints.",
+  "difficulty": "H"
+}
+</script>
 <link rel="stylesheet" href="../_shared/wiki.css">
 <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
@@ -12,20 +25,6 @@
 <nav id="topnav" class="topnav"></nav>
 
 <div class="page">
-
-<!-- ── TOC ── -->
-<nav class="toc-col">
-  <div class="toc-inner">
-    <div class="toc-title toc-cat-walkthrough">Walkthrough · Contents</div>
-    <a href="#lead"       class="toc-link"><span class="toc-num">1</span> The Problem</a>
-    <a href="#reading"    class="toc-link"><span class="toc-num">2</span> Reading the Problem</a>
-    <a href="#edge-cases" class="toc-link"><span class="toc-num">3</span> Edge Case Inventory</a>
-    <a href="#simulation" class="toc-link"><span class="toc-num">4</span> Clarifying Questions</a>
-    <a href="#approach"   class="toc-link"><span class="toc-num">5</span> Recognition Signals</a>
-    <a href="#hints"      class="toc-link"><span class="toc-num">6</span> Try It Yourself First</a>
-    <a href="#parent"     class="toc-link"><span class="toc-num">7</span> Parent Theory</a>
-  </div>
-</nav>
 
 <!-- ── CONTENT ── -->
 <main class="content">
@@ -38,7 +37,7 @@
   </div>
 
   <!-- 1. Restatement -->
-  <section id="lead">
+  <section id="lead" data-toc-label="The Problem">
     <div class="infobox">
       <div class="infobox-title">Problem at a Glance</div>
       <div class="infobox-row"><div class="infobox-k">Difficulty</div><div class="infobox-v"><span class="tag tag-H">Hard</span></div></div>
@@ -80,7 +79,7 @@
   <hr class="wiki-hr">
 
   <!-- 2. Reading the problem -->
-  <section id="reading">
+  <section id="reading" data-toc-label="Reading the Problem">
     <h2>2 &nbsp; Reading the Problem — insights from the constraints</h2>
 
     <div class="co-insight"><strong>"Lines of exactly maxWidth characters":</strong> every output line, without exception, is exactly <code>maxWidth</code> long. This is the invariant you check every case against: normal lines reach it by distributing spaces between words; last and single-word lines reach it by padding the right. If any line comes out short or long, a spacing rule is wrong.</div>
@@ -112,7 +111,7 @@
   <hr class="wiki-hr">
 
   <!-- 3. Edge cases -->
-  <section id="edge-cases">
+  <section id="edge-cases" data-toc-label="Edge Case Inventory">
     <h2>3 &nbsp; Edge Case Inventory</h2>
     <p>This table <em>is</em> the specification. Each row is a spacing rule you must reproduce exactly — verbalize every one before coding.</p>
     <table class="t-edge">
@@ -134,7 +133,7 @@
   <hr class="wiki-hr">
 
   <!-- 4. Clarifying questions -->
-  <section id="simulation">
+  <section id="simulation" data-toc-label="Clarifying Questions">
     <h2>4 &nbsp; Clarifying Questions</h2>
     <p>The questions to ask before you start — each answer's design consequence is noted. (No spoken plan and no code on this page: this is a TARGET.)</p>
 
@@ -162,7 +161,7 @@
   <hr class="wiki-hr">
 
   <!-- 5. Recognition signals -->
-  <section id="approach">
+  <section id="approach" data-toc-label="Recognition Signals">
     <h2>5 &nbsp; Recognition Signals — what tells you it's this pattern</h2>
     <table class="t-versus">
       <thead><tr><th>Signal in the problem</th><th>What it points to</th></tr></thead>
@@ -180,7 +179,7 @@
   <hr class="wiki-hr">
 
   <!-- 6. Hints -->
-  <section id="hints">
+  <section id="hints" data-toc-label="Try It Yourself First">
     <h2>6 &nbsp; Try It Yourself First</h2>
     <p>This is the hardest bookkeeping in the block. Solve it before peeking — open the hints one at a time.</p>
     <details class="hint"><summary>Hint 1 — the constraint</summary><p>Two phases, kept as two separate passes. Phase 1 decides <em>which words go on which line</em> (greedy packing). Phase 2 turns each committed line of words into a width-<code>maxWidth</code> string. Do not try to do both at once — the spacing rules are far easier to get right when packing is already done.</p></details>
@@ -193,7 +192,7 @@
   <hr class="wiki-hr">
 
   <!-- 7. Back-reference -->
-  <section id="parent">
+  <section id="parent" data-toc-label="Parent Theory">
     <h2>7 &nbsp; Parent Theory</h2>
     <p>This walkthrough is the TARGET for Variant 8.4 of a larger pattern. The parent page is not free-form — it follows the theory masterfile standard, so here is exactly what you land on:</p>
     <div class="ref-grid">
@@ -214,7 +213,8 @@
 </main>
 </div>
 
-<script src="../_shared/pages.js"></script>
+<script src="../_shared/manifest.js"></script>
 <script src="../_shared/nav.js"></script>
+<script src="../_shared/toc.js"></script>
 </body>
 </html>

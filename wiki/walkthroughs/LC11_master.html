@@ -4,6 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LC 11 — Container With Most Water · Walkthrough Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "LC 11 — Container With Most Water",
+  "nav": "LC 11",
+  "topics": [
+    "Two Pointers",
+    "Arrays"
+  ],
+  "blurb": "Converging two pointers with min-side steering. Full proof of why moving the taller wall is provably suboptimal, with dry run and interview simulation.",
+  "difficulty": "M"
+}
+</script>
 <link rel="stylesheet" href="../_shared/wiki.css">
 <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
@@ -12,32 +24,6 @@
 <nav id="topnav" class="topnav"></nav>
 
 <div class="page">
-
-<!-- ── TOC ── -->
-<nav class="toc-col">
-  <div class="toc-inner">
-    <div class="toc-title toc-cat-walkthrough">Walkthrough · Contents</div>
-    <a href="#lead"         class="toc-link"><span class="toc-num">1</span> The Problem</a>
-    <a href="#reading"      class="toc-link"><span class="toc-num">2</span> Reading the Problem</a>
-    <a href="#edge-cases"   class="toc-link"><span class="toc-num">3</span> Edge Case Inventory</a>
-    <a href="#hints"        class="toc-link"><span class="toc-num">4</span> Try It Yourself First</a>
-    <a href="#simulation"   class="toc-link"><span class="toc-num">5</span> Interview Simulation</a>
-    <div class="toc-sub">
-      <a href="#sim-questions" class="toc-link">5.1 Clarifying questions</a>
-      <a href="#sim-plan"      class="toc-link">5.2 The plan, spoken</a>
-    </div>
-    <a href="#approach"     class="toc-link"><span class="toc-num">6</span> Why This Approach</a>
-    <a href="#structures"   class="toc-link"><span class="toc-num">7</span> Data Structures</a>
-    <a href="#dryrun"       class="toc-link"><span class="toc-num">8</span> Pseudocode Dry Run</a>
-    <a href="#swift"        class="toc-link"><span class="toc-num">9</span> Swift Solution</a>
-    <a href="#code-dry-run" class="toc-link"><span class="toc-num">10</span> Code Dry Run</a>
-    <a href="#qmap"         class="toc-link"><span class="toc-num">11</span> Question → Code Map</a>
-    <a href="#complexity"   class="toc-link"><span class="toc-num">12</span> Complexity</a>
-    <a href="#followups"    class="toc-link"><span class="toc-num">13</span> Follow-Up Bank</a>
-    <a href="#decoder"      class="toc-link"><span class="toc-num">14</span> Theory Decoder</a>
-    <a href="#parent"       class="toc-link"><span class="toc-num">15</span> Parent Theory</a>
-  </div>
-</nav>
 
 <!-- ── CONTENT ── -->
 <main class="content">
@@ -50,7 +36,7 @@
   </div>
 
   <!-- 1. Restatement -->
-  <section id="lead">
+  <section id="lead" data-toc-label="The Problem">
     <div class="infobox">
       <div class="infobox-title">Problem at a Glance</div>
       <div class="infobox-row"><div class="infobox-k">Difficulty</div><div class="infobox-v"><span class="tag tag-M">Medium</span></div></div>
@@ -79,7 +65,7 @@
   <hr class="wiki-hr">
 
   <!-- 2. Reading the problem -->
-  <section id="reading">
+  <section id="reading" data-toc-label="Reading the Problem">
     <h2>2 &nbsp; Reading the Problem — insights from the statement</h2>
 
     <div class="co-insight"><strong>"Container with most water":</strong> the word "most" tells you this is a maximization problem over all valid pairs. You need to evaluate every meaningful pair — but not by brute force. The O(n²) check-all-pairs baseline must be beaten.</div>
@@ -108,7 +94,7 @@
   <hr class="wiki-hr">
 
   <!-- 3. Edge cases -->
-  <section id="edge-cases">
+  <section id="edge-cases" data-toc-label="Edge Case Inventory">
     <h2>3 &nbsp; Edge Case Inventory</h2>
     <table class="t-edge">
       <thead><tr><th>Input</th><th>Expected</th><th>Handled by</th></tr></thead>
@@ -130,7 +116,7 @@
   <hr class="wiki-hr">
 
   <!-- 4. Hints -->
-  <section id="hints">
+  <section id="hints" data-toc-label="Try It Yourself First">
     <h2>4 &nbsp; Try It Yourself First</h2>
     <p>Attempt the problem before reading on. Open hints one at a time.</p>
     <details class="hint"><summary>Hint 1 — the constraint</summary><p>n up to 10⁵ rules out checking all O(n²) pairs. The array is <em>not</em> sorted. Think about starting with the widest possible container and asking: can we do better by narrowing it?</p></details>
@@ -141,11 +127,11 @@
   <hr class="wiki-hr">
 
   <!-- 5. Interview simulation -->
-  <section id="simulation">
+  <section id="simulation" data-toc-label="Interview Simulation">
     <h2>5 &nbsp; Interview Simulation</h2>
     <p>The interviewer has stated the problem. The script starts with your first words — practice it out loud.</p>
 
-    <div class="sim-block" id="sim-questions">
+    <div class="sim-block" id="sim-questions" data-toc-label="5.1 Clarifying questions">
       <div class="sim-header">Step 1 — Clarifying questions</div>
       <div class="sim-body">
         <div class="sim-q">Q: "Can the heights be zero, or are all values at least 1?"</div>
@@ -162,7 +148,7 @@
       </div>
     </div>
 
-    <div class="sim-block" id="sim-plan">
+    <div class="sim-block" id="sim-plan" data-toc-label="5.2 The plan, spoken">
       <div class="sim-header">Step 2 — The plan, before any code</div>
       <div class="sim-body">
         <div class="speech">
@@ -181,7 +167,7 @@
   <hr class="wiki-hr">
 
   <!-- 6. Approach rationale -->
-  <section id="approach">
+  <section id="approach" data-toc-label="Why This Approach">
     <h2>6 &nbsp; Why This Approach — and not the others</h2>
     <table class="t-versus">
       <thead><tr><th>Candidate</th><th>Cost</th><th>Verdict</th></tr></thead>
@@ -199,7 +185,7 @@
   <hr class="wiki-hr">
 
   <!-- 7. Data structures -->
-  <section id="structures">
+  <section id="structures" data-toc-label="Data Structures">
     <h2>7 &nbsp; Data Structures — choice and justification</h2>
     <table class="t-decoder">
       <thead><tr><th>Structure</th><th>Holds</th><th>Why this and not weaker/stronger</th></tr></thead>
@@ -215,7 +201,7 @@
   <hr class="wiki-hr">
 
   <!-- 8. Pseudocode dry run -->
-  <section id="dryrun">
+  <section id="dryrun" data-toc-label="Pseudocode Dry Run">
     <h2>8 &nbsp; Pseudocode Dry Run</h2>
 
     <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">converging two pointers, min-side steering</span></div>
@@ -254,7 +240,7 @@ l=6 r=6  → l &lt; r? NO — loop exits
   <hr class="wiki-hr">
 
   <!-- 9. Swift solution -->
-  <section id="swift">
+  <section id="swift" data-toc-label="Swift Solution">
     <h2>9 &nbsp; Swift Solution — iterative</h2>
 
     <div class="solution-block">
@@ -296,7 +282,7 @@ l=6 r=6  → l &lt; r? NO — loop exits
   <hr class="wiki-hr">
 
   <!-- 10. Code dry run -->
-  <section id="code-dry-run">
+  <section id="code-dry-run" data-toc-label="Code Dry Run">
     <h2>10 &nbsp; Code Dry Run — the Swift solution, traced</h2>
     <p>The §8 trace runs the pseudocode at milestone level. This one runs the actual Swift solution above, debugger-style — every variable mutation traced, in <code>/code-dry-run</code> format. Canonical input: <code>height = [1,8,6,2,5,4,8,3,7]</code> → expected output <code>49</code>.</p>
 
@@ -405,7 +391,7 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 11. Q→Code map -->
-  <section id="qmap">
+  <section id="qmap" data-toc-label="Question → Code Map">
     <h2>11 &nbsp; Question → Code Map</h2>
     <p>Every question from the simulation became a specific construct:</p>
     <table class="t-qmap">
@@ -425,7 +411,7 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 12. Complexity -->
-  <section id="complexity">
+  <section id="complexity" data-toc-label="Complexity">
     <h2>12 &nbsp; Complexity</h2>
     <table class="t-cmx">
       <thead><tr><th>Phase</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
@@ -440,7 +426,7 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 13. Follow-ups -->
-  <section id="followups">
+  <section id="followups" data-toc-label="Follow-Up Bank">
     <h2>13 &nbsp; Follow-Up Bank — the interviewer's second act</h2>
 
     <div class="followup">
@@ -472,7 +458,7 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 14. Theory decoder -->
-  <section id="decoder">
+  <section id="decoder" data-toc-label="Theory Decoder">
     <h2>14 &nbsp; Theory Decoder — the theory as used here</h2>
     <table class="t-decoder">
       <thead><tr><th>General concept</th><th>Instantiated in this solution as</th><th>General form</th></tr></thead>
@@ -489,7 +475,7 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 15. Back-reference -->
-  <section id="parent">
+  <section id="parent" data-toc-label="Parent Theory">
     <h2>15 &nbsp; Parent Theory</h2>
     <p>This walkthrough instantiates one variant of a larger pattern. The parent page is not free-form — it follows the theory masterfile standard, so here is exactly what you land on:</p>
     <div class="ref-grid">
@@ -510,7 +496,8 @@ RESULT
 </main>
 </div>
 
-<script src="../_shared/pages.js"></script>
+<script src="../_shared/manifest.js"></script>
 <script src="../_shared/nav.js"></script>
+<script src="../_shared/toc.js"></script>
 </body>
 </html>

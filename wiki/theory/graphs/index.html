@@ -4,6 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Graphs · Study Wiki</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Graphs",
+  "nav": "Graphs",
+  "topics": [
+    "BFS",
+    "DFS",
+    "Topological Sort",
+    "Dijkstra"
+  ],
+  "blurb": "Graphs hub — vertex/edge/adjacency vocabulary, traversal families, and the BFS deep dive (grid, multi-source, state-space), DFS deep dive (components, backtracking, state DFS + memoization, cycle detection), Topological Sort deep dive (Kahn's in-degree peel, cycle detection, DAG ordering), and Dijkstra deep dive (min-heap shortest path, min-max cost, constrained/augmented state)."
+}
+</script>
 <link rel="stylesheet" href="../../_shared/wiki.css">
 <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
@@ -12,7 +25,7 @@
 <nav id="topnav" class="topnav"></nav>
 
 <div class="page">
-  <main class="content" style="margin: 0 auto;">
+  <main class="content content-centered">
 
     <h1 class="page-title">Graphs</h1>
     <div class="page-meta">
@@ -50,48 +63,10 @@
       </tbody>
     </table>
 
-    <div class="co-when" style="margin-top:16px"><strong>The mental default:</strong> first ask "what is a vertex, what is an edge?" — even for a grid or a set of strings. Then pick the traversal by the question: <em>fewest steps in an unweighted graph</em> → BFS; <em>any reachability / connectivity / cycle</em> → DFS or BFS; <em>valid ordering under dependencies</em> → topological sort; <em>cheapest path with edge weights</em> → Dijkstra. BFS is the archetype this hub starts with.</div>
+    <div class="co-when u-mt-16"><strong>The mental default:</strong> first ask "what is a vertex, what is an edge?" — even for a grid or a set of strings. Then pick the traversal by the question: <em>fewest steps in an unweighted graph</em> → BFS; <em>any reachability / connectivity / cycle</em> → DFS or BFS; <em>valid ordering under dependencies</em> → topological sort; <em>cheapest path with edge weights</em> → Dijkstra. BFS is the archetype this hub starts with.</div>
 
-    <div class="hub-section-title">Deep Dives</div>
-    <div class="ref-grid">
-
-      <a class="xref-card" href="bfs_deep_dive_master.html">
-        <span class="ref-file">theory/graphs/bfs_deep_dive_master.html</span>
-        <span class="ref-title">Breadth-First Search (BFS) Deep Dive</span>
-        <span class="ref-meta">
-          <span class="ref-topics">Queue · Visited Set · Shortest Path</span>
-        </span>
-        <span class="ref-desc">Level-by-level traversal with a queue: the fewest-edges shortest-path guarantee, grid BFS, multi-source BFS, and BFS over an implicit state space (board/bitmask states one move apart). Directed at LC1091, LC1284, LC994, LC1298, LC773.</span>
-      </a>
-
-      <a class="xref-card" href="dfs_deep_dive_master.html">
-        <span class="ref-file">theory/graphs/dfs_deep_dive_master.html</span>
-        <span class="ref-title">Depth-First Search (DFS) Deep Dive</span>
-        <span class="ref-meta">
-          <span class="ref-topics">Recursion · Backtracking · Memoization</span>
-        </span>
-        <span class="ref-desc">Go-deep-then-backtrack traversal with a stack: connected-component flood fill, recursion-tree backtracking, DFS over an implicit state space with memoization (top-down DP), and three-color cycle detection. Directed at LC638, LC200, LC207.</span>
-      </a>
-
-      <a class="xref-card" href="topological_sort_deep_dive_master.html">
-        <span class="ref-file">theory/graphs/topological_sort_deep_dive_master.html</span>
-        <span class="ref-title">Topological Sort Deep Dive</span>
-        <span class="ref-meta">
-          <span class="ref-topics">DAG · In-degree · Kahn's · Cycle Detection</span>
-        </span>
-        <span class="ref-desc">Order a DAG so every edge points forward: Kahn's in-degree peel (cycle check + order in one pass), outputting the order, the DFS post-order alternative, and building the graph from sorted data. Directed at LC207, LC210, LC269.</span>
-      </a>
-
-      <a class="xref-card" href="dijkstra_deep_dive_master.html">
-        <span class="ref-file">theory/graphs/dijkstra_deep_dive_master.html</span>
-        <span class="ref-title">Dijkstra's Algorithm Deep Dive</span>
-        <span class="ref-meta">
-          <span class="ref-topics">Min-heap · Relax · Weighted Shortest Path</span>
-        </span>
-        <span class="ref-desc">Cheapest path over non-negative weighted edges: settle the closest unsettled vertex via a min-heap. Classic single-source, grid Dijkstra, custom-cost/min-max (relax with max), and constrained (augmented-state) shortest path. Directed at LC1631, LC743, LC787.</span>
-      </a>
-
-    </div>
+    <!-- Overview + Deep Dives grids generated by nav.js from the manifest -->
+    <div data-hub-grid></div>
 
     <div class="page-footer">
       Study Wiki · Graphs · Theory Hub
@@ -100,7 +75,8 @@
   </main>
 </div>
 
-<script src="../../_shared/pages.js"></script>
+<script src="../../_shared/manifest.js"></script>
 <script src="../../_shared/nav.js"></script>
+<script src="../../_shared/toc.js"></script>
 </body>
 </html>

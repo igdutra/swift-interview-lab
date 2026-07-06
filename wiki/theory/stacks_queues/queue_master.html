@@ -4,6 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Queue — FIFO Deep Dive · Theory Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Queue — FIFO Deep Dive",
+  "nav": "Queue — FIFO Deep Dive",
+  "topics": [
+    "Queue",
+    "FIFO",
+    "BFS",
+    "Level-order",
+    "Sliding Window"
+  ],
+  "blurb": "Two skeletons: BFS level-swap (shortest path, level order, Kahn's topological sort) and sliding-window queue (rate limiting, time-window counts). Swift head-index trick, FIFO mechanic, multi-source BFS, edge cases. Directed at LC1091, LC1284, LC207, LC933."
+}
+</script>
 <link rel="stylesheet" href="../../_shared/wiki.css">
 <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
@@ -12,23 +26,6 @@
 <nav id="topnav" class="topnav"></nav>
 
 <div class="page">
-
-<!-- ── TOC ── -->
-<nav class="toc-col">
-  <div class="toc-inner">
-    <div class="toc-title toc-cat-theory">Theory · Contents</div>
-    <a href="#lead"        class="toc-link"><span class="toc-num">1</span> Overview</a>
-    <a href="#skeletons"   class="toc-link"><span class="toc-num">2</span> The Two Standard Skeletons</a>
-    <a href="#toolbox"     class="toc-link"><span class="toc-num">3</span> Swift Tools — the Toolbox</a>
-    <a href="#when"        class="toc-link"><span class="toc-num">4</span> When to Use Each Pattern</a>
-    <a href="#fifo"        class="toc-link"><span class="toc-num">5</span> FIFO — the Core Mechanic</a>
-    <a href="#terminology" class="toc-link"><span class="toc-num">6</span> Terminology Decoder</a>
-    <a href="#edge-cases"  class="toc-link"><span class="toc-num">7</span> Edge Cases</a>
-    <a href="#practice"    class="toc-link"><span class="toc-num">8</span> Demonstrated in Practice</a>
-    <a href="#solo"        class="toc-link"><span class="toc-num">9</span> Solo Problem</a>
-    <a href="#cheatsheet"  class="toc-link"><span class="toc-num">10</span> Ultimate Cheat Sheet</a>
-  </div>
-</nav>
 
 <!-- ── CONTENT ── -->
 <main class="content">
@@ -41,7 +38,7 @@
   </div>
 
   <!-- 1. Lead -->
-  <section id="lead">
+  <section id="lead" data-toc-label="Overview">
     <div class="infobox">
       <div class="infobox-title">At a Glance</div>
       <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">First-In First-Out (FIFO) linear structure</div></div>
@@ -66,7 +63,7 @@
   <hr class="wiki-hr">
 
   <!-- 2. The two standard skeletons -->
-  <section id="skeletons">
+  <section id="skeletons" data-toc-label="The Two Standard Skeletons">
     <h2>2 &nbsp; The Two Standard Skeletons</h2>
     <p>Every queue problem is one of two shapes. Identify the shape before naming any variable.</p>
 
@@ -109,7 +106,7 @@
   <hr class="wiki-hr">
 
   <!-- 3. Swift tools — the toolbox -->
-  <section id="toolbox">
+  <section id="toolbox" data-toc-label="Swift Tools — the Toolbox">
     <h2>3 &nbsp; Swift Tools — the Toolbox</h2>
     <p>Swift's <code>[T]</code> array works as a queue out of the box, but <code>removeFirst()</code> is O(n). The toolbox shows both the simple form and the O(1) head-index workaround for large inputs.</p>
 
@@ -176,7 +173,7 @@ queue.<span class="fn">append</span>(<span class="nm">3</span>)   <span class="c
   <hr class="wiki-hr">
 
   <!-- 4. When to use each pattern -->
-  <section id="when">
+  <section id="when" data-toc-label="When to Use Each Pattern">
     <h2>4 &nbsp; When to Use Each Pattern</h2>
     <p>Two queue variants, each solving a structurally different problem. The routing question is: <em>do I need shortest distance, or do I need to evict items that are too old?</em></p>
 
@@ -321,7 +318,7 @@ queue.<span class="fn">append</span>(<span class="nm">3</span>)   <span class="c
   <hr class="wiki-hr">
 
   <!-- 5. FIFO — the core mechanic -->
-  <section id="fifo">
+  <section id="fifo" data-toc-label="FIFO — the Core Mechanic">
     <h2>5 &nbsp; FIFO — the Core Mechanic</h2>
     <p>Every queue problem reduces to one idea: <em>the item that has been waiting longest is processed first</em>. Understanding why that guarantees shortest paths is the entire theory.</p>
 
@@ -344,7 +341,7 @@ queue.<span class="fn">append</span>(<span class="nm">3</span>)   <span class="c
   <hr class="wiki-hr">
 
   <!-- 6. Terminology decoder -->
-  <section id="terminology">
+  <section id="terminology" data-toc-label="Terminology Decoder">
     <h2>6 &nbsp; Terminology Decoder</h2>
     <table class="t-decoder">
       <thead><tr><th>Term</th><th>Plain meaning</th><th>Example</th></tr></thead>
@@ -367,7 +364,7 @@ queue.<span class="fn">append</span>(<span class="nm">3</span>)   <span class="c
   <hr class="wiki-hr">
 
   <!-- 7. Edge cases -->
-  <section id="edge-cases">
+  <section id="edge-cases" data-toc-label="Edge Cases">
     <h2>7 &nbsp; Edge Cases to Verbalize</h2>
     <table class="t-edge">
       <thead><tr><th>Input</th><th>Expected behavior</th><th>Which pattern is most affected</th></tr></thead>
@@ -387,7 +384,7 @@ queue.<span class="fn">append</span>(<span class="nm">3</span>)   <span class="c
   <hr class="wiki-hr">
 
   <!-- 8. Demonstrated in practice -->
-  <section id="practice">
+  <section id="practice" data-toc-label="Demonstrated in Practice">
     <h2>8 &nbsp; Demonstrated in Practice</h2>
     <p>The walkthroughs below cover both queue skeletons across grid BFS, state-space BFS, and graph BFS (Kahn's topological sort uses the same queue discipline).</p>
     <div class="ref-grid">
@@ -422,7 +419,7 @@ queue.<span class="fn">append</span>(<span class="nm">3</span>)   <span class="c
   <hr class="wiki-hr">
 
   <!-- 9. Solo problem -->
-  <section id="solo">
+  <section id="solo" data-toc-label="Solo Problem">
     <h2>9 &nbsp; Solo Problem — no solution on this page</h2>
     <div class="solo-box">
       <div class="solo-banner">Solo problem — no solution on this page</div>
@@ -440,7 +437,7 @@ queue.<span class="fn">append</span>(<span class="nm">3</span>)   <span class="c
   <hr class="wiki-hr">
 
   <!-- 10. Ultimate cheat sheet -->
-  <section id="cheatsheet">
+  <section id="cheatsheet" data-toc-label="Ultimate Cheat Sheet">
     <h2>10 &nbsp; Ultimate Cheat Sheet</h2>
     <p>The night-before skim. Pick the skeleton, wire the Swift ops, and know the one pitfall per variant.</p>
 
@@ -502,7 +499,8 @@ queue.<span class="fn">removeFirst</span>()               <span class="cm">// de
 </main>
 </div>
 
-<script src="../../_shared/pages.js"></script>
+<script src="../../_shared/manifest.js"></script>
 <script src="../../_shared/nav.js"></script>
+<script src="../../_shared/toc.js"></script>
 </body>
 </html>

@@ -3,7 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Depth-First Search · Theory Masterfile</title>
+<title>Depth-First Search (DFS) Deep Dive · Theory Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Depth-First Search (DFS) Deep Dive",
+  "nav": "Depth-First Search (DFS) Deep Dive",
+  "topics": [
+    "Recursion",
+    "Backtracking",
+    "Memoization"
+  ],
+  "blurb": "Go-deep-then-backtrack traversal with a stack: connected-component flood fill, recursion-tree backtracking, DFS over an implicit state space with memoization (top-down DP), and three-color cycle detection. Directed at LC638, LC200, LC207."
+}
+</script>
 <link rel="stylesheet" href="../../_shared/wiki.css">
 <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
@@ -12,33 +24,6 @@
 <nav id="topnav" class="topnav"></nav>
 
 <div class="page">
-
-<!-- ── TOC ── -->
-<nav class="toc-col">
-  <div class="toc-inner">
-    <div class="toc-title toc-cat-theory">Theory · Contents</div>
-    <a href="#lead"          class="toc-link"><span class="toc-num">1</span> Definition</a>
-    <a href="#signals"       class="toc-link"><span class="toc-num">2</span> Recognition Signals</a>
-    <a href="#terminology"   class="toc-link"><span class="toc-num">3</span> Terminology Decoder</a>
-    <a href="#mental-model"  class="toc-link"><span class="toc-num">4</span> Mental Model</a>
-    <a href="#pseudocode"    class="toc-link"><span class="toc-num">5</span> Pseudocode Primer</a>
-    <a href="#iterative"     class="toc-link"><span class="toc-num">6</span> Iterative (Explicit Stack)</a>
-    <a href="#swift"         class="toc-link"><span class="toc-num">7</span> Swift Foundations</a>
-    <a href="#variants"      class="toc-link"><span class="toc-num">8</span> The Four Variants</a>
-    <div class="toc-sub">
-      <a href="#v-component" class="toc-link">8.1 Connectivity / components</a>
-      <a href="#v-backtrack" class="toc-link">8.2 Recursion-tree / backtracking</a>
-      <a href="#v-memo"      class="toc-link">8.3 DFS over states + memo</a>
-      <a href="#v-cycle"     class="toc-link">8.4 Cycle detection</a>
-    </div>
-    <a href="#complexity"    class="toc-link"><span class="toc-num">9</span> Complexity Analysis</a>
-    <a href="#pitfalls"      class="toc-link"><span class="toc-num">10</span> Common Pitfalls</a>
-    <a href="#edge-cases"    class="toc-link"><span class="toc-num">11</span> Edge Cases</a>
-    <a href="#cheatsheet"    class="toc-link"><span class="toc-num">12</span> Cheat Sheet</a>
-    <a href="#practice"      class="toc-link"><span class="toc-num">13</span> Demonstrated in Practice</a>
-    <a href="#solo"          class="toc-link"><span class="toc-num">14</span> Solo Problem</a>
-  </div>
-</nav>
 
 <!-- ── CONTENT ── -->
 <main class="content">
@@ -51,7 +36,7 @@
   </div>
 
   <!-- 1. Definition -->
-  <section id="lead">
+  <section id="lead" data-toc-label="Definition">
     <div class="infobox">
       <div class="infobox-title">At a Glance</div>
       <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Explore a graph by going as deep as possible along each branch before backtracking</div></div>
@@ -72,7 +57,7 @@
   <hr class="wiki-hr">
 
   <!-- 2. Recognition signals -->
-  <section id="signals">
+  <section id="signals" data-toc-label="Recognition Signals">
     <h2>2 &nbsp; Recognition Signals — what variant is this?</h2>
     <p>"Explore everything down a branch" is the DFS master signal. What you're exploring — a region, a tree of choices, a state space, or edges for a cycle — picks the variant.</p>
     <table class="t-clue">
@@ -92,7 +77,7 @@
   <hr class="wiki-hr">
 
   <!-- 3. Terminology decoder -->
-  <section id="terminology">
+  <section id="terminology" data-toc-label="Terminology Decoder">
     <h2>3 &nbsp; Terminology Decoder</h2>
     <p>The general graph vocabulary lives in the <a href="index.html">Graphs hub</a>; these are the terms this DFS page leans on most.</p>
     <table class="t-decoder">
@@ -114,7 +99,7 @@
   <hr class="wiki-hr">
 
   <!-- 4. Mental model -->
-  <section id="mental-model">
+  <section id="mental-model" data-toc-label="Mental Model">
     <h2>4 &nbsp; Mental Model — plunge, then back up</h2>
 
     <div class="co-idea">
@@ -158,7 +143,7 @@ solve(state):
   <hr class="wiki-hr">
 
   <!-- 5. Pseudocode primer -->
-  <section id="pseudocode">
+  <section id="pseudocode" data-toc-label="Pseudocode Primer">
     <h2>5 &nbsp; Pseudocode Primer</h2>
     <p>Two shapes you must know cold: the plain visited-set DFS (reachability/components) and the memoized state DFS (top-down DP).</p>
 
@@ -188,7 +173,7 @@ solve(state):
   <hr class="wiki-hr">
 
   <!-- 6. Iterative-only pattern -->
-  <section id="iterative">
+  <section id="iterative" data-toc-label="Iterative (Explicit Stack)">
     <h2>6 &nbsp; Iterative DFS — the explicit stack</h2>
     <p>DFS reads most naturally as recursion, but the call stack has a depth limit; for very deep graphs (a 10⁵-node path, a skewed tree) you convert the recursion to an <strong>explicit stack</strong>:</p>
     <ul>
@@ -201,7 +186,7 @@ solve(state):
   <hr class="wiki-hr">
 
   <!-- 7. Swift foundations -->
-  <section id="swift">
+  <section id="swift" data-toc-label="Swift Foundations">
     <h2>7 &nbsp; Swift Foundations</h2>
     <p>Five Swift facts underlie nearly every DFS in this family. The memo-key and visited-set ones are where state-DFS problems are won.</p>
     <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">the five DFS-handling rules for this block</span></div>
@@ -225,18 +210,18 @@ solve(state):
 
 <span class="cm">// 5. Backtracking: mutate, recurse, then UNDO — leave state as you found it.</span>
 path.append(choice); <span class="fn">dfs</span>(rest); path.removeLast()    <span class="cm">// un-choose</span></pre>
-    <div class="co-pitfall" style="margin-top:12px"><strong>The shared-mutable-state trap.</strong> A recursive DFS that mutates a shared array (a path, a board) <em>must</em> undo the mutation on the way out, or sibling branches inherit corruption. For memoized state DFS, build a <em>fresh</em> leftover state per branch (don't mutate the caller's) so siblings don't interfere — the memo assumes each state value is computed in isolation.</div>
+    <div class="co-pitfall u-mt-12"><strong>The shared-mutable-state trap.</strong> A recursive DFS that mutates a shared array (a path, a board) <em>must</em> undo the mutation on the way out, or sibling branches inherit corruption. For memoized state DFS, build a <em>fresh</em> leftover state per branch (don't mutate the caller's) so siblings don't interfere — the memo assumes each state value is computed in isolation.</div>
   </section>
 
   <hr class="wiki-hr">
 
   <!-- 8. The four variants -->
-  <section id="variants">
+  <section id="variants" data-toc-label="The Four Variants">
     <h2>8 &nbsp; The Four Variants</h2>
     <p>Ordered by what one recursive call explores. Variant 8.3 is taught in a full walkthrough (LC638); the others are solve-it-yourself problems — frame and pitfalls here, no solution.</p>
 
     <!-- 8.1 Component DFS -->
-    <div class="pattern-block" id="v-component">
+    <div class="pattern-block" id="v-component" data-toc-label="8.1 Connectivity / components">
       <div class="block-header">
         <span class="block-kicker">Variant 8.1</span>
         <span class="block-name">Connectivity / components (flood fill)</span>
@@ -252,7 +237,7 @@ path.append(choice); <span class="fn">dfs</span>(rest); path.removeLast()    <sp
     </div>
 
     <!-- 8.2 Backtracking -->
-    <div class="pattern-block" id="v-backtrack">
+    <div class="pattern-block" id="v-backtrack" data-toc-label="8.2 Recursion-tree / backtracking">
       <div class="block-header">
         <span class="block-kicker">Variant 8.2</span>
         <span class="block-name">Recursion-tree / backtracking (enumerate choices)</span>
@@ -268,7 +253,7 @@ path.append(choice); <span class="fn">dfs</span>(rest); path.removeLast()    <sp
     </div>
 
     <!-- 8.3 Memoized state DFS -->
-    <div class="pattern-block" id="v-memo">
+    <div class="pattern-block" id="v-memo" data-toc-label="8.3 DFS over states + memo">
       <div class="block-header">
         <span class="block-kicker">Variant 8.3</span>
         <span class="block-name">DFS over states + memoization (top-down DP)</span>
@@ -283,7 +268,7 @@ path.append(choice); <span class="fn">dfs</span>(rest); path.removeLast()    <sp
     </div>
 
     <!-- 8.4 Cycle detection -->
-    <div class="pattern-block" id="v-cycle">
+    <div class="pattern-block" id="v-cycle" data-toc-label="8.4 Cycle detection">
       <div class="block-header">
         <span class="block-kicker">Variant 8.4</span>
         <span class="block-name">Cycle detection / coloring (directed graphs)</span>
@@ -303,7 +288,7 @@ path.append(choice); <span class="fn">dfs</span>(rest); path.removeLast()    <sp
   <hr class="wiki-hr">
 
   <!-- 9. Complexity -->
-  <section id="complexity">
+  <section id="complexity" data-toc-label="Complexity Analysis">
     <h2>9 &nbsp; Complexity Analysis</h2>
     <p><strong>Plain DFS is O(V + E): the visited set guarantees each vertex is entered once and each edge examined once.</strong> The state variants shift the cost into "how many states exist" and "is there a memo."</p>
     <table class="t-cmx">
@@ -322,7 +307,7 @@ path.append(choice); <span class="fn">dfs</span>(rest); path.removeLast()    <sp
   <hr class="wiki-hr">
 
   <!-- 10. Pitfalls -->
-  <section id="pitfalls">
+  <section id="pitfalls" data-toc-label="Common Pitfalls">
     <h2>10 &nbsp; Common Pitfalls</h2>
     <div class="co-pitfall">
       <div class="co-pitfall-title">Pitfalls — bugs this block invites</div>
@@ -339,7 +324,7 @@ path.append(choice); <span class="fn">dfs</span>(rest); path.removeLast()    <sp
   <hr class="wiki-hr">
 
   <!-- 11. Edge cases -->
-  <section id="edge-cases">
+  <section id="edge-cases" data-toc-label="Edge Cases">
     <h2>11 &nbsp; Edge Cases to Verbalize</h2>
     <p>Name these before coding. The base case and the already-seen case are where DFS solutions most often misbehave.</p>
     <table class="t-edge">
@@ -360,7 +345,7 @@ path.append(choice); <span class="fn">dfs</span>(rest); path.removeLast()    <sp
   <hr class="wiki-hr">
 
   <!-- 12. Cheat sheet -->
-  <section id="cheatsheet">
+  <section id="cheatsheet" data-toc-label="Cheat Sheet">
     <h2>12 &nbsp; Cheat Sheet</h2>
     <table class="t-versus">
       <thead><tr><th>You see…</th><th>You use</th><th>Variant</th></tr></thead>
@@ -392,7 +377,7 @@ path.append(choice); <span class="fn">dfs</span>(rest); path.removeLast()    <sp
   <hr class="wiki-hr">
 
   <!-- 13. Cross-reference -->
-  <section id="practice">
+  <section id="practice" data-toc-label="Demonstrated in Practice">
     <h2>13 &nbsp; Demonstrated in Practice</h2>
     <p>Each problem in this block is taught in its own walkthrough — constraint insights, edge-case inventory, interview simulation, and (for the walkthrough) a full dry run and iterative/recursive Swift solution.</p>
     <div class="ref-grid">
@@ -401,24 +386,24 @@ path.append(choice); <span class="fn">dfs</span>(rest); path.removeLast()    <sp
         <span class="ref-title">LC 638 — Shopping Offers (Medium · walkthrough)</span>
         <span class="ref-desc">DFS over states + memoization — the remaining-needs vector is the state, each fitting offer is an edge, the base-price branch is the floor. The no-overshoot rule kills greedy. Full dry run and Swift, plus the why-memoize-on-the-vector insight. The §8.3 instantiation.</span>
       </a>
-      <a class="xref-card" href="../../walkthroughs/LC200_master.html">
+      <span class="xref-card xref-coming">
         <span class="ref-file">walkthroughs/LC200_master.html</span>
         <span class="ref-title">LC 200 — Number of Islands (Medium · attempt)</span>
         <span class="ref-desc">Component DFS you solve cold — sweep for a seed, flood the whole region, count the launches. Graduated hints. No solution shown.</span>
-      </a>
+      </span>
       <a class="xref-card" href="../../walkthroughs/LC207_master.html">
         <span class="ref-file">walkthroughs/LC207_master.html</span>
         <span class="ref-title">LC 207 — Course Schedule (Medium · cross-link)</span>
         <span class="ref-desc">The DFS three-color cycle detector (§8.4) in action — a Gray neighbor is a back-edge. Taught fully under the <a href="topological_sort_deep_dive_master.html">Topological Sort deep dive</a> (Kahn's primary, DFS three-color as the §9b contrast). Fully worked there.</span>
       </a>
     </div>
-    <div class="co-note" style="margin-top:12px"><strong>Note:</strong> LC200 is a solve-it-yourself problem of this family — a coach page (problem, edge cases, signals, hints) with no solution, per the study-plan spoiler rule. LC638 is the fully-worked walkthrough; LC207 is fully worked under the Topological Sort deep dive and cross-linked here for its DFS cycle-detection angle.</div>
+    <div class="co-note u-mt-12"><strong>Note:</strong> LC200 is a solve-it-yourself problem of this family — a coach page (problem, edge cases, signals, hints) with no solution, per the study-plan spoiler rule. LC638 is the fully-worked walkthrough; LC207 is fully worked under the Topological Sort deep dive and cross-linked here for its DFS cycle-detection angle.</div>
   </section>
 
   <hr class="wiki-hr">
 
   <!-- 14. Solo problem -->
-  <section id="solo">
+  <section id="solo" data-toc-label="Solo Problem">
     <h2>14 &nbsp; Solo Problem — no solution on this page</h2>
     <div class="solo-box">
       <div class="solo-banner">Solo problem — no solution on this page</div>
@@ -442,7 +427,8 @@ path.append(choice); <span class="fn">dfs</span>(rest); path.removeLast()    <sp
 </main>
 </div>
 
-<script src="../../_shared/pages.js"></script>
+<script src="../../_shared/manifest.js"></script>
 <script src="../../_shared/nav.js"></script>
+<script src="../../_shared/toc.js"></script>
 </body>
 </html>

@@ -4,6 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Prefix &amp; Suffix Precomputation · Theory Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Prefix & Suffix Precomputation",
+  "nav": "Prefix & Suffix Precomputation",
+  "topics": [
+    "Arrays",
+    "Range Query",
+    "Precomputation"
+  ],
+  "blurb": "Two linear passes store an accumulated value at every position — O(n) build + O(1) per query. Covers range sum, product-except-self, physical simulation (max arrays), and boolean coverage. Payload can be any monoid."
+}
+</script>
 <link rel="stylesheet" href="../../_shared/wiki.css">
 <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
@@ -12,39 +24,6 @@
 <nav id="topnav" class="topnav"></nav>
 
 <div class="page">
-
-<!-- ── TOC ── -->
-<nav class="toc-col">
-  <div class="toc-inner">
-    <div class="toc-title toc-cat-theory">Theory · Contents</div>
-    <a href="#lead"          class="toc-link"><span class="toc-num">1</span> Definition</a>
-    <a href="#signals"       class="toc-link"><span class="toc-num">2</span> Recognition Signals</a>
-    <a href="#terminology"   class="toc-link"><span class="toc-num">3</span> Terminology Decoder</a>
-    <a href="#mental-model"  class="toc-link"><span class="toc-num">4</span> Mental Model</a>
-    <div class="toc-sub">
-      <a href="#precompute-question" class="toc-link">4.1 The one question to ask</a>
-    </div>
-    <a href="#pseudocode"    class="toc-link"><span class="toc-num">5</span> Pseudocode Primer</a>
-    <a href="#iterative"     class="toc-link"><span class="toc-num">6</span> Iterative-Only Pattern</a>
-    <a href="#swift"         class="toc-link"><span class="toc-num">7</span> Swift Translation</a>
-    <div class="toc-sub">
-      <a href="#split-enumeration" class="toc-link">7.1 Split-point enumeration</a>
-    </div>
-    <a href="#variants"      class="toc-link"><span class="toc-num">8</span> Variant Catalog</a>
-    <div class="toc-sub">
-      <a href="#v-range-sum"    class="toc-link">8.1 Range sum (LC 303)</a>
-      <a href="#v-product"      class="toc-link">8.2 Product except self (LC 238)</a>
-      <a href="#v-physical"     class="toc-link">8.3 Physical simulation (LC 42)</a>
-      <a href="#v-boolean"      class="toc-link">8.4 Boolean coverage</a>
-    </div>
-    <a href="#complexity"    class="toc-link"><span class="toc-num">9</span> Complexity Analysis</a>
-    <a href="#pitfalls"      class="toc-link"><span class="toc-num">10</span> Common Pitfalls</a>
-    <a href="#edge-cases"    class="toc-link"><span class="toc-num">11</span> Edge Cases</a>
-    <a href="#cheatsheet"    class="toc-link"><span class="toc-num">12</span> Cheat Sheet</a>
-    <a href="#practice"      class="toc-link"><span class="toc-num">13</span> Demonstrated in Practice</a>
-    <a href="#solo"          class="toc-link"><span class="toc-num">14</span> Solo Problem</a>
-  </div>
-</nav>
 
 <!-- ── CONTENT ── -->
 <main class="content">
@@ -57,7 +36,7 @@
   </div>
 
   <!-- 1. Definition -->
-  <section id="lead">
+  <section id="lead" data-toc-label="Definition">
     <div class="infobox">
       <div class="infobox-title">At a Glance</div>
       <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Array precomputation technique</div></div>
@@ -76,13 +55,13 @@
     <div class="co-insight">
       <strong>Where prefix/suffix meets Dynamic Programming — and where it doesn't.</strong>
 
-      <p style="margin: 10px 0 6px;">Think of it as a Venn diagram. DP is the <em>paradigm</em>: break a problem into subproblems, store the answers, reuse them instead of recomputing. Prefix/suffix is a <em>technique</em>: two passes over an array that store an accumulated value at each index. They are not the same thing — but they overlap.</p>
+      <p class="u-my-10-6">Think of it as a Venn diagram. DP is the <em>paradigm</em>: break a problem into subproblems, store the answers, reuse them instead of recomputing. Prefix/suffix is a <em>technique</em>: two passes over an array that store an accumulated value at each index. They are not the same thing — but they overlap.</p>
 
-      <p style="margin: 6px 0 6px;"><strong>In the intersection (prefix/suffix AND DP):</strong> any variant where each cell is built from the previous cell using a recurrence. <code>leftMaxAt[pos] = max(height[pos], leftMaxAt[pos−1])</code> in LC 42 is a recurrence — you're computing cell <code>pos</code> from the stored answer at cell <code>pos−1</code> instead of rescanning. <code>prefix[pos+1] = prefix[pos] + nums[pos]</code> in range-sum is identical. These are DP: overlapping subproblems, stored answers, reuse. <strong>Variants 8.1, 8.2, and 8.3 all qualify.</strong></p>
+      <p class="u-my-6-6"><strong>In the intersection (prefix/suffix AND DP):</strong> any variant where each cell is built from the previous cell using a recurrence. <code>leftMaxAt[pos] = max(height[pos], leftMaxAt[pos−1])</code> in LC 42 is a recurrence — you're computing cell <code>pos</code> from the stored answer at cell <code>pos−1</code> instead of rescanning. <code>prefix[pos+1] = prefix[pos] + nums[pos]</code> in range-sum is identical. These are DP: overlapping subproblems, stored answers, reuse. <strong>Variants 8.1, 8.2, and 8.3 all qualify.</strong></p>
 
-      <p style="margin: 6px 0 0;"><strong>Outside the intersection (prefix/suffix shape, but NOT DP):</strong> Variant 8.4 — Boolean Coverage — sweeps the array and records "has this day been covered so far?" Each cell doesn't depend on the previous cell via a recurrence; it just accumulates a set. The two-pass <em>shape</em> is the same, but there are no overlapping subproblems being memoized. It's a sweep, not DP.</p>
+      <p class="u-my-6-0"><strong>Outside the intersection (prefix/suffix shape, but NOT DP):</strong> Variant 8.4 — Boolean Coverage — sweeps the array and records "has this day been covered so far?" Each cell doesn't depend on the previous cell via a recurrence; it just accumulates a set. The two-pass <em>shape</em> is the same, but there are no overlapping subproblems being memoized. It's a sweep, not DP.</p>
 
-      <p style="margin: 8px 0 0; font-style: italic; color: var(--text2);">The clean rule: if building the array requires a recurrence (<code>cell[pos]</code> defined in terms of <code>cell[pos−1]</code>), it's DP. If the array just records running state without that dependency, it's not. When a dedicated DP theory page exists on this wiki, Variants 8.1–8.3 will be cross-referenced there.</p>
+      <p class="u-aside">The clean rule: if building the array requires a recurrence (<code>cell[pos]</code> defined in terms of <code>cell[pos−1]</code>), it's DP. If the array just records running state without that dependency, it's not. When a dedicated DP theory page exists on this wiki, Variants 8.1–8.3 will be cross-referenced there.</p>
     </div>
     </div>
   </section>
@@ -90,7 +69,7 @@
   <hr class="wiki-hr">
 
   <!-- 2. Recognition signals -->
-  <section id="signals">
+  <section id="signals" data-toc-label="Recognition Signals">
     <h2>2 &nbsp; Recognition Signals — when to reach for it</h2>
     <p>The problem rarely says "prefix array." It says one of these:</p>
     <table class="t-clue">
@@ -110,7 +89,7 @@
   <hr class="wiki-hr">
 
   <!-- 3. Terminology decoder -->
-  <section id="terminology">
+  <section id="terminology" data-toc-label="Terminology Decoder">
     <h2>3 &nbsp; Terminology Decoder</h2>
     <table class="t-decoder">
       <thead><tr><th>Term</th><th>Plain meaning</th><th>Example</th></tr></thead>
@@ -128,7 +107,7 @@
   <hr class="wiki-hr">
 
   <!-- 4. Mental model -->
-  <section id="mental-model">
+  <section id="mental-model" data-toc-label="Mental Model">
     <h2>4 &nbsp; Mental Model — two spotlights meeting in the middle</h2>
 
     <div class="co-idea">
@@ -163,7 +142,7 @@ suffix:    24   12   4    1       <span class="tr-ok">suffix[pos] = product of n
 result:    24   12   8    6       <span class="tr-aha">each cell = product of everything EXCEPT nums[pos]</span></pre>
     <p class="ascii-caption">Division is never needed. The "gap" at position <em>pos</em> is bridged by placing the left product in <code>prefix[pos]</code> and the right product in <code>suffix[pos]</code>, then multiplying — neither array knows about position <em>pos</em> itself.</p>
 
-    <h3 id="precompute-question">4.1 &nbsp; The one question to ask</h3>
+    <h3 id="precompute-question" data-toc-label="4.1 The one question to ask">4.1 &nbsp; The one question to ask</h3>
 
     <div class="co-idea">
       <div class="co-idea-title">The single interview question</div>
@@ -218,7 +197,7 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
   <hr class="wiki-hr">
 
   <!-- 5. Pseudocode primer -->
-  <section id="pseudocode">
+  <section id="pseudocode" data-toc-label="Pseudocode Primer">
     <h2>5 &nbsp; Pseudocode Primer</h2>
     <p>The two-pass shape is identical across all variants. Only the accumulation operation and the combine step change.</p>
     <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">canonical two-pass prefix/suffix build + combine</span></div>
@@ -255,7 +234,7 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
   <hr class="wiki-hr">
 
   <!-- 6. Iterative-only pattern -->
-  <section id="iterative">
+  <section id="iterative" data-toc-label="Iterative-Only Pattern">
     <h2>6 &nbsp; Iterative-Only Pattern — no recursion, ever</h2>
     <p>Prefix/suffix precomputation is inherently iterative: each pass is a single <code>for</code> loop over a flat array, accumulating one scalar. There is no recursive formulation — a recursive aggregate over a range is exactly the O(n) per-query work the precomputed array exists to eliminate.</p>
     <ul>
@@ -268,7 +247,7 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
   <hr class="wiki-hr">
 
   <!-- 7. Swift translation -->
-  <section id="swift">
+  <section id="swift" data-toc-label="Swift Translation">
     <h2>7 &nbsp; Swift Translation</h2>
     <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">annotated prefix-sum template — compilable starting point</span></div>
     <pre class="swift"><span class="kw">func</span> <span class="fn">buildPrefixSum</span>(<span class="kw">_</span> nums: [<span class="tp">Int</span>]) -&gt; [<span class="tp">Int</span>] {
@@ -305,8 +284,8 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
 }</pre>
     <div class="co-note"><strong>Swift-specific cost to say out loud:</strong> <code>[Int](repeating:count:)</code> is O(n) and allocates a contiguous block — far cheaper than appending in a loop. <code>stride(from:through:by:)</code> is the idiomatic descending range in Swift; <code>for index in (0..&lt;count).reversed()</code> is equally valid and more readable to some reviewers.</div>
 
-    <hr class="wiki-hr" style="margin:32px 0">
-    <h3 id="split-enumeration">Enumerating all splits with <code>prefix(_:)</code> / <code>suffix(_:)</code></h3>
+    <hr class="wiki-hr u-my-32-0">
+    <h3 id="split-enumeration" data-toc-label="7.1 Split-point enumeration">Enumerating all splits with <code>prefix(_:)</code> / <code>suffix(_:)</code></h3>
 
     <div class="co-idea">
       <div class="co-idea-title">The one idea — split enumeration vs. sentinel</div>
@@ -331,7 +310,7 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
 
     <div class="co-insight">
       <strong>Why <code>prefix(_:)</code> / <code>suffix(_:)</code> — not subscript ranges.</strong>
-      <p style="margin:8px 0 0">Subscript ranges (<code>array[...(-1)]</code>, <code>array[index-1...]</code>) require the index to be valid. At the boundary split points (0 and count), the math produces out-of-bounds indices — behavior becomes undefined. <code>prefix(_:)</code> and <code>suffix(_:)</code> <strong>clamp silently</strong>: <code>prefix(0)</code> returns an empty slice, <code>prefix(999)</code> on a 3-element array returns all 3 elements. Safe by design. Always prefer them for split enumeration.</p>
+      <p class="u-my-8-0">Subscript ranges (<code>array[...(-1)]</code>, <code>array[index-1...]</code>) require the index to be valid. At the boundary split points (0 and count), the math produces out-of-bounds indices — behavior becomes undefined. <code>prefix(_:)</code> and <code>suffix(_:)</code> <strong>clamp silently</strong>: <code>prefix(0)</code> returns an empty slice, <code>prefix(999)</code> on a 3-element array returns all 3 elements. Safe by design. Always prefer them for split enumeration.</p>
     </div>
 
     <div class="co-pitfall">
@@ -347,10 +326,10 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
   <hr class="wiki-hr">
 
   <!-- 8. Variant catalog -->
-  <section id="variants">
+  <section id="variants" data-toc-label="Variant Catalog">
     <h2>8 &nbsp; Variant Catalog</h2>
 
-    <div class="pattern-block" id="v-range-sum">
+    <div class="pattern-block" id="v-range-sum" data-toc-label="8.1 Range sum (LC 303)">
       <div class="block-header">
         <span class="block-kicker">Variant 8.1</span>
         <span class="block-name">Prefix Sum — range query (LC 303)</span>
@@ -363,7 +342,7 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
       </div>
     </div>
 
-    <div class="pattern-block" id="v-product">
+    <div class="pattern-block" id="v-product" data-toc-label="8.2 Product except self (LC 238)">
       <div class="block-header">
         <span class="block-kicker">Variant 8.2</span>
         <span class="block-name">Prefix × Suffix Product — product except self (LC 238)</span>
@@ -377,7 +356,7 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
       </div>
     </div>
 
-    <div class="pattern-block" id="v-physical">
+    <div class="pattern-block" id="v-physical" data-toc-label="8.3 Physical simulation (LC 42)">
       <div class="block-header">
         <span class="block-kicker">Variant 8.3</span>
         <span class="block-name">Prefix Max + Suffix Max — physical simulation (LC 42, two-array solution)</span>
@@ -391,7 +370,7 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
       </div>
     </div>
 
-    <div class="pattern-block" id="v-boolean">
+    <div class="pattern-block" id="v-boolean" data-toc-label="8.4 Boolean coverage">
       <div class="block-header">
         <span class="block-kicker">Variant 8.4</span>
         <span class="block-name">Prefix/Suffix Boolean Coverage</span>
@@ -410,7 +389,7 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
   <hr class="wiki-hr">
 
   <!-- 9. Complexity analysis -->
-  <section id="complexity">
+  <section id="complexity" data-toc-label="Complexity Analysis">
     <h2>9 &nbsp; Complexity Analysis</h2>
 
     <p><strong>(a) Building both arrays is O(n) time and O(n) space — nothing more.</strong> The left pass visits each element exactly once; the right pass visits each element exactly once. Two flat loops, no nesting, no recursion. The prefix and suffix arrays each require n+1 slots, so total space is 2n+2 — linear. There is no hidden work: each accumulation step is a single arithmetic or logical operation.</p>
@@ -432,7 +411,7 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
   <hr class="wiki-hr">
 
   <!-- 10. Pitfalls -->
-  <section id="pitfalls">
+  <section id="pitfalls" data-toc-label="Common Pitfalls">
     <h2>10 &nbsp; Common Pitfalls</h2>
     <div class="co-pitfall">
       <div class="co-pitfall-title">Pitfalls — bugs this pattern invites</div>
@@ -452,7 +431,7 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
   <hr class="wiki-hr">
 
   <!-- 11. Edge cases -->
-  <section id="edge-cases">
+  <section id="edge-cases" data-toc-label="Edge Cases">
     <h2>11 &nbsp; Edge Cases to Verbalize</h2>
     <table class="t-edge">
       <thead><tr><th>Input</th><th>Expected behavior</th><th>What it exercises</th></tr></thead>
@@ -471,7 +450,7 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
   <hr class="wiki-hr">
 
   <!-- 12. Cheat sheet -->
-  <section id="cheatsheet">
+  <section id="cheatsheet" data-toc-label="Cheat Sheet">
     <h2>12 &nbsp; Cheat Sheet</h2>
     <table class="t-versus">
       <thead><tr><th>You see</th><th>Variant</th><th>Payload</th><th>Identity</th><th>Combine step</th></tr></thead>
@@ -505,7 +484,7 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
   <hr class="wiki-hr">
 
   <!-- 13. Cross-reference / demonstrated in practice -->
-  <section id="practice">
+  <section id="practice" data-toc-label="Demonstrated in Practice">
     <h2>13 &nbsp; Demonstrated in Practice</h2>
     <p>The walkthroughs below apply this theory to concrete problems. Each follows the walkthrough masterfile standard — constraint analysis, mental model, dry run, iterative Swift, interview simulation, and a Theory Decoder that maps each solution line back to the numbered sections above.</p>
     <div class="ref-grid">
@@ -535,12 +514,14 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
         <span class="ref-desc">Demonstrates Variant 8.4 (boolean/set coverage). The Theory Decoder maps the prefix-coverage and suffix-coverage arrays directly to §8.4 and §10 (the ≤ vs == handoff condition pitfall).</span>
       </a>
     </div>
+      <p class="u-note-gap">See also: <a href="arrays_hashing_overview_master.html">arrays_hashing_overview_master.html</a> — the hub decision layer that routes between prefix/suffix and its sibling patterns.</p>
+
   </section>
 
   <hr class="wiki-hr">
 
   <!-- 14. Solo problem -->
-  <section id="solo">
+  <section id="solo" data-toc-label="Solo Problem">
     <h2>14 &nbsp; Solo Problem — no solution on this page</h2>
     <div class="solo-box">
       <div class="solo-banner">Solo problem — walkthrough available at <a href="../../walkthroughs/LC560_master.html">LC560_master.html</a></div>
@@ -580,7 +561,8 @@ result:    24   12   8    6       <span class="tr-aha">each cell = product of ev
 </main>
 </div>
 
-<script src="../../_shared/pages.js"></script>
+<script src="../../_shared/manifest.js"></script>
 <script src="../../_shared/nav.js"></script>
+<script src="../../_shared/toc.js"></script>
 </body>
 </html>

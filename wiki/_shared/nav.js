@@ -1,84 +1,176 @@
+"use strict";
+/* GENERATED from wiki/tools/browser/nav.ts — edit the .ts, then run: tsc -p wiki/tools/browser */
 // ============================================================
-// nav.js — builds the top nav bar (every page) and the hub
-// card grid (index.html only) from WIKI_PAGES in pages.js.
-// Pages never hard-code navigation; they include:
-//   <nav id="topnav" class="topnav"></nav>
-//   ...
-//   <script src="../_shared/pages.js"></script>
-//   <script src="../_shared/nav.js"></script>
-// (paths are ./_shared/... from the wiki root, ../_shared/...
-//  from theory/ and walkthroughs/)
+// nav.ts — builds the top nav (every page) and the hub card
+// grids from WIKI_MANIFEST (_shared/manifest.js, generated).
+//
+// Pages carry only placeholders:
+//   <nav id="topnav" class="topnav"></nav>   — the nav bar
+//   <div id="hub"></div>                     — root hub grid
+//   <div data-hub-grid></div>                — section/category hub grid
 // ============================================================
 (function () {
-  // Depth of the current page relative to the wiki root.
-  var path = location.pathname.replace(/\/+$/, "");
-  var depth = (path.match(/\//g) || []).length;
-  // Strip trailing-slash directory URLs count one fewer slash than file URLs.
-  // /reference/    → stripped to /reference → depth 1 → but we want "../"
-  // /reference/index.html                   → depth 2 → "../"
-  // /theory/arrays/index.html               → depth 3 → "../../"
-  // So: check if path contains a known first-level folder with no further slash.
-  var isFirstLevel = /^\/(theory|walkthroughs|reference)$/.test(path);
-  var fromRoot = (depth <= 1 && !isFirstLevel) ? "./" : depth === 2 || isFirstLevel ? "../" : "../../";
-
-  function isCurrent(pagePath) {
-    return path.indexOf(pagePath.split("/").pop()) !== -1;
-  }
-
-  // --- top nav bar ---
-  var nav = document.getElementById("topnav");
-  if (nav) {
-    // Home links to the directory root, not index.html — some static
-    // servers only serve the hub at "/", and "./" works everywhere.
-    var isHub = !/\/(theory|walkthroughs|reference)\//.test(path);
-    var html = '<a href="' + fromRoot + '"' +
-      (isHub ? ' class="current"' : "") +
-      ">Home</a>";
-    ["theory", "walkthrough"].forEach(function (cat) {
-      var items = WIKI_PAGES.filter(function (p) { return p.cat === cat; });
-      if (!items.length) return;
-      html += '<span class="nav-cat">' + (cat === "theory" ? "Theory" : "Walkthroughs") + "</span>";
-      items.forEach(function (p) {
-        html += '<a href="' + fromRoot + p.path + '"' +
-          (isCurrent(p.path) ? ' class="current"' : "") + ">" + p.nav + "</a>";
-      });
-    });
-    var hasReference = WIKI_PAGES.some(function (p) { return p.cat === "reference"; });
-    if (hasReference) {
-      var referenceActive = /\/reference\//.test(path);
-      html += '<span class="nav-cat">Review &amp; Reference</span>';
-      html += '<a href="' + fromRoot + 'reference/"' + (referenceActive ? ' class="current"' : "") + ">All Reference</a>";
+    // --- wiki root URL, derived from this script's own src ---------------
+    // The include is always "{prefix}_shared/nav.js", so stripping that
+    // suffix from the resolved src yields the wiki root at any depth,
+    // under any server mount, with or without trailing-slash URLs.
+    const NAV_SCRIPT_SUFFIX = "_shared/nav.js";
+    const scriptElement = document.currentScript;
+    const scriptSource = scriptElement !== null ? scriptElement.src : "";
+    const wikiRootUrl = scriptSource.endsWith(NAV_SCRIPT_SUFFIX)
+        ? scriptSource.slice(0, scriptSource.length - NAV_SCRIPT_SUFFIX.length)
+        : "./";
+    // --- current page: exact match against manifest keys ------------------
+    const rawPathname = decodeURIComponent(location.pathname);
+    const normalizedPathname = rawPathname.endsWith("/") ? `${rawPathname}index.html` : rawPathname;
+    let currentPath = null;
+    for (const pagePath of Object.keys(WIKI_MANIFEST.pages)) {
+        if (normalizedPathname === `/${pagePath}` || normalizedPathname.endsWith(`/${pagePath}`)) {
+            currentPath = pagePath;
+            break;
+        }
     }
-    nav.innerHTML = html;
-  }
-
-  // --- hub card grid (index.html has <div id="hub"></div>) ---
-  var hub = document.getElementById("hub");
-  if (hub) {
-    var out = "";
-    [["theory", "Theory masterfiles", "backref-card"],
-     ["walkthrough", "LeetCode walkthroughs", "xref-card"]].forEach(function (def) {
-      var items = WIKI_PAGES.filter(function (p) { return p.cat === def[0]; });
-      if (!items.length) return;
-      out += '<div class="hub-section-title">' + def[1] + "</div>";
-      out += '<div class="ref-grid">';
-      items.forEach(function (p) {
-        var diffNames = { E: "Easy", M: "Medium", H: "Hard" };
-        var meta = "";
-        if (p.difficulty) {
-          meta += '<span class="tag tag-' + p.difficulty + '">' + diffNames[p.difficulty] + "</span>";
+    const currentRecord = currentPath !== null ? WIKI_MANIFEST.pages[currentPath] : null;
+    function escapeHtml(text) {
+        return text
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;");
+    }
+    function pageUrl(pagePath) {
+        return wikiRootUrl + pagePath;
+    }
+    function difficultyChip(record) {
+        return record.difficulty !== null
+            ? `<span class="tag tag-${record.difficulty}">${record.difficulty}</span> `
+            : "";
+    }
+    function menuItem(pagePath) {
+        const record = WIKI_MANIFEST.pages[pagePath];
+        const currentClass = pagePath === currentPath ? " current" : "";
+        return `<a class="nav-item${currentClass}" href="${pageUrl(pagePath)}">${difficultyChip(record)}${escapeHtml(record.title)}</a>`;
+    }
+    function renderNavGroup(group) {
+        const containsCurrent = group.itemPaths.some((itemPath) => itemPath === currentPath);
+        const triggerClass = `nav-trigger${containsCurrent ? " current" : ""}`;
+        const triggerLabel = `${escapeHtml(group.label)} <span class="nav-caret">▾</span>`;
+        const trigger = group.triggerPath !== null
+            ? `<a class="${triggerClass}" href="${pageUrl(group.triggerPath)}">${triggerLabel}</a>`
+            : `<span class="${triggerClass}" tabindex="0">${triggerLabel}</span>`;
+        const menuClass = `nav-menu${group.scrollable ? " nav-menu-scroll" : ""}`;
+        const menuItems = group.itemPaths.map(menuItem).join("");
+        return `<div class="nav-group">${trigger}<div class="${menuClass}">${menuItems}</div></div>`;
+    }
+    // --- top nav bar -------------------------------------------------------
+    const topNav = document.getElementById("topnav");
+    if (topNav !== null) {
+        const showDomainLabels = WIKI_MANIFEST.domains.length > 1;
+        const homeCurrentClass = currentRecord !== null && currentRecord.role === "home" ? ' class="current"' : "";
+        const navParts = [`<a href="${wikiRootUrl}"${homeCurrentClass}>Home</a>`];
+        for (const domain of WIKI_MANIFEST.domains) {
+            if (showDomainLabels) {
+                navParts.push(`<span class="nav-cat">${escapeHtml(domain.label)}</span>`);
+            }
+            for (const category of domain.categories) {
+                if (category.layout === "sections") {
+                    for (const section of category.sections) {
+                        const itemPaths = section.hubPath !== null ? [section.hubPath, ...section.pagePaths] : section.pagePaths;
+                        navParts.push(renderNavGroup({
+                            label: section.label,
+                            triggerPath: section.hubPath,
+                            itemPaths,
+                            scrollable: false,
+                        }));
+                    }
+                }
+                else {
+                    const itemPaths = category.hubPath !== null ? [category.hubPath, ...category.pagePaths] : category.pagePaths;
+                    navParts.push(renderNavGroup({
+                        label: category.label,
+                        triggerPath: category.hubPath,
+                        itemPaths,
+                        scrollable: category.pagePaths.length > 12,
+                    }));
+                }
+            }
         }
-        if (p.topics && p.topics.length) {
-          meta += '<span class="ref-topics">' + p.topics.join(" · ") + "</span>";
+        topNav.innerHTML = navParts.join("");
+    }
+    // --- hub cards ----------------------------------------------------------
+    function renderCard(pagePath, cardClass) {
+        const record = WIKI_MANIFEST.pages[pagePath];
+        const difficultyNames = { E: "Easy", M: "Medium", H: "Hard" };
+        const metaParts = [];
+        if (record.difficulty !== null) {
+            metaParts.push(`<span class="tag tag-${record.difficulty}">${difficultyNames[record.difficulty]}</span>`);
         }
-        out += '<a class="' + def[2] + '" href="' + p.path + '">' +
-          '<span class="ref-file">' + p.path + "</span>" +
-          '<span class="ref-title">' + p.title + "</span>" +
-          (meta ? '<span class="ref-meta">' + meta + "</span>" : "") +
-          '<span class="ref-desc">' + p.blurb + "</span></a>";
-      });
-      out += "</div>";
-    });
-    hub.innerHTML = out;
-  }
+        if (record.topics.length > 0) {
+            metaParts.push(`<span class="ref-topics">${escapeHtml(record.topics.join(" · "))}</span>`);
+        }
+        const metaMarkup = metaParts.length > 0 ? `<span class="ref-meta">${metaParts.join("")}</span>` : "";
+        return (`<a class="${cardClass}" href="${pageUrl(pagePath)}">` +
+            `<span class="ref-file">${escapeHtml(record.path)}</span>` +
+            `<span class="ref-title">${escapeHtml(record.title)}</span>` +
+            metaMarkup +
+            `<span class="ref-desc">${escapeHtml(record.blurb)}</span></a>`);
+    }
+    function renderCardGrid(pagePaths, cardClass) {
+        return `<div class="ref-grid">${pagePaths.map((pagePath) => renderCard(pagePath, cardClass)).join("")}</div>`;
+    }
+    // Root hub (<div id="hub"> on the home page): one group per category.
+    const rootHub = document.getElementById("hub");
+    if (rootHub !== null) {
+        const showDomainLabels = WIKI_MANIFEST.domains.length > 1;
+        const hubParts = [];
+        for (const domain of WIKI_MANIFEST.domains) {
+            for (const category of domain.categories) {
+                const sectionTitle = showDomainLabels ? `${domain.label} — ${category.label}` : category.label;
+                hubParts.push(`<div class="hub-section-title">${escapeHtml(sectionTitle)}</div>`);
+                if (category.layout === "sections") {
+                    const hubPaths = category.sections
+                        .map((section) => section.hubPath)
+                        .filter((hubPath) => hubPath !== null);
+                    hubParts.push(renderCardGrid(hubPaths, "backref-card"));
+                }
+                else {
+                    const pagePaths = category.hubPath !== null ? [category.hubPath, ...category.pagePaths] : category.pagePaths;
+                    hubParts.push(renderCardGrid(pagePaths, "xref-card"));
+                }
+            }
+        }
+        rootHub.innerHTML = hubParts.join("");
+    }
+    // Section/category hub (<div data-hub-grid> on hub pages): its own pages.
+    const hubGrid = document.querySelector("[data-hub-grid]");
+    if (hubGrid !== null && currentRecord !== null && currentRecord.role === "hub") {
+        const gridParts = [];
+        for (const domain of WIKI_MANIFEST.domains) {
+            for (const category of domain.categories) {
+                if (category.identifier !== currentRecord.category) {
+                    continue;
+                }
+                if (category.layout === "sections") {
+                    const section = category.sections.find((candidate) => candidate.identifier === currentRecord.section);
+                    if (section === undefined) {
+                        continue;
+                    }
+                    const overviewPaths = section.pagePaths.filter((pagePath) => WIKI_MANIFEST.pages[pagePath].role === "overview");
+                    const deepDivePaths = section.pagePaths.filter((pagePath) => WIKI_MANIFEST.pages[pagePath].role === "deep-dive");
+                    if (overviewPaths.length > 0) {
+                        gridParts.push(`<div class="hub-section-title">Overview</div>`);
+                        gridParts.push(renderCardGrid(overviewPaths, "xref-card"));
+                    }
+                    if (deepDivePaths.length > 0) {
+                        gridParts.push(`<div class="hub-section-title">Deep Dives</div>`);
+                        gridParts.push(renderCardGrid(deepDivePaths, "xref-card"));
+                    }
+                }
+                else {
+                    gridParts.push(renderCardGrid(category.pagePaths, "xref-card"));
+                }
+            }
+        }
+        hubGrid.innerHTML = gridParts.join("");
+    }
 })();

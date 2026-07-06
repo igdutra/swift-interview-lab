@@ -4,6 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Hash Map / Hash Set Deep Dive · Theory Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Hash Map / Hash Set Deep Dive",
+  "nav": "Hash Map / Hash Set Deep Dive",
+  "topics": [
+    "Hash Map",
+    "Hash Set",
+    "Arrays"
+  ],
+  "blurb": "Set membership, complement maps, cycle detection, sliding index maps — the four hash map patterns in Swift. Directed at LC217, LC202, LC219, LC1."
+}
+</script>
 <link rel="stylesheet" href="../../_shared/wiki.css">
 <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
@@ -12,33 +24,6 @@
 <nav id="topnav" class="topnav"></nav>
 
 <div class="page">
-
-<!-- ── TOC ── -->
-<nav class="toc-col">
-  <div class="toc-inner">
-    <div class="toc-title toc-cat-theory">Theory · Contents</div>
-    <a href="#lead"         class="toc-link"><span class="toc-num">1</span> Definition</a>
-    <a href="#signals"      class="toc-link"><span class="toc-num">2</span> Recognition Signals</a>
-    <a href="#terminology"  class="toc-link"><span class="toc-num">3</span> Terminology Decoder</a>
-    <a href="#mental-model" class="toc-link"><span class="toc-num">4</span> Mental Model</a>
-    <a href="#pseudocode"   class="toc-link"><span class="toc-num">5</span> Pseudocode Primer</a>
-    <a href="#iterative"    class="toc-link"><span class="toc-num">6</span> Iterative-Only Pattern</a>
-    <a href="#swift"        class="toc-link"><span class="toc-num">7</span> Swift Translation</a>
-    <a href="#variants"     class="toc-link"><span class="toc-num">8</span> Variant Catalog</a>
-    <div class="toc-sub">
-      <a href="#v-membership" class="toc-link">8.1 Set membership</a>
-      <a href="#v-seen"       class="toc-link">8.2 Seen-state tracking</a>
-      <a href="#v-complement" class="toc-link">8.3 Complement map</a>
-      <a href="#v-index"      class="toc-link">8.4 Sliding index map</a>
-    </div>
-    <a href="#complexity"   class="toc-link"><span class="toc-num">9</span> Complexity Analysis</a>
-    <a href="#pitfalls"     class="toc-link"><span class="toc-num">10</span> Common Pitfalls</a>
-    <a href="#edge-cases"   class="toc-link"><span class="toc-num">11</span> Edge Cases</a>
-    <a href="#cheatsheet"   class="toc-link"><span class="toc-num">12</span> Cheat Sheet</a>
-    <a href="#practice"     class="toc-link"><span class="toc-num">13</span> Demonstrated in Practice</a>
-    <a href="#solo"         class="toc-link"><span class="toc-num">14</span> Solo Problem</a>
-  </div>
-</nav>
 
 <!-- ── CONTENT ── -->
 <main class="content">
@@ -51,7 +36,7 @@
   </div>
 
   <!-- 1. Definition -->
-  <section id="lead">
+  <section id="lead" data-toc-label="Definition">
     <div class="infobox">
       <div class="infobox-title">At a Glance</div>
       <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Hash-based array traversal</div></div>
@@ -72,7 +57,7 @@
   <hr class="wiki-hr">
 
   <!-- 2. Recognition signals -->
-  <section id="signals">
+  <section id="signals" data-toc-label="Recognition Signals">
     <h2>2 &nbsp; Recognition Signals — when to reach for it</h2>
     <table class="t-clue">
       <thead><tr><th>When the problem says…</th><th>It means…</th><th>Problem</th></tr></thead>
@@ -89,7 +74,7 @@
   <hr class="wiki-hr">
 
   <!-- 3. Terminology decoder -->
-  <section id="terminology">
+  <section id="terminology" data-toc-label="Terminology Decoder">
     <h2>3 &nbsp; Terminology Decoder</h2>
     <table class="t-decoder">
       <thead><tr><th>Term</th><th>Plain meaning</th><th>Example</th></tr></thead>
@@ -109,7 +94,7 @@
   <hr class="wiki-hr">
 
   <!-- 4. Mental model -->
-  <section id="mental-model">
+  <section id="mental-model" data-toc-label="Mental Model">
     <h2>4 &nbsp; Mental Model — the phone book</h2>
 
     <div class="co-idea">
@@ -136,7 +121,7 @@
   <hr class="wiki-hr">
 
   <!-- 5. Pseudocode primer -->
-  <section id="pseudocode">
+  <section id="pseudocode" data-toc-label="Pseudocode Primer">
     <h2>5 &nbsp; Pseudocode Primer</h2>
     <p>Two canonical templates cover all four variants. The only differences are what is stored and what is looked up.</p>
 
@@ -165,7 +150,7 @@
   <hr class="wiki-hr">
 
   <!-- 6. Iterative-only -->
-  <section id="iterative">
+  <section id="iterative" data-toc-label="Iterative-Only Pattern">
     <h2>6 &nbsp; Iterative-Only Pattern</h2>
     <p>All four hash map variants are inherently iterative: a single forward-pass <code>for</code> loop. There is no recursive structure to consider — hashing is a lookup operation, not a decomposition of the problem into subproblems. A recursive formulation would just be a manual simulation of the same loop, with call-stack overhead added for no benefit.</p>
     <ul>
@@ -178,7 +163,7 @@
   <hr class="wiki-hr">
 
   <!-- 7. Swift translation -->
-  <section id="swift">
+  <section id="swift" data-toc-label="Swift Translation">
     <h2>7 &nbsp; Swift Translation</h2>
 
     <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">LC1 — Two Sum, complement map, fully annotated</span></div>
@@ -222,10 +207,10 @@
   <hr class="wiki-hr">
 
   <!-- 8. Variant catalog -->
-  <section id="variants">
+  <section id="variants" data-toc-label="Variant Catalog">
     <h2>8 &nbsp; Variant Catalog</h2>
 
-    <div class="pattern-block" id="v-membership">
+    <div class="pattern-block" id="v-membership" data-toc-label="8.1 Set membership">
       <div class="block-header">
         <span class="block-kicker">Variant 8.1</span>
         <span class="block-name">Hash Set Membership</span>
@@ -242,7 +227,7 @@
       </div>
     </div>
 
-    <div class="pattern-block" id="v-seen">
+    <div class="pattern-block" id="v-seen" data-toc-label="8.2 Seen-state tracking">
       <div class="block-header">
         <span class="block-kicker">Variant 8.2</span>
         <span class="block-name">Seen-State Tracking (Cycle Detection)</span>
@@ -261,7 +246,7 @@
       </div>
     </div>
 
-    <div class="pattern-block" id="v-complement">
+    <div class="pattern-block" id="v-complement" data-toc-label="8.3 Complement map">
       <div class="block-header">
         <span class="block-kicker">Variant 8.3</span>
         <span class="block-name">Complement Map (Pair Lookup)</span>
@@ -278,7 +263,7 @@
       </div>
     </div>
 
-    <div class="pattern-block" id="v-index">
+    <div class="pattern-block" id="v-index" data-toc-label="8.4 Sliding index map">
       <div class="block-header">
         <span class="block-kicker">Variant 8.4</span>
         <span class="block-name">Sliding Index Map (Proximity Check)</span>
@@ -301,7 +286,7 @@
   <hr class="wiki-hr">
 
   <!-- 9. Complexity -->
-  <section id="complexity">
+  <section id="complexity" data-toc-label="Complexity Analysis">
     <h2>9 &nbsp; Complexity Analysis</h2>
     <p><strong>Why O(n) time.</strong> Each element is visited exactly once in the <code>for</code> loop. Each operation inside the loop — a set <code>contains</code>, a map lookup, or a map insert — is O(1) amortized. The total work across all n elements is therefore O(n). There is no inner loop, no sorting, no recursion.</p>
     <p><strong>Amortized O(1) vs worst-case O(n).</strong> A hash map occasionally resizes its internal array when the load factor exceeds ~0.75. The resize copies all entries — O(n) work. But this happens rarely enough that the average cost per insert across n insertions is still O(1). In interview contexts, always say "O(1) amortized" rather than "O(1)".</p>
@@ -320,7 +305,7 @@
   <hr class="wiki-hr">
 
   <!-- 10. Pitfalls -->
-  <section id="pitfalls">
+  <section id="pitfalls" data-toc-label="Common Pitfalls">
     <h2>10 &nbsp; Common Pitfalls</h2>
     <div class="co-pitfall">
       <div class="co-pitfall-title">Pitfalls — bugs this pattern invites</div>
@@ -335,7 +320,7 @@
   <hr class="wiki-hr">
 
   <!-- 11. Edge cases -->
-  <section id="edge-cases">
+  <section id="edge-cases" data-toc-label="Edge Cases">
     <h2>11 &nbsp; Edge Cases to Verbalize</h2>
     <table class="t-edge">
       <thead><tr><th>Input</th><th>Expected behavior</th><th>What it exercises</th></tr></thead>
@@ -355,7 +340,7 @@
   <hr class="wiki-hr">
 
   <!-- 12. Cheat sheet -->
-  <section id="cheatsheet">
+  <section id="cheatsheet" data-toc-label="Cheat Sheet">
     <h2>12 &nbsp; Cheat Sheet</h2>
     <table class="t-versus">
       <thead><tr><th>You see…</th><th>Variant</th><th>Store</th><th>Look up</th></tr></thead>
@@ -394,37 +379,37 @@
   <hr class="wiki-hr">
 
   <!-- 13. Cross-reference -->
-  <section id="practice">
+  <section id="practice" data-toc-label="Demonstrated in Practice">
     <h2>13 &nbsp; Demonstrated in Practice</h2>
     <p>The walkthroughs below apply the theory directly to the study-plan problems. Each card names the variant it demonstrates and what you land on when you open it.</p>
     <div class="ref-grid">
-      <a class="xref-card" href="../../walkthroughs/LC217_master.html">
+      <span class="xref-card xref-coming">
         <span class="ref-file">walkthroughs/LC217_master.html</span>
         <span class="ref-title">LC 217 — Contains Duplicate (Easy)</span>
         <span class="ref-desc">Variant 8.1 (set membership) at its absolute simplest — the warm-up for the entire block. Theory Decoder maps the three-line solution back to §8.1.</span>
-      </a>
-      <a class="xref-card" href="../../walkthroughs/LC202_master.html">
+      </span>
+      <span class="xref-card xref-coming">
         <span class="ref-file">walkthroughs/LC202_master.html</span>
         <span class="ref-title">LC 202 — Happy Number (Easy)</span>
         <span class="ref-desc">Variant 8.2 (seen-state cycle detection). Shows why the set tracks <em>states</em> not values, and introduces Floyd's cycle detection as a follow-up O(1)-space optimization.</span>
-      </a>
-      <a class="xref-card" href="../../walkthroughs/LC1_master.html">
+      </span>
+      <span class="xref-card xref-coming">
         <span class="ref-file">walkthroughs/LC1_master.html</span>
         <span class="ref-title">LC 1 — Two Sum (Easy)</span>
         <span class="ref-desc">Variant 8.3 (complement map). The canonical hash map interview problem — demonstrates the look-up-before-store rule and the O(n) vs O(n²) argument in full.</span>
-      </a>
-      <a class="xref-card" href="../../walkthroughs/LC219_master.html">
+      </span>
+      <span class="xref-card xref-coming">
         <span class="ref-file">walkthroughs/LC219_master.html</span>
         <span class="ref-title">LC 219 — Contains Duplicate II (Easy)</span>
         <span class="ref-desc">Variant 8.4 (sliding index map). Shows the always-update-after-check rule and the ≤ k boundary condition.</span>
-      </a>
+      </span>
     </div>
   </section>
 
   <hr class="wiki-hr">
 
   <!-- 14. Solo problem -->
-  <section id="solo">
+  <section id="solo" data-toc-label="Solo Problem">
     <h2>14 &nbsp; Solo Problem — no solution on this page</h2>
     <div class="solo-box">
       <div class="solo-banner">Solo problem — no solution on this page</div>
@@ -449,7 +434,8 @@
 </main>
 </div>
 
-<script src="../../_shared/pages.js"></script>
+<script src="../../_shared/manifest.js"></script>
 <script src="../../_shared/nav.js"></script>
+<script src="../../_shared/toc.js"></script>
 </body>
 </html>

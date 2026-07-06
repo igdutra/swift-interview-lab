@@ -3,7 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Text Formatting &amp; Simulation · Theory Masterfile</title>
+<title>Text Formatting / Simulation Deep Dive · Theory Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Text Formatting / Simulation Deep Dive",
+  "nav": "Text Formatting / Simulation Deep Dive",
+  "topics": [
+    "Strings",
+    "Simulation",
+    "Greedy"
+  ],
+  "blurb": "Index-walk-and-build, state-machine simulation, physics/grid settling, and greedy line-packing with spacing. Directed at LC415, LC1041, LC755, LC68."
+}
+</script>
 <link rel="stylesheet" href="../../_shared/wiki.css">
 <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
@@ -12,33 +24,6 @@
 <nav id="topnav" class="topnav"></nav>
 
 <div class="page">
-
-<!-- ── TOC ── -->
-<nav class="toc-col">
-  <div class="toc-inner">
-    <div class="toc-title toc-cat-theory">Theory · Contents</div>
-    <a href="#lead"          class="toc-link"><span class="toc-num">1</span> Definition</a>
-    <a href="#signals"       class="toc-link"><span class="toc-num">2</span> Recognition Signals</a>
-    <a href="#terminology"   class="toc-link"><span class="toc-num">3</span> Terminology Decoder</a>
-    <a href="#mental-model"  class="toc-link"><span class="toc-num">4</span> Mental Model</a>
-    <a href="#pseudocode"    class="toc-link"><span class="toc-num">5</span> Pseudocode Primer</a>
-    <a href="#iterative"     class="toc-link"><span class="toc-num">6</span> Iterative-Only Pattern</a>
-    <a href="#swift"         class="toc-link"><span class="toc-num">7</span> Swift Translation</a>
-    <a href="#variants"      class="toc-link"><span class="toc-num">8</span> Variant Catalog</a>
-    <div class="toc-sub">
-      <a href="#v-digit"     class="toc-link">8.1 Digit-buffer build</a>
-      <a href="#v-state"     class="toc-link">8.2 State-machine sim</a>
-      <a href="#v-physics"   class="toc-link">8.3 Physics / grid sim</a>
-      <a href="#v-pack"      class="toc-link">8.4 Line-packing + spacing</a>
-    </div>
-    <a href="#complexity"    class="toc-link"><span class="toc-num">9</span> Complexity Analysis</a>
-    <a href="#pitfalls"      class="toc-link"><span class="toc-num">10</span> Common Pitfalls</a>
-    <a href="#edge-cases"    class="toc-link"><span class="toc-num">11</span> Edge Cases</a>
-    <a href="#cheatsheet"    class="toc-link"><span class="toc-num">12</span> Cheat Sheet</a>
-    <a href="#practice"      class="toc-link"><span class="toc-num">13</span> Demonstrated in Practice</a>
-    <a href="#solo"          class="toc-link"><span class="toc-num">14</span> Solo Problem</a>
-  </div>
-</nav>
 
 <!-- ── CONTENT ── -->
 <main class="content">
@@ -51,7 +36,7 @@
   </div>
 
   <!-- 1. Definition -->
-  <section id="lead">
+  <section id="lead" data-toc-label="Definition">
     <div class="infobox">
       <div class="infobox-title">At a Glance</div>
       <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">The <em>produce</em> family — assemble output or step a state forward by the rules</div></div>
@@ -72,7 +57,7 @@
   <hr class="wiki-hr">
 
   <!-- 2. Recognition signals -->
-  <section id="signals">
+  <section id="signals" data-toc-label="Recognition Signals">
     <h2>2 &nbsp; Recognition Signals — when to reach for it</h2>
     <table class="t-clue">
       <thead><tr><th>When the problem says…</th><th>It means…</th></tr></thead>
@@ -90,7 +75,7 @@
   <hr class="wiki-hr">
 
   <!-- 3. Terminology decoder -->
-  <section id="terminology">
+  <section id="terminology" data-toc-label="Terminology Decoder">
     <h2>3 &nbsp; Terminology Decoder</h2>
     <table class="t-decoder">
       <thead><tr><th>Term</th><th>Plain meaning</th><th>Example</th></tr></thead>
@@ -109,7 +94,7 @@
   <hr class="wiki-hr">
 
   <!-- 4. Mental model -->
-  <section id="mental-model">
+  <section id="mental-model" data-toc-label="Mental Model">
     <h2>4 &nbsp; Mental Model — carry the state, append the output</h2>
 
     <div class="co-idea">
@@ -150,7 +135,7 @@ end: position (−2,2) ≠ origin, but <span class="tr-aha">facing = W ≠ N (ro
   <hr class="wiki-hr">
 
   <!-- 5. Pseudocode primer -->
-  <section id="pseudocode">
+  <section id="pseudocode" data-toc-label="Pseudocode Primer">
     <h2>5 &nbsp; Pseudocode Primer</h2>
     <p>The produce family is two canonical loops. The digit-buffer build (8.1):</p>
     <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">add two number strings</span></div>
@@ -187,7 +172,7 @@ end: position (−2,2) ≠ origin, but <span class="tr-aha">facing = W ≠ N (ro
   <hr class="wiki-hr">
 
   <!-- 6. Iterative-only pattern -->
-  <section id="iterative">
+  <section id="iterative" data-toc-label="Iterative-Only Pattern">
     <h2>6 &nbsp; Iterative-Only Pattern — explicit indices, explicit state</h2>
     <p>Every variant here is naturally iterative, and the iteration is the point:</p>
     <ul>
@@ -200,7 +185,7 @@ end: position (−2,2) ≠ origin, but <span class="tr-aha">facing = W ≠ N (ro
   <hr class="wiki-hr">
 
   <!-- 7. Swift translation -->
-  <section id="swift">
+  <section id="swift" data-toc-label="Swift Translation">
     <h2>7 &nbsp; Swift Translation</h2>
     <p>The two full-solution variants, compilable. First, digit-buffer addition (LC415):</p>
     <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">LC 415 — add two number strings</span></div>
@@ -243,11 +228,11 @@ end: position (−2,2) ≠ origin, but <span class="tr-aha">facing = W ≠ N (ro
   <hr class="wiki-hr">
 
   <!-- 8. Variant catalog -->
-  <section id="variants">
+  <section id="variants" data-toc-label="Variant Catalog">
     <h2>8 &nbsp; Variant Catalog</h2>
 
     <!-- 8.1 Digit-buffer build -->
-    <div class="pattern-block" id="v-digit">
+    <div class="pattern-block" id="v-digit" data-toc-label="8.1 Digit-buffer build">
       <div class="block-header">
         <span class="block-kicker">Variant 8.1</span>
         <span class="block-name">Digit-buffer build</span>
@@ -260,7 +245,7 @@ end: position (−2,2) ≠ origin, but <span class="tr-aha">facing = W ≠ N (ro
     </div>
 
     <!-- 8.2 State-machine sim -->
-    <div class="pattern-block" id="v-state">
+    <div class="pattern-block" id="v-state" data-toc-label="8.2 State-machine sim">
       <div class="block-header">
         <span class="block-kicker">Variant 8.2</span>
         <span class="block-name">State-machine simulation</span>
@@ -273,7 +258,7 @@ end: position (−2,2) ≠ origin, but <span class="tr-aha">facing = W ≠ N (ro
     </div>
 
     <!-- 8.3 Physics / grid sim — FRAME ONLY -->
-    <div class="pattern-block" id="v-physics">
+    <div class="pattern-block" id="v-physics" data-toc-label="8.3 Physics / grid sim">
       <div class="block-header">
         <span class="block-kicker">Variant 8.3</span>
         <span class="block-name">Physics / grid simulation — settle each unit</span>
@@ -294,7 +279,7 @@ end: position (−2,2) ≠ origin, but <span class="tr-aha">facing = W ≠ N (ro
     </div>
 
     <!-- 8.4 Line-packing + spacing — FRAME ONLY -->
-    <div class="pattern-block" id="v-pack">
+    <div class="pattern-block" id="v-pack" data-toc-label="8.4 Line-packing + spacing">
       <div class="block-header">
         <span class="block-kicker">Variant 8.4</span>
         <span class="block-name">Greedy line-packing + space distribution</span>
@@ -320,7 +305,7 @@ end: position (−2,2) ≠ origin, but <span class="tr-aha">facing = W ≠ N (ro
   <hr class="wiki-hr">
 
   <!-- 9. Complexity -->
-  <section id="complexity">
+  <section id="complexity" data-toc-label="Complexity Analysis">
     <h2>9 &nbsp; Complexity Analysis</h2>
     <table class="t-cmx">
       <thead><tr><th>Variant</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
@@ -337,7 +322,7 @@ end: position (−2,2) ≠ origin, but <span class="tr-aha">facing = W ≠ N (ro
   <hr class="wiki-hr">
 
   <!-- 10. Pitfalls -->
-  <section id="pitfalls">
+  <section id="pitfalls" data-toc-label="Common Pitfalls">
     <h2>10 &nbsp; Common Pitfalls</h2>
     <div class="co-pitfall">
       <div class="co-pitfall-title">Pitfalls — bugs this family invites</div>
@@ -345,8 +330,8 @@ end: position (−2,2) ≠ origin, but <span class="tr-aha">facing = W ≠ N (ro
       <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Wrong turn arithmetic (8.2).</strong> Left turn is <code>(d + 3) % 4</code>, not <code>(d − 1) % 4</code> — in Swift <code>(0 − 1) % 4 == −1</code>, an invalid index. Always add the modulus before taking <code>%</code>.</span></div>
       <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Settle tie-break direction (8.3).</strong> When left and right are equally low, the unit must settle on the <em>left</em>. Getting the precedence backwards passes simple cases and fails symmetric terrains.</span></div>
       <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Climbing a wall to reach a low spot (8.3).</strong> The unit can only flow to a position it can reach <em>without first going up</em>. A lower index beyond a taller wall is not reachable — stop the scan at the first rise.</span></div>
-      <div class="pitfall co-highlight"><span class="pitfall-bullet">▸</span><span><strong>Subrange index validation — always guard before scanning a side (8.3).</strong> If <code>K == 0</code> there is no left side; if <code>K == heights.count − 1</code> there is no right side. Calling <code>min()</code> or iterating a <code>ClosedRange</code> on an empty or invalid range crashes. Guard each side with an optional: only produce a candidate index when the side exists, treat <code>nil</code> as "cannot settle here." This pattern appears any time you split a collection at a pivot and search each half — <strong>validate the subrange before you enter it.</strong>
-<pre class="co-pre">let leftMinIndex  = kIndex &gt; 0                    ? getSmallerIndex(in: heights, range: 0...(kIndex - 1))               : nil
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Subrange index validation — always guard before scanning a side (8.3).</strong> If <code>K == 0</code> there is no left side; if <code>K == heights.count − 1</code> there is no right side. Calling <code>min()</code> or iterating a <code>ClosedRange</code> on an empty or invalid range crashes. Guard each side with an optional: only produce a candidate index when the side exists, treat <code>nil</code> as "cannot settle here." This pattern appears any time you split a collection at a pivot and search each half — <strong>validate the subrange before you enter it.</strong>
+<pre class="swift">let leftMinIndex  = kIndex &gt; 0                    ? getSmallerIndex(in: heights, range: 0...(kIndex - 1))               : nil
 let rightMinIndex = kIndex &lt; heights.count - 1   ? getSmallerIndex(in: heights, range: (kIndex + 1)...(heights.count - 1)) : nil</pre>
       </span></div>
       <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Off-by-one in the line-fit test (8.4).</strong> A line of k words has k−1 mandatory gaps. The fit check is <code>wordLenSum + (k−1) ≤ maxWidth</code> — forgetting the gaps overpacks the line by one word.</span></div>
@@ -357,7 +342,7 @@ let rightMinIndex = kIndex &lt; heights.count - 1   ? getSmallerIndex(in: height
   <hr class="wiki-hr">
 
   <!-- 11. Edge cases -->
-  <section id="edge-cases">
+  <section id="edge-cases" data-toc-label="Edge Cases">
     <h2>11 &nbsp; Edge Cases to Verbalize</h2>
     <p>The spacing and settling cases below are the specification for the two attempt/target variants — verbalize each one before you start coding LC 68 or LC 755.</p>
     <table class="t-edge">
@@ -381,7 +366,7 @@ let rightMinIndex = kIndex &lt; heights.count - 1   ? getSmallerIndex(in: height
   <hr class="wiki-hr">
 
   <!-- 12. Cheat sheet -->
-  <section id="cheatsheet">
+  <section id="cheatsheet" data-toc-label="Cheat Sheet">
     <h2>12 &nbsp; Cheat Sheet</h2>
     <table class="t-versus">
       <thead><tr><th>You see…</th><th>You use</th><th>Key decision</th></tr></thead>
@@ -408,7 +393,7 @@ let rightMinIndex = kIndex &lt; heights.count - 1   ? getSmallerIndex(in: height
   <hr class="wiki-hr">
 
   <!-- 13. Cross-reference -->
-  <section id="practice">
+  <section id="practice" data-toc-label="Demonstrated in Practice">
     <h2>13 &nbsp; Demonstrated in Practice</h2>
     <div class="ref-grid">
       <a class="xref-card" href="../../walkthroughs/LC415_master.html">
@@ -437,7 +422,7 @@ let rightMinIndex = kIndex &lt; heights.count - 1   ? getSmallerIndex(in: height
   <hr class="wiki-hr">
 
   <!-- 14. Solo problem -->
-  <section id="solo">
+  <section id="solo" data-toc-label="Solo Problem">
     <h2>14 &nbsp; Solo Problem — no solution on this page</h2>
     <div class="solo-box">
       <div class="solo-banner">Solo problem — no solution on this page</div>
@@ -462,7 +447,8 @@ let rightMinIndex = kIndex &lt; heights.count - 1   ? getSmallerIndex(in: height
 </main>
 </div>
 
-<script src="../../_shared/pages.js"></script>
+<script src="../../_shared/manifest.js"></script>
 <script src="../../_shared/nav.js"></script>
+<script src="../../_shared/toc.js"></script>
 </body>
 </html>

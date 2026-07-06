@@ -3,7 +3,20 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Topological Sort · Theory Masterfile</title>
+<title>Topological Sort Deep Dive · Theory Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Topological Sort Deep Dive",
+  "nav": "Topological Sort Deep Dive",
+  "topics": [
+    "DAG",
+    "In-degree",
+    "Kahn's",
+    "Cycle Detection"
+  ],
+  "blurb": "Order a DAG so every edge points forward: Kahn's in-degree peel (cycle check + order in one pass), outputting the order, the DFS post-order alternative, and building the graph from sorted data. Directed at LC207, LC210, LC269."
+}
+</script>
 <link rel="stylesheet" href="../../_shared/wiki.css">
 <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
@@ -12,33 +25,6 @@
 <nav id="topnav" class="topnav"></nav>
 
 <div class="page">
-
-<!-- ── TOC ── -->
-<nav class="toc-col">
-  <div class="toc-inner">
-    <div class="toc-title toc-cat-theory">Theory · Contents</div>
-    <a href="#lead"          class="toc-link"><span class="toc-num">1</span> Definition</a>
-    <a href="#signals"       class="toc-link"><span class="toc-num">2</span> Recognition Signals</a>
-    <a href="#terminology"   class="toc-link"><span class="toc-num">3</span> Terminology Decoder</a>
-    <a href="#mental-model"  class="toc-link"><span class="toc-num">4</span> Mental Model</a>
-    <a href="#pseudocode"    class="toc-link"><span class="toc-num">5</span> Pseudocode Primer</a>
-    <a href="#iterative"     class="toc-link"><span class="toc-num">6</span> Kahn vs DFS</a>
-    <a href="#swift"         class="toc-link"><span class="toc-num">7</span> Swift Foundations</a>
-    <a href="#variants"      class="toc-link"><span class="toc-num">8</span> The Four Variants</a>
-    <div class="toc-sub">
-      <a href="#v-kahn"    class="toc-link">8.1 Kahn's (cycle check)</a>
-      <a href="#v-order"   class="toc-link">8.2 Output the order</a>
-      <a href="#v-dfs"     class="toc-link">8.3 DFS post-order</a>
-      <a href="#v-build"   class="toc-link">8.4 Build graph then sort</a>
-    </div>
-    <a href="#complexity"    class="toc-link"><span class="toc-num">9</span> Complexity Analysis</a>
-    <a href="#pitfalls"      class="toc-link"><span class="toc-num">10</span> Common Pitfalls</a>
-    <a href="#edge-cases"    class="toc-link"><span class="toc-num">11</span> Edge Cases</a>
-    <a href="#cheatsheet"    class="toc-link"><span class="toc-num">12</span> Cheat Sheet</a>
-    <a href="#practice"      class="toc-link"><span class="toc-num">13</span> Demonstrated in Practice</a>
-    <a href="#solo"          class="toc-link"><span class="toc-num">14</span> Solo Problem</a>
-  </div>
-</nav>
 
 <!-- ── CONTENT ── -->
 <main class="content">
@@ -51,7 +37,7 @@
   </div>
 
   <!-- 1. Definition -->
-  <section id="lead">
+  <section id="lead" data-toc-label="Definition">
     <div class="infobox">
       <div class="infobox-title">At a Glance</div>
       <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Linearly order the vertices of a directed acyclic graph so every edge points forward</div></div>
@@ -72,7 +58,7 @@
   <hr class="wiki-hr">
 
   <!-- 2. Recognition signals -->
-  <section id="signals">
+  <section id="signals" data-toc-label="Recognition Signals">
     <h2>2 &nbsp; Recognition Signals — what variant is this?</h2>
     <p>"Order things under prerequisite/dependency constraints" is the topological-sort master signal. What the problem asks for — a yes/no, the order, or building the graph first — picks the variant.</p>
     <table class="t-clue">
@@ -92,7 +78,7 @@
   <hr class="wiki-hr">
 
   <!-- 3. Terminology decoder -->
-  <section id="terminology">
+  <section id="terminology" data-toc-label="Terminology Decoder">
     <h2>3 &nbsp; Terminology Decoder</h2>
     <p>The general graph vocabulary lives in the <a href="index.html">Graphs hub</a>; these are the terms this page leans on most.</p>
     <table class="t-decoder">
@@ -114,7 +100,7 @@
   <hr class="wiki-hr">
 
   <!-- 4. Mental model -->
-  <section id="mental-model">
+  <section id="mental-model" data-toc-label="Mental Model">
     <h2>4 &nbsp; Mental Model — peel the layers with no prerequisites</h2>
 
     <div class="co-idea">
@@ -158,7 +144,7 @@ processed (0) ≠ total (3) → <span class="tr-bad">cycle detected, no valid or
   <hr class="wiki-hr">
 
   <!-- 5. Pseudocode primer -->
-  <section id="pseudocode">
+  <section id="pseudocode" data-toc-label="Pseudocode Primer">
     <h2>5 &nbsp; Pseudocode Primer</h2>
     <p>Kahn's algorithm. The processed-count comparison at the end is both the cycle test and the correctness check.</p>
     <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">Kahn's — peel in-degree-0 vertices, count them</span></div>
@@ -183,7 +169,7 @@ processed (0) ≠ total (3) → <span class="tr-bad">cycle detected, no valid or
   <hr class="wiki-hr">
 
   <!-- 6. Kahn vs DFS -->
-  <section id="iterative">
+  <section id="iterative" data-toc-label="Kahn vs DFS">
     <h2>6 &nbsp; Kahn vs DFS — two routes to the same order</h2>
     <p>There are two standard topological sorts; both are O(V+E), and knowing the trade-off is interview gold:</p>
     <ul>
@@ -196,7 +182,7 @@ processed (0) ≠ total (3) → <span class="tr-bad">cycle detected, no valid or
   <hr class="wiki-hr">
 
   <!-- 7. Swift foundations -->
-  <section id="swift">
+  <section id="swift" data-toc-label="Swift Foundations">
     <h2>7 &nbsp; Swift Foundations</h2>
     <p>Five Swift facts underlie nearly every topological sort. The edge-direction one is where most bugs start.</p>
     <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">the five topo-sort building blocks for this block</span></div>
@@ -223,18 +209,18 @@ processed (0) ≠ total (3) → <span class="tr-bad">cycle detected, no valid or
 <span class="cm">// 5. Cycle test = processed count vs total (no separate pass).</span>
 <span class="kw">let</span> processed = head            <span class="cm">// how many we dequeued</span>
 <span class="kw">return</span> processed == numNodes</pre>
-    <div class="co-pitfall" style="margin-top:12px"><strong>The edge-direction trap.</strong> Reversing an edge silently produces a valid-looking but wrong answer. Pin it concretely: "take <code>b</code> before <code>a</code>" means <code>b</code> is the prerequisite, so the edge runs <code>b → a</code> and it is <code>a</code>'s in-degree that increases. Always restate the dependency in words before writing the edge, and double-check which index is the prerequisite in the problem's pair format.</div>
+    <div class="co-pitfall u-mt-12"><strong>The edge-direction trap.</strong> Reversing an edge silently produces a valid-looking but wrong answer. Pin it concretely: "take <code>b</code> before <code>a</code>" means <code>b</code> is the prerequisite, so the edge runs <code>b → a</code> and it is <code>a</code>'s in-degree that increases. Always restate the dependency in words before writing the edge, and double-check which index is the prerequisite in the problem's pair format.</div>
   </section>
 
   <hr class="wiki-hr">
 
   <!-- 8. The four variants -->
-  <section id="variants">
+  <section id="variants" data-toc-label="The Four Variants">
     <h2>8 &nbsp; The Four Variants</h2>
     <p>Ordered by what the problem asks for. Variant 8.1 is taught in a full walkthrough (LC207); the rest are solve-it-yourself problems — frame and pitfalls here, no solution.</p>
 
     <!-- 8.1 Kahn's cycle check -->
-    <div class="pattern-block" id="v-kahn">
+    <div class="pattern-block" id="v-kahn" data-toc-label="8.1 Kahn's (cycle check)">
       <div class="block-header">
         <span class="block-kicker">Variant 8.1</span>
         <span class="block-name">Kahn's — can it be ordered? (cycle check)</span>
@@ -249,7 +235,7 @@ processed (0) ≠ total (3) → <span class="tr-bad">cycle detected, no valid or
     </div>
 
     <!-- 8.2 Output the order -->
-    <div class="pattern-block" id="v-order">
+    <div class="pattern-block" id="v-order" data-toc-label="8.2 Output the order">
       <div class="block-header">
         <span class="block-kicker">Variant 8.2</span>
         <span class="block-name">Output a valid order</span>
@@ -265,7 +251,7 @@ processed (0) ≠ total (3) → <span class="tr-bad">cycle detected, no valid or
     </div>
 
     <!-- 8.3 DFS post-order -->
-    <div class="pattern-block" id="v-dfs">
+    <div class="pattern-block" id="v-dfs" data-toc-label="8.3 DFS post-order">
       <div class="block-header">
         <span class="block-kicker">Variant 8.3</span>
         <span class="block-name">DFS post-order topological sort</span>
@@ -281,7 +267,7 @@ processed (0) ≠ total (3) → <span class="tr-bad">cycle detected, no valid or
     </div>
 
     <!-- 8.4 Build graph then sort -->
-    <div class="pattern-block" id="v-build">
+    <div class="pattern-block" id="v-build" data-toc-label="8.4 Build graph then sort">
       <div class="block-header">
         <span class="block-kicker">Variant 8.4</span>
         <span class="block-name">Build the graph from input, then sort</span>
@@ -301,7 +287,7 @@ processed (0) ≠ total (3) → <span class="tr-bad">cycle detected, no valid or
   <hr class="wiki-hr">
 
   <!-- 9. Complexity -->
-  <section id="complexity">
+  <section id="complexity" data-toc-label="Complexity Analysis">
     <h2>9 &nbsp; Complexity Analysis</h2>
     <p><strong>Topological sort is O(V + E): building the in-degree array touches every edge once, and the peel dequeues every vertex once while decrementing along every edge once.</strong> No vertex or edge is handled twice.</p>
     <table class="t-cmx">
@@ -320,7 +306,7 @@ processed (0) ≠ total (3) → <span class="tr-bad">cycle detected, no valid or
   <hr class="wiki-hr">
 
   <!-- 10. Pitfalls -->
-  <section id="pitfalls">
+  <section id="pitfalls" data-toc-label="Common Pitfalls">
     <h2>10 &nbsp; Common Pitfalls</h2>
     <div class="co-pitfall">
       <div class="co-pitfall-title">Pitfalls — bugs this block invites</div>
@@ -336,7 +322,7 @@ processed (0) ≠ total (3) → <span class="tr-bad">cycle detected, no valid or
   <hr class="wiki-hr">
 
   <!-- 11. Edge cases -->
-  <section id="edge-cases">
+  <section id="edge-cases" data-toc-label="Edge Cases">
     <h2>11 &nbsp; Edge Cases to Verbalize</h2>
     <p>Name these before coding. The empty-prerequisites and cycle cases are where topo-sort solutions most often slip.</p>
     <table class="t-edge">
@@ -357,7 +343,7 @@ processed (0) ≠ total (3) → <span class="tr-bad">cycle detected, no valid or
   <hr class="wiki-hr">
 
   <!-- 12. Cheat sheet -->
-  <section id="cheatsheet">
+  <section id="cheatsheet" data-toc-label="Cheat Sheet">
     <h2>12 &nbsp; Cheat Sheet</h2>
     <table class="t-versus">
       <thead><tr><th>You see…</th><th>You use</th><th>Variant</th></tr></thead>
@@ -395,7 +381,7 @@ processed (0) ≠ total (3) → <span class="tr-bad">cycle detected, no valid or
   <hr class="wiki-hr">
 
   <!-- 13. Cross-reference -->
-  <section id="practice">
+  <section id="practice" data-toc-label="Demonstrated in Practice">
     <h2>13 &nbsp; Demonstrated in Practice</h2>
     <p>Each problem in this block is taught in its own walkthrough — constraint insights, edge-case inventory, interview simulation, and (for the walkthrough) a full dry run and iterative Swift solution.</p>
     <div class="ref-grid">
@@ -404,24 +390,24 @@ processed (0) ≠ total (3) → <span class="tr-bad">cycle detected, no valid or
         <span class="ref-title">LC 207 — Course Schedule (Medium · walkthrough)</span>
         <span class="ref-desc">Kahn's algorithm as a cycle check — build in-degrees from prerequisite pairs, peel in-degree-0 courses, and compare the processed count to the total. Full dry run and Swift. The §8.1 instantiation.</span>
       </a>
-      <a class="xref-card" href="../../walkthroughs/LC210_master.html">
+      <span class="xref-card xref-coming">
         <span class="ref-file">walkthroughs/LC210_master.html</span>
         <span class="ref-title">LC 210 — Course Schedule II (Medium · attempt)</span>
         <span class="ref-desc">Output the order — the same Kahn's peel, but record the dequeue sequence and return [] on a cycle. Graduated hints. No solution shown.</span>
-      </a>
-      <a class="xref-card" href="../../walkthroughs/LC269_master.html">
+      </span>
+      <span class="xref-card xref-coming">
         <span class="ref-file">walkthroughs/LC269_master.html</span>
         <span class="ref-title">LC 269 — Alien Dictionary (Hard · target)</span>
         <span class="ref-desc">Build the graph from sorted words — derive one edge per adjacent pair, guard the prefix case, then Kahn's. Frame and hints only; no solution shown.</span>
-      </a>
+      </span>
     </div>
-    <div class="co-note" style="margin-top:12px"><strong>Note:</strong> LC210 and LC269 are solve-it-yourself problems of this family; their pages are coaches (problem, edge cases, signals, hints) with no solution, per the study-plan spoiler rule. LC207 is the fully-worked walkthrough.</div>
+    <div class="co-note u-mt-12"><strong>Note:</strong> LC210 and LC269 are solve-it-yourself problems of this family; their pages are coaches (problem, edge cases, signals, hints) with no solution, per the study-plan spoiler rule. LC207 is the fully-worked walkthrough.</div>
   </section>
 
   <hr class="wiki-hr">
 
   <!-- 14. Solo problem -->
-  <section id="solo">
+  <section id="solo" data-toc-label="Solo Problem">
     <h2>14 &nbsp; Solo Problem — no solution on this page</h2>
     <div class="solo-box">
       <div class="solo-banner">Solo problem — no solution on this page</div>
@@ -445,7 +431,8 @@ processed (0) ≠ total (3) → <span class="tr-bad">cycle detected, no valid or
 </main>
 </div>
 
-<script src="../../_shared/pages.js"></script>
+<script src="../../_shared/manifest.js"></script>
 <script src="../../_shared/nav.js"></script>
+<script src="../../_shared/toc.js"></script>
 </body>
 </html>

@@ -3,7 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Breadth-First Search · Theory Masterfile</title>
+<title>Breadth-First Search (BFS) Deep Dive · Theory Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Breadth-First Search (BFS) Deep Dive",
+  "nav": "Breadth-First Search (BFS) Deep Dive",
+  "topics": [
+    "Queue",
+    "Visited Set",
+    "Shortest Path"
+  ],
+  "blurb": "Level-by-level traversal with a queue: the fewest-edges shortest-path guarantee, grid BFS, multi-source BFS, and BFS over an implicit state space (board/bitmask states one move apart). Directed at LC1091, LC1284, LC994, LC1298, LC773."
+}
+</script>
 <link rel="stylesheet" href="../../_shared/wiki.css">
 <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
@@ -12,33 +24,6 @@
 <nav id="topnav" class="topnav"></nav>
 
 <div class="page">
-
-<!-- ── TOC ── -->
-<nav class="toc-col">
-  <div class="toc-inner">
-    <div class="toc-title toc-cat-theory">Theory · Contents</div>
-    <a href="#lead"          class="toc-link"><span class="toc-num">1</span> Definition</a>
-    <a href="#signals"       class="toc-link"><span class="toc-num">2</span> Recognition Signals</a>
-    <a href="#terminology"   class="toc-link"><span class="toc-num">3</span> Terminology Decoder</a>
-    <a href="#mental-model"  class="toc-link"><span class="toc-num">4</span> Mental Model</a>
-    <a href="#pseudocode"    class="toc-link"><span class="toc-num">5</span> Pseudocode Primer</a>
-    <a href="#iterative"     class="toc-link"><span class="toc-num">6</span> The Level-Loop Pattern</a>
-    <a href="#swift"         class="toc-link"><span class="toc-num">7</span> Swift Foundations</a>
-    <a href="#variants"      class="toc-link"><span class="toc-num">8</span> The Four Variants</a>
-    <div class="toc-sub">
-      <a href="#v-grid"      class="toc-link">8.1 Grid BFS</a>
-      <a href="#v-multi"     class="toc-link">8.2 Multi-source BFS</a>
-      <a href="#v-state"     class="toc-link">8.3 State-space BFS</a>
-      <a href="#v-gated"     class="toc-link">8.4 BFS with carried state</a>
-    </div>
-    <a href="#complexity"    class="toc-link"><span class="toc-num">9</span> Complexity Analysis</a>
-    <a href="#pitfalls"      class="toc-link"><span class="toc-num">10</span> Common Pitfalls</a>
-    <a href="#edge-cases"    class="toc-link"><span class="toc-num">11</span> Edge Cases</a>
-    <a href="#cheatsheet"    class="toc-link"><span class="toc-num">12</span> Cheat Sheet</a>
-    <a href="#practice"      class="toc-link"><span class="toc-num">13</span> Demonstrated in Practice</a>
-    <a href="#solo"          class="toc-link"><span class="toc-num">14</span> Solo Problem</a>
-  </div>
-</nav>
 
 <!-- ── CONTENT ── -->
 <main class="content">
@@ -51,7 +36,7 @@
   </div>
 
   <!-- 1. Definition -->
-  <section id="lead">
+  <section id="lead" data-toc-label="Definition">
     <div class="infobox">
       <div class="infobox-title">At a Glance</div>
       <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Explore a graph level by level from a source, using a queue</div></div>
@@ -72,7 +57,7 @@
   <hr class="wiki-hr">
 
   <!-- 2. Recognition signals -->
-  <section id="signals">
+  <section id="signals" data-toc-label="Recognition Signals">
     <h2>2 &nbsp; Recognition Signals — what variant is this?</h2>
     <p>The phrase "shortest / fewest / minimum number of <em>moves</em>" over equal-cost steps is the master signal for BFS. What the vertices and edges <em>are</em> tells you which variant.</p>
     <table class="t-clue">
@@ -93,7 +78,7 @@
   <hr class="wiki-hr">
 
   <!-- 3. Terminology decoder -->
-  <section id="terminology">
+  <section id="terminology" data-toc-label="Terminology Decoder">
     <h2>3 &nbsp; Terminology Decoder</h2>
     <p>The general graph vocabulary lives in the <a href="index.html">Graphs hub</a>; these are the terms this BFS page leans on most.</p>
     <table class="t-decoder">
@@ -115,7 +100,7 @@
   <hr class="wiki-hr">
 
   <!-- 4. Mental model -->
-  <section id="mental-model">
+  <section id="mental-model" data-toc-label="Mental Model">
     <h2>4 &nbsp; Mental Model — a wave spreading outward</h2>
 
     <div class="co-idea">
@@ -159,7 +144,7 @@ goal state is the minimum number of moves. <span class="tr-ok">Same algorithm, b
   <hr class="wiki-hr">
 
   <!-- 5. Pseudocode primer -->
-  <section id="pseudocode">
+  <section id="pseudocode" data-toc-label="Pseudocode Primer">
     <h2>5 &nbsp; Pseudocode Primer</h2>
     <p>The canonical BFS. The two non-negotiable lines are <em>mark visited when enqueuing</em> and <em>increment distance once per level</em>.</p>
     <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">level-counting BFS — distance bumps once per frontier</span></div>
@@ -188,7 +173,7 @@ goal state is the minimum number of moves. <span class="tr-ok">Same algorithm, b
   <hr class="wiki-hr">
 
   <!-- 6. The level-loop pattern -->
-  <section id="iterative">
+  <section id="iterative" data-toc-label="The Level-Loop Pattern">
     <h2>6 &nbsp; The Level-Loop Pattern — BFS is inherently iterative</h2>
     <p>Unlike DFS, BFS has <em>no natural recursive form</em> — it is a queue loop by construction, which suits the standard's iterative discipline perfectly. Two equivalent ways to track distance:</p>
     <ul>
@@ -201,7 +186,7 @@ goal state is the minimum number of moves. <span class="tr-ok">Same algorithm, b
   <hr class="wiki-hr">
 
   <!-- 7. Swift foundations -->
-  <section id="swift">
+  <section id="swift" data-toc-label="Swift Foundations">
     <h2>7 &nbsp; Swift Foundations</h2>
     <p>Five Swift facts underlie nearly every BFS in this family. Say the queue-cost one out loud before coding — it is the most common interview ding.</p>
     <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">the five BFS-handling rules for this block</span></div>
@@ -233,18 +218,18 @@ goal state is the minimum number of moves. <span class="tr-ok">Same algorithm, b
 <span class="kw">func</span> <span class="fn">inBounds</span>(<span class="kw">_</span> r: <span class="tp">Int</span>, <span class="kw">_</span> c: <span class="tp">Int</span>) -&gt; <span class="tp">Bool</span> {
     r &gt;= <span class="nm">0</span> &amp;&amp; r &lt; rows &amp;&amp; c &gt;= <span class="nm">0</span> &amp;&amp; c &lt; cols
 }</pre>
-    <div class="co-pitfall" style="margin-top:12px"><strong>The <code>removeFirst()</code> trap.</strong> <code>Array.removeFirst()</code> is O(n) because it shifts every remaining element. Calling it once per vertex turns an O(V + E) BFS into O(V² ). Use a <strong>head index</strong> (shown above) or a ring buffer / deque. Mention this out loud — interviewers listen for it.</div>
+    <div class="co-pitfall u-mt-12"><strong>The <code>removeFirst()</code> trap.</strong> <code>Array.removeFirst()</code> is O(n) because it shifts every remaining element. Calling it once per vertex turns an O(V + E) BFS into O(V² ). Use a <strong>head index</strong> (shown above) or a ring buffer / deque. Mention this out loud — interviewers listen for it.</div>
   </section>
 
   <hr class="wiki-hr">
 
   <!-- 8. The four variants -->
-  <section id="variants">
+  <section id="variants" data-toc-label="The Four Variants">
     <h2>8 &nbsp; The Four Variants</h2>
     <p>Ordered by increasing abstraction of "what is a vertex." The first two are taught in full walkthroughs (the grid warm-up and the state-space hard problem); the last two are solve-it-yourself problems — frame and pitfalls here, no solution.</p>
 
     <!-- 8.1 Grid BFS -->
-    <div class="pattern-block" id="v-grid">
+    <div class="pattern-block" id="v-grid" data-toc-label="8.1 Grid BFS">
       <div class="block-header">
         <span class="block-kicker">Variant 8.1</span>
         <span class="block-name">Grid BFS</span>
@@ -259,7 +244,7 @@ goal state is the minimum number of moves. <span class="tr-ok">Same algorithm, b
     </div>
 
     <!-- 8.2 Multi-source BFS -->
-    <div class="pattern-block" id="v-multi">
+    <div class="pattern-block" id="v-multi" data-toc-label="8.2 Multi-source BFS">
       <div class="block-header">
         <span class="block-kicker">Variant 8.2</span>
         <span class="block-name">Multi-source BFS</span>
@@ -275,7 +260,7 @@ goal state is the minimum number of moves. <span class="tr-ok">Same algorithm, b
     </div>
 
     <!-- 8.3 State-space BFS -->
-    <div class="pattern-block" id="v-state">
+    <div class="pattern-block" id="v-state" data-toc-label="8.3 State-space BFS">
       <div class="block-header">
         <span class="block-kicker">Variant 8.3</span>
         <span class="block-name">State-space BFS (configurations as vertices)</span>
@@ -290,7 +275,7 @@ goal state is the minimum number of moves. <span class="tr-ok">Same algorithm, b
     </div>
 
     <!-- 8.4 BFS with carried state -->
-    <div class="pattern-block" id="v-gated">
+    <div class="pattern-block" id="v-gated" data-toc-label="8.4 BFS with carried state">
       <div class="block-header">
         <span class="block-kicker">Variant 8.4</span>
         <span class="block-name">BFS with carried state (augmented vertex)</span>
@@ -310,7 +295,7 @@ goal state is the minimum number of moves. <span class="tr-ok">Same algorithm, b
   <hr class="wiki-hr">
 
   <!-- 9. Complexity -->
-  <section id="complexity">
+  <section id="complexity" data-toc-label="Complexity Analysis">
     <h2>9 &nbsp; Complexity Analysis</h2>
     <p><strong>BFS is O(V + E): every vertex is enqueued once (the visited set guarantees it) and every edge is examined once when its endpoint is expanded.</strong> The cost shifts only in <em>how big the graph is</em> — and for state-space BFS, the vertex count can be exponential in the configuration size.</p>
     <table class="t-cmx">
@@ -329,7 +314,7 @@ goal state is the minimum number of moves. <span class="tr-ok">Same algorithm, b
   <hr class="wiki-hr">
 
   <!-- 10. Pitfalls -->
-  <section id="pitfalls">
+  <section id="pitfalls" data-toc-label="Common Pitfalls">
     <h2>10 &nbsp; Common Pitfalls</h2>
     <div class="co-pitfall">
       <div class="co-pitfall-title">Pitfalls — bugs this block invites</div>
@@ -346,7 +331,7 @@ goal state is the minimum number of moves. <span class="tr-ok">Same algorithm, b
   <hr class="wiki-hr">
 
   <!-- 11. Edge cases -->
-  <section id="edge-cases">
+  <section id="edge-cases" data-toc-label="Edge Cases">
     <h2>11 &nbsp; Edge Cases to Verbalize</h2>
     <p>Name these before coding. The unreachable and already-at-goal cases are where BFS solutions most often misreport.</p>
     <table class="t-edge">
@@ -367,7 +352,7 @@ goal state is the minimum number of moves. <span class="tr-ok">Same algorithm, b
   <hr class="wiki-hr">
 
   <!-- 12. Cheat sheet -->
-  <section id="cheatsheet">
+  <section id="cheatsheet" data-toc-label="Cheat Sheet">
     <h2>12 &nbsp; Cheat Sheet</h2>
     <table class="t-versus">
       <thead><tr><th>You see…</th><th>You use</th><th>Variant</th></tr></thead>
@@ -408,7 +393,7 @@ goal state is the minimum number of moves. <span class="tr-ok">Same algorithm, b
   <hr class="wiki-hr">
 
   <!-- 13. Cross-reference -->
-  <section id="practice">
+  <section id="practice" data-toc-label="Demonstrated in Practice">
     <h2>13 &nbsp; Demonstrated in Practice</h2>
     <p>Each problem in this block is taught in its own walkthrough — constraint insights, edge-case inventory, interview simulation, and (for the warm-up and walkthrough) a full dry run and iterative Swift solution.</p>
     <div class="ref-grid">
@@ -422,24 +407,24 @@ goal state is the minimum number of moves. <span class="tr-ok">Same algorithm, b
         <span class="ref-title">LC 1284 — Min Flips to Convert Binary Matrix (Hard · walkthrough)</span>
         <span class="ref-desc">State-space BFS — encode the whole matrix as an Int bitmask, a flip is an XOR with a precomputed move-mask, BFS to the all-zero state. Full dry run and Swift, plus the encoding insight.</span>
       </a>
-      <a class="xref-card" href="../../walkthroughs/LC994_master.html">
+      <span class="xref-card xref-coming">
         <span class="ref-file">walkthroughs/LC994_master.html</span>
         <span class="ref-title">LC 994 — Rotting Oranges (Medium · attempt)</span>
         <span class="ref-desc">Multi-source BFS you solve cold — seed every rotten orange at layer 0, count minutes as layers, −1 if any orange never rots. Graduated hints. No solution shown.</span>
-      </a>
-      <a class="xref-card" href="../../walkthroughs/LC1298_master.html">
+      </span>
+      <span class="xref-card xref-coming">
         <span class="ref-file">walkthroughs/LC1298_master.html</span>
         <span class="ref-title">LC 1298 — Maximum Candies from Boxes (Hard · target)</span>
         <span class="ref-desc">BFS with carried state — the frontier grows as you collect keys; the vertex carries what you hold. Frame and hints only; no solution shown.</span>
-      </a>
+      </span>
     </div>
-    <div class="co-note" style="margin-top:12px"><strong>Note:</strong> the LC994 and LC1298 walkthroughs are the solve-it-yourself targets of this family; their pages are coaches (problem, edge cases, signals, hints) with no solution, per the study-plan spoiler rule.</div>
+    <div class="co-note u-mt-12"><strong>Note:</strong> the LC994 and LC1298 walkthroughs are the solve-it-yourself targets of this family; their pages are coaches (problem, edge cases, signals, hints) with no solution, per the study-plan spoiler rule.</div>
   </section>
 
   <hr class="wiki-hr">
 
   <!-- 14. Solo problem -->
-  <section id="solo">
+  <section id="solo" data-toc-label="Solo Problem">
     <h2>14 &nbsp; Solo Problem — no solution on this page</h2>
     <div class="solo-box">
       <div class="solo-banner">Solo problem — no solution on this page</div>
@@ -463,7 +448,8 @@ goal state is the minimum number of moves. <span class="tr-ok">Same algorithm, b
 </main>
 </div>
 
-<script src="../../_shared/pages.js"></script>
+<script src="../../_shared/manifest.js"></script>
 <script src="../../_shared/nav.js"></script>
+<script src="../../_shared/toc.js"></script>
 </body>
 </html>

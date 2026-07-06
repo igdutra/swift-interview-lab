@@ -4,6 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LC 42 — Trapping Rain Water · Walkthrough Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "LC 42 — Trapping Rain Water",
+  "nav": "LC 42",
+  "topics": [
+    "Two Pointers",
+    "Arrays"
+  ],
+  "blurb": "Left/right-max accumulator pattern. Commit water on the bottleneck side — the taller wall guarantees no spill. Why sliding window fails, why the two-pointer version is the O(1)-space compression of prefix-max arrays.",
+  "difficulty": "H"
+}
+</script>
 <link rel="stylesheet" href="../_shared/wiki.css">
 <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
@@ -12,38 +24,6 @@
 <nav id="topnav" class="topnav"></nav>
 
 <div class="page">
-
-<!-- ── TOC ── -->
-<nav class="toc-col">
-  <div class="toc-inner">
-    <div class="toc-title toc-cat-walkthrough">Walkthrough · Contents</div>
-    <a href="#lead"         class="toc-link"><span class="toc-num">1</span> The Problem</a>
-    <a href="#reading"      class="toc-link"><span class="toc-num">2</span> Reading the Problem</a>
-    <a href="#edge-cases"   class="toc-link"><span class="toc-num">3</span> Edge Case Inventory</a>
-    <a href="#hints"        class="toc-link"><span class="toc-num">4</span> Try It Yourself First</a>
-    <a href="#simulation"   class="toc-link"><span class="toc-num">5</span> Interview Simulation</a>
-    <div class="toc-sub">
-      <a href="#sim-questions" class="toc-link">5.1 Clarifying questions</a>
-      <a href="#sim-plan"      class="toc-link">5.2 The plan, spoken</a>
-    </div>
-    <a href="#approach"     class="toc-link"><span class="toc-num">6</span> Why This Approach</a>
-    <a href="#structures"   class="toc-link"><span class="toc-num">7</span> Data Structures</a>
-    <a href="#dryrun"       class="toc-link"><span class="toc-num">8</span> Pseudocode Dry Run</a>
-    <a href="#swift"        class="toc-link"><span class="toc-num">9</span> Swift Solution</a>
-    <a href="#code-dry-run" class="toc-link"><span class="toc-num">10</span> Code Dry Run</a>
-    <a href="#qmap"         class="toc-link"><span class="toc-num">11</span> Question → Code Map</a>
-    <a href="#complexity"   class="toc-link"><span class="toc-num">12</span> Complexity</a>
-    <a href="#followups"    class="toc-link"><span class="toc-num">13</span> Follow-Up Bank</a>
-    <a href="#decoder"      class="toc-link"><span class="toc-num">14</span> Theory Decoder</a>
-    <a href="#parent"       class="toc-link"><span class="toc-num">15</span> Parent Theory</a>
-    <a href="#alt-solutions" class="toc-link"><span class="toc-num">16</span> Alternative Solutions</a>
-    <div class="toc-sub">
-      <a href="#alt-brute"  class="toc-link">16.1 Brute Force</a>
-      <a href="#alt-dp"     class="toc-link">16.2 Dynamic Programming</a>
-      <a href="#alt-stack"  class="toc-link">16.3 Monotonic Stack</a>
-    </div>
-  </div>
-</nav>
 
 <!-- ── CONTENT ── -->
 <main class="content">
@@ -56,7 +36,7 @@
   </div>
 
   <!-- 1. Restatement -->
-  <section id="lead">
+  <section id="lead" data-toc-label="The Problem">
     <div class="infobox">
       <div class="infobox-title">Problem at a Glance</div>
       <div class="infobox-row"><div class="infobox-k">Difficulty</div><div class="infobox-v"><span class="tag tag-H">Hard</span></div></div>
@@ -81,9 +61,9 @@
 
       <p>The twist that makes it Hard: water above any bar depends on <em>both</em> its left and right neighbors simultaneously — not just one direction. You cannot slide a fixed-width window; the walls on each side of any position can be arbitrarily far away, and you need the tallest bar on each side, not just an adjacent one. The elegant solution encodes both sides at once with two running maxima that close in from opposite ends.</p>
 
-      <figure style="margin: 24px 0 8px;">
-        <img src="assets/rainwatertrap.png" alt="Elevation map showing bars of varying heights with blue shading indicating trapped rainwater between the taller bars" style="max-width: 100%; border: 1px solid #c8ccd1; border-radius: 3px;">
-        <figcaption style="font: italic 12.5px 'Source Sans 3', sans-serif; color: #72777d; margin-top: 6px;">Canonical example: <code>[0,1,0,2,1,0,1,3,2,1,2,1]</code> — blue areas show 6 units of trapped water.</figcaption>
+      <figure class="u-my-24-8">
+        <img src="assets/rainwatertrap.png" alt="Elevation map showing bars of varying heights with blue shading indicating trapped rainwater between the taller bars" class="fig-img-plain">
+        <figcaption class="u-caption">Canonical example: <code>[0,1,0,2,1,0,1,3,2,1,2,1]</code> — blue areas show 6 units of trapped water.</figcaption>
       </figure>
     </div>
   </section>
@@ -91,7 +71,7 @@
   <hr class="wiki-hr">
 
   <!-- 2. Reading the problem -->
-  <section id="reading">
+  <section id="reading" data-toc-label="Reading the Problem">
     <h2>2 &nbsp; Reading the Problem — insights from the statement</h2>
 
     <div class="co-insight"><strong>"Elevation map" (array of heights):</strong> each index is a position on a number line; each value is bar height. Water fills the space between bars — it can only be trapped if there is a taller bar on both the left <em>and</em> right. A bar at the edge of the array can never trap water because one side is open.</div>
@@ -117,7 +97,7 @@
   <hr class="wiki-hr">
 
   <!-- 3. Edge cases -->
-  <section id="edge-cases">
+  <section id="edge-cases" data-toc-label="Edge Case Inventory">
     <h2>3 &nbsp; Edge Case Inventory</h2>
     <table class="t-edge">
       <thead><tr><th>Input</th><th>Expected</th><th>Handled by</th></tr></thead>
@@ -136,7 +116,7 @@
   <hr class="wiki-hr">
 
   <!-- 4. Hints -->
-  <section id="hints">
+  <section id="hints" data-toc-label="Try It Yourself First">
     <h2>4 &nbsp; Try It Yourself First</h2>
     <p>Attempt the problem before reading on. Open hints one at a time.</p>
     <details class="hint"><summary>Hint 1 — what determines water at one bar?</summary><p>Water above bar <code>i</code> depends on both its tallest left neighbor and tallest right neighbor. Write down the formula. What do you need to know at every position?</p></details>
@@ -147,11 +127,11 @@
   <hr class="wiki-hr">
 
   <!-- 5. Interview Simulation -->
-  <section id="simulation">
+  <section id="simulation" data-toc-label="Interview Simulation">
     <h2>5 &nbsp; Interview Simulation</h2>
     <p>The interviewer has stated the problem. The script starts with your first words — practice it out loud.</p>
 
-    <div class="sim-block" id="sim-questions">
+    <div class="sim-block" id="sim-questions" data-toc-label="5.1 Clarifying questions">
       <div class="sim-header">Step 1 — Clarifying questions</div>
       <div class="sim-body">
         <div class="sim-q">Q: "Can heights be zero? Is a bar of height 0 just a flat gap in the ground?"</div>
@@ -168,7 +148,7 @@
       </div>
     </div>
 
-    <div class="sim-block" id="sim-plan">
+    <div class="sim-block" id="sim-plan" data-toc-label="5.2 The plan, spoken">
       <div class="sim-header">Step 2 — The plan, before any code</div>
       <div class="sim-body">
         <div class="speech">
@@ -187,7 +167,7 @@
   <hr class="wiki-hr">
 
   <!-- 6. Approach rationale -->
-  <section id="approach">
+  <section id="approach" data-toc-label="Why This Approach">
     <h2>6 &nbsp; Why This Approach — and not the others</h2>
     <table class="t-versus">
       <thead><tr><th>Candidate</th><th>Cost</th><th>Verdict</th></tr></thead>
@@ -216,7 +196,7 @@
   <hr class="wiki-hr">
 
   <!-- 7. Data structures -->
-  <section id="structures">
+  <section id="structures" data-toc-label="Data Structures">
     <h2>7 &nbsp; Data Structures — choice and justification</h2>
     <table class="t-decoder">
       <thead><tr><th>Variable</th><th>Holds</th><th>Why this and not something else</th></tr></thead>
@@ -235,7 +215,7 @@
   <hr class="wiki-hr">
 
   <!-- 8. Pseudocode dry run -->
-  <section id="dryrun">
+  <section id="dryrun" data-toc-label="Pseudocode Dry Run">
     <h2>8 &nbsp; Pseudocode Dry Run</h2>
 
     <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">left/right-max accumulator — two-pointer approach</span></div>
@@ -334,7 +314,7 @@ totalWater   ← 0
   <hr class="wiki-hr">
 
   <!-- 9. Swift solution -->
-  <section id="swift">
+  <section id="swift" data-toc-label="Swift Solution">
     <h2>9 &nbsp; Swift Solution</h2>
 
     <div class="solution-block" id="swift-a1">
@@ -384,7 +364,7 @@ totalWater   ← 0
   <hr class="wiki-hr">
 
   <!-- 10. Code dry run -->
-  <section id="code-dry-run">
+  <section id="code-dry-run" data-toc-label="Code Dry Run">
     <h2>10 &nbsp; Code Dry Run — Swift solution, traced</h2>
     <p>Full debugger-style execution trace on <code>[4,2,0,3,2,5]</code>, expected output <code>9</code>. Shorter than the canonical 12-bar input — every step is non-trivial, so no compression needed.</p>
 
@@ -476,7 +456,7 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 11. Question → Code Map -->
-  <section id="qmap">
+  <section id="qmap" data-toc-label="Question → Code Map">
     <h2>11 &nbsp; Question → Code Map</h2>
     <table class="t-qmap">
       <thead><tr><th>Question / decision</th><th>Code it became</th></tr></thead>
@@ -494,7 +474,7 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 12. Complexity -->
-  <section id="complexity">
+  <section id="complexity" data-toc-label="Complexity">
     <h2>12 &nbsp; Complexity</h2>
     <table class="t-cmx">
       <thead><tr><th>Solution</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
@@ -510,25 +490,25 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 13. Follow-up bank -->
-  <section id="followups">
+  <section id="followups" data-toc-label="Follow-Up Bank">
     <h2>13 &nbsp; Follow-Up Bank</h2>
 
-    <div class="followup-entry">
+    <div class="followup">
       <div class="followup-q">Follow-up: "Before you push this to production — can you see any improvements you'd make?"</div>
       <p>The solution is already optimal in time and space — O(n) / O(1). One constant-factor note: the two branches are symmetric mirror images. In a production codebase I might extract a helper to reduce duplication, but the asymmetry between left and right is the core logic, so keeping it explicit actually aids readability. No algorithmic improvement is possible.</p>
     </div>
 
-    <div class="followup-entry">
+    <div class="followup">
       <div class="followup-q">Follow-up: "Can you solve this with O(n) space instead — what would that look like?"</div>
       <p>Yes — the prefix-max arrays approach. Precompute <code>prefixMax[i] = max(height[0..i])</code> and <code>suffixMax[i] = max(height[i..n−1])</code> in two passes, then a third pass computes <code>water[i] = min(prefixMax[i], suffixMax[i]) − height[i]</code>. This is easier to reason about and a good stepping stone to understanding why the two-pointer version is correct.</p>
     </div>
 
-    <div class="followup-entry">
+    <div class="followup">
       <div class="followup-q">Follow-up: "What if the bars have non-integer heights — floats?"</div>
       <p>The algorithm is identical — only the type changes from <code>Int</code> to <code>Double</code>. The formula <code>min(maxWallLeft, maxWallRight) − height[i]</code> and the accumulation are the same. No structural change needed.</p>
     </div>
 
-    <div class="followup-entry">
+    <div class="followup">
       <div class="followup-q">Follow-up: "What if instead of 1D bars you had a 2D elevation map — a matrix of heights?"</div>
       <p>This is LC 407 — Trapping Rain Water II. The 2D version requires a min-heap (priority queue) seeded with the border cells, then a BFS-like expansion inward — always processing the shortest border cell next. The same invariant applies: the shortest cell on the current frontier is the bottleneck. The two-pointer trick doesn't directly generalize to 2D because there are more than two sides.</p>
     </div>
@@ -537,7 +517,7 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 14. Theory decoder -->
-  <section id="decoder">
+  <section id="decoder" data-toc-label="Theory Decoder">
     <h2>14 &nbsp; Theory Decoder — concepts used here</h2>
     <table class="t-decoder">
       <thead><tr><th>Concept</th><th>How it appears in LC 42</th></tr></thead>
@@ -554,7 +534,7 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 15. Parent theory -->
-  <section id="parent">
+  <section id="parent" data-toc-label="Parent Theory">
     <h2>15 &nbsp; Parent Theory</h2>
     <div class="ref-grid">
       <a class="backref-card" href="../theory/arrays/two_pointers_deep_dive_master.html">
@@ -569,12 +549,12 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 16. Alternative Solutions -->
-  <section id="alt-solutions">
+  <section id="alt-solutions" data-toc-label="Alternative Solutions">
     <h2>16 &nbsp; Alternative Solutions</h2>
     <p>The two-pointer approach in §9 is the optimal solution — O(n) time, O(1) space. The three approaches below are all correct; each one is worth understanding because each reveals a different layer of the problem's structure, and the path from brute force → DP → two pointers is one of the cleanest examples in LeetCode of progressive optimization.</p>
 
     <!-- 16.1 Brute Force -->
-    <div class="solution-block" id="alt-brute">
+    <div class="solution-block" id="alt-brute" data-toc-label="16.1 Brute Force">
       <div class="block-header">
         <span class="block-badge">B.1</span>
         <span class="block-name">Brute Force — scan both sides per bar</span>
@@ -621,7 +601,7 @@ RESULT
     </div>
 
     <!-- 16.2 Dynamic Programming -->
-    <div class="solution-block" id="alt-dp">
+    <div class="solution-block" id="alt-dp" data-toc-label="16.2 Dynamic Programming">
       <div class="block-header">
         <span class="block-badge">B.2</span>
         <span class="block-name">Dynamic Programming — precomputed prefix/suffix max arrays</span>
@@ -646,9 +626,9 @@ RESULT
           <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Why the math silently handles the edge bars.</strong> You might think you need a guard or a sentinel to prevent out-of-bounds access or negative water at the first and last indices. You don't. At index 0, <code>maxLefts[0] == heights[0]</code>, so <code>min(maxLefts[0], maxRights[0]) − heights[0]</code> is at most <code>heights[0] − heights[0] = 0</code>. Same at the last index. The formula produces 0 for the boundary bars automatically — no guard, no padding, no special case needed.</span></div>
         </div>
 
-        <figure style="margin: 20px 0 16px;">
-          <img src="assets/dp_image.png" alt="Three diagrams: top-left shows the max height from the left end up to each bar (green shading); top-right shows the max height from the right end (red shading); bottom shows the minimum of the two overlaid on the bars with hatched shading indicating trapped water." style="max-width: 100%; border: 1px solid #c8ccd1; border-radius: 3px;">
-          <figcaption style="font: italic 12.5px 'Source Sans 3', sans-serif; color: #72777d; margin-top: 6px;">Fig: Dynamic Programming Approach — precompute max height from left (top-left) and from right (top-right) separately, then take the minimum ceiling at each bar (bottom). The shaded portion represents trapped water.</figcaption>
+        <figure class="u-my-20-16">
+          <img src="assets/dp_image.png" alt="Three diagrams: top-left shows the max height from the left end up to each bar (green shading); top-right shows the max height from the right end (red shading); bottom shows the minimum of the two overlaid on the bars with hatched shading indicating trapped water." class="fig-img-plain">
+          <figcaption class="u-caption">Fig: Dynamic Programming Approach — precompute max height from left (top-left) and from right (top-right) separately, then take the minimum ceiling at each bar (bottom). The shaded portion represents trapped water.</figcaption>
         </figure>
 
         <p>The idiomatic Swift version below uses <code>map</code> with a captured running max and <code>enumerated()</code> for the final accumulation pass — matching the exploratory style you would write in a Playground.</p>
@@ -710,7 +690,7 @@ RESULT
     </div>
 
     <!-- 16.3 Monotonic Stack -->
-    <div class="solution-block" id="alt-stack">
+    <div class="solution-block" id="alt-stack" data-toc-label="16.3 Monotonic Stack">
       <div class="block-header">
         <span class="block-badge">B.3</span>
         <span class="block-name">Monotonic Stack — horizontal layer-by-layer accumulation</span>
@@ -757,7 +737,8 @@ RESULT
 </main>
 </div>
 
-<script src="../_shared/pages.js"></script>
+<script src="../_shared/manifest.js"></script>
 <script src="../_shared/nav.js"></script>
+<script src="../_shared/toc.js"></script>
 </body>
 </html>

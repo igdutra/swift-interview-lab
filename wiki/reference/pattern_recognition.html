@@ -4,6 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Pattern Recognition · Study Wiki</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Pattern Recognition",
+  "nav": "Pattern Recognition",
+  "topics": [
+    "Routing",
+    "Patterns",
+    "Reference"
+  ],
+  "blurb": "The 'I see X → reach for Y' routing layer. Master signal table covering every pattern in this wiki, input-size heuristics, inline Big-O, and the easily-confused tie-breakers. Each row links to a worked walkthrough.",
+  "order": 3
+}
+</script>
 <link rel="stylesheet" href="../_shared/wiki.css">
 <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
@@ -12,24 +25,6 @@
 <nav id="topnav" class="topnav"></nav>
 
 <div class="page">
-<nav class="toc-col">
-  <div class="toc-title">Contents</div>
-  <a href="#how">How to use this page</a>
-  <a href="#master">1 · Master routing table</a>
-  <a href="#sizes">2 · Input size → algorithm</a>
-  <a href="#bigo">3 · Big-O of the moves</a>
-  <a href="#prefix-suffix">4 · Prefix / suffix family</a>
-  <a href="#two-pointers">5 · Two pointers vs window</a>
-  <a href="#monotonic">6 · Monotonic stack signal</a>
-  <a href="#stack-queue">7 · Stack vs queue</a>
-  <a href="#palindrome">8 · Palindrome routing</a>
-  <a href="#design">9 · Design / state signal</a>
-  <a href="#graph-tree">10 · Graph &amp; tree signals</a>
-  <a href="#hashmap">11 · Hashmap &amp; pairs matching</a>
-  <a href="#confusions">12 · Easily-confused pairs</a>
-  <a href="#greedy">13 · Greedy signal</a>
-</nav>
-
 <main class="content">
 
   <h1 class="page-title">Pattern Recognition</h1>
@@ -43,11 +38,11 @@
     <p>The <strong>which-pattern-do-I-reach-for</strong> layer. Distilled from the problems actually solved in this wiki — not from theory. Read the <strong>question verb</strong> and the <strong>constraint bounds</strong> first; they route you faster than anything else. Every row points at a real walkthrough so you can confirm the match against a worked example.</p>
   </div>
 
-  <div class="co co-when" style="max-width: 72ch;">
+  <div class="co co-when u-measure">
     <strong>How to use it:</strong> when you've read a problem and don't yet know the family, scan the <a href="#master">master routing table</a> (§1) for the signal that matches, then jump to the section that explains the call. For the exact Swift idiom once you've picked a pattern, cross to the companion <a href="code_snippets.html">Code Snippets &amp; Gotchas</a> page.
   </div>
 
-  <h2 id="how"><span class="sec-num">0</span> The two questions that route almost everything</h2>
+  <h2 id="how" data-toc-label="How to use this page"><span class="sec-num">0</span> The two questions that route almost everything</h2>
   <div class="co co-idea">
     <strong>THE ONE IDEA:</strong> Before pattern-matching on structure, ask two questions. <strong>(1) What is the question verb?</strong> — "is it…", "longest…", "count…", "nearest…", "merge…", "shortest path…". The verb usually names the family. <strong>(2) What do the constraint bounds allow?</strong> — n ≤ 20 invites exponential search; n ≤ 10⁵ forbids O(n²); a tiny state space invites BFS over states. The verb picks the family; the bounds confirm or veto it.
   </div>
@@ -55,7 +50,7 @@
   <hr class="wiki-hr">
 
   <!-- 1 -->
-  <h2 id="master"><span class="sec-num">1</span> Master routing table — every pattern in this wiki</h2>
+  <h2 id="master" data-toc-label="1 · Master routing table"><span class="sec-num">1</span> Master routing table — every pattern in this wiki</h2>
   <p>The trigger column is the phrase or shape in the prompt; the family is the move; the last column is a worked example to check yourself against.</p>
   <table class="t-clue">
     <thead><tr><th>When you see…</th><th>Reach for</th><th>Worked example</th></tr></thead>
@@ -86,7 +81,7 @@
   <hr class="wiki-hr">
 
   <!-- 2 -->
-  <h2 id="sizes"><span class="sec-num">2</span> Input size → likely complexity → likely algorithm</h2>
+  <h2 id="sizes" data-toc-label="2 · Input size → algorithm"><span class="sec-num">2</span> Input size → likely complexity → likely algorithm</h2>
   <p>The constraint bound is a near-deterministic hint at the intended complexity. Read <code>n</code> from the constraints and work backwards.</p>
   <table class="t-clue">
     <thead><tr><th>n up to…</th><th>Target complexity</th><th>Likely family</th></tr></thead>
@@ -103,7 +98,7 @@
   <hr class="wiki-hr">
 
   <!-- 3 -->
-  <h2 id="bigo"><span class="sec-num">3</span> Big-O of the moves on this page (self-contained reference)</h2>
+  <h2 id="bigo" data-toc-label="3 · Big-O of the moves"><span class="sec-num">3</span> Big-O of the moves on this page (self-contained reference)</h2>
   <p>The cost profile of the operations these patterns lean on, in Swift specifically — enough to reason about a solution without leaving the page. For the full data-structure-by-operation tables and the Big-O growth chart, see the <a href="cheatsheet.html">Big-O &amp; DS/A Cheatsheet</a>.</p>
   <table class="t-cmx">
     <thead><tr><th>Operation</th><th>Time</th><th>Note</th></tr></thead>
@@ -125,7 +120,7 @@
   <hr class="wiki-hr">
 
   <!-- 4 -->
-  <h2 id="prefix-suffix"><span class="sec-num">4</span> Prefix / suffix family — the unified skeleton</h2>
+  <h2 id="prefix-suffix" data-toc-label="4 · Prefix / suffix family"><span class="sec-num">4</span> Prefix / suffix family — the unified skeleton</h2>
   <p>All three prefix/suffix problems in this wiki share one skeleton: <strong>do the expensive walk once, pay O(1) at query time.</strong> The "element" changes shape across problems, but the structure never does.</p>
   <div class="code-label"><span class="code-lang lang-pseudo">Skeleton</span><span class="code-desc">precompute one summary per direction, then combine</span></div>
   <pre class="pseudo"><span class="pk">PRECOMPUTE</span> (expensive, done once)
@@ -150,7 +145,7 @@
   <hr class="wiki-hr">
 
   <!-- 5 -->
-  <h2 id="two-pointers"><span class="sec-num">5</span> Two pointers vs sliding window — which motion?</h2>
+  <h2 id="two-pointers" data-toc-label="5 · Two pointers vs window"><span class="sec-num">5</span> Two pointers vs sliding window — which motion?</h2>
   <p>Both use two indices; the motion is the tell.</p>
   <table class="t-versus">
     <thead><tr><th>Motion</th><th>Signal</th><th>Example</th></tr></thead>
@@ -165,7 +160,7 @@
   <hr class="wiki-hr">
 
   <!-- 6 -->
-  <h2 id="monotonic"><span class="sec-num">6</span> Monotonic stack — the "nearest" signal</h2>
+  <h2 id="monotonic" data-toc-label="6 · Monotonic stack signal"><span class="sec-num">6</span> Monotonic stack — the "nearest" signal</h2>
   <p>The word <strong>nearest</strong> or <strong>first</strong> is what selects a monotonic stack over its neighbours.</p>
   <table class="t-versus">
     <thead><tr><th>You need…</th><th>Use</th><th>Why not the other</th></tr></thead>
@@ -180,7 +175,7 @@
   <hr class="wiki-hr">
 
   <!-- 7 -->
-  <h2 id="stack-queue"><span class="sec-num">7</span> Stack vs queue — LIFO or FIFO?</h2>
+  <h2 id="stack-queue" data-toc-label="7 · Stack vs queue"><span class="sec-num">7</span> Stack vs queue — LIFO or FIFO?</h2>
   <table class="t-versus">
     <thead><tr><th>Signal</th><th>Structure</th><th>Example</th></tr></thead>
     <tbody>
@@ -193,7 +188,7 @@
   <hr class="wiki-hr">
 
   <!-- 8 -->
-  <h2 id="palindrome"><span class="sec-num">8</span> Palindrome routing — the two families in this wiki</h2>
+  <h2 id="palindrome" data-toc-label="8 · Palindrome routing"><span class="sec-num">8</span> Palindrome routing — the two families in this wiki</h2>
   <p>A palindrome is never <em>the</em> problem — it is a <em>property</em> the problem hangs another technique on. Read the question verb to route. This wiki holds exactly two palindrome problems, so only those two families are covered here in depth; the broader landscape (longest substring, subsequence DP, partitioning, permutation parity, KMP prepend) exists but has no walkthrough yet.</p>
   <table class="t-clue">
     <thead><tr><th>The prompt says…</th><th>Family / tool</th><th>Example</th></tr></thead>
@@ -208,7 +203,7 @@
   <hr class="wiki-hr">
 
   <!-- 9 -->
-  <h2 id="design"><span class="sec-num">9</span> Design / stateful-system signal</h2>
+  <h2 id="design" data-toc-label="9 · Design / state signal"><span class="sec-num">9</span> Design / stateful-system signal</h2>
   <p>"Design a class with these operations" is a recognition signal in itself: the win is choosing a <strong>representation that makes the operations cheap</strong>, and maintaining an <strong>invariant incrementally</strong> instead of recomputing on every query.</p>
   <table class="t-clue">
     <thead><tr><th>You see…</th><th>The move</th><th>Example</th></tr></thead>
@@ -222,7 +217,7 @@
   <hr class="wiki-hr">
 
   <!-- 10 -->
-  <h2 id="graph-tree"><span class="sec-num">10</span> Graph &amp; tree signals</h2>
+  <h2 id="graph-tree" data-toc-label="10 · Graph &amp; tree signals"><span class="sec-num">10</span> Graph &amp; tree signals</h2>
   <table class="t-clue">
     <thead><tr><th>You see…</th><th>The move</th><th>Example</th></tr></thead>
     <tbody>
@@ -239,7 +234,7 @@
   <hr class="wiki-hr">
 
   <!-- 11 -->
-  <h2 id="hashmap"><span class="sec-num">11</span> Hashmap &amp; pairs matching — the "does the partner exist?" signal</h2>
+  <h2 id="hashmap" data-toc-label="11 · Hashmap &amp; pairs matching"><span class="sec-num">11</span> Hashmap &amp; pairs matching — the "does the partner exist?" signal</h2>
   <p>The most easily-missed move in the whole wiki, because it hides inside problems that look like something else. The signal is small but reliable: <strong>you are matching one element against another</strong> — its complement, its closer, or its transformed twin — and you want that lookup to be <strong>O(1)</strong> instead of an O(n) rescan. The instant you catch yourself about to write a nested loop "for each element, scan the rest to find its partner," that quadratic shape is the cue to replace the inner scan with a hashmap.</p>
 
   <p>A hashmap shows up in three distinct roles. They feel different but are the same trick — <em>turn a search for the matching element into a constant-time lookup keyed on what makes the match.</em></p>
@@ -259,7 +254,7 @@
   <hr class="wiki-hr">
 
   <!-- 12 -->
-  <h2 id="confusions"><span class="sec-num">12</span> Easily-confused pairs — the tie-breakers</h2>
+  <h2 id="confusions" data-toc-label="12 · Easily-confused pairs"><span class="sec-num">12</span> Easily-confused pairs — the tie-breakers</h2>
   <table class="t-versus">
     <thead><tr><th>Looks like both…</th><th>Tie-breaker</th></tr></thead>
     <tbody>
@@ -280,7 +275,7 @@
   <hr class="wiki-hr">
 
   <!-- 13 -->
-  <h2 id="greedy"><span class="sec-num">13</span> Greedy signal — sort &amp; commit</h2>
+  <h2 id="greedy" data-toc-label="13 · Greedy signal"><span class="sec-num">13</span> Greedy signal — sort &amp; commit</h2>
   <p>A greedy algorithm makes one locally-optimal decision at a time and never revisits it. It works when the <strong>exchange argument</strong> holds: swapping any two choices in the optimal set can only make things worse, so "always take the best available" leads to the global optimum.</p>
 
   <div class="co co-idea">
@@ -319,7 +314,8 @@
 </main>
 </div>
 
-<script src="../_shared/pages.js"></script>
+<script src="../_shared/manifest.js"></script>
 <script src="../_shared/nav.js"></script>
+<script src="../_shared/toc.js"></script>
 </body>
 </html>

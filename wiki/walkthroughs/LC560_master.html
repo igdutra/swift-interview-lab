@@ -4,6 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LC 560 — Subarray Sum Equals K · Walkthrough Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "LC 560 — Subarray Sum Equals K",
+  "nav": "LC 560",
+  "topics": [
+    "Prefix-Suffix",
+    "Hash Map",
+    "Arrays"
+  ],
+  "blurb": "Prefix sum + frequency map. Negative numbers rule out sliding window. The algebraic flip — prefix[i] = currentPrefix − k — turns pair-counting into a single O(1) complement lookup per step. Sentinel {0:1} handles subarrays starting at index 0.",
+  "difficulty": "M"
+}
+</script>
 <link rel="stylesheet" href="../_shared/wiki.css">
 <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
@@ -12,32 +25,6 @@
 <nav id="topnav" class="topnav"></nav>
 
 <div class="page">
-
-<!-- ── TOC ── -->
-<nav class="toc-col">
-  <div class="toc-inner">
-    <div class="toc-title toc-cat-walkthrough">Walkthrough · Contents</div>
-    <a href="#lead"         class="toc-link"><span class="toc-num">1</span> The Problem</a>
-    <a href="#reading"      class="toc-link"><span class="toc-num">2</span> Reading the Problem</a>
-    <a href="#edge-cases"   class="toc-link"><span class="toc-num">3</span> Edge Case Inventory</a>
-    <a href="#hints"        class="toc-link"><span class="toc-num">4</span> Try It Yourself First</a>
-    <a href="#simulation"   class="toc-link"><span class="toc-num">5</span> Interview Simulation</a>
-    <div class="toc-sub">
-      <a href="#sim-questions" class="toc-link">5.1 Clarifying questions</a>
-      <a href="#sim-plan"      class="toc-link">5.2 The plan, spoken</a>
-    </div>
-    <a href="#approach"     class="toc-link"><span class="toc-num">6</span> Why This Approach</a>
-    <a href="#structures"   class="toc-link"><span class="toc-num">7</span> Data Structures</a>
-    <a href="#dryrun"       class="toc-link"><span class="toc-num">8</span> Pseudocode Dry Run</a>
-    <a href="#swift"        class="toc-link"><span class="toc-num">9</span> Swift Solution</a>
-    <a href="#code-dry-run" class="toc-link"><span class="toc-num">10</span> Code Dry Run</a>
-    <a href="#qmap"         class="toc-link"><span class="toc-num">11</span> Question → Code Map</a>
-    <a href="#complexity"   class="toc-link"><span class="toc-num">12</span> Complexity</a>
-    <a href="#followups"    class="toc-link"><span class="toc-num">13</span> Follow-Up Bank</a>
-    <a href="#decoder"      class="toc-link"><span class="toc-num">14</span> Theory Decoder</a>
-    <a href="#parent"       class="toc-link"><span class="toc-num">15</span> Parent Theory</a>
-  </div>
-</nav>
 
 <!-- ── CONTENT ── -->
 <main class="content">
@@ -50,7 +37,7 @@
   </div>
 
   <!-- 1. Restatement -->
-  <section id="lead">
+  <section id="lead" data-toc-label="The Problem">
     <div class="infobox">
       <div class="infobox-title">Problem at a Glance</div>
       <div class="infobox-row"><div class="infobox-k">Difficulty</div><div class="infobox-v"><span class="tag tag-M">Medium</span></div></div>
@@ -80,7 +67,7 @@
   <hr class="wiki-hr">
 
   <!-- 2. Reading the problem -->
-  <section id="reading">
+  <section id="reading" data-toc-label="Reading the Problem">
     <h2>2 &nbsp; Reading the Problem — insights from the statement</h2>
 
     <div class="co-insight"><strong>"Contiguous subarray":</strong> the subarray must be a contiguous slice of nums — not a subsequence, not a subset. This is the prefix-sum fingerprint: any contiguous subarray sum can be expressed as a difference of two prefix values, which is what makes the complement-lookup trick work.</div>
@@ -106,7 +93,7 @@
   <hr class="wiki-hr">
 
   <!-- 3. Edge cases -->
-  <section id="edge-cases">
+  <section id="edge-cases" data-toc-label="Edge Case Inventory">
     <h2>3 &nbsp; Edge Case Inventory</h2>
     <table class="t-edge">
       <thead><tr><th>Input</th><th>Expected</th><th>Handled by</th></tr></thead>
@@ -124,7 +111,7 @@
   <hr class="wiki-hr">
 
   <!-- 4. Hints -->
-  <section id="hints">
+  <section id="hints" data-toc-label="Try It Yourself First">
     <h2>4 &nbsp; Try It Yourself First</h2>
     <p>Attempt the problem before reading on. Open hints one at a time.</p>
     <details class="hint"><summary>Hint 1 — why not sliding window?</summary><p>Try to define a "valid" window for this problem. When is the window too large? Can you always shrink by moving the left pointer? What happens when nums contains negative numbers — can adding more elements to the window ever bring the sum back to k after exceeding it?</p></details>
@@ -136,11 +123,11 @@
   <hr class="wiki-hr">
 
   <!-- 5. Interview Simulation -->
-  <section id="simulation">
+  <section id="simulation" data-toc-label="Interview Simulation">
     <h2>5 &nbsp; Interview Simulation</h2>
     <p>The interviewer has stated the problem. The script starts with your first words — practice it out loud.</p>
 
-    <div class="sim-block" id="sim-questions">
+    <div class="sim-block" id="sim-questions" data-toc-label="5.1 Clarifying questions">
       <div class="sim-header">Step 1 — Clarifying questions</div>
       <div class="sim-body">
         <div class="sim-q">Q: "Can the array contain negative numbers and zeros?"</div>
@@ -157,7 +144,7 @@
       </div>
     </div>
 
-    <div class="sim-block" id="sim-plan">
+    <div class="sim-block" id="sim-plan" data-toc-label="5.2 The plan, spoken">
       <div class="sim-header">Step 2 — The plan, before any code</div>
       <div class="sim-body">
         <div class="speech">
@@ -177,7 +164,7 @@
   <hr class="wiki-hr">
 
   <!-- 6. Approach rationale -->
-  <section id="approach">
+  <section id="approach" data-toc-label="Why This Approach">
     <h2>6 &nbsp; Why This Approach — and not the others</h2>
     <table class="t-versus">
       <thead><tr><th>Candidate</th><th>Cost</th><th>Verdict</th></tr></thead>
@@ -207,7 +194,7 @@
   <hr class="wiki-hr">
 
   <!-- 7. Data structures -->
-  <section id="structures">
+  <section id="structures" data-toc-label="Data Structures">
     <h2>7 &nbsp; Data Structures — choice and justification</h2>
     <table class="t-decoder">
       <thead><tr><th>Variable</th><th>Holds</th><th>Why this and not something else</th></tr></thead>
@@ -224,7 +211,7 @@
   <hr class="wiki-hr">
 
   <!-- 8. Pseudocode dry run -->
-  <section id="dryrun">
+  <section id="dryrun" data-toc-label="Pseudocode Dry Run">
     <h2>8 &nbsp; Pseudocode Dry Run</h2>
 
     <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">prefix sum + frequency map — one pass</span></div>
@@ -282,7 +269,7 @@ count        ← 0
   <hr class="wiki-hr">
 
   <!-- 9. Swift solution -->
-  <section id="swift">
+  <section id="swift" data-toc-label="Swift Solution">
     <h2>9 &nbsp; Swift Solution</h2>
 
     <div class="solution-block" id="swift-a1">
@@ -324,7 +311,7 @@ count        ← 0
   <hr class="wiki-hr">
 
   <!-- 10. Code dry run -->
-  <section id="code-dry-run">
+  <section id="code-dry-run" data-toc-label="Code Dry Run">
     <h2>10 &nbsp; Code Dry Run — Swift solution, traced</h2>
     <p>Full debugger-style execution trace on <code>nums = [1, -1, 1], k = 1</code>, expected output <code>3</code>. Chosen because it has a negative number and produces multiple valid subarrays of different lengths — including one spanning the full array.</p>
 
@@ -412,7 +399,7 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 11. Question → Code Map -->
-  <section id="qmap">
+  <section id="qmap" data-toc-label="Question → Code Map">
     <h2>11 &nbsp; Question → Code Map</h2>
     <table class="t-qmap">
       <thead><tr><th>Question / decision</th><th>Code it became</th></tr></thead>
@@ -430,7 +417,7 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 12. Complexity -->
-  <section id="complexity">
+  <section id="complexity" data-toc-label="Complexity">
     <h2>12 &nbsp; Complexity</h2>
     <table class="t-cmx">
       <thead><tr><th>Solution</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
@@ -446,25 +433,25 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 13. Follow-up bank -->
-  <section id="followups">
+  <section id="followups" data-toc-label="Follow-Up Bank">
     <h2>13 &nbsp; Follow-Up Bank</h2>
 
-    <div class="followup-entry">
+    <div class="followup">
       <div class="followup-q">Follow-up: "Before you push this to production — can you see any improvements you'd make?"</div>
       <p>The solution is already optimal: O(n) time and O(n) space — nothing can be improved asymptotically. One constant-factor note: Swift's <code>Dictionary</code> subscript with <code>default:</code> is slightly cheaper than a two-step <code>?? 0</code> chain for repeated access. I'd also add the comment about lookup-before-update order in production code — that invariant is subtle and the silent bug it prevents is hard to spot in review.</p>
     </div>
 
-    <div class="followup-entry">
+    <div class="followup">
       <div class="followup-q">Follow-up: "What if you needed to return the subarrays themselves, not just the count?"</div>
       <p>The map would need to store indices (or lists of indices) rather than counts. Instead of <code>[Int: Int]</code>, use <code>[Int: [Int]]</code> mapping each prefix value to all indices where it occurred. At each hit, record the pair (storedIndex, currentIndex) in the result. This doesn't change the O(n) time — but the output size can be O(n²) in the worst case (e.g., all zeros, k=0), so the overall cost becomes O(n + output size), which is unavoidable.</p>
     </div>
 
-    <div class="followup-entry">
+    <div class="followup">
       <div class="followup-q">Follow-up: "What if instead of sum = k, you needed sum divisible by k?"</div>
       <p>This is LC 974 — Subarray Sums Divisible by K. The same pattern applies with one change: instead of storing prefix values, store prefix values modulo k. A subarray sum is divisible by k when two prefix values have the same remainder mod k — so the map key becomes <code>runningSum % k</code>. Swift's modulo for negative numbers can produce negative remainders, so normalize: <code>((runningSum % k) + k) % k</code>. The sentinel is still {0: 1}.</p>
     </div>
 
-    <div class="followup-entry">
+    <div class="followup">
       <div class="followup-q">Follow-up: "What if all numbers are positive — would sliding window work then?"</div>
       <p>Yes — with positive numbers only, the window sum is strictly monotonic: adding elements always increases the sum, removing always decreases. This restores the sliding window shrink condition. Sliding window would give O(n) time and O(1) space — better space than the hash map approach. But since the problem explicitly allows negatives, the prefix-sum approach is the only safe choice here.</p>
     </div>
@@ -473,7 +460,7 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 14. Theory decoder -->
-  <section id="decoder">
+  <section id="decoder" data-toc-label="Theory Decoder">
     <h2>14 &nbsp; Theory Decoder — concepts used here</h2>
     <table class="t-decoder">
       <thead><tr><th>Concept</th><th>How it appears in LC 560</th></tr></thead>
@@ -491,7 +478,7 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 15. Parent theory -->
-  <section id="parent">
+  <section id="parent" data-toc-label="Parent Theory">
     <h2>15 &nbsp; Parent Theory</h2>
     <div class="ref-grid">
       <a class="backref-card" href="../theory/arrays/prefix_suffix_master.html">
@@ -517,7 +504,8 @@ RESULT
 </main>
 </div>
 
-<script src="../_shared/pages.js"></script>
+<script src="../_shared/manifest.js"></script>
 <script src="../_shared/nav.js"></script>
+<script src="../_shared/toc.js"></script>
 </body>
 </html>

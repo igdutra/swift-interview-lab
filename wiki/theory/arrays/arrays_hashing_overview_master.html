@@ -4,6 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Arrays &amp; Hashing Overview · Theory Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Arrays & Hashing Overview",
+  "nav": "Arrays & Hashing Overview",
+  "topics": [
+    "Decision Guide",
+    "Swift Toolbox",
+    "Cheat Sheet"
+  ],
+  "blurb": "The decision layer — when to use each pattern (and why not the others), the four standard loop skeletons, the Swift tools toolbox, and the ultimate cheat sheet. The single canonical home for picking between the tools."
+}
+</script>
 <link rel="stylesheet" href="../../_shared/wiki.css">
 <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
@@ -12,23 +24,6 @@
 <nav id="topnav" class="topnav"></nav>
 
 <div class="page">
-
-<!-- ── TOC ── -->
-<nav class="toc-col">
-  <div class="toc-inner">
-    <div class="toc-title toc-cat-theory">Theory · Contents</div>
-    <a href="#lead"       class="toc-link"><span class="toc-num">1</span> Overview</a>
-    <a href="#skeletons"  class="toc-link"><span class="toc-num">2</span> The Four Standard Skeletons</a>
-    <a href="#toolbox"    class="toc-link"><span class="toc-num">3</span> Swift Tools — the Toolbox</a>
-    <a href="#when"       class="toc-link"><span class="toc-num">4</span> When to Use Each Pattern</a>
-    <a href="#hashmap"    class="toc-link"><span class="toc-num">5</span> Hash Map — Definition</a>
-    <a href="#terminology" class="toc-link"><span class="toc-num">6</span> Terminology Decoder</a>
-    <a href="#edge-cases" class="toc-link"><span class="toc-num">7</span> Edge Cases</a>
-    <a href="#practice"   class="toc-link"><span class="toc-num">8</span> Demonstrated in Practice</a>
-    <a href="#solo"       class="toc-link"><span class="toc-num">9</span> Solo Problem</a>
-    <a href="#cheatsheet" class="toc-link"><span class="toc-num">10</span> Ultimate Cheat Sheet</a>
-  </div>
-</nav>
 
 <!-- ── CONTENT ── -->
 <main class="content">
@@ -41,7 +36,7 @@
   </div>
 
   <!-- 1. Lead -->
-  <section id="lead">
+  <section id="lead" data-toc-label="Overview">
     <div class="infobox">
       <div class="infobox-title">At a Glance</div>
       <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Array / string traversal family</div></div>
@@ -66,7 +61,7 @@
   <hr class="wiki-hr">
 
   <!-- 2. The four standard skeletons -->
-  <section id="skeletons">
+  <section id="skeletons" data-toc-label="The Four Standard Skeletons">
     <h2>2 &nbsp; The Four Standard Skeletons</h2>
     <p>Memorize these loop shapes and the variable names come for free. Each technique has exactly one canonical control-flow skeleton — recognizing the problem <em>is</em> reaching for the right skeleton.</p>
 
@@ -119,7 +114,7 @@
   <hr class="wiki-hr">
 
   <!-- 3. Swift tools — the toolbox -->
-  <section id="toolbox">
+  <section id="toolbox" data-toc-label="Swift Tools — the Toolbox">
     <h2>3 &nbsp; Swift Tools — the Toolbox</h2>
     <p>The Swift-specific mechanics that turn up again and again in these problems. Each tool gets a three-column summary, then a full-width row with a worked example you can read top-to-bottom.</p>
     <table class="t-versus">
@@ -226,7 +221,7 @@ nums.<span class="fn">reduce</span>(into: [<span class="nm">0</span>]) { acc, va
   <hr class="wiki-hr">
 
   <!-- 4. When to use each pattern -->
-  <section id="when">
+  <section id="when" data-toc-label="When to Use Each Pattern">
     <h2>4 &nbsp; When to Use Each Pattern</h2>
     <p>All five tools run in roughly O(n) over an array, so they are constantly mistaken for one another. Picking the right one is the entire skill — and the wrong choices are <em>predictable</em>. For each pattern: the one positive signal that selects it, and the specific tools people wrongly reach for with the exact reason each fails.</p>
 
@@ -380,18 +375,18 @@ nums.<span class="fn">reduce</span>(into: [<span class="nm">0</span>]) { acc, va
       </tbody>
     </table>
 
-    <div class="co-when" style="margin-top:24px"><strong>When more than one pattern fits — pick by the tie-breaker:</strong>
-      <div class="pitfall" style="margin-top:8px"><span class="pitfall-bullet" style="color:var(--info)">▸</span><span><strong>LC15 (3Sum)</strong> — fixed anchor + hash map (O(n) space) <em>vs.</em> + two pointers (O(1) space). <strong>Two pointers wins:</strong> sorting gives free deduplication <em>and</em> direction; same O(n²) time, but no per-iteration <code>Set</code> allocation.</span></div>
-      <div class="pitfall"><span class="pitfall-bullet" style="color:var(--info)">▸</span><span><strong>LC560 (Subarray Sum = K)</strong> — sliding window <em>vs.</em> prefix-sum + map. <strong>Only prefix-sum + map works:</strong> negatives kill the window's shrink invariant, so the window isn't a valid option at all.</span></div>
-      <div class="pitfall"><span class="pitfall-bullet" style="color:var(--info)">▸</span><span><strong>LC42 (Trapping Rain Water)</strong> — prefix-max/suffix-max <em>arrays</em> (O(n) space) <em>vs.</em> converging two pointers (O(1) space). <strong>Same idea, compressed:</strong> the two-pointer version is the O(1)-space collapse of the two max arrays — pick it when space matters.</span></div>
-      <div class="pitfall"><span class="pitfall-bullet" style="color:var(--info)">▸</span><span><strong>LC209 (Min Size Subarray Sum)</strong> — two-pointer window <em>vs.</em> prefix-sum + binary search. <strong>Window wins here:</strong> all values are positive, so the sum is monotonic and the window runs O(n) versus O(n log n).</span></div>
+    <div class="co-when u-mt-24"><strong>When more than one pattern fits — pick by the tie-breaker:</strong>
+      <div class="pitfall u-mt-8"><span class="pitfall-bullet u-info-text">▸</span><span><strong>LC15 (3Sum)</strong> — fixed anchor + hash map (O(n) space) <em>vs.</em> + two pointers (O(1) space). <strong>Two pointers wins:</strong> sorting gives free deduplication <em>and</em> direction; same O(n²) time, but no per-iteration <code>Set</code> allocation.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet u-info-text">▸</span><span><strong>LC560 (Subarray Sum = K)</strong> — sliding window <em>vs.</em> prefix-sum + map. <strong>Only prefix-sum + map works:</strong> negatives kill the window's shrink invariant, so the window isn't a valid option at all.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet u-info-text">▸</span><span><strong>LC42 (Trapping Rain Water)</strong> — prefix-max/suffix-max <em>arrays</em> (O(n) space) <em>vs.</em> converging two pointers (O(1) space). <strong>Same idea, compressed:</strong> the two-pointer version is the O(1)-space collapse of the two max arrays — pick it when space matters.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet u-info-text">▸</span><span><strong>LC209 (Min Size Subarray Sum)</strong> — two-pointer window <em>vs.</em> prefix-sum + binary search. <strong>Window wins here:</strong> all values are positive, so the sum is monotonic and the window runs O(n) versus O(n log n).</span></div>
     </div>
   </section>
 
   <hr class="wiki-hr">
 
   <!-- 5. Hash map definition -->
-  <section id="hashmap">
+  <section id="hashmap" data-toc-label="Hash Map — Definition">
     <h2>5 &nbsp; Hash Map — Definition</h2>
     <p>Two pointers, sliding windows, and prefix/suffix are <em>techniques</em>; the hash map is the one <em>data structure</em> underneath them all worth defining precisely, because interviewers ask how it works.</p>
 
@@ -413,7 +408,7 @@ nums.<span class="fn">reduce</span>(into: [<span class="nm">0</span>]) { acc, va
   <hr class="wiki-hr">
 
   <!-- 6. Terminology decoder -->
-  <section id="terminology">
+  <section id="terminology" data-toc-label="Terminology Decoder">
     <h2>6 &nbsp; Terminology Decoder</h2>
     <table class="t-decoder">
       <thead><tr><th>Term</th><th>Plain meaning</th><th>Example</th></tr></thead>
@@ -435,7 +430,7 @@ nums.<span class="fn">reduce</span>(into: [<span class="nm">0</span>]) { acc, va
   <hr class="wiki-hr">
 
   <!-- 7. Edge cases -->
-  <section id="edge-cases">
+  <section id="edge-cases" data-toc-label="Edge Cases">
     <h2>7 &nbsp; Edge Cases to Verbalize</h2>
     <table class="t-edge">
       <thead><tr><th>Input</th><th>Expected behavior</th><th>Which tool is most affected</th></tr></thead>
@@ -454,7 +449,7 @@ nums.<span class="fn">reduce</span>(into: [<span class="nm">0</span>]) { acc, va
   <hr class="wiki-hr">
 
   <!-- 8. Demonstrated in practice -->
-  <section id="practice">
+  <section id="practice" data-toc-label="Demonstrated in Practice">
     <h2>8 &nbsp; Demonstrated in Practice — the deep dives</h2>
     <p>Each deep dive follows the full theory-masterfile standard. Recognition signals, variant catalog, Swift code, and pitfalls are all written around the specific problems in each subcategory.</p>
     <div class="ref-grid">
@@ -484,7 +479,7 @@ nums.<span class="fn">reduce</span>(into: [<span class="nm">0</span>]) { acc, va
   <hr class="wiki-hr">
 
   <!-- 9. Solo problem -->
-  <section id="solo">
+  <section id="solo" data-toc-label="Solo Problem">
     <h2>9 &nbsp; Solo Problem — no solution on this page</h2>
     <div class="solo-box">
       <div class="solo-banner">Solo problem — no solution on this page</div>
@@ -502,7 +497,7 @@ nums.<span class="fn">reduce</span>(into: [<span class="nm">0</span>]) { acc, va
   <hr class="wiki-hr">
 
   <!-- 10. Ultimate cheat sheet -->
-  <section id="cheatsheet">
+  <section id="cheatsheet" data-toc-label="Ultimate Cheat Sheet">
     <h2>10 &nbsp; Ultimate Cheat Sheet</h2>
     <p>The night-before skim. The decision-level quick reference — what you <em>see</em>, what you <em>use</em>, and the <em>reason</em> (not a restatement of the prompt) — then the complexity grid, the instant rule-outs, and the prefix/suffix array-building idioms.</p>
 
@@ -551,7 +546,7 @@ nums.<span class="fn">reduce</span>(into: [<span class="nm">0</span>]) { acc, va
       <div class="pitfall"><span class="pitfall-bullet">▸</span><span>Problem says "next greater" / "nearest" → <strong>not</strong> suffix-max (gives maximum value, not position) and <strong>not</strong> two pointers (wrong motion for multi-element pending queries) → Monotonic Stack.</span></div>
     </div>
 
-    <h3 style="margin-top:32px">Prefix / suffix array idioms</h3>
+    <h3 class="u-mt-32">Prefix / suffix array idioms</h3>
     <p>The two-pass building blocks for every prefix/suffix problem — sentinel placement is the whole trick. (The two forms of <code>reduce</code> are in the <a href="#toolbox">Toolbox</a>; this section is the prefix/suffix-specific assembly.)</p>
 
     <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">sentinel — prefix (identity at the front), two ways</span></div>
@@ -576,7 +571,7 @@ nums.<span class="fn">reduce</span>(into: [<span class="nm">0</span>]) { acc, va
 <span class="cm">// nums=[1,2,3,4] → [24, 12, 4, 1]   (products of everything RIGHT of each index)</span>
 <span class="cm">// reverse twice: once to feed reduce right-to-left, once to restore order</span></pre>
 
-    <h4 style="margin-top:28px">Split-point enumeration — a different use of prefix/suffix</h4>
+    <h4 class="u-mt-28">Split-point enumeration — a different use of prefix/suffix</h4>
     <div class="co-insight"><strong>Not a prefix array — a split-point loop.</strong> When the problem asks you to try all ways of splitting a word into a left half and a right half (palindrome pairs, word breaks), use Swift's <code>prefix(_:)</code> and <code>suffix(_:)</code> methods, not subscript ranges. Loop <code>0...word.count</code> — that is exactly <em>n+1</em> split points, one for each gap between characters plus both ends. <code>prefix(0)</code> gives <code>""</code> (empty left, full right) and <code>prefix(count)</code> gives the full word (full left, empty right). Both are valid splits and both are returned safely — <code>prefix</code>/<code>suffix</code> clamp to the collection bounds, so no out-of-bounds crash is possible. See <a href="prefix_suffix_master.html#split-enumeration">prefix_suffix_master.html §7.1</a> for the full trace and the subscript-trap pitfall.</div>
 
     <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">split-point enumeration — all n+1 splits in three lines</span></div>
@@ -615,7 +610,8 @@ nums.<span class="fn">reduce</span>(into: [<span class="nm">0</span>]) { acc, va
 </main>
 </div>
 
-<script src="../../_shared/pages.js"></script>
+<script src="../../_shared/manifest.js"></script>
 <script src="../../_shared/nav.js"></script>
+<script src="../../_shared/toc.js"></script>
 </body>
 </html>

@@ -4,6 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LC 303 — Range Sum Query - Immutable · Walkthrough Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "LC 303 — Range Sum Query - Immutable",
+  "nav": "LC 303",
+  "topics": [
+    "Prefix-Suffix",
+    "Arrays"
+  ],
+  "blurb": "Prefix sum Variant 8.1 — build once, query in O(1). The sentinel at prefix[0]=0 makes the formula prefix[right+1]−prefix[left] uniform for all ranges including those starting at index 0. O(n) init, O(1) per query.",
+  "difficulty": "E"
+}
+</script>
 <link rel="stylesheet" href="../_shared/wiki.css">
 <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
@@ -12,36 +24,6 @@
 <nav id="topnav" class="topnav"></nav>
 
 <div class="page">
-
-<!-- ── TOC ── -->
-<nav class="toc-col">
-  <div class="toc-inner">
-    <div class="toc-title toc-cat-walkthrough">Walkthrough · Contents</div>
-    <a href="#lead"         class="toc-link"><span class="toc-num">1</span> The Problem</a>
-    <a href="#reading"      class="toc-link"><span class="toc-num">2</span> Reading the Problem</a>
-    <a href="#edge-cases"   class="toc-link"><span class="toc-num">3</span> Edge Case Inventory</a>
-    <a href="#hints"        class="toc-link"><span class="toc-num">4</span> Try It Yourself First</a>
-    <a href="#simulation"   class="toc-link"><span class="toc-num">5</span> Interview Simulation</a>
-    <div class="toc-sub">
-      <a href="#sim-questions" class="toc-link">5.1 Clarifying questions</a>
-      <a href="#sim-plan"      class="toc-link">5.2 The plan, spoken</a>
-    </div>
-    <a href="#approach"     class="toc-link"><span class="toc-num">6</span> Why This Approach</a>
-    <a href="#structures"   class="toc-link"><span class="toc-num">7</span> Data Structures</a>
-    <a href="#dryrun"       class="toc-link"><span class="toc-num">8</span> Pseudocode Dry Run</a>
-    <a href="#swift"        class="toc-link"><span class="toc-num">9</span> Swift Solution</a>
-    <div class="toc-sub">
-      <a href="#swift-a1" class="toc-link">A.1 Prefix sum (explicit loop)</a>
-      <a href="#swift-a2" class="toc-link">A.2 Idiomatic Swift (reduce + zip)</a>
-    </div>
-    <a href="#code-dry-run" class="toc-link"><span class="toc-num">10</span> Code Dry Run</a>
-    <a href="#qmap"         class="toc-link"><span class="toc-num">11</span> Question → Code Map</a>
-    <a href="#complexity"   class="toc-link"><span class="toc-num">12</span> Complexity</a>
-    <a href="#followups"    class="toc-link"><span class="toc-num">13</span> Follow-Up Bank</a>
-    <a href="#decoder"      class="toc-link"><span class="toc-num">14</span> Theory Decoder</a>
-    <a href="#parent"       class="toc-link"><span class="toc-num">15</span> Parent Theory</a>
-  </div>
-</nav>
 
 <!-- ── CONTENT ── -->
 <main class="content">
@@ -54,7 +36,7 @@
   </div>
 
   <!-- 1. Restatement -->
-  <section id="lead">
+  <section id="lead" data-toc-label="The Problem">
     <div class="infobox">
       <div class="infobox-title">Problem at a Glance</div>
       <div class="infobox-row"><div class="infobox-k">Difficulty</div><div class="infobox-v"><span class="tag tag-E">Easy</span></div></div>
@@ -84,7 +66,7 @@
   <hr class="wiki-hr">
 
   <!-- 2. Reading the problem -->
-  <section id="reading">
+  <section id="reading" data-toc-label="Reading the Problem">
     <h2>2 &nbsp; Reading the Problem — insights from the statement</h2>
 
     <div class="co-insight"><strong>"Immutable" array:</strong> the array never changes after initialization. This is the single most important word in the problem title — it is what makes precomputation legal. If the array could change between queries, every update would invalidate every prefix value at or after the changed index, requiring O(n) repair. The constraint guarantees the prefix array we build in the initializer will remain correct forever.</div>
@@ -110,7 +92,7 @@
   <hr class="wiki-hr">
 
   <!-- 3. Edge cases -->
-  <section id="edge-cases">
+  <section id="edge-cases" data-toc-label="Edge Case Inventory">
     <h2>3 &nbsp; Edge Case Inventory</h2>
     <table class="t-edge">
       <thead><tr><th>Input</th><th>Expected</th><th>Handled by</th></tr></thead>
@@ -128,7 +110,7 @@
   <hr class="wiki-hr">
 
   <!-- 4. Hints -->
-  <section id="hints">
+  <section id="hints" data-toc-label="Try It Yourself First">
     <h2>4 &nbsp; Try It Yourself First</h2>
     <p>Attempt the problem before reading on. Open hints one at a time.</p>
     <details class="hint"><summary>Hint 1 — the naïve approach and its problem</summary><p>The obvious solution: in sumRange, loop from left to right and accumulate. This is O(n) per call. With k calls this is O(n·k). What information could you compute once at init time and reuse on every query?</p></details>
@@ -139,11 +121,11 @@
   <hr class="wiki-hr">
 
   <!-- 5. Interview Simulation -->
-  <section id="simulation">
+  <section id="simulation" data-toc-label="Interview Simulation">
     <h2>5 &nbsp; Interview Simulation</h2>
     <p>The interviewer has stated the problem. The script starts with your first words — practice it out loud.</p>
 
-    <div class="sim-block" id="sim-questions">
+    <div class="sim-block" id="sim-questions" data-toc-label="5.1 Clarifying questions">
       <div class="sim-header">Step 1 — Clarifying questions</div>
       <div class="sim-body">
         <div class="sim-q">Q: "Can the array contain negative numbers?"</div>
@@ -160,7 +142,7 @@
       </div>
     </div>
 
-    <div class="sim-block" id="sim-plan">
+    <div class="sim-block" id="sim-plan" data-toc-label="5.2 The plan, spoken">
       <div class="sim-header">Step 2 — The plan, before any code</div>
       <div class="sim-body">
         <div class="speech">
@@ -178,7 +160,7 @@
   <hr class="wiki-hr">
 
   <!-- 6. Approach rationale -->
-  <section id="approach">
+  <section id="approach" data-toc-label="Why This Approach">
     <h2>6 &nbsp; Why This Approach — and not the others</h2>
     <table class="t-versus">
       <thead><tr><th>Candidate</th><th>Cost</th><th>Verdict</th></tr></thead>
@@ -207,7 +189,7 @@
   <hr class="wiki-hr">
 
   <!-- 7. Data structures -->
-  <section id="structures">
+  <section id="structures" data-toc-label="Data Structures">
     <h2>7 &nbsp; Data Structures — choice and justification</h2>
     <table class="t-decoder">
       <thead><tr><th>Variable</th><th>Holds</th><th>Why this and not something else</th></tr></thead>
@@ -223,7 +205,7 @@
   <hr class="wiki-hr">
 
   <!-- 8. Pseudocode dry run -->
-  <section id="dryrun">
+  <section id="dryrun" data-toc-label="Pseudocode Dry Run">
     <h2>8 &nbsp; Pseudocode Dry Run</h2>
 
     <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">prefix sum — init and query</span></div>
@@ -278,10 +260,10 @@ index=5:  prefix[6] = prefix[5] + nums[5] = −2 + (−1) = −3
   <hr class="wiki-hr">
 
   <!-- 9. Swift solution -->
-  <section id="swift">
+  <section id="swift" data-toc-label="Swift Solution">
     <h2>9 &nbsp; Swift Solution</h2>
 
-    <div class="solution-block" id="swift-a1">
+    <div class="solution-block" id="swift-a1" data-toc-label="A.1 Prefix sum (explicit loop)">
       <div class="block-header">
         <span class="block-badge">A.1</span>
         <span class="block-name">Prefix sum — build once, query in O(1)</span>
@@ -313,7 +295,7 @@ index=5:  prefix[6] = prefix[5] + nums[5] = −2 + (−1) = −3
       </div>
     </div>
 
-    <div class="solution-block" id="swift-a2">
+    <div class="solution-block" id="swift-a2" data-toc-label="A.2 Idiomatic Swift (reduce + zip)">
       <div class="block-header">
         <span class="block-badge">A.2</span>
         <span class="block-name">Idiomatic Swift — scan + zip</span>
@@ -349,7 +331,7 @@ index=5:  prefix[6] = prefix[5] + nums[5] = −2 + (−1) = −3
   <hr class="wiki-hr">
 
   <!-- 10. Code dry run -->
-  <section id="code-dry-run">
+  <section id="code-dry-run" data-toc-label="Code Dry Run">
     <h2>10 &nbsp; Code Dry Run — Swift solution, traced</h2>
     <p>Full debugger-style execution trace on <code>nums = [-2, 0, 3, -5, 2, -1]</code> followed by three queries, matching the canonical LeetCode examples.</p>
 
@@ -439,7 +421,7 @@ RESULT 3
   <hr class="wiki-hr">
 
   <!-- 11. Question → Code Map -->
-  <section id="qmap">
+  <section id="qmap" data-toc-label="Question → Code Map">
     <h2>11 &nbsp; Question → Code Map</h2>
     <table class="t-qmap">
       <thead><tr><th>Question / decision</th><th>Code it became</th></tr></thead>
@@ -457,7 +439,7 @@ RESULT 3
   <hr class="wiki-hr">
 
   <!-- 12. Complexity -->
-  <section id="complexity">
+  <section id="complexity" data-toc-label="Complexity">
     <h2>12 &nbsp; Complexity</h2>
     <table class="t-cmx">
       <thead><tr><th>Phase</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
@@ -473,25 +455,25 @@ RESULT 3
   <hr class="wiki-hr">
 
   <!-- 13. Follow-up bank -->
-  <section id="followups">
+  <section id="followups" data-toc-label="Follow-Up Bank">
     <h2>13 &nbsp; Follow-Up Bank</h2>
 
-    <div class="followup-entry">
+    <div class="followup">
       <div class="followup-q">Follow-up: "Before you push this to production — can you see any improvements you'd make?"</div>
       <p>The solution is already optimal for a static array: O(n) init, O(1) query, O(n) space — no algorithmic improvement exists. One constant-factor note: I store the prefix array as <code>let</code>, which signals immutability clearly and prevents accidental mutation. If memory were extremely constrained (unlikely at n ≤ 10⁴), a space-O(1) approach would require accepting O(n) per query — an unavoidable tradeoff once you give up precomputation.</p>
     </div>
 
-    <div class="followup-entry">
+    <div class="followup">
       <div class="followup-q">Follow-up: "What if the array can be updated between queries?"</div>
       <p>Then precomputing a static prefix array is invalid — any update at index <em>i</em> would invalidate every prefix cell from i+1 onward, requiring an O(n) rebuild. The right data structure becomes a <strong>Fenwick tree</strong> (Binary Indexed Tree), which supports both point updates and prefix-sum queries in O(log n) per operation. LC 307 — Range Sum Query - Mutable — is exactly this problem with updates enabled.</p>
     </div>
 
-    <div class="followup-entry">
+    <div class="followup">
       <div class="followup-q">Follow-up: "Can you generalize this to a 2D matrix — sum of a rectangular subregion?"</div>
       <p>Yes — this is LC 304 (Range Sum Query 2D - Immutable). Build a 2D prefix sum <code>prefix[row][col]</code> = sum of the rectangle from (0,0) to (row−1, col−1). The query formula extends to inclusion-exclusion: <code>prefix[row2+1][col2+1] − prefix[row1][col2+1] − prefix[row2+1][col1] + prefix[row1][col1]</code>. The sentinel is now a zero-filled first row and first column instead of a single zero cell.</p>
     </div>
 
-    <div class="followup-entry">
+    <div class="followup">
       <div class="followup-q">Follow-up: "What if you need the product of a range instead of the sum?"</div>
       <p>Prefix products work for ranges where no zero exists — divide prefix[right+1] by prefix[left]. But integer division loses information if any element in the range is zero, and division is not always exact for integers. For "product except self" (LC 238), the standard approach avoids division entirely using separate prefix and suffix product arrays — the two-pass pattern is cleaner and handles zeros correctly.</p>
     </div>
@@ -500,7 +482,7 @@ RESULT 3
   <hr class="wiki-hr">
 
   <!-- 14. Theory decoder -->
-  <section id="decoder">
+  <section id="decoder" data-toc-label="Theory Decoder">
     <h2>14 &nbsp; Theory Decoder — concepts used here</h2>
     <table class="t-decoder">
       <thead><tr><th>Concept</th><th>How it appears in LC 303</th></tr></thead>
@@ -518,7 +500,7 @@ RESULT 3
   <hr class="wiki-hr">
 
   <!-- 15. Parent theory -->
-  <section id="parent">
+  <section id="parent" data-toc-label="Parent Theory">
     <h2>15 &nbsp; Parent Theory</h2>
     <div class="ref-grid">
       <a class="backref-card" href="../theory/arrays/prefix_suffix_master.html">
@@ -527,6 +509,8 @@ RESULT 3
         <span class="ref-desc">The canonical prefix/suffix reference. §8.1 covers Variant 8.1 (range sum — exactly this problem's pattern), §3 decodes the sentinel and monoid terminology, §5 gives the canonical pseudocode template, and §10 lists the off-by-one pitfalls this problem illustrates. §13 links back to this walkthrough.</span>
       </a>
     </div>
+      <p class="u-note-gap">See also: <a href="LC560_master.html">LC560_master.html</a> — Subarray Sum Equals K: the prefix-sum idea extended with a frequency map.</p>
+
   </section>
 
   <div class="page-footer">
@@ -538,7 +522,8 @@ RESULT 3
 </main>
 </div>
 
-<script src="../_shared/pages.js"></script>
+<script src="../_shared/manifest.js"></script>
 <script src="../_shared/nav.js"></script>
+<script src="../_shared/toc.js"></script>
 </body>
 </html>

@@ -232,8 +232,20 @@ for (const [pagePath, scannedPage] of scannedPages) {
   }
 }
 
-// Cross-reference reciprocity: if A cards to B, B should link back to A.
+// Cross-reference reciprocity ("close the loop"): if A cards to B, B must
+// link back to A — or, when A sits in a theory section, to any page of that
+// section (a walkthrough closes the loop through its parent deep-dive; it
+// does not owe a link to every overview that mentions it).
 for (const [pagePath, scannedPage] of scannedPages) {
+  const sourceRecord = records.get(pagePath);
+  const acceptablePaths = new Set<string>([pagePath]);
+  if (sourceRecord !== undefined && sourceRecord.section !== null) {
+    for (const record of records.values()) {
+      if (record.category === sourceRecord.category && record.section === sourceRecord.section) {
+        acceptablePaths.add(record.path);
+      }
+    }
+  }
   for (const cardHref of scannedPage.crossReferenceHrefs) {
     const resolved = resolveHref(pagePath, cardHref);
     if (resolved === null) {
@@ -245,7 +257,7 @@ for (const [pagePath, scannedPage] of scannedPages) {
     }
     const targetLinksBack = targetScanned.relativeHrefs.some((backHref) => {
       const backResolved = resolveHref(resolved.targetPath, backHref);
-      return backResolved !== null && backResolved.targetPath === pagePath;
+      return backResolved !== null && acceptablePaths.has(backResolved.targetPath);
     });
     if (!targetLinksBack) {
       reportWarning(pagePath, `cards to ${resolved.targetPath}, which never links back (close the loop)`);

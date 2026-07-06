@@ -4,6 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LC 238 — Product of Array Except Self · Walkthrough Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "LC 238 — Product of Array Except Self",
+  "nav": "LC 238",
+  "topics": [
+    "Prefix-Suffix",
+    "Arrays"
+  ],
+  "blurb": "Prefix × suffix product (Variant 8.2). Division is disqualified — zeros break it. Two passes: prefix products into the output array, then a single rolling suffix integer multiplied in right-to-left. O(n) time, O(1) extra space.",
+  "difficulty": "M"
+}
+</script>
 <link rel="stylesheet" href="../_shared/wiki.css">
 <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
@@ -12,36 +24,6 @@
 <nav id="topnav" class="topnav"></nav>
 
 <div class="page">
-
-<!-- ── TOC ── -->
-<nav class="toc-col">
-  <div class="toc-inner">
-    <div class="toc-title toc-cat-walkthrough">Walkthrough · Contents</div>
-    <a href="#lead"         class="toc-link"><span class="toc-num">1</span> The Problem</a>
-    <a href="#reading"      class="toc-link"><span class="toc-num">2</span> Reading the Problem</a>
-    <a href="#edge-cases"   class="toc-link"><span class="toc-num">3</span> Edge Case Inventory</a>
-    <a href="#hints"        class="toc-link"><span class="toc-num">4</span> Try It Yourself First</a>
-    <a href="#simulation"   class="toc-link"><span class="toc-num">5</span> Interview Simulation</a>
-    <div class="toc-sub">
-      <a href="#sim-questions" class="toc-link">5.1 Clarifying questions</a>
-      <a href="#sim-plan"      class="toc-link">5.2 The plan, spoken</a>
-    </div>
-    <a href="#approach"     class="toc-link"><span class="toc-num">6</span> Why This Approach</a>
-    <a href="#structures"   class="toc-link"><span class="toc-num">7</span> Data Structures</a>
-    <a href="#dryrun"       class="toc-link"><span class="toc-num">8</span> Pseudocode Dry Run</a>
-    <a href="#swift"        class="toc-link"><span class="toc-num">9</span> Swift Solution</a>
-    <div class="toc-sub">
-      <a href="#swift-a0" class="toc-link">A.0 — Both arrays (prefix + suffix)</a>
-      <a href="#swift-a1" class="toc-link">A.1 — Prefix pass + rolling suffix</a>
-    </div>
-    <a href="#code-dry-run" class="toc-link"><span class="toc-num">10</span> Code Dry Run</a>
-    <a href="#qmap"         class="toc-link"><span class="toc-num">11</span> Question → Code Map</a>
-    <a href="#complexity"   class="toc-link"><span class="toc-num">12</span> Complexity</a>
-    <a href="#followups"    class="toc-link"><span class="toc-num">13</span> Follow-Up Bank</a>
-    <a href="#decoder"      class="toc-link"><span class="toc-num">14</span> Theory Decoder</a>
-    <a href="#parent"       class="toc-link"><span class="toc-num">15</span> Parent Theory</a>
-  </div>
-</nav>
 
 <!-- ── CONTENT ── -->
 <main class="content">
@@ -54,7 +36,7 @@
   </div>
 
   <!-- 1. Restatement -->
-  <section id="lead">
+  <section id="lead" data-toc-label="The Problem">
     <div class="infobox">
       <div class="infobox-title">Problem at a Glance</div>
       <div class="infobox-row"><div class="infobox-k">Difficulty</div><div class="infobox-v"><span class="tag tag-M">Medium</span></div></div>
@@ -84,7 +66,7 @@
   <hr class="wiki-hr">
 
   <!-- 2. Reading the problem -->
-  <section id="reading">
+  <section id="reading" data-toc-label="Reading the Problem">
     <h2>2 &nbsp; Reading the Problem — insights from the statement</h2>
 
     <div class="co-insight"><strong>"Without using division":</strong> this single constraint eliminates the naïve O(n) solution (totalProduct / nums[i]) and hints directly at the answer. Without division, you must construct each result[i] from two separate pieces — the product of everything to its left and the product of everything to its right. That two-sided dependency is the prefix/suffix fingerprint.</div>
@@ -110,7 +92,7 @@
   <hr class="wiki-hr">
 
   <!-- 3. Edge cases -->
-  <section id="edge-cases">
+  <section id="edge-cases" data-toc-label="Edge Case Inventory">
     <h2>3 &nbsp; Edge Case Inventory</h2>
     <table class="t-edge">
       <thead><tr><th>Input</th><th>Expected</th><th>Handled by</th></tr></thead>
@@ -128,7 +110,7 @@
   <hr class="wiki-hr">
 
   <!-- 4. Hints -->
-  <section id="hints">
+  <section id="hints" data-toc-label="Try It Yourself First">
     <h2>4 &nbsp; Try It Yourself First</h2>
     <p>Attempt the problem before reading on. Open hints one at a time.</p>
     <details class="hint"><summary>Hint 1 — why not division?</summary><p>The naïve solution is: compute the total product, then result[i] = totalProduct / nums[i]. Write down why this fails when nums contains a zero. If you can't use division, what two pieces of information about position i do you need?</p></details>
@@ -139,11 +121,11 @@
   <hr class="wiki-hr">
 
   <!-- 5. Interview Simulation -->
-  <section id="simulation">
+  <section id="simulation" data-toc-label="Interview Simulation">
     <h2>5 &nbsp; Interview Simulation</h2>
     <p>The interviewer has stated the problem. The script starts with your first words — practice it out loud.</p>
 
-    <div class="sim-block" id="sim-questions">
+    <div class="sim-block" id="sim-questions" data-toc-label="5.1 Clarifying questions">
       <div class="sim-header">Step 1 — Clarifying questions</div>
       <div class="sim-body">
         <div class="sim-q">Q: "Can the array contain zeros? How many?"</div>
@@ -160,7 +142,7 @@
       </div>
     </div>
 
-    <div class="sim-block" id="sim-plan">
+    <div class="sim-block" id="sim-plan" data-toc-label="5.2 The plan, spoken">
       <div class="sim-header">Step 2 — The plan, before any code</div>
       <div class="sim-body">
         <div class="speech">
@@ -179,7 +161,7 @@
   <hr class="wiki-hr">
 
   <!-- 6. Approach rationale -->
-  <section id="approach">
+  <section id="approach" data-toc-label="Why This Approach">
     <h2>6 &nbsp; Why This Approach — and not the others</h2>
     <table class="t-versus">
       <thead><tr><th>Candidate</th><th>Cost</th><th>Verdict</th></tr></thead>
@@ -208,7 +190,7 @@
   <hr class="wiki-hr">
 
   <!-- 7. Data structures -->
-  <section id="structures">
+  <section id="structures" data-toc-label="Data Structures">
     <h2>7 &nbsp; Data Structures — choice and justification</h2>
     <table class="t-decoder">
       <thead><tr><th>Variable</th><th>Holds</th><th>Why this and not something else</th></tr></thead>
@@ -224,7 +206,7 @@
   <hr class="wiki-hr">
 
   <!-- 8. Pseudocode dry run -->
-  <section id="dryrun">
+  <section id="dryrun" data-toc-label="Pseudocode Dry Run">
     <h2>8 &nbsp; Pseudocode Dry Run</h2>
 
     <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">prefix × suffix product — two-pass O(1) space</span></div>
@@ -281,10 +263,10 @@ result[3] = 6×1  = 6  = 1×2×3 ✓</pre>
   <hr class="wiki-hr">
 
   <!-- 9. Swift solution -->
-  <section id="swift">
+  <section id="swift" data-toc-label="Swift Solution">
     <h2>9 &nbsp; Swift Solution</h2>
 
-    <div class="solution-block" id="swift-a0">
+    <div class="solution-block" id="swift-a0" data-toc-label="A.0 — Both arrays (prefix + suffix)">
       <div class="block-header">
         <span class="block-badge">A.0</span>
         <span class="block-name">Two explicit arrays — prefix array + suffix array</span>
@@ -325,7 +307,7 @@ result[3] = 6×1  = 6  = 1×2×3 ✓</pre>
 
     <div class="co-note"><strong>A.0 → A.1 connection:</strong> in A.1, <code>result[index]</code> after the left pass holds exactly <code>prefixProducts[index]</code> from A.0, and <code>runningSuffix</code> before the multiply step holds exactly <code>suffixProducts[index]</code>. A.1 eliminates the suffix array by computing and consuming each suffix value on the fly, right-to-left. Same correctness, half the extra allocations.</div>
 
-    <div class="solution-block" id="swift-a1">
+    <div class="solution-block" id="swift-a1" data-toc-label="A.1 — Prefix pass + rolling suffix">
       <div class="block-header">
         <span class="block-badge">A.1</span>
         <span class="block-name">Prefix pass into result + rolling suffix variable</span>
@@ -366,7 +348,7 @@ result[3] = 6×1  = 6  = 1×2×3 ✓</pre>
   <hr class="wiki-hr">
 
   <!-- 10. Code dry run -->
-  <section id="code-dry-run">
+  <section id="code-dry-run" data-toc-label="Code Dry Run">
     <h2>10 &nbsp; Code Dry Run — Swift solution, traced</h2>
     <p>Full debugger-style execution trace on <code>[-1, 1, 0, -3, 3]</code>, expected output <code>[0, 0, 9, 0, 0]</code>. Chosen because it has a zero — the most common failure mode — and negative values.</p>
 
@@ -469,7 +451,7 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 11. Question → Code Map -->
-  <section id="qmap">
+  <section id="qmap" data-toc-label="Question → Code Map">
     <h2>11 &nbsp; Question → Code Map</h2>
     <table class="t-qmap">
       <thead><tr><th>Question / decision</th><th>Code it became</th></tr></thead>
@@ -487,7 +469,7 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 12. Complexity -->
-  <section id="complexity">
+  <section id="complexity" data-toc-label="Complexity">
     <h2>12 &nbsp; Complexity</h2>
     <table class="t-cmx">
       <thead><tr><th>Solution</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
@@ -504,25 +486,25 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 13. Follow-up bank -->
-  <section id="followups">
+  <section id="followups" data-toc-label="Follow-Up Bank">
     <h2>13 &nbsp; Follow-Up Bank</h2>
 
-    <div class="followup-entry">
+    <div class="followup">
       <div class="followup-q">Follow-up: "Before you push this to production — can you see any improvements you'd make?"</div>
       <p>The solution is already optimal: O(n) time, O(1) extra space, zero-safe, division-free. A minor readability note: the comment "Multiply BEFORE updating runningSuffix" is load-bearing — the order of the two lines in the right pass is a correctness constraint, not a style choice. I'd keep that comment in a production codebase. No algorithmic improvement is possible.</p>
     </div>
 
-    <div class="followup-entry">
+    <div class="followup">
       <div class="followup-q">Follow-up: "What if the problem allowed division — would you use it?"</div>
       <p>Only with caution. The division-based approach (total product / nums[i]) is O(n) and O(1) extra space — same complexity. But it fails when any nums[i] is zero, requiring special-casing: zero count = 0 → all zeros; zero count = 1 → only the position with the zero gets a non-zero result. The two-pass version handles zeros automatically with no branching, so it's strictly simpler and more robust even when division is permitted.</p>
     </div>
 
-    <div class="followup-entry">
+    <div class="followup">
       <div class="followup-q">Follow-up: "Can you do this with only one pass?"</div>
       <p>No — not for the general case. To compute result[i] you need both the product of all elements to its left and the product of all elements to its right. With only one pass in one direction, you have one piece but not the other. Two passes is the theoretical minimum for this two-sided dependency (same reasoning as LC 42's need for both a prefix-max and a suffix-max).</p>
     </div>
 
-    <div class="followup-entry">
+    <div class="followup">
       <div class="followup-q">Follow-up: "What if instead of product you needed the sum — how would the code change?"</div>
       <p>Almost nothing changes structurally. Replace the multiplicative identity sentinel (1) with the additive identity (0), replace <code>*=</code> with <code>+=</code> in both passes, and replace <code>result[i] *= runningSuffix</code> with <code>result[i] += runningSuffix</code> in the combine step. But for sum-except-self you'd usually just compute total − nums[i] in one pass, which is simpler and works with no special cases. The prefix/suffix structure is only necessary for "product except self" because products have no easy inversion when zeros are present.</p>
     </div>
@@ -531,7 +513,7 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 14. Theory decoder -->
-  <section id="decoder">
+  <section id="decoder" data-toc-label="Theory Decoder">
     <h2>14 &nbsp; Theory Decoder — concepts used here</h2>
     <table class="t-decoder">
       <thead><tr><th>Concept</th><th>How it appears in LC 238</th></tr></thead>
@@ -549,7 +531,7 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 15. Parent theory -->
-  <section id="parent">
+  <section id="parent" data-toc-label="Parent Theory">
     <h2>15 &nbsp; Parent Theory</h2>
     <div class="ref-grid">
       <a class="backref-card" href="../theory/arrays/prefix_suffix_master.html">
@@ -569,7 +551,8 @@ RESULT
 </main>
 </div>
 
-<script src="../_shared/pages.js"></script>
+<script src="../_shared/manifest.js"></script>
 <script src="../_shared/nav.js"></script>
+<script src="../_shared/toc.js"></script>
 </body>
 </html>

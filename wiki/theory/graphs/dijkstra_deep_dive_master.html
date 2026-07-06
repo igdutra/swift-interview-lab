@@ -3,7 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dijkstra's Algorithm · Theory Masterfile</title>
+<title>Dijkstra's Algorithm Deep Dive · Theory Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Dijkstra's Algorithm Deep Dive",
+  "nav": "Dijkstra's Algorithm Deep Dive",
+  "topics": [
+    "Min-heap",
+    "Relax",
+    "Weighted Shortest Path"
+  ],
+  "blurb": "Cheapest path over non-negative weighted edges: settle the closest unsettled vertex via a min-heap. Classic single-source, grid Dijkstra, custom-cost/min-max (relax with max), and constrained (augmented-state) shortest path. Directed at LC1631, LC743, LC787."
+}
+</script>
 <link rel="stylesheet" href="../../_shared/wiki.css">
 <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
@@ -12,33 +24,6 @@
 <nav id="topnav" class="topnav"></nav>
 
 <div class="page">
-
-<!-- ── TOC ── -->
-<nav class="toc-col">
-  <div class="toc-inner">
-    <div class="toc-title toc-cat-theory">Theory · Contents</div>
-    <a href="#lead"          class="toc-link"><span class="toc-num">1</span> Definition</a>
-    <a href="#signals"       class="toc-link"><span class="toc-num">2</span> Recognition Signals</a>
-    <a href="#terminology"   class="toc-link"><span class="toc-num">3</span> Terminology Decoder</a>
-    <a href="#mental-model"  class="toc-link"><span class="toc-num">4</span> Mental Model</a>
-    <a href="#pseudocode"    class="toc-link"><span class="toc-num">5</span> Pseudocode Primer</a>
-    <a href="#iterative"     class="toc-link"><span class="toc-num">6</span> The Heap in Swift</a>
-    <a href="#swift"         class="toc-link"><span class="toc-num">7</span> Swift Foundations</a>
-    <a href="#variants"      class="toc-link"><span class="toc-num">8</span> The Four Variants</a>
-    <div class="toc-sub">
-      <a href="#v-classic" class="toc-link">8.1 Classic single-source</a>
-      <a href="#v-grid"    class="toc-link">8.2 Grid Dijkstra</a>
-      <a href="#v-cost"    class="toc-link">8.3 Custom-cost / min-max</a>
-      <a href="#v-state"   class="toc-link">8.4 Constrained (augmented state)</a>
-    </div>
-    <a href="#complexity"    class="toc-link"><span class="toc-num">9</span> Complexity Analysis</a>
-    <a href="#pitfalls"      class="toc-link"><span class="toc-num">10</span> Common Pitfalls</a>
-    <a href="#edge-cases"    class="toc-link"><span class="toc-num">11</span> Edge Cases</a>
-    <a href="#cheatsheet"    class="toc-link"><span class="toc-num">12</span> Cheat Sheet</a>
-    <a href="#practice"      class="toc-link"><span class="toc-num">13</span> Demonstrated in Practice</a>
-    <a href="#solo"          class="toc-link"><span class="toc-num">14</span> Solo Problem</a>
-  </div>
-</nav>
 
 <!-- ── CONTENT ── -->
 <main class="content">
@@ -51,7 +36,7 @@
   </div>
 
   <!-- 1. Definition -->
-  <section id="lead">
+  <section id="lead" data-toc-label="Definition">
     <div class="infobox">
       <div class="infobox-title">At a Glance</div>
       <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Shortest path from one source to all vertices in a graph with non-negative edge weights</div></div>
@@ -72,7 +57,7 @@
   <hr class="wiki-hr">
 
   <!-- 2. Recognition signals -->
-  <section id="signals">
+  <section id="signals" data-toc-label="Recognition Signals">
     <h2>2 &nbsp; Recognition Signals — what variant is this?</h2>
     <p>"Cheapest path over weighted edges" is the Dijkstra master signal. What the cost <em>is</em>, and whether there's an extra constraint, picks the variant.</p>
     <table class="t-clue">
@@ -92,7 +77,7 @@
   <hr class="wiki-hr">
 
   <!-- 3. Terminology decoder -->
-  <section id="terminology">
+  <section id="terminology" data-toc-label="Terminology Decoder">
     <h2>3 &nbsp; Terminology Decoder</h2>
     <p>The general graph vocabulary lives in the <a href="index.html">Graphs hub</a>; these are the terms this Dijkstra page leans on most.</p>
     <table class="t-decoder">
@@ -113,7 +98,7 @@
   <hr class="wiki-hr">
 
   <!-- 4. Mental model -->
-  <section id="mental-model">
+  <section id="mental-model" data-toc-label="Mental Model">
     <h2>4 &nbsp; Mental Model — settle the cheapest frontier first</h2>
 
     <div class="co-idea">
@@ -154,7 +139,7 @@ because max is monotonic and weights are non-negative. <span class="tr-ok">Same 
   <hr class="wiki-hr">
 
   <!-- 5. Pseudocode primer -->
-  <section id="pseudocode">
+  <section id="pseudocode" data-toc-label="Pseudocode Primer">
     <h2>5 &nbsp; Pseudocode Primer</h2>
     <p>Classic Dijkstra with lazy deletion. The settled-skip line and the relax-then-push are the two that matter.</p>
     <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">Dijkstra — min-heap, relax, settle cheapest-first</span></div>
@@ -179,7 +164,7 @@ because max is monotonic and weights are non-negative. <span class="tr-ok">Same 
   <hr class="wiki-hr">
 
   <!-- 6. The heap in Swift -->
-  <section id="iterative">
+  <section id="iterative" data-toc-label="The Heap in Swift">
     <h2>6 &nbsp; The Heap in Swift — you must hand-roll it</h2>
     <p>Dijkstra is inherently iterative (a heap loop, no recursion), but Swift's standard library has <strong>no priority queue</strong> — so the one piece of real work is supplying a min-heap. Two practical routes:</p>
     <ul>
@@ -227,7 +212,7 @@ because max is monotonic and weights are non-negative. <span class="tr-ok">Same 
   <hr class="wiki-hr">
 
   <!-- 7. Swift foundations -->
-  <section id="swift">
+  <section id="swift" data-toc-label="Swift Foundations">
     <h2>7 &nbsp; Swift Foundations</h2>
     <p>Five Swift facts underlie nearly every Dijkstra. The heap and the lazy-skip are where the algorithm is won or lost.</p>
     <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">the five Dijkstra building blocks for this block</span></div>
@@ -253,18 +238,18 @@ heap.push((<span class="nm">0</span>, source))
 
 <span class="cm">// 5. Early exit: if you only need the target, return the moment you pop it.</span>
 <span class="kw">if</span> node == target { <span class="kw">return</span> cost }     <span class="cm">// first pop of target = final distance</span></pre>
-    <div class="co-pitfall" style="margin-top:12px"><strong>The negative-weight trap.</strong> Dijkstra's "settled-is-final" guarantee assumes every edge weight is ≥ 0. A single negative edge can make a vertex reachable more cheaply <em>after</em> it's settled, silently producing wrong answers — no crash, just incorrect output. If weights can be negative, Dijkstra is the wrong tool; use Bellman-Ford. Always confirm non-negativity before reaching for the heap.</div>
+    <div class="co-pitfall u-mt-12"><strong>The negative-weight trap.</strong> Dijkstra's "settled-is-final" guarantee assumes every edge weight is ≥ 0. A single negative edge can make a vertex reachable more cheaply <em>after</em> it's settled, silently producing wrong answers — no crash, just incorrect output. If weights can be negative, Dijkstra is the wrong tool; use Bellman-Ford. Always confirm non-negativity before reaching for the heap.</div>
   </section>
 
   <hr class="wiki-hr">
 
   <!-- 8. The four variants -->
-  <section id="variants">
+  <section id="variants" data-toc-label="The Four Variants">
     <h2>8 &nbsp; The Four Variants</h2>
     <p>Ordered by how far they bend the cost model. Variant 8.3 is taught in a full walkthrough (LC1631); the others are solve-it-yourself problems — frame and pitfalls here, no solution.</p>
 
     <!-- 8.1 Classic single-source -->
-    <div class="pattern-block" id="v-classic">
+    <div class="pattern-block" id="v-classic" data-toc-label="8.1 Classic single-source">
       <div class="block-header">
         <span class="block-kicker">Variant 8.1</span>
         <span class="block-name">Classic single-source (sum of weights)</span>
@@ -280,7 +265,7 @@ heap.push((<span class="nm">0</span>, source))
     </div>
 
     <!-- 8.2 Grid Dijkstra -->
-    <div class="pattern-block" id="v-grid">
+    <div class="pattern-block" id="v-grid" data-toc-label="8.2 Grid Dijkstra">
       <div class="block-header">
         <span class="block-kicker">Variant 8.2</span>
         <span class="block-name">Grid Dijkstra (cells as vertices)</span>
@@ -295,7 +280,7 @@ heap.push((<span class="nm">0</span>, source))
     </div>
 
     <!-- 8.3 Custom-cost / min-max -->
-    <div class="pattern-block" id="v-cost">
+    <div class="pattern-block" id="v-cost" data-toc-label="8.3 Custom-cost / min-max">
       <div class="block-header">
         <span class="block-kicker">Variant 8.3</span>
         <span class="block-name">Custom-cost / min-max path</span>
@@ -310,7 +295,7 @@ heap.push((<span class="nm">0</span>, source))
     </div>
 
     <!-- 8.4 Constrained / augmented state -->
-    <div class="pattern-block" id="v-state">
+    <div class="pattern-block" id="v-state" data-toc-label="8.4 Constrained (augmented state)">
       <div class="block-header">
         <span class="block-kicker">Variant 8.4</span>
         <span class="block-name">Constrained Dijkstra (augmented state)</span>
@@ -330,7 +315,7 @@ heap.push((<span class="nm">0</span>, source))
   <hr class="wiki-hr">
 
   <!-- 9. Complexity -->
-  <section id="complexity">
+  <section id="complexity" data-toc-label="Complexity Analysis">
     <h2>9 &nbsp; Complexity Analysis</h2>
     <p><strong>Dijkstra with a binary heap is O(E log V): each edge can trigger one heap push (O(log V)), and each vertex is settled once.</strong> The cost shifts with the heap implementation and, for §8.4, with the size of the augmented state space.</p>
     <table class="t-cmx">
@@ -349,7 +334,7 @@ heap.push((<span class="nm">0</span>, source))
   <hr class="wiki-hr">
 
   <!-- 10. Pitfalls -->
-  <section id="pitfalls">
+  <section id="pitfalls" data-toc-label="Common Pitfalls">
     <h2>10 &nbsp; Common Pitfalls</h2>
     <div class="co-pitfall">
       <div class="co-pitfall-title">Pitfalls — bugs this block invites</div>
@@ -365,7 +350,7 @@ heap.push((<span class="nm">0</span>, source))
   <hr class="wiki-hr">
 
   <!-- 11. Edge cases -->
-  <section id="edge-cases">
+  <section id="edge-cases" data-toc-label="Edge Cases">
     <h2>11 &nbsp; Edge Cases to Verbalize</h2>
     <p>Name these before coding. The unreachable and source-equals-target cases are where Dijkstra solutions most often misreport.</p>
     <table class="t-edge">
@@ -386,7 +371,7 @@ heap.push((<span class="nm">0</span>, source))
   <hr class="wiki-hr">
 
   <!-- 12. Cheat sheet -->
-  <section id="cheatsheet">
+  <section id="cheatsheet" data-toc-label="Cheat Sheet">
     <h2>12 &nbsp; Cheat Sheet</h2>
     <table class="t-versus">
       <thead><tr><th>You see…</th><th>You use</th><th>Variant</th></tr></thead>
@@ -422,7 +407,7 @@ heap.push((<span class="nm">0</span>, source))
   <hr class="wiki-hr">
 
   <!-- 13. Cross-reference -->
-  <section id="practice">
+  <section id="practice" data-toc-label="Demonstrated in Practice">
     <h2>13 &nbsp; Demonstrated in Practice</h2>
     <p>Each problem in this block is taught in its own walkthrough — constraint insights, edge-case inventory, interview simulation, and (for the walkthrough) a full dry run and iterative Swift solution.</p>
     <div class="ref-grid">
@@ -431,24 +416,24 @@ heap.push((<span class="nm">0</span>, source))
         <span class="ref-title">LC 1631 — Path With Minimum Effort (Medium · walkthrough)</span>
         <span class="ref-desc">Custom-cost (min-max) Dijkstra on a grid — a path's cost is its largest step, so relax with max instead of +. Hand-rolled min-heap, settle-cheapest-first, full dry run and Swift. The §8.3 instantiation.</span>
       </a>
-      <a class="xref-card" href="../../walkthroughs/LC743_master.html">
+      <span class="xref-card xref-coming">
         <span class="ref-file">walkthroughs/LC743_master.html</span>
         <span class="ref-title">LC 743 — Network Delay Time (Medium · attempt)</span>
         <span class="ref-desc">Classic single-source Dijkstra you solve cold — sum relaxation, answer = max finalized distance, −1 if any node unreachable. Graduated hints. No solution shown.</span>
-      </a>
-      <a class="xref-card" href="../../walkthroughs/LC787_master.html">
+      </span>
+      <span class="xref-card xref-coming">
         <span class="ref-file">walkthroughs/LC787_master.html</span>
         <span class="ref-title">LC 787 — Cheapest Flights Within K Stops (Medium · target)</span>
         <span class="ref-desc">Constrained Dijkstra — augment the vertex with stops used, index dist by (node, stops). Frame and hints only; no solution shown.</span>
-      </a>
+      </span>
     </div>
-    <div class="co-note" style="margin-top:12px"><strong>Note:</strong> LC743 and LC787 are solve-it-yourself problems of this family; their pages are coaches (problem, edge cases, signals, hints) with no solution, per the study-plan spoiler rule. LC1631 is the fully-worked walkthrough.</div>
+    <div class="co-note u-mt-12"><strong>Note:</strong> LC743 and LC787 are solve-it-yourself problems of this family; their pages are coaches (problem, edge cases, signals, hints) with no solution, per the study-plan spoiler rule. LC1631 is the fully-worked walkthrough.</div>
   </section>
 
   <hr class="wiki-hr">
 
   <!-- 14. Solo problem -->
-  <section id="solo">
+  <section id="solo" data-toc-label="Solo Problem">
     <h2>14 &nbsp; Solo Problem — no solution on this page</h2>
     <div class="solo-box">
       <div class="solo-banner">Solo problem — no solution on this page</div>
@@ -472,7 +457,8 @@ heap.push((<span class="nm">0</span>, source))
 </main>
 </div>
 
-<script src="../../_shared/pages.js"></script>
+<script src="../../_shared/manifest.js"></script>
 <script src="../../_shared/nav.js"></script>
+<script src="../../_shared/toc.js"></script>
 </body>
 </html>

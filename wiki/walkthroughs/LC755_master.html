@@ -4,6 +4,19 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LC 755 — Pour Water · Walkthrough Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "LC 755 — Pour Water",
+  "nav": "LC 755",
+  "topics": [
+    "Strings",
+    "Simulation",
+    "Arrays"
+  ],
+  "blurb": "Physics / grid simulation (Variant 8.3) — settle each unit by reachable-min scan, stop at first rise, left ties win. Full solution, code dry run, Q→code map, interview simulation, follow-ups.",
+  "difficulty": "M"
+}
+</script>
 <link rel="stylesheet" href="../_shared/wiki.css">
 <link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 </head>
@@ -12,28 +25,6 @@
 <nav id="topnav" class="topnav"></nav>
 
 <div class="page">
-
-<!-- ── TOC ── -->
-<nav class="toc-col">
-  <div class="toc-inner">
-    <div class="toc-title toc-cat-walkthrough">Walkthrough · Contents</div>
-    <a href="#lead"        class="toc-link"><span class="toc-num">1</span> The Problem</a>
-    <a href="#reading"     class="toc-link"><span class="toc-num">2</span> Reading the Problem</a>
-    <a href="#edge-cases"  class="toc-link"><span class="toc-num">3</span> Edge Case Inventory</a>
-    <a href="#hints"       class="toc-link"><span class="toc-num">4</span> Try It Yourself First</a>
-    <a href="#simulation"  class="toc-link"><span class="toc-num">5</span> Interview Simulation</a>
-    <a href="#approach"    class="toc-link"><span class="toc-num">6</span> Approach Rationale</a>
-    <a href="#ds"          class="toc-link"><span class="toc-num">7</span> Data Structure Choice</a>
-    <a href="#pseudocode"  class="toc-link"><span class="toc-num">8</span> Pseudocode Dry Run</a>
-    <a href="#solution"    class="toc-link"><span class="toc-num">9</span> Swift Solution</a>
-    <a href="#dryrun"      class="toc-link"><span class="toc-num">10</span> Code Dry Run</a>
-    <a href="#qmap"        class="toc-link"><span class="toc-num">11</span> Question → Code Map</a>
-    <a href="#complexity"  class="toc-link"><span class="toc-num">12</span> Complexity</a>
-    <a href="#followup"    class="toc-link"><span class="toc-num">13</span> Follow-up Questions</a>
-    <a href="#decoder"     class="toc-link"><span class="toc-num">14</span> Theory Decoder</a>
-    <a href="#parent"      class="toc-link"><span class="toc-num">15</span> Parent Theory</a>
-  </div>
-</nav>
 
 <!-- ── CONTENT ── -->
 <main class="content">
@@ -45,7 +36,7 @@
   </div>
 
   <!-- 1. Title block & infobox -->
-  <section id="lead">
+  <section id="lead" data-toc-label="The Problem">
     <div class="infobox">
       <div class="infobox-title">Problem at a Glance</div>
       <div class="infobox-row"><div class="infobox-k">Difficulty</div><div class="infobox-v"><span class="tag tag-M">Medium</span></div></div>
@@ -75,7 +66,7 @@
   <hr class="wiki-hr">
 
   <!-- 2. Reading the Problem -->
-  <section id="reading">
+  <section id="reading" data-toc-label="Reading the Problem">
     <h2>2 &nbsp; Reading the Problem — insights from the constraints</h2>
 
     <div class="co-insight"><strong>"One unit at a time":</strong> units do not settle simultaneously — each settles completely before the next is dropped, against the terrain as mutated by all earlier drops. The heights array is both input state and output; mutate it in place.</div>
@@ -101,7 +92,7 @@
   <hr class="wiki-hr">
 
   <!-- 3. Edge case inventory -->
-  <section id="edge-cases">
+  <section id="edge-cases" data-toc-label="Edge Case Inventory">
     <h2>3 &nbsp; Edge Case Inventory</h2>
     <p>Verbalize each one before you code. These are the specification — not tests to add after.</p>
     <table class="t-edge">
@@ -122,7 +113,7 @@
   <hr class="wiki-hr">
 
   <!-- 4. Hints -->
-  <section id="hints">
+  <section id="hints" data-toc-label="Try It Yourself First">
     <h2>4 &nbsp; Try It Yourself First</h2>
     <p>Attempt before reading further. Open hints one at a time.</p>
     <details class="hint"><summary>Hint 1 — the outer shape</summary><p>With W and V both small, you can afford to fully re-simulate each single drop from scratch. The outer loop runs V times; inside it you settle exactly one unit. The heights array is shared state — mutate it in place.</p></details>
@@ -134,14 +125,14 @@
   <hr class="wiki-hr">
 
   <!-- 5. Interview Simulation -->
-  <section id="simulation">
+  <section id="simulation" data-toc-label="Interview Simulation">
     <h2>5 &nbsp; Interview Simulation</h2>
 
     <div class="sim-block">
       <div class="sim-header">INTERVIEW SIMULATION — SAY THIS OUT LOUD</div>
       <div class="sim-body">
 
-        <div class="sim-header" style="font-size:12px;margin-bottom:12px;">5a &nbsp; Clarifying Questions</div>
+        <div class="sim-header sim-subheader">5a &nbsp; Clarifying Questions</div>
 
         <div class="sim-q">Q: "When water can flow equally low to the left and to the right, which side does it settle on?"</div>
         <div class="sim-a">A: Left. <strong>→ I must try the left scan completely before looking right. A symmetric valley always sends water left.</strong></div>
@@ -155,7 +146,7 @@
         <div class="sim-q">Q: "Is K always in range, and can K be at the edge of the array?"</div>
         <div class="sim-a">A: K is always valid, and can be 0 or W-1. <strong>→ I need a bounds guard on each side — no left scan when K=0, no right scan when K=W-1.</strong></div>
 
-        <div class="sim-header" style="font-size:12px;margin:16px 0 12px;">5b &nbsp; Say-Out-Loud Plan</div>
+        <div class="sim-header sim-subheader">5b &nbsp; Say-Out-Loud Plan</div>
 
         <div class="speech">
 "This is a physics simulation — Variant 8.3 in the simulation family. Each unit falls one at a time and settles by a deterministic local rule, so the outer shape is a loop over V drops. The heights array is both the state and the answer; I mutate it in place. The difficulty is entirely in the inner settle rule.
@@ -181,7 +172,7 @@ Time is O(V × W) — each drop scans at most the full width. Space is O(W) for 
   <hr class="wiki-hr">
 
   <!-- 6. Approach rationale -->
-  <section id="approach">
+  <section id="approach" data-toc-label="Approach Rationale">
     <h2>6 &nbsp; Approach Selection Rationale</h2>
     <table class="t-versus">
       <thead><tr><th>Candidate</th><th>Why it loses / ties</th></tr></thead>
@@ -198,7 +189,7 @@ Time is O(V × W) — each drop scans at most the full width. Space is O(W) for 
   <hr class="wiki-hr">
 
   <!-- 7. Data structure choice -->
-  <section id="ds">
+  <section id="ds" data-toc-label="Data Structure Choice">
     <h2>7 &nbsp; Data Structure Choice</h2>
     <table class="t-versus">
       <thead><tr><th>Structure</th><th>Role</th><th>Why this, not another</th></tr></thead>
@@ -214,10 +205,10 @@ Time is O(V × W) — each drop scans at most the full width. Space is O(W) for 
   <hr class="wiki-hr">
 
   <!-- 8. Pseudocode dry run -->
-  <section id="pseudocode">
+  <section id="pseudocode" data-toc-label="Pseudocode Dry Run">
     <h2>8 &nbsp; Pseudocode Dry Run</h2>
 
-    <div class="code-label"><span class="code-lang" style="background:#f0f0ff;color:#5b3ea8;border-color:#d4c5f9;">PSEUDOCODE</span><span class="code-desc">LC 755 — Pour Water settle rule</span></div>
+    <div class="code-label"><span class="code-lang lang-pseudo">PSEUDOCODE</span><span class="code-desc">LC 755 — Pour Water settle rule</span></div>
     <pre class="pseudo">
 func pourWater(heights, volume, dropIndex):
     for each drop in 1...volume:
@@ -264,7 +255,7 @@ func pourWater(heights, volume, dropIndex):
   <hr class="wiki-hr">
 
   <!-- 9. Swift solution -->
-  <section id="solution">
+  <section id="solution" data-toc-label="Swift Solution">
     <h2>9 &nbsp; Swift Solution</h2>
 
     <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">LC 755 — Pour Water · reachable-min settle scan</span></div>
@@ -307,15 +298,15 @@ func pourWater(heights, volume, dropIndex):
 
     <div class="co-insight"><strong>Why two helper functions?</strong> The left and right scans are structurally identical except for direction and bounds. Extracting them names the operation ("settle left"), makes the main loop read like the spoken plan, and removes the need for <code>continue</code> after each settle. The <code>inout</code> parameter avoids copying the array on each call.</div>
 
-    <div style="margin-top:32px;border:1px solid #c8ccd1;border-radius:4px;overflow:hidden;">
-      <div style="background:#eaecf0;padding:10px 16px;display:flex;align-items:baseline;gap:12px;">
-        <span style="font:700 11px 'Source Code Pro',monospace;color:#3366cc;background:#eaf3fb;padding:2px 8px;border-radius:3px;border:1px solid #c8ddf0;">A.1</span>
-        <span style="font:700 16px 'Source Sans 3',sans-serif;color:#202122;">Single nested helper — reachable-min via ClosedRange scan</span>
+    <div class="solution-block u-mt-32">
+      <div class="block-header">
+        <span class="block-badge">A.1</span>
+        <span class="block-name">Single nested helper — reachable-min via ClosedRange scan</span>
       </div>
-      <div style="padding:20px 24px;">
+      <div class="u-pad-20-24">
         <div class="co-tip"><strong>PLAN</strong> — Same reachable-min settle rule, different structure. Instead of two top-level <code>inout</code> helpers, a single private inner function <code>getReachableMinIndex(scanning:leftward:)</code> handles both directions. It receives the full range to scan as a <code>ClosedRange&lt;Int&gt;</code> and a <code>leftward</code> flag that reverses iteration order. The caller compares the returned optional index against <code>heights[dropIndex]</code> to decide whether to settle there, making the settle-or-not logic visible in one place.</div>
 
-        <div class="code-label" style="margin-top:20px;"><span class="code-lang lang-swift">Swift</span><span class="code-desc">LC 755 — Pour Water · A.1 single nested helper</span></div>
+        <div class="code-label u-mt-20"><span class="code-lang lang-swift">Swift</span><span class="code-desc">LC 755 — Pour Water · A.1 single nested helper</span></div>
         <pre class="swift">
 <span class="kw">private func</span> <span class="fn">pourWater</span>(_ heights: [<span class="tp">Int</span>], _ volume: <span class="tp">Int</span>, _ dropIndex: <span class="tp">Int</span>) -> [<span class="tp">Int</span>] {
     <span class="kw">var</span> currentHeightMap = heights
@@ -361,10 +352,10 @@ func pourWater(heights, volume, dropIndex):
   <hr class="wiki-hr">
 
   <!-- 10. Code dry run -->
-  <section id="dryrun">
+  <section id="dryrun" data-toc-label="Code Dry Run">
     <h2>10 &nbsp; Code Dry Run</h2>
 
-    <div class="code-label"><span class="code-lang" style="background:#f4f8ff;color:#3366cc;border-color:#c8ddf0;">TRACE</span><span class="code-desc">Input: heights=[2,1,1,2,1,2,2], volume=4, dropIndex=3</span></div>
+    <div class="code-label"><span class="code-lang lang-trace">TRACE</span><span class="code-desc">Input: heights=[2,1,1,2,1,2,2], volume=4, dropIndex=3</span></div>
     <pre class="dry">
 ────────────────────────────────
 /code-dry-run
@@ -454,7 +445,7 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 11. Question → Code Map -->
-  <section id="qmap">
+  <section id="qmap" data-toc-label="Question → Code Map">
     <h2>11 &nbsp; Question → Code Map</h2>
     <table class="t-qmap">
       <thead><tr><th>Clarifying question / decision</th><th>The code it became</th></tr></thead>
@@ -472,7 +463,7 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 12. Complexity -->
-  <section id="complexity">
+  <section id="complexity" data-toc-label="Complexity">
     <h2>12 &nbsp; Complexity</h2>
     <table class="t-cmx">
       <thead><tr><th>Variant</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
@@ -480,7 +471,7 @@ RESULT
         <tr><td>Reachable-min settle scan (this solution)</td><td><code>O(V × W)</code></td><td><code>O(W)</code></td><td>V drops × at most W columns scanned per drop. heightMap is O(W); all other state is O(1).</td></tr>
       </tbody>
       <tfoot>
-        <tr style="background:#fef6e7"><td colspan="4"><strong>Bottleneck:</strong> V × W is unavoidable — each drop requires a scan of potentially the full width, and you must process all V drops. The constraints (V, W ≤ 100) make this ~10,000 ops at worst — negligible.</td></tr>
+        <tr class="u-bg-caution"><td colspan="4"><strong>Bottleneck:</strong> V × W is unavoidable — each drop requires a scan of potentially the full width, and you must process all V drops. The constraints (V, W ≤ 100) make this ~10,000 ops at worst — negligible.</td></tr>
       </tfoot>
     </table>
     <div class="co-note"><strong>Amortized note:</strong> in practice the left and right scans together cover at most W columns total per drop (left covers 0..K-1, right covers K+1..W-1). So the per-drop cost is W, not 2W, once you split correctly. This is the same savings as observing left + right slices = W.</div>
@@ -489,26 +480,26 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 13. Follow-up questions -->
-  <section id="followup">
+  <section id="followup" data-toc-label="Follow-up Questions">
     <h2>13 &nbsp; Follow-up Questions</h2>
 
     <div class="co-when"><strong>Follow-up 1 — Before you push this to production, can you see any improvements?</strong><br>
     The main optimization opportunity is caching the settle position across drops when the terrain is flat. Currently we re-scan from K every drop even when nothing changed. In the worst case (flat terrain, all drops stack at K) we do V full scans and find nothing each time — still O(V × W), but with V × W wasted comparisons. You could short-circuit by remembering "last drop settled here, terrain only changed at that one index" and doing a narrower re-scan. In practice with W, V ≤ 100 this is irrelevant, but at scale it matters.</div>
 
-    <div class="co-when" style="margin-top:12px"><strong>Follow-up 2 — What if V is very large (millions of drops)?</strong><br>
+    <div class="co-when u-mt-12"><strong>Follow-up 2 — What if V is very large (millions of drops)?</strong><br>
     Binary search on the answer: the total water volume is fixed, so you can determine the final water level mathematically. The terrain fills up like a histogram — binary search on the final water surface height, compute how much volume that level holds, and adjust. O(W log(max_height)) instead of O(V × W). Only correct when water doesn't flow out of bounds.</div>
 
-    <div class="co-when" style="margin-top:12px"><strong>Follow-up 3 — What if drops can land at different K values?</strong><br>
+    <div class="co-when u-mt-12"><strong>Follow-up 3 — What if drops can land at different K values?</strong><br>
     Each drop is now independent with its own K. The algorithm is unchanged — just replace the fixed <code>dropIndex</code> with the per-drop K from an input array. Still O(V × W) total.</div>
 
-    <div class="co-when" style="margin-top:12px"><strong>Follow-up 4 — What is LC 42 Trapping Rain Water, and how does it relate?</strong><br>
+    <div class="co-when u-mt-12"><strong>Follow-up 4 — What is LC 42 Trapping Rain Water, and how does it relate?</strong><br>
     LC 42 asks how much water the terrain can hold at maximum fill — a prefix/suffix max scan, O(n) time, O(1) space. LC 755 asks where individual drops settle by a local rule — a simulation, O(V × W). Related terrain, completely different questions: 42 is a math problem, 755 is a simulation. See <a href="LC42_master.html">LC42_master.html</a> for the two-pointer approach.</div>
   </section>
 
   <hr class="wiki-hr">
 
   <!-- 14. Theory Decoder -->
-  <section id="decoder">
+  <section id="decoder" data-toc-label="Theory Decoder">
     <h2>14 &nbsp; Theory Decoder</h2>
     <p>Concepts this solution borrowed from the simulation family (Variant 8.3), explained as used here.</p>
 
@@ -529,7 +520,7 @@ RESULT
   <hr class="wiki-hr">
 
   <!-- 15. Back-reference -->
-  <section id="parent">
+  <section id="parent" data-toc-label="Parent Theory">
     <h2>15 &nbsp; Parent Theory</h2>
     <div class="ref-grid">
       <a class="backref-card" href="../theory/strings/text_formatting_deep_dive_master.html">
@@ -549,7 +540,8 @@ RESULT
 </main>
 </div>
 
-<script src="../_shared/pages.js"></script>
+<script src="../_shared/manifest.js"></script>
 <script src="../_shared/nav.js"></script>
+<script src="../_shared/toc.js"></script>
 </body>
 </html>
