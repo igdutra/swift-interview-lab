@@ -28,8 +28,8 @@ function usageLines(): string {
     .flatMap((domain) => domain.categories)
     .map((eachCategory) =>
       eachCategory.layout === "sections"
-        ? `  node wiki/engine/commands/new-page.ts ${eachCategory.identifier} <section> <filename>`
-        : `  node wiki/engine/commands/new-page.ts ${eachCategory.identifier} <filename>`,
+        ? `  npm run new ${eachCategory.identifier} <section> <filename>`
+        : `  npm run new ${eachCategory.identifier} <filename>`,
     )
     .join("\n");
 }
@@ -120,5 +120,5 @@ console.log(`created ${relativePath}`);
 console.log("\nnext steps:");
 console.log("  1. Fill the data-page-meta block (title, nav, topics, blurb).");
 console.log("  2. Write the sections (see the wiki skill's format references).");
-console.log("  3. node wiki/engine/commands/build.ts");
-console.log("  4. node wiki/engine/commands/check.ts");
+console.log("  3. npm run build");
+console.log("  4. npm run check");

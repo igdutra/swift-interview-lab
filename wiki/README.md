@@ -26,15 +26,17 @@ Inside `engine/`: `commands/` (the 4 things you run) · `lib/` (internals, incl.
 
 ## Commands
 
+From `wiki/` (zero-install — `npm run` just launches Node, no `node_modules`):
+
 ```bash
-node wiki/engine/commands/build.ts    # regenerate static/generated/manifest.js from the pages
-node wiki/engine/commands/check.ts    # validate everything — must be green before committing
-node wiki/engine/commands/serve.ts    # http://localhost:5050
-node wiki/engine/commands/new-page.ts # scaffold a page (run with no args for usage)
-tsc -p wiki/engine/browser            # recompile static/generated/nav.js + toc.js after editing browser/*.ts
+npm run serve     # http://localhost:5050
+npm run build     # regenerate static/generated/manifest.js from the pages
+npm run check     # validate everything — must be green before committing
+npm run new       # scaffold a page (run with no args for usage)
+npm run browser   # recompile static/generated/nav.js + toc.js after editing browser/*.ts
 ```
 
-Validator warnings go to stderr — run `node wiki/engine/commands/check.ts 2>&1` to see them.
+Validator warnings go to stderr — run `npm run check 2>&1` to see them.
 
 ## How it works — disk is truth
 
@@ -74,12 +76,12 @@ To stand up a wiki on a new topic in a fresh repo: **copy `engine/` +
 
 ## Add a page
 
-1. `node wiki/engine/commands/new-page.ts theory <section> <file>_master.html`
-   (or `walkthroughs LC{n}_master.html`, or `reference <file>.html`)
+1. `npm run new theory <section> <file>_master.html`
+   (or `npm run new walkthroughs LC{n}_master.html`, or `npm run new reference <file>.html`)
 2. Fill the `data-page-meta` block and write the sections — formats live in
    `.claude/skills/wiki/references/`.
 3. Cross-link both ways (walkthrough ↔ parent theory); the validator warns
    about unclosed loops.
-4. `node wiki/engine/commands/build.ts && node wiki/engine/commands/check.ts` — must be green.
+4. `npm run build && npm run check` — must be green.
 
 The page appears in the nav and hub grids automatically.
