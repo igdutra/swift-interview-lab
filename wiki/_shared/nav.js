@@ -20,16 +20,19 @@
     const wikiRootUrl = scriptSource.endsWith(NAV_SCRIPT_SUFFIX)
         ? scriptSource.slice(0, scriptSource.length - NAV_SCRIPT_SUFFIX.length)
         : "./";
-    // --- current page: exact match against manifest keys ------------------
+    // --- current page: pathname relative to the wiki root -----------------
+    // Suffix-matching manifest keys is ambiguous: every hub's .../index.html
+    // also ends with the root home's key "index.html". Resolving against the
+    // root URL gives exactly one candidate at any mount depth.
     const rawPathname = decodeURIComponent(location.pathname);
     const normalizedPathname = rawPathname.endsWith("/") ? `${rawPathname}index.html` : rawPathname;
-    let currentPath = null;
-    for (const pagePath of Object.keys(WIKI_MANIFEST.pages)) {
-        if (normalizedPathname === `/${pagePath}` || normalizedPathname.endsWith(`/${pagePath}`)) {
-            currentPath = pagePath;
-            break;
-        }
-    }
+    const wikiRootPathname = wikiRootUrl === "./" ? null : new URL(wikiRootUrl).pathname;
+    const candidatePath = wikiRootPathname !== null && normalizedPathname.startsWith(wikiRootPathname)
+        ? normalizedPathname.slice(wikiRootPathname.length)
+        : null;
+    const currentPath = candidatePath !== null && Object.prototype.hasOwnProperty.call(WIKI_MANIFEST.pages, candidatePath)
+        ? candidatePath
+        : null;
     const currentRecord = currentPath !== null ? WIKI_MANIFEST.pages[currentPath] : null;
     function escapeHtml(text) {
         return text

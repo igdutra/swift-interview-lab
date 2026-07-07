@@ -58,6 +58,9 @@ const server = createServer((request, response) => {
 
   response.statusCode = 200;
   response.setHeader("Content-Type", MIME_TYPES[extname(filePath)] ?? "application/octet-stream");
+  // Without this, browsers heuristically cache assets and keep serving a
+  // stale wiki.css/nav.js across editing sessions.
+  response.setHeader("Cache-Control", "no-store");
   response.end(readFileSync(filePath));
 });
 
