@@ -6,7 +6,7 @@ import { readdirSync } from "node:fs";
 import { join } from "node:path";
 
 /** Folders under wiki/ that never contain content pages. */
-const EXCLUDED_FOLDERS = new Set(["_shared", "_standards", "tools", "assets", "node_modules"]);
+const EXCLUDED_FOLDERS = new Set(["_shared", "tools", "assets", "node_modules"]);
 
 /**
  * Returns wiki-relative paths (forward slashes) of every .html file,

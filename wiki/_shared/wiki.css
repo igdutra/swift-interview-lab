@@ -1,6 +1,7 @@
 /* ============================================================
    wiki.css — single source of truth for the study wiki.
-   Implements wiki/_standards/WIKI_CSS_STYLE_RESEARCH.md section by section.
+   Closed class vocabulary — documented in
+   .claude/skills/wiki/references/css-vocabulary.md; extend here first.
    Pages must not carry inline <style> beyond a 10-line override.
    ============================================================ */
 
