@@ -1,0 +1,13 @@
+{
+  "name": "study-wiki",
+  "private": true,
+  "type": "module",
+  "description": "Static study wiki. Zero-install: these scripts just launch Node (type stripping) — no npm install, no node_modules, ever.",
+  "scripts": {
+    "serve": "node engine/commands/serve.ts",
+    "build": "node engine/commands/build.ts",
+    "check": "node engine/commands/check.ts",
+    "new": "node engine/commands/new-page.ts",
+    "browser": "tsc -p engine/browser"
+  }
+}

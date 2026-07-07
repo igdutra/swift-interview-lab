@@ -8,20 +8,24 @@ Personal LeetCode practice environment in Swift, plus a self-hosted study wiki.
 that problem; the wiki is where the *pattern* gets distilled so it survives past
 the session — theory pages per technique (recognition signals, invariants,
 template code, common bugs) and per-problem walkthroughs written as spoken
-interview scripts. Pages are plain HTML, no build step.
+interview scripts. Pages are plain hand-authored HTML; a zero-dependency
+TypeScript engine (no `npm install`, ever) builds the manifest, validates
+every page, and serves the site.
 
 ![Sliding Window theory page](assets/wiki-sliding-window.png)
 
 Run it locally:
 
 ```bash
-cd wiki && python3 -m http.server 5050
+cd wiki && npm run serve
 ```
 
-Then open <http://localhost:5050>. To add a page, drop the HTML file in the
-right folder and register it in `wiki/_shared/pages.js` — the nav bar and hub
-index update automatically (full checklist in
-`wiki/_standards/HOW_TO_ADD_PAGES.md`).
+Then open <http://localhost:5050> (zero-install — `npm run` just launches
+Node, no `node_modules`). To add a page: `npm run new`, fill in the sections,
+then `npm run build && npm run check`. The nav bar and hub index update
+automatically from the page's own metadata — no registry to edit. Full
+architecture and page formats live in the `wiki` skill (`.claude/skills/wiki/`)
+and `wiki/README.md`.
 
 ## Commit conventions
 
