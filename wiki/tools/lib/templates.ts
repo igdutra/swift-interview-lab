@@ -142,6 +142,40 @@ ${sectionMarkup}
 </main>`;
 }
 
+/**
+ * Reference pages are flat h2-driven documents: no <section> wrappers,
+ * the TOC is generated from bare <h2 id data-toc-label> headings.
+ */
+export function renderReferenceBody(pageTitle: string, metaLine: string): string {
+  const placeholderHeadings = ["TODO First Topic", "TODO Second Topic"]
+    .map(
+      (headingLabel, headingIndex) =>
+        `  <h2 id="todo-${headingIndex + 1}" data-toc-label="${escapeHtml(headingLabel)}"><span class="sec-num">${headingIndex + 1}</span> ${escapeHtml(headingLabel)}</h2>
+  <p>TODO</p>`,
+    )
+    .join("\n\n  <hr class=\"wiki-hr\">\n\n");
+
+  return `
+<main class="content">
+
+  <h1 class="page-title">${escapeHtml(pageTitle)}</h1>
+  <div class="page-meta">
+    ${metaLine}
+  </div>
+
+  <div class="lead">
+    <p>TODO — one paragraph describing this reference page.</p>
+  </div>
+
+${placeholderHeadings}
+
+  <div class="page-footer">
+    Study Wiki · ${escapeHtml(pageTitle)}
+  </div>
+
+</main>`;
+}
+
 export function renderHubBody(pageTitle: string, metaLine: string): string {
   return `
 <main class="content content-centered">

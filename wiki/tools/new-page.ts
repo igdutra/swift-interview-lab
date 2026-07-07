@@ -21,6 +21,7 @@ import { rootPrefixForDepth } from "./lib/derive.ts";
 import {
   renderArticleBody,
   renderPageShell,
+  renderReferenceBody,
   THEORY_SECTIONS,
   WALKTHROUGH_SECTIONS,
 } from "./lib/templates.ts";
@@ -89,18 +90,28 @@ const pageMeta: PageMeta = {
   ...(isWalkthrough ? { difficulty: "M" as const } : {}),
 };
 
-const titleSuffix = isWalkthrough ? "Walkthrough Masterfile" : category.layout === "sections" ? "Theory Masterfile" : "Study Wiki";
-const sections = isWalkthrough ? WALKTHROUGH_SECTIONS : THEORY_SECTIONS;
+const isTheory = category.layout === "sections";
+const titleSuffix = isWalkthrough ? "Walkthrough Masterfile" : isTheory ? "Theory Masterfile" : "Study Wiki";
 const metaLine = isWalkthrough
   ? "<span>Walkthrough Masterfile</span><span>·</span>\n    <span>Language: Swift</span><span>·</span>\n    <span>TODO — difficulty · pattern · one-line hook</span>"
-  : "<span>Theory Masterfile</span><span>·</span>\n    <span>TODO — topic line</span>";
+  : isTheory
+    ? "<span>Theory Masterfile</span><span>·</span>\n    <span>TODO — topic line</span>"
+    : "<span>Reference</span><span>·</span>\n    <span>TODO — topic line</span>";
+
+// Theory and walkthrough pages follow their masterfile section skeletons;
+// every other category (reference) gets the flat h2-driven document shape.
+const bodyContent = isWalkthrough
+  ? renderArticleBody(pageMeta.title, metaLine, WALKTHROUGH_SECTIONS)
+  : isTheory
+    ? renderArticleBody(pageMeta.title, metaLine, THEORY_SECTIONS)
+    : renderReferenceBody(pageMeta.title, metaLine);
 
 const pageHtml = renderPageShell({
   rootPrefix,
   htmlTitle: `${pageMeta.title} · ${titleSuffix}`,
   pageMeta,
   bodyCategory: category.pageBodyCategory,
-  bodyContent: renderArticleBody(pageMeta.title, metaLine, sections),
+  bodyContent,
 });
 
 writeFileSync(absolutePath, pageHtml);
