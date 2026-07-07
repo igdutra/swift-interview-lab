@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LC 125 — Valid Palindrome · Walkthrough Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "LC 125 — Valid Palindrome",
+  "nav": "LC 125",
+  "topics": [
+    "Two Pointers",
+    "Strings"
+  ],
+  "blurb": "Converging two pointers with in-place skip of non-alphanumeric characters. Single O(n) pass — no preprocessing, no cleaned copy. Covers the bounds-guard order gotcha and the Array(string) vs String.Index space tradeoff.",
+  "difficulty": "E"
+}
+</script>
+<link rel="stylesheet" href="../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="walkthrough">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">LC 125 — Valid Palindrome</h1>
+  <div class="page-meta">
+    <span>Walkthrough Masterfile</span><span>·</span>
+    <span>Language: Swift</span><span>·</span>
+    <span>Easy · Converging two pointers · In-place skip of non-alphanumeric characters</span>
+  </div>
+
+  <!-- 1. Restatement -->
+  <section id="lead" data-toc-label="The Problem">
+    <div class="infobox">
+      <div class="infobox-title">Problem at a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Difficulty</div><div class="infobox-v"><span class="tag tag-E">Easy</span></div></div>
+      <div class="infobox-row"><div class="infobox-k">Pattern</div><div class="infobox-v">Converging two pointers with in-place skip</div></div>
+      <div class="infobox-row"><div class="infobox-k">Tools</div><div class="infobox-v">left/right pointers · <code>isLetter</code> / <code>isNumber</code> · <code>lowercased()</code></div></div>
+      <div class="infobox-row"><div class="infobox-k">Key insight</div><div class="infobox-v">Skip non-alphanumeric characters on the fly — no preprocessing pass needed</div></div>
+      <div class="infobox-row"><div class="infobox-k">Time / Space</div><div class="infobox-v">O(n) / O(n) — O(1) achievable with String.Index</div></div>
+      <div class="infobox-row"><div class="infobox-k">Theory</div><div class="infobox-v mono"><a href="../theory/arrays/two_pointers_deep_dive_master.html">two_pointers_deep_dive_master.html</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p>Given a string, determine whether it is a <strong>palindrome</strong> after converting every uppercase letter to lowercase and removing all non-alphanumeric characters (anything that is not a letter or digit). An empty string — or a string that reduces to empty after cleaning — is considered a valid palindrome.</p>
+
+      <table class="t-example">
+        <thead><tr><th>Input</th><th>Output</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><code>"A man, a plan, a canal: Panama"</code></td><td><code>true</code></td><td>Cleaned: <code>"amanaplanacanalpanama"</code> — reads the same forward and backward</td></tr>
+          <tr><td><code>"race a car"</code></td><td><code>false</code></td><td>Cleaned: <code>"raceacar"</code> — <code>r</code>≠<code>r</code> at the ends but <code>e</code>≠<code>a</code> at the middle mismatch</td></tr>
+          <tr><td><code>" "</code></td><td><code>true</code></td><td>Cleaned: <code>""</code> — a string of pure whitespace has no alphanumeric characters; empty is a palindrome by convention</td></tr>
+        </tbody>
+      </table>
+
+      <p>The twist that makes this problem worth studying despite its Easy rating: the naive approach — build a cleaned string, reverse it, compare — works but allocates two extra strings. The elegant solution skips non-alphanumeric characters <em>on the fly</em> with inner skip loops, comparing pairs in a single left-to-right/right-to-left pass without ever building a cleaned copy.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Reading the problem -->
+  <section id="reading" data-toc-label="Reading the Problem">
+    <h2>2 &nbsp; Reading the Problem — insights from the statement</h2>
+
+    <div class="co-insight"><strong>"Only alphanumeric characters":</strong> this phrase does double duty. First, it defines what to skip — any character that is neither a letter (<code>isLetter</code>) nor a digit (<code>isNumber</code>) must be ignored, including spaces, punctuation, and special characters. Second, it implies no sorting, no counting, no frequency map — we only need a yes/no comparison. That Boolean output is the signal that two pointers with early return dominates any map-based approach.</div>
+
+    <div class="co-insight"><strong>"Converting all uppercase to lowercase":</strong> case folding must happen <em>after</em> we decide the character is alphanumeric — there is no point lowercasing a comma. In Swift, <code>Character.lowercased()</code> returns a <code>String</code>, not a <code>Character</code> — the comparison <code>stringArray[left].lowercased() != stringArray[right].lowercased()</code> is a String-vs-String comparison, which still works correctly but surprises readers expecting a Character-vs-Character result.</div>
+
+    <div class="co-insight"><strong>"Considering only alphanumeric characters" vs pre-filtering:</strong> you can either (a) build a filtered, lowercased array upfront and then run two pointers on it, or (b) advance the pointers past non-alphanumeric characters on the fly. Option (b) avoids a full preprocessing pass and keeps space O(1) — but both approaches are O(n). The key interview insight: whenever the problem says "consider only X characters," ask whether you can skip non-X characters in-line rather than in a separate pass.</div>
+
+    <table class="t-clue">
+      <thead><tr><th>Phrase / constraint</th><th>What it forces</th></tr></thead>
+      <tbody>
+        <tr><td>"alphanumeric characters only"</td><td>Skip any character that is not a letter or digit — use <code>isLetter || isNumber</code> as the guard</td></tr>
+        <tr><td>"converting to lowercase"</td><td>Normalize before comparing, after confirming alphanumeric — <code>.lowercased()</code> on both sides</td></tr>
+        <tr><td>Boolean return type</td><td>Two pointers with early <code>return false</code> dominates; no map or frequency count needed</td></tr>
+        <tr><td>1 ≤ s.length ≤ 2 × 10⁵</td><td>O(n) is the target; the constraint rules out O(n²) approaches</td></tr>
+        <tr><td>printable ASCII only</td><td>No Unicode edge cases — <code>isLetter</code> and <code>isNumber</code> are safe; no grapheme-cluster surprises</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Edge cases -->
+  <section id="edge-cases" data-toc-label="Edge Case Inventory">
+    <h2>3 &nbsp; Edge Case Inventory</h2>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected</th><th>Handled by</th></tr></thead>
+      <tbody>
+        <tr><td><code>" "</code> — whitespace only</td><td><code>true</code></td><td>Both inner skip loops advance past space; <code>left ≥ right</code> before any comparison — outer loop never executes the mismatch check</td></tr>
+        <tr><td><code>""</code> — empty string</td><td><code>true</code></td><td><code>rightPointer = -1</code> on array init; outer <code>while left &lt; right</code> is immediately false — returns <code>true</code></td></tr>
+        <tr><td><code>"a"</code> — single character</td><td><code>true</code></td><td><code>left=0, right=0</code>; <code>while left &lt; right</code> is false — returns <code>true</code> without comparison</td></tr>
+        <tr><td><code>",.!"</code> — all punctuation</td><td><code>true</code></td><td>Skip loops exhaust the array; <code>left ≥ right</code> before any comparison; returns <code>true</code></td></tr>
+        <tr><td><code>"AbBa"</code> — mixed case, no noise</td><td><code>true</code></td><td><code>lowercased()</code> normalizes A↔a and B↔b; all pairs match</td></tr>
+        <tr><td><code>"aa"</code> — two identical</td><td><code>true</code></td><td>One iteration: <code>left=0, right=1</code>, both are <code>"a"</code> after lowercasing — match, advance, loop exits</td></tr>
+        <tr><td><code>"ab"</code> — two different</td><td><code>false</code></td><td>One iteration: <code>"a" != "b"</code> → <code>return false</code> immediately</td></tr>
+        <tr><td><code>"race a car"</code> — almost palindrome</td><td><code>false</code></td><td>Cleaned: <code>"raceacar"</code>; mismatch at <code>e</code> vs <code>a</code> triggers early return</td></tr>
+      </tbody>
+    </table>
+
+    <div class="co-note"><strong>The empty-string gotcha:</strong> <code>Array("").count - 1 = -1</code>, and <code>var rightPointer = -1</code> makes the outer <code>while left &lt; right</code> condition (0 &lt; -1) immediately false. Swift's <code>Int</code> is signed, so this is safe — no underflow, no crash. If you used an unsigned index type, this would wrap around.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Hints -->
+  <section id="hints" data-toc-label="Try It Yourself First">
+    <h2>4 &nbsp; Try It Yourself First</h2>
+    <p>Attempt the problem before reading on. Open hints one at a time.</p>
+    <details class="hint"><summary>Hint 1 — the output type</summary><p>The function returns a <code>Bool</code>. What does that tell you about the data structure you need? Is there any reason to build a frequency map or count characters?</p></details>
+    <details class="hint"><summary>Hint 2 — the pattern</summary><p>You need to compare characters at opposite ends and work inward. What pointer setup gives you that? What do you do when the character at either pointer is not alphanumeric — skip it in a preprocessing step, or skip it inside the loop?</p></details>
+    <details class="hint"><summary>Hint 3 — the inner skip loops</summary><p>Use two nested <code>while</code> loops — one to advance the left pointer past non-alphanumeric characters, one to retreat the right pointer. The guard in each inner loop must be <code>leftPointer &lt; rightPointer &amp;&amp; !isAlphanumeric(…)</code> — the bounds check comes <em>first</em>, not last. After both inner loops settle, if <code>leftPointer &lt; rightPointer</code> still holds, compare the pair.</p></details>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Interview simulation -->
+  <section id="simulation" data-toc-label="Interview Simulation">
+    <h2>5 &nbsp; Interview Simulation</h2>
+    <p>The interviewer has stated the problem. The script starts with your first words — practice it out loud.</p>
+
+    <div class="sim-block" id="sim-questions" data-toc-label="5.1 Clarifying questions">
+      <div class="sim-header">Step 1 — Clarifying questions</div>
+      <div class="sim-body">
+        <div class="sim-q">Q: "By 'alphanumeric' do you mean the standard definition — letters A–Z, a–z, and digits 0–9? No accented characters or Unicode letters?"</div>
+        <div class="sim-a">A: Yes — standard ASCII alphanumeric only. <strong>→ <code>isLetter || isNumber</code> is the correct guard; no Unicode complications.</strong></div>
+
+        <div class="sim-q">Q: "An empty string, or a string that becomes empty after cleaning — is that a palindrome?"</div>
+        <div class="sim-a">A: Yes, treat it as a palindrome. <strong>→ I must return <code>true</code> when both pointers meet without finding a mismatch, including the case where they never ran at all.</strong></div>
+
+        <div class="sim-q">Q: "Is there a space preference — the obvious approach builds a cleaned string and reverses it, which is O(n) space. Should I aim for O(1) extra space?"</div>
+        <div class="sim-a">A: O(1) space would be ideal, but O(n) is acceptable. <strong>→ I'll do the two-pointer solution that skips characters on the fly. I'll note where the O(1) vs O(n) tradeoff lives.</strong></div>
+      </div>
+    </div>
+
+    <div class="sim-block" id="sim-plan" data-toc-label="5.2 The plan, spoken">
+      <div class="sim-header">Step 2 — The plan, before any code</div>
+      <div class="sim-body">
+        <div class="speech">
+          <div class="speech-kicker">The plan, spoken</div>
+          <p>"This is a two-pointer problem — the converging variant, comparing pairs from the outside in. The signal is: Boolean output, comparing characters at opposite positions. No frequency counting, no sorting — just equality checks."</p>
+          <p>"Before touching data structures, let me state the conditions. The validity condition is: every alphanumeric character, when lowercased, matches its mirror across the center of the string. The invalid condition is: any pair of alphanumeric characters that doesn't match — I can <code>return false</code> immediately. The loop runs while the left pointer is strictly less than the right pointer — when they meet or cross, all pairs checked, return true."</p>
+          <p>"The governing decision is whether to preprocess or skip in-place. I could first build a cleaned, lowercased array — one pass to filter, then a second pass to compare. That's clean but uses O(n) extra space. Instead, I'll skip non-alphanumeric characters on the fly with two inner while loops: one advancing the left pointer until it lands on an alphanumeric character, one retreating the right pointer until it does the same. After both inner loops settle, if the pointers haven't crossed, I compare and continue."</p>
+          <p>"The data structure: convert the string to a <code>[Character]</code> array — this gives me O(1) random access by integer index. Swift strings use <code>String.Index</code> natively, which avoids the O(n) array copy but makes the code more verbose; for an interview, the array version is cleaner to explain. I'll note the O(1)-space optimization as a follow-up."</p>
+          <p>"Expected complexity: O(n) time — each character is visited at most once across all three loops; O(n) space from the character array. I'll code it now."</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. Approach rationale -->
+  <section id="approach" data-toc-label="Why This Approach">
+    <h2>6 &nbsp; Why This Approach — and not the others</h2>
+    <table class="t-versus">
+      <thead><tr><th>Candidate</th><th>Cost</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>Build cleaned string, reverse, compare</td><td>O(n) time, O(n) space</td><td>Correct and readable, but allocates two extra strings — the reversed copy and the filtered copy. Fine as a first pass; not the interview-optimal answer.</td></tr>
+        <tr><td>Build cleaned array, then two-pointer on it</td><td>O(n) time, O(n) space</td><td>Same asymptotic cost, but at least eliminates the reverse copy. The filtering pass and the comparison pass are separate — the on-the-fly solution collapses them into one.</td></tr>
+        <tr><td><strong>Converging two pointers with inner skip loops</strong></td><td>O(n) time, O(n) space*</td><td><strong>Chosen.</strong> Single pass: skip + compare happens in one outer loop. Clearest demonstration of the converging-pointer pattern. (* O(1) space achievable with String.Index — see §13.)</td></tr>
+        <tr><td>Hashmap of character frequencies</td><td>O(n) time, O(1) space†</td><td>Works for even-length palindromes; for odd-length, exactly one character may have an odd count. More code, more edge cases, same complexity. Never reach for a map when a Boolean comparison suffices.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="co-idea">
+      <strong>THE ONE IDEA:</strong> the Boolean return type tells you everything. When a function returns <code>Bool</code>, any data structure that accumulates information to be inspected later — a map, a set, a frequency table — is already over-engineering. You need exactly one comparison per pair, and you can <code>return false</code> the instant that comparison fails. Two pointers with early return is the minimal structure that expresses this.
+    </div>
+
+    <div class="co-when"><strong>When to use converging two pointers over preprocessing + reverse:</strong> whenever you need to compare a sequence against its own mirror and you care about space — or whenever the interviewer asks "can you do it in one pass?" The skip-in-place pattern extends naturally to any "consider only X characters" variant.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Data structures -->
+  <section id="structures" data-toc-label="Data Structures">
+    <h2>7 &nbsp; Data Structures — choice and justification</h2>
+    <table class="t-decoder">
+      <thead><tr><th>Structure</th><th>Holds</th><th>Why this and not weaker</th></tr></thead>
+      <tbody>
+        <tr><td><code>stringArray: [Character]</code></td><td>The input string as a random-access array of characters</td><td>Swift's <code>String</code> does not support O(1) integer indexing — <code>s[2]</code> is illegal. <code>Array(string)</code> gives a <code>[Character]</code> with O(1) subscript access. Cost: O(n) extra space for the copy. Alternative: use <code>String.Index</code> directly on the original string for O(1) space, at the cost of more verbose index arithmetic.</td></tr>
+        <tr><td><code>leftPointer: Int</code>, <code>rightPointer: Int</code></td><td>Current positions of the two converging pointers</td><td>Two integers replace any map, set, or auxiliary array. The outer loop terminates when they cross; the inner skip loops advance each one past non-alphanumeric characters without needing any storage.</td></tr>
+        <tr><td><code>isAlphanumeric(_:)</code></td><td>Helper predicate: <code>character.isLetter || character.isNumber</code></td><td>Extracted to a named function so the inner loop conditions read as intent, not as a compound boolean expression. In Swift, <code>isLetter</code> covers Unicode letters; on printable ASCII inputs, it behaves identically to a range check on ASCII values.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="co-note"><strong>Swift gotcha — <code>.lowercased()</code> returns String, not Character:</strong> calling <code>character.lowercased()</code> on a <code>Character</code> in Swift returns a <code>String</code>, not a <code>Character</code>. The expression <code>stringArray[left].lowercased() != stringArray[right].lowercased()</code> is therefore a <code>String</code> comparison — which works correctly, but surprises anyone who expects a <code>Character</code>-to-<code>Character</code> comparison. This is by design: <code>lowercased()</code> can expand a character to multiple code points in some Unicode locales.</div>
+
+    <div class="co-note"><strong>Swift gotcha — cast the Array conversion:</strong> <code>Array(string)</code> returns <code>[Character]</code>, but Swift's type inference sometimes needs a hint. Writing <code>let stringArray = Array(string) as [Character]</code> prevents the compiler from inferring an ambiguous type and documents the intent explicitly.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 8. Pseudocode + dry run -->
+  <section id="dryrun" data-toc-label="Pseudocode Dry Run">
+    <h2>8 &nbsp; Pseudocode Dry Run</h2>
+
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">converging two pointers with in-place skip</span></div>
+    <pre class="pseudo">chars ← Array(string) <span class="pc">// [Character], O(n) space</span>
+left  ← 0
+right ← chars.count − 1
+
+<span class="pk">WHILE</span> left &lt; right:
+
+    <span class="pc">// INNER SKIP LEFT: advance past non-alphanumeric, bounds-check first</span>
+    <span class="pk">WHILE</span> left &lt; right <span class="pk">AND NOT</span> isAlphanumeric(chars[left]):
+        left += 1
+
+    <span class="pc">// INNER SKIP RIGHT: retreat past non-alphanumeric, bounds-check first</span>
+    <span class="pk">WHILE</span> left &lt; right <span class="pk">AND NOT</span> isAlphanumeric(chars[right]):
+        right −= 1
+
+    <span class="pc">// COMPARE: both pointers are on alphanumeric characters</span>
+    <span class="pk">IF</span> lowercase(chars[left]) ≠ lowercase(chars[right]):
+        <span class="pk">RETURN</span> false   <span class="pc">// early exit — mismatch found</span>
+
+    left += 1
+    right −= 1
+
+<span class="pk">RETURN</span> true   <span class="pc">// all pairs matched (or no pairs to check)</span></pre>
+
+    <p>Trace on <code>"race a car"</code> → cleaned: <code>"raceacar"</code>, expected <code>false</code>:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">milestone steps — mismatch detected at 'e' vs 'a'</span></div>
+    <pre class="dry"><span class="tr-var">chars = ['r','a','c','e',' ','a',' ','c','a','r']  (indices 0..9)</span>
+left=0, right=9
+
+ITERATION 1
+  SKIP LEFT:  chars[0]='r' is alphanumeric → no skip
+  SKIP RIGHT: chars[9]='r' is alphanumeric → no skip
+  Compare: 'r'.lowercased()="r" == 'r'.lowercased()="r" <span class="tr-ok">MATCH</span>
+  left=1, right=8
+
+ITERATION 2
+  SKIP LEFT:  chars[1]='a' → no skip
+  SKIP RIGHT: chars[8]='a' → no skip
+  Compare: "a" == "a" <span class="tr-ok">MATCH</span>
+  left=2, right=7
+
+ITERATION 3
+  SKIP LEFT:  chars[2]='c' → no skip
+  SKIP RIGHT: chars[7]='c' → no skip
+  Compare: "c" == "c" <span class="tr-ok">MATCH</span>
+  left=3, right=6
+
+ITERATION 4
+  SKIP LEFT:  chars[3]='e' → no skip
+  SKIP RIGHT: chars[6]=' ' is NOT alphanumeric → right−=1 → right=5
+              chars[5]='a' → alphanumeric, stop
+  Compare: chars[3]='e' vs chars[5]='a'
+  "e" != "a" → <span class="tr-bad">RETURN false</span></pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 9. Swift solution -->
+  <section id="swift" data-toc-label="Swift Solution">
+    <h2>9 &nbsp; Swift Solution</h2>
+
+    <div class="solution-block">
+      <div class="block-header">
+        <span class="block-badge">A.1</span>
+        <span class="block-name">Converging two pointers — in-place skip &nbsp;<span class="u-tip-inline">(canonical)</span></span>
+        <div class="block-pills"><span class="pill pill-t">O(n)</span><span class="pill pill-s">O(n)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="approach-box">
+          <div class="approach-title">Plan</div>
+          Convert the string to a <code>[Character]</code> array for O(1) index access. Run left/right pointers from the ends. Two inner while loops advance each pointer past non-alphanumeric characters — the bounds check (<code>left &lt; right</code>) must precede the character test to avoid out-of-bounds access. After both skip loops settle, compare the pair lowercased; <code>return false</code> on any mismatch. Advance both pointers and repeat. Return <code>true</code> when the pointers meet.
+        </div>
+
+        <pre class="swift"><span class="kw">private func</span> <span class="fn">isAlphanumeric</span>(<span class="kw">_</span> character: <span class="tp">Character</span>) -&gt; <span class="tp">Bool</span> {
+    character.isLetter || character.isNumber
+}
+
+<span class="kw">private func</span> <span class="fn">isValidPalindrome</span>(<span class="kw">_</span> string: <span class="tp">String</span>) -&gt; <span class="tp">Bool</span> {
+    <span class="kw">let</span> stringArray = <span class="tp">Array</span>(string) <span class="kw">as</span> [<span class="tp">Character</span>]
+    <span class="kw">var</span> leftPointer = <span class="nm">0</span>
+    <span class="kw">var</span> rightPointer = stringArray.count - <span class="nm">1</span>
+
+    <span class="kw">while</span> leftPointer &lt; rightPointer {
+        <span class="cm">// Bounds check FIRST, then character test — order matters.</span>
+        <span class="kw">while</span> leftPointer &lt; rightPointer && !<span class="fn">isAlphanumeric</span>(stringArray[leftPointer]) {
+            leftPointer += <span class="nm">1</span>
+        }
+        <span class="kw">while</span> leftPointer &lt; rightPointer && !<span class="fn">isAlphanumeric</span>(stringArray[rightPointer]) {
+            rightPointer -= <span class="nm">1</span>
+        }
+
+        <span class="kw">if</span> stringArray[leftPointer].lowercased() != stringArray[rightPointer].lowercased() {
+            <span class="kw">return false</span>
+        }
+
+        leftPointer += <span class="nm">1</span>
+        rightPointer -= <span class="nm">1</span>
+    }
+
+    <span class="kw">return true</span>
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 10. Code dry run -->
+  <section id="code-dry-run" data-toc-label="Code Dry Run">
+    <h2>10 &nbsp; Code Dry Run — A.1 Swift solution, traced</h2>
+    <p>Full debugger-style execution trace on the canonical example. Input: <code>"A man, a plan, a canal: Panama"</code> → expected <code>true</code>. The long gotcha-free middle stretch is compressed under the repeat cap after the first full iteration is traced.</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">full execution trace — /code-dry-run format</span></div>
+    <pre class="dry">────────────────────────────────
+/code-dry-run
+Problem: LC 125 — Valid Palindrome
+Input:   string = "A man, a plan, a canal: Panama"
+────────────────────────────────
+
+isValidPalindrome
+  stringArray   = ['A',' ','m','a','n',',',' ','a',' ','p','l','a','n',
+                   ',',' ','a',' ','c','a','n','a','l',':',' ','P','a',
+                   'n','a','m','a']   ↑ 30 characters, indices 0..29
+  leftPointer   = 0
+  rightPointer  = 29
+
+────────────────────────────────
+OUTER ITERATION 1  leftPointer=0  rightPointer=29
+────────────────────────────────
+
+  SKIP LEFT:  stringArray[0]='A'  isAlphanumeric? YES → no skip
+  SKIP RIGHT: stringArray[29]='a' isAlphanumeric? YES → no skip
+
+  Compare: 'A'.lowercased()="a"  vs  'a'.lowercased()="a"
+  "a" == "a"? YES → no mismatch
+  leftPointer=1, rightPointer=28
+
+  State: leftPointer=1, rightPointer=28
+
+────────────────────────────────
+OUTER ITERATION 2  leftPointer=1  rightPointer=28
+────────────────────────────────
+
+  SKIP LEFT:  stringArray[1]=' '  isAlphanumeric? NO
+    leftPointer &lt; rightPointer (1 &lt; 28)? YES → leftPointer=2
+    stringArray[2]='m'  isAlphanumeric? YES → stop
+  SKIP RIGHT: stringArray[28]='m' isAlphanumeric? YES → no skip
+
+  Compare: 'm'.lowercased()="m"  vs  'm'.lowercased()="m"
+  "m" == "m"? YES → no mismatch
+  leftPointer=3, rightPointer=27
+
+  State: leftPointer=3, rightPointer=27
+
+────────────────────────────────
+OUTER ITERATIONS 3 … 13  leftPointer=3 … 22  rightPointer=27 … 8
+────────────────────────────────
+
+  Each iteration follows the same pattern:
+    skip non-alphanumeric on left (spaces, commas, colons),
+    skip non-alphanumeric on right (spaces, colons),
+    compare lowercased pair — all match.
+
+  Pairs matched in order (cleaned string = "amanaplanacanalpanama"):
+    a/a · m/m · a/a · n/n · a/a · p/p · l/l · a/a · n/n · a/a · c/c
+                                           ↑ 11 pairs, all match
+  … continue this until leftPointer ≥ rightPointer
+
+────────────────────────────────
+OUTER LOOP EXIT  leftPointer=15  rightPointer=15
+────────────────────────────────
+
+  leftPointer(15) &lt; rightPointer(15)? NO → while exits
+  ↑ All 15 alphanumeric pairs matched; pointers met at the center 'a'
+
+────────────────────────────────
+RESULT
+────────────────────────────────
+
+  return true</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 11. Q→Code map -->
+  <section id="qmap" data-toc-label="Question → Code Map">
+    <h2>11 &nbsp; Question → Code Map</h2>
+    <p>Every clarifying question and plan decision became a specific construct:</p>
+    <table class="t-qmap">
+      <thead><tr><th>What you asked / planned</th><th>What it became</th></tr></thead>
+      <tbody>
+        <tr><td>"Standard ASCII alphanumeric — letters and digits only"</td><td><code>character.isLetter || character.isNumber</code> in <code>isAlphanumeric(_:)</code></td></tr>
+        <tr><td>"Empty / all-non-alphanumeric string is a palindrome"</td><td><code>while leftPointer &lt; rightPointer</code> — if pointers never enter the comparison, <code>return true</code> fires</td></tr>
+        <tr><td>"Skip non-alphanumeric on the fly — no preprocessing pass"</td><td>Two inner <code>while</code> loops inside the outer loop, each gated by <code>leftPointer &lt; rightPointer &amp;&amp; !isAlphanumeric(…)</code></td></tr>
+        <tr><td>"Bounds check BEFORE the character test in inner loops"</td><td><code>while leftPointer &lt; rightPointer &amp;&amp; !isAlphanumeric(…)</code> — short-circuit prevents out-of-bounds access</td></tr>
+        <tr><td>"Convert to lowercase before comparing"</td><td><code>stringArray[leftPointer].lowercased() != stringArray[rightPointer].lowercased()</code></td></tr>
+        <tr><td>"O(1) index access into the string"</td><td><code>let stringArray = Array(string) as [Character]</code> — converts String to indexable array</td></tr>
+        <tr><td>"Return false immediately on mismatch"</td><td><code>if … { return false }</code> inside the outer loop — no accumulation needed</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 12. Complexity -->
+  <section id="complexity" data-toc-label="Complexity">
+    <h2>12 &nbsp; Complexity</h2>
+    <table class="t-cmx">
+      <thead><tr><th>Phase</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Array conversion</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td><code>Array(string)</code> copies every character into a new buffer — one allocation, one pass</td></tr>
+        <tr><td>Outer loop + inner skip loops</td><td class="tc">O(n)</td><td class="sc">O(1)</td><td>Each character is visited by at most one pointer, at most once — total work across all three loops is bounded by n; the two pointer variables are the only extra state</td></tr>
+        <tr class="bottleneck"><td>Total</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td>The array copy dominates space; time is linear. The O(1)-space variant (using <code>String.Index</code> directly) is shown in §13.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="co-insight"><strong>Why each character is visited at most once:</strong> the left pointer only moves right; the right pointer only moves left. A character visited by the left skip loop is never revisited — the outer loop advances <code>leftPointer</code> past it. Same for the right skip loop. The three loops (outer, left inner, right inner) collectively perform at most 2n pointer moves total, not n × n.</div>
+
+    <div class="co-insight"><strong>The O(n) space from Array(string):</strong> Swift strings are not random-access collections by integer index — <code>s[i]</code> is illegal when <code>i</code> is an <code>Int</code>. Converting to <code>[Character]</code> is the straightforward way to get O(1) subscript access, at the cost of O(n) extra memory. The O(1)-space solution keeps the original <code>String</code> and uses <code>String.Index</code> with <code>index(after:)</code> / <code>index(before:)</code> — more verbose, but allocates nothing beyond the two index variables.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13. Follow-ups -->
+  <section id="followups" data-toc-label="Follow-Up Bank">
+    <h2>13 &nbsp; Follow-Up Bank — the interviewer's second act</h2>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Before you push this to production — can you see any improvements you'd make?"</div>
+      <div class="followup-a">The array copy in <code>Array(string)</code> allocates O(n) extra memory. The improvement is to drop it entirely and use <code>String.Index</code> directly on the original string: start with <code>var left = string.startIndex</code> and <code>var right = string.index(before: string.endIndex)</code>, advance with <code>string.index(after: left)</code> and <code>string.index(before: right)</code>. Same O(n) time, now O(1) space — no copy, no allocation. The trade-off is verbosity: Swift's index arithmetic is more explicit than integer arithmetic, which can hurt readability in an interview setting.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "What if the definition of 'palindrome' changes — at most one character can differ (the 'Valid Palindrome II' variant, LC 680)?"</div>
+      <div class="followup-a">On the first mismatch, instead of immediately returning false, you try two branches: skip the left character and check the remainder, or skip the right character and check the remainder. If either sub-range is a palindrome, return true. This is LC 680 — the key insight is that you only ever get one "skip" allowance, so you only branch on the first mismatch. Time stays O(n); no extra space needed beyond the recursive (or inline) sub-check.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Could you implement <code>isAlphanumeric</code> without using Swift's <code>isLetter</code> and <code>isNumber</code> — using ASCII values only?"</div>
+      <div class="followup-a">Yes — every printable ASCII alphanumeric falls in three ranges: digits 48–57 ('0'–'9'), uppercase letters 65–90 ('A'–'Z'), lowercase letters 97–122 ('a'–'z'). In Swift: <code>let ascii = character.asciiValue</code> and check the three ranges with <code>||</code>. This avoids any Unicode-aware property lookup and is slightly faster on ASCII-only inputs — relevant if the constraint "printable ASCII" is part of the problem spec.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "What if the string can contain Unicode — accented letters, CJK characters? Does your solution still work?"</div>
+      <div class="followup-a">Swift's <code>Character.isLetter</code> is already Unicode-aware — it returns <code>true</code> for accented characters like 'é' and CJK ideographs. Similarly, <code>lowercased()</code> handles Unicode case folding. The algorithm is correct as-is for Unicode. The only concern is that some Unicode characters lower-case to multiple code points (e.g., 'ß' → "ss") — <code>lowercased()</code> returns a <code>String</code> precisely to handle this, so the String-vs-String comparison remains correct. The ASCII range check from the previous follow-up would break on Unicode — <code>isLetter</code> is the right tool for the general case.</div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 14. Theory decoder -->
+  <section id="decoder" data-toc-label="Theory Decoder">
+    <h2>14 &nbsp; Theory Decoder — the theory as used here</h2>
+    <table class="t-decoder">
+      <thead><tr><th>General concept</th><th>Instantiated in this solution as</th><th>General form</th></tr></thead>
+      <tbody>
+        <tr><td>Converging two pointers</td><td><code>leftPointer = 0</code>, <code>rightPointer = n − 1</code>, meeting in the middle — comparing pairs symmetrically around the center</td><td><a href="../theory/arrays/two_pointers_deep_dive_master.html">theory — converging variant</a></td></tr>
+        <tr><td>In-place skip with bounds guard</td><td>Two inner <code>while</code> loops that advance each pointer past non-alphanumeric characters; the <code>left &lt; right</code> guard comes before the character test to prevent out-of-bounds access</td><td><a href="../theory/arrays/two_pointers_deep_dive_master.html">theory — pointer advancement patterns</a></td></tr>
+        <tr><td>Early return on mismatch</td><td><code>if … lowercased() != … lowercased() { return false }</code> — the Boolean output means any mismatch is final; no accumulation needed</td><td>General "return at first violation" pattern</td></tr>
+        <tr><td>Array conversion for O(1) subscript</td><td><code>Array(string) as [Character]</code> — Swift strings are not O(1) integer-indexed; converting to an array trades O(n) space for O(1) access per pointer move</td><td>Swift-specific constraint; see §13 for the O(1)-space alternative with <code>String.Index</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 15. Back-reference -->
+  <section id="parent" data-toc-label="Parent Theory">
+    <h2>15 &nbsp; Parent Theory</h2>
+    <p>This walkthrough instantiates the converging two-pointer pattern with an in-place character-skip. The parent page covers the full two-pointers theory:</p>
+    <div class="ref-grid">
+      <a class="backref-card" href="../theory/arrays/two_pointers_deep_dive_master.html">
+        <span class="ref-file">theory/arrays/two_pointers_deep_dive_master.html</span>
+        <span class="ref-title">Two Pointers — Deep Dive Masterfile</span>
+        <span class="ref-desc">The canonical reference for converging and fast/slow pointer patterns — the sort precondition, pointer advancement patterns, bounds-guard ordering, complexity analysis, and the pattern catalog. Its cross-reference section links back to this walkthrough.</span>
+      </a>
+    </div>
+  </section>
+
+  <div class="page-footer">
+    LC 125 — Valid Palindrome · Walkthrough Masterfile · Parent theory:
+    <a href="../theory/arrays/two_pointers_deep_dive_master.html">Two Pointers Deep Dive</a> ·
+    Structure per <code>.claude/skills/wiki/references/walkthrough-format.md</code>
+  </div>
+
+</main>
+</div>
+
+<script src="../static/generated/manifest.js"></script>
+<script src="../static/generated/nav.js"></script>
+<script src="../static/generated/toc.js"></script>
+</body>
+</html>

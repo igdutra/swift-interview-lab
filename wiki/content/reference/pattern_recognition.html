@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pattern Recognition · Study Wiki</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Pattern Recognition",
+  "nav": "Pattern Recognition",
+  "topics": [
+    "Routing",
+    "Patterns",
+    "Reference"
+  ],
+  "blurb": "The 'I see X → reach for Y' routing layer. Master signal table covering every pattern in this wiki, input-size heuristics, inline Big-O, and the easily-confused tie-breakers. Each row links to a worked walkthrough.",
+  "order": 3
+}
+</script>
+<link rel="stylesheet" href="../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="reference">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+<main class="content">
+
+  <h1 class="page-title">Pattern Recognition</h1>
+  <div class="page-meta">
+    <span>Review &amp; Reference</span>
+    <span>·</span>
+    <span>I see X in the problem → reach for Y</span>
+  </div>
+
+  <div class="lead">
+    <p>The <strong>which-pattern-do-I-reach-for</strong> layer. Distilled from the problems actually solved in this wiki — not from theory. Read the <strong>question verb</strong> and the <strong>constraint bounds</strong> first; they route you faster than anything else. Every row points at a real walkthrough so you can confirm the match against a worked example.</p>
+  </div>
+
+  <div class="co co-when u-measure">
+    <strong>How to use it:</strong> when you've read a problem and don't yet know the family, scan the <a href="#master">master routing table</a> (§1) for the signal that matches, then jump to the section that explains the call. For the exact Swift idiom once you've picked a pattern, cross to the companion <a href="code_snippets.html">Code Snippets &amp; Gotchas</a> page.
+  </div>
+
+  <h2 id="how" data-toc-label="How to use this page"><span class="sec-num">0</span> The two questions that route almost everything</h2>
+  <div class="co co-idea">
+    <strong>THE ONE IDEA:</strong> Before pattern-matching on structure, ask two questions. <strong>(1) What is the question verb?</strong> — "is it…", "longest…", "count…", "nearest…", "merge…", "shortest path…". The verb usually names the family. <strong>(2) What do the constraint bounds allow?</strong> — n ≤ 20 invites exponential search; n ≤ 10⁵ forbids O(n²); a tiny state space invites BFS over states. The verb picks the family; the bounds confirm or veto it.
+  </div>
+
+  <hr class="wiki-hr">
+
+  <!-- 1 -->
+  <h2 id="master" data-toc-label="1 · Master routing table"><span class="sec-num">1</span> Master routing table — every pattern in this wiki</h2>
+  <p>The trigger column is the phrase or shape in the prompt; the family is the move; the last column is a worked example to check yourself against.</p>
+  <table class="t-clue">
+    <thead><tr><th>When you see…</th><th>Reach for</th><th>Worked example</th></tr></thead>
+    <tbody>
+      <tr><td>"longest / shortest contiguous subarray or substring" + a window validity rule</td><td>Sliding window (two pointers)</td><td><a href="../walkthroughs/LC3_master.html">LC 3</a>, <a href="../walkthroughs/LC76_master.html">LC 76</a>, <a href="../walkthroughs/LC209_master.html">LC 209</a></td></tr>
+      <tr><td>Sorted array, pair/triple summing to a target, O(1) space wanted</td><td>Converging two pointers</td><td><a href="../walkthroughs/LC11_master.html">LC 11</a>, <a href="../walkthroughs/LC15_master.html">LC 15</a></td></tr>
+      <tr><td>Answer at each position needs the best to its LEFT and RIGHT at once</td><td>Prefix / suffix precompute</td><td><a href="../walkthroughs/LC42_master.html">LC 42</a>, <a href="../walkthroughs/LC238_master.html">LC 238</a></td></tr>
+      <tr><td>"subarray sum equals k" with negatives, or "range sum query"</td><td>Prefix sum (+ frequency map)</td><td><a href="../walkthroughs/LC303_master.html">LC 303</a>, <a href="../walkthroughs/LC560_master.html">LC 560</a></td></tr>
+      <tr><td>"does the <em>partner</em> exist" — find/count pairs by value, a fixed open↔close mapping, or match a transformed key</td><td>Hashmap lookup (complement / config / transformed-key)</td><td><a href="../walkthroughs/LC20_master.html">LC 20</a>, <a href="../walkthroughs/LC336_master.html">LC 336</a> (and 2Sum)</td></tr>
+      <tr><td>"next greater / nearest / first element to the right satisfying X"</td><td>Monotonic stack</td><td><a href="../walkthroughs/LC496_master.html">LC 496</a></td></tr>
+      <tr><td>Nested brackets / scopes that open and collapse — <code>[ ] ( )</code></td><td>Stack parse (LIFO)</td><td><a href="../walkthroughs/LC20_master.html">LC 20</a>, <a href="../walkthroughs/LC385_master.html">LC 385</a>, <a href="../walkthroughs/LC394_master.html">LC 394</a>, <a href="../walkthroughs/LC227_master.html">LC 227</a></td></tr>
+      <tr><td>Live stream + "in the last T units" / rolling time window</td><td>Sliding-window queue</td><td><a href="../walkthroughs/LC933_master.html">LC 933</a>, <a href="../walkthroughs/LC362_master.html">LC 362</a></td></tr>
+      <tr><td>"merge / insert / overlap / free time" on ranges</td><td>Sort-then-sweep intervals</td><td><a href="../walkthroughs/LC56_master.html">LC 56</a>, <a href="../walkthroughs/LC57_master.html">LC 57</a>, <a href="../walkthroughs/LC759_master.html">LC 759</a>, <a href="../walkthroughs/LC986_master.html">LC 986</a></td></tr>
+      <tr><td>"is it a palindrome" / "pairs concatenating to a palindrome"</td><td>Two pointers / reversed-word map</td><td><a href="../walkthroughs/LC125_master.html">LC 125</a>, <a href="../walkthroughs/LC336_master.html">LC 336</a></td></tr>
+      <tr><td>"design a class that supports mutate + query" with an invariant</td><td>Incremental/derived state</td><td><a href="../walkthroughs/LC348_master.html">LC 348</a>, <a href="../walkthroughs/LC1166_master.html">LC 1166</a></td></tr>
+      <tr><td>Char-by-char simulation, direction/state machine</td><td>State-machine simulation</td><td><a href="../walkthroughs/LC1041_master.html">LC 1041</a>, <a href="../walkthroughs/LC755_master.html">LC 755</a>, <a href="../walkthroughs/LC68_master.html">LC 68</a></td></tr>
+      <tr><td>Lazy traversal contract — <code>hasNext()</code> / <code>next()</code></td><td>Stack-backed iterator</td><td><a href="../walkthroughs/LC341_master.html">LC 341</a></td></tr>
+      <tr><td>Build a balanced tree / divide over index ranges</td><td>Recursive construction</td><td><a href="../walkthroughs/LC108_master.html">LC 108</a></td></tr>
+      <tr><td>"lowest common ancestor" / path intersection in a tree</td><td>Parent-map walk-up / post-order</td><td><a href="../walkthroughs/LC236_master.html">LC 236</a></td></tr>
+      <tr><td>"can you finish given prerequisites" / dependency ordering</td><td>Topological sort (Kahn's)</td><td><a href="../walkthroughs/LC207_master.html">LC 207</a></td></tr>
+      <tr><td>Shortest path on a grid, unweighted / fewest moves</td><td>BFS (grid / state-space)</td><td><a href="../walkthroughs/LC1091_master.html">LC 1091</a>, <a href="../walkthroughs/LC1284_master.html">LC 1284</a></td></tr>
+      <tr><td>Shortest path with weights, or min-max cost on a grid</td><td>Dijkstra (min-heap)</td><td><a href="../walkthroughs/LC1631_master.html">LC 1631</a></td></tr>
+      <tr><td>"min cost / best choice" with overlapping subproblems, no-overshoot</td><td>DFS + memoization (top-down DP)</td><td><a href="../walkthroughs/LC638_master.html">LC 638</a></td></tr>
+      <tr><td>"fewest X to cover Y" where items are interchangeable or freely redistributable — passengers, seats, weights, resources</td><td>Greedy — sort largest first, accumulate until covered</td><td>CUSTOM Car Pooling, CUSTOM Container Packing</td></tr>
+    </tbody>
+  </table>
+
+  <hr class="wiki-hr">
+
+  <!-- 2 -->
+  <h2 id="sizes" data-toc-label="2 · Input size → algorithm"><span class="sec-num">2</span> Input size → likely complexity → likely algorithm</h2>
+  <p>The constraint bound is a near-deterministic hint at the intended complexity. Read <code>n</code> from the constraints and work backwards.</p>
+  <table class="t-clue">
+    <thead><tr><th>n up to…</th><th>Target complexity</th><th>Likely family</th></tr></thead>
+    <tbody>
+      <tr><td>≤ 12</td><td>O(n!) / O(2ⁿ·n)</td><td>Permutations, brute backtracking</td></tr>
+      <tr><td>≤ 20</td><td>O(2ⁿ)</td><td>Subsets, bitmask DP, state-space BFS (<a href="../walkthroughs/LC1284_master.html">LC 1284</a>)</td></tr>
+      <tr><td>≤ 100 — 1,000</td><td>O(n²) / O(n³)</td><td>Interval DP, nested two-pointer, pairwise scans</td></tr>
+      <tr><td>≤ 10⁵ — 10⁶</td><td>O(n) / O(n log n)</td><td>Sliding window, two pointers, sort-sweep, heap, prefix sum</td></tr>
+      <tr><td>&gt; 10⁶</td><td>O(n) / O(log n) / O(1)</td><td>Single pass, binary search, math/formula</td></tr>
+    </tbody>
+  </table>
+  <div class="co co-note"><strong>Note:</strong> the inverse is just as useful — if a problem says <code>n ≤ 10⁵</code> it is telling you an O(n²) brute force (≈10¹⁰ ops) will time out, so the intended answer is O(n) or O(n log n). Constraint bounds are the interviewer quietly naming the target.</div>
+
+  <hr class="wiki-hr">
+
+  <!-- 3 -->
+  <h2 id="bigo" data-toc-label="3 · Big-O of the moves"><span class="sec-num">3</span> Big-O of the moves on this page (self-contained reference)</h2>
+  <p>The cost profile of the operations these patterns lean on, in Swift specifically — enough to reason about a solution without leaving the page. For the full data-structure-by-operation tables and the Big-O growth chart, see the <a href="cheatsheet.html">Big-O &amp; DS/A Cheatsheet</a>.</p>
+  <table class="t-cmx">
+    <thead><tr><th>Operation</th><th>Time</th><th>Note</th></tr></thead>
+    <tbody>
+      <tr><td>Array append / removeLast (end)</td><td class="sc">O(1) amortized</td><td>The stack push/pop pair</td></tr>
+      <tr><td>Array removeFirst (front)</td><td class="tc">O(n)</td><td>Shifts everything — use a head index for an O(1) queue</td></tr>
+      <tr><td>Array access / modify by index</td><td class="sc">O(1)</td><td>Why <code>Array(string)</code> first for char problems</td></tr>
+      <tr><td>Dictionary / Set lookup, insert</td><td class="sc">O(1) avg</td><td>The complement-lookup and seen-set trick</td></tr>
+      <tr><td>Sort</td><td class="tc">O(n log n)</td><td>The sort-then-sweep prerequisite for intervals</td></tr>
+      <tr><td>Two pointers / sliding window pass</td><td class="tc">O(n)</td><td>Each index advances monotonically</td></tr>
+      <tr><td>Monotonic stack pass</td><td class="tc">O(n)</td><td>Each element pushed once, popped at most once</td></tr>
+      <tr><td>Prefix/suffix precompute + query</td><td>O(n) build, <span class="sc">O(1)</span> query</td><td>The expensive-walk-once payoff</td></tr>
+      <tr><td>Heap push / pop</td><td class="tc">O(log n)</td><td>Dijkstra's settle step</td></tr>
+      <tr><td>BFS / DFS over V vertices, E edges</td><td class="tc">O(V + E)</td><td>Each vertex and edge visited once</td></tr>
+      <tr><td><code>String</code> create substring (length m)</td><td class="tc">O(m)</td><td>Strings are immutable — slicing copies</td></tr>
+    </tbody>
+  </table>
+
+  <hr class="wiki-hr">
+
+  <!-- 4 -->
+  <h2 id="prefix-suffix" data-toc-label="4 · Prefix / suffix family"><span class="sec-num">4</span> Prefix / suffix family — the unified skeleton</h2>
+  <p>All three prefix/suffix problems in this wiki share one skeleton: <strong>do the expensive walk once, pay O(1) at query time.</strong> The "element" changes shape across problems, but the structure never does.</p>
+  <div class="code-label"><span class="code-lang lang-pseudo">Skeleton</span><span class="code-desc">precompute one summary per direction, then combine</span></div>
+  <pre class="pseudo"><span class="pk">PRECOMPUTE</span> (expensive, done once)
+  → for each element, derive a summary going LEFT  → store in prefixArray / leftMap
+  → for each element, derive a summary going RIGHT → store in suffixArray / rightMap
+
+<span class="pk">COMBINE</span> (cheap, per element or per pair)
+  → at each position, query both in O(1) and emit the answer</pre>
+  <table class="t-versus">
+    <thead><tr><th>Problem</th><th>The "element"</th><th>The precomputed summary</th></tr></thead>
+    <tbody>
+      <tr><td><a href="../walkthroughs/LC42_master.html">LC 42</a> Trapping Rain Water</td><td>a bar height</td><td>running max wall height each side</td></tr>
+      <tr><td><a href="../walkthroughs/LC238_master.html">LC 238</a> Product Except Self</td><td>an array element</td><td>running product each side</td></tr>
+      <tr><td><a href="../walkthroughs/LC336_master.html">LC 336</a> Palindrome Pairs</td><td>a split point in a word</td><td>reversed-word → index map (the "other side")</td></tr>
+      <tr><td><a href="../walkthroughs/CUSTOM1_Relay_Handoff_Coverage_master.html">CUSTOM 1</a> Relay Handoff</td><td>a calendar day</td><td>handoff day / earliest reachable day</td></tr>
+    </tbody>
+  </table>
+  <div class="co co-insight"><strong>The one diagnostic question:</strong> "Am I computing the same thing from scratch for every position or pair?" If yes — you have repeated work. One left pass + one right pass eliminates it. Then ask: "what am I indexing by when I retrieve the answer?" Position in the array → store in an <strong>array</strong>. Value or content of the key → store in a <strong>hashmap</strong>. See <a href="../theory/arrays/prefix_suffix_master.html#precompute-question">§4.1 of the theory page</a> for the full problem-by-problem breakdown.</div>
+
+  <div class="co co-note"><strong>Note — when it is NOT prefix/suffix:</strong> arbitrary subarray <code>[i…j]</code> sums at runtime → cumulative <strong>prefix sum</strong> array. Left and right depend on each other → <strong>two pointers</strong>. Each position depends on the previous answer → <strong>DP</strong>. Nearest smaller/larger → <a href="#monotonic">monotonic stack</a>.</div>
+
+  <hr class="wiki-hr">
+
+  <!-- 5 -->
+  <h2 id="two-pointers" data-toc-label="5 · Two pointers vs window"><span class="sec-num">5</span> Two pointers vs sliding window — which motion?</h2>
+  <p>Both use two indices; the motion is the tell.</p>
+  <table class="t-versus">
+    <thead><tr><th>Motion</th><th>Signal</th><th>Example</th></tr></thead>
+    <tbody>
+      <tr><td>Converging (ends → middle)</td><td>Sorted input; answer is a pair/area from the two ends; palindrome check</td><td><a href="../walkthroughs/LC11_master.html">LC 11</a>, <a href="../walkthroughs/LC15_master.html">LC 15</a>, <a href="../walkthroughs/LC125_master.html">LC 125</a></td></tr>
+      <tr><td>Both run right (window)</td><td>"longest/shortest contiguous" with a grow/shrink validity rule</td><td><a href="../walkthroughs/LC3_master.html">LC 3</a>, <a href="../walkthroughs/LC76_master.html">LC 76</a>, <a href="../walkthroughs/LC209_master.html">LC 209</a></td></tr>
+      <tr><td>Two inputs, walk both</td><td>Merge / intersect two sorted lists</td><td><a href="../walkthroughs/LC986_master.html">LC 986</a></td></tr>
+    </tbody>
+  </table>
+  <div class="co co-insight"><strong>Why it works:</strong> for <a href="../walkthroughs/LC42_master.html">LC 42</a> the dual dependency (water needs the tallest wall left AND right) rules out a single-direction window — that's the signal to converge or to precompute both sides. The converging two-pointer is often the O(1)-space compression of a prefix/suffix solution.</div>
+
+  <hr class="wiki-hr">
+
+  <!-- 6 -->
+  <h2 id="monotonic" data-toc-label="6 · Monotonic stack signal"><span class="sec-num">6</span> Monotonic stack — the "nearest" signal</h2>
+  <p>The word <strong>nearest</strong> or <strong>first</strong> is what selects a monotonic stack over its neighbours.</p>
+  <table class="t-versus">
+    <thead><tr><th>You need…</th><th>Use</th><th>Why not the other</th></tr></thead>
+    <tbody>
+      <tr><td>The <em>maximum</em> to the right</td><td>Suffix-max pass</td><td>—</td></tr>
+      <tr><td>The <em>nearest</em> greater/smaller to the right</td><td>Monotonic stack</td><td>Suffix-max gives the max, not the nearest → still O(n²) to find nearest</td></tr>
+      <tr><td>A pair/area from two converging ends</td><td>Two pointers</td><td>Two pointers don't track pending unanswered queries for many elements</td></tr>
+    </tbody>
+  </table>
+  <div class="co co-insight"><strong>Why it works:</strong> the monotonic stack holds elements <em>waiting for their answer</em> and discharges them the instant a qualifying value arrives — each pushed once, popped once, O(n). Recognizing the <a href="code_snippets.html#reachable">reachable-min outward scan</a> (an O(n²) shape) is exactly the cue to switch to the stack. See <a href="../walkthroughs/LC496_master.html">LC 496</a>.</div>
+
+  <hr class="wiki-hr">
+
+  <!-- 7 -->
+  <h2 id="stack-queue" data-toc-label="7 · Stack vs queue"><span class="sec-num">7</span> Stack vs queue — LIFO or FIFO?</h2>
+  <table class="t-versus">
+    <thead><tr><th>Signal</th><th>Structure</th><th>Example</th></tr></thead>
+    <tbody>
+      <tr><td>Most-recently-opened closes first; nesting; iterative DFS; "undo to the last"</td><td>Stack (LIFO)</td><td><a href="../walkthroughs/LC20_master.html">LC 20</a>, <a href="../walkthroughs/LC385_master.html">LC 385</a>, <a href="../walkthroughs/LC394_master.html">LC 394</a>, <a href="../walkthroughs/LC341_master.html">LC 341</a></td></tr>
+      <tr><td>First-in-first-out; level-order; BFS shortest path; evict the oldest</td><td>Queue (FIFO)</td><td><a href="../walkthroughs/LC933_master.html">LC 933</a>, <a href="../walkthroughs/LC362_master.html">LC 362</a>, <a href="../walkthroughs/LC1091_master.html">LC 1091</a></td></tr>
+    </tbody>
+  </table>
+  <div class="co co-note"><strong>Note:</strong> in Swift, a queue built on <code>removeFirst()</code> is O(n) per dequeue. Keep a <strong>head index</strong> into the array (or a circular buffer) for an amortized O(1) queue — the recurring follow-up on <a href="../walkthroughs/LC362_master.html">LC 362</a> and the BFS problems.</div>
+
+  <hr class="wiki-hr">
+
+  <!-- 8 -->
+  <h2 id="palindrome" data-toc-label="8 · Palindrome routing"><span class="sec-num">8</span> Palindrome routing — the two families in this wiki</h2>
+  <p>A palindrome is never <em>the</em> problem — it is a <em>property</em> the problem hangs another technique on. Read the question verb to route. This wiki holds exactly two palindrome problems, so only those two families are covered here in depth; the broader landscape (longest substring, subsequence DP, partitioning, permutation parity, KMP prepend) exists but has no walkthrough yet.</p>
+  <table class="t-clue">
+    <thead><tr><th>The prompt says…</th><th>Family / tool</th><th>Example</th></tr></thead>
+    <tbody>
+      <tr><td>"<strong>is</strong> s a (valid) palindrome", alphanumeric/case rules</td><td>Verify — converging two pointers, skip on the fly</td><td><a href="../walkthroughs/LC125_master.html">LC 125</a></td></tr>
+      <tr><td>"pairs of words whose <strong>concatenation</strong> is a palindrome" at a scale that kills O(w²)</td><td>Pair-matching — reversed-word hash map + split-point decomposition</td><td><a href="../walkthroughs/LC336_master.html">LC 336</a></td></tr>
+    </tbody>
+  </table>
+  <div class="co co-insight"><strong>Why it works:</strong> both reduce to the same primitive — the <a href="code_snippets.html#two-pointer-pal">two-pointer check</a> <code>isPalindrome(chars, low, high)</code> that converges from the ends and returns <code>true</code> on an empty range. In <a href="../walkthroughs/LC336_master.html">LC 336</a> that empty-range-returns-true behavior is exactly what makes the inclusive <code>0...length</code> split scan correct. The map is keyed on <em>reversed</em> words, so you look up the suffix/prefix directly.</div>
+  <div class="co co-note"><strong>Note — the broader palindrome map (no walkthroughs here yet):</strong> "longest palindromic <em>substring</em> / count them" → expand-around-center (mention Manacher for O(n)). "longest palindromic <em>subsequence</em> / min insertions to make a palindrome" → interval DP, <code>answer = n − LPS</code>. "partition into palindromes" → backtracking. "can any permutation be a palindrome" → odd-count parity. "shortest palindrome by prepending" → KMP failure function. Listed for recognition only — solve cold if one appears.</div>
+
+  <hr class="wiki-hr">
+
+  <!-- 9 -->
+  <h2 id="design" data-toc-label="9 · Design / state signal"><span class="sec-num">9</span> Design / stateful-system signal</h2>
+  <p>"Design a class with these operations" is a recognition signal in itself: the win is choosing a <strong>representation that makes the operations cheap</strong>, and maintaining an <strong>invariant incrementally</strong> instead of recomputing on every query.</p>
+  <table class="t-clue">
+    <thead><tr><th>You see…</th><th>The move</th><th>Example</th></tr></thead>
+    <tbody>
+      <tr><td>Repeated mutate + query, answer derivable from a running aggregate</td><td>Incremental aggregate state (±1 per move, win when a total hits a bound)</td><td><a href="../walkthroughs/LC348_master.html">LC 348</a></td></tr>
+      <tr><td>Path/key lookups, parent-exists rules</td><td>Flat map keyed by the full path, sentinel on miss</td><td><a href="../walkthroughs/LC1166_master.html">LC 1166</a></td></tr>
+      <tr><td>Lazy "give me the next element" contract</td><td>Stack-backed iterator, amortized O(1)/call</td><td><a href="../walkthroughs/LC341_master.html">LC 341</a></td></tr>
+    </tbody>
+  </table>
+
+  <hr class="wiki-hr">
+
+  <!-- 10 -->
+  <h2 id="graph-tree" data-toc-label="10 · Graph &amp; tree signals"><span class="sec-num">10</span> Graph &amp; tree signals</h2>
+  <table class="t-clue">
+    <thead><tr><th>You see…</th><th>The move</th><th>Example</th></tr></thead>
+    <tbody>
+      <tr><td>Unweighted shortest path / fewest moves / level order</td><td>BFS — first arrival is shortest</td><td><a href="../walkthroughs/LC1091_master.html">LC 1091</a></td></tr>
+      <tr><td>State encodable as an Int / bitmask, tiny state space</td><td>State-space BFS — a move is an XOR</td><td><a href="../walkthroughs/LC1284_master.html">LC 1284</a></td></tr>
+      <tr><td>Weighted edges / "minimum effort" / min-max path</td><td>Dijkstra — min-heap, relax with max for min-max</td><td><a href="../walkthroughs/LC1631_master.html">LC 1631</a></td></tr>
+      <tr><td>"can you finish given dependencies" / ordering with prerequisites</td><td>Topological sort — Kahn's in-degree peel; cycle ⇒ impossible</td><td><a href="../walkthroughs/LC207_master.html">LC 207</a></td></tr>
+      <tr><td>Build a balanced BST / divide over a sorted range</td><td>Recursive construction — middle as root</td><td><a href="../walkthroughs/LC108_master.html">LC 108</a></td></tr>
+      <tr><td>Lowest common ancestor / shared path in a tree</td><td>Parent-map walk-up or post-order return</td><td><a href="../walkthroughs/LC236_master.html">LC 236</a></td></tr>
+      <tr><td>"min cost / best outcome" with overlapping subproblems, greedy fails (no-overshoot)</td><td>DFS + memoization (top-down DP), keyed by the state vector</td><td><a href="../walkthroughs/LC638_master.html">LC 638</a></td></tr>
+    </tbody>
+  </table>
+
+  <hr class="wiki-hr">
+
+  <!-- 11 -->
+  <h2 id="hashmap" data-toc-label="11 · Hashmap &amp; pairs matching"><span class="sec-num">11</span> Hashmap &amp; pairs matching — the "does the partner exist?" signal</h2>
+  <p>The most easily-missed move in the whole wiki, because it hides inside problems that look like something else. The signal is small but reliable: <strong>you are matching one element against another</strong> — its complement, its closer, or its transformed twin — and you want that lookup to be <strong>O(1)</strong> instead of an O(n) rescan. The instant you catch yourself about to write a nested loop "for each element, scan the rest to find its partner," that quadratic shape is the cue to replace the inner scan with a hashmap.</p>
+
+  <p>A hashmap shows up in three distinct roles. They feel different but are the same trick — <em>turn a search for the matching element into a constant-time lookup keyed on what makes the match.</em></p>
+  <table class="t-clue">
+    <thead><tr><th>The role…</th><th>What the map holds</th><th>Recognition cue · example</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Static config map</strong> — a fixed, known pairing</td><td>The pairing literal itself, written once: <code>[")": "(", "]": "[", "}": "{"]</code></td><td>A small finite set of "this matches that" rules (open↔close brackets, char↔char, code↔name). Don't <code>if/else</code> the cases — table them. <a href="../walkthroughs/LC20_master.html">LC 20</a></td></tr>
+      <tr><td><strong>Complement / seen map</strong> — built as you scan</td><td>value&nbsp;→&nbsp;index (or count) of elements <em>already passed</em>; you ask "have I seen <code>target − current</code>?"</td><td>"two numbers that sum to k", "a pair with a given difference", "first repeat" — one pass, ask the map for the partner before inserting yourself. 2Sum (the archetype)</td></tr>
+      <tr><td><strong>Transformed-key map</strong> — match on a derived form</td><td>transformed(element)&nbsp;→&nbsp;index, e.g. the <em>reversed</em> word, the sorted-letter signature (anagrams), the canonical form</td><td>"pairs whose concatenation is a palindrome", "group anagrams" — the partner isn't equal to you, it's equal to <em>some function of</em> you, so key the map on that function. <a href="../walkthroughs/LC336_master.html">LC 336</a></td></tr>
+    </tbody>
+  </table>
+
+  <div class="co co-insight"><strong>Why it works:</strong> finding a partner by rescanning is O(n) per element → O(n²) overall. A hashmap pre-indexes every candidate by the exact key the match is defined on, so the "is my partner here?" question collapses to one O(1) probe. The art is naming the right key: for 2Sum it's the value, for <a href="../walkthroughs/LC20_master.html">LC 20</a> it's the bracket character, for <a href="../walkthroughs/LC336_master.html">LC 336</a> it's the reversed word. Pick the key that makes "match" mean "equal."</div>
+
+  <div class="co co-note"><strong>Note — map vs set vs the alternatives:</strong> if you only need "does it exist," a <code>Set</code> is enough; if you need <em>where / how many / which index</em>, you need a <code>Dictionary</code> (the 2Sum answer is the partner's <em>index</em>, so a set won't do). If the input is <strong>sorted</strong> and you want O(1) space, converging <a href="#two-pointers">two pointers</a> beats a map for pair-sum problems — the map is what you reach for when the input is <em>unsorted</em> and sorting would cost more than it saves, or when an index/order must be preserved. And for bracket-style nesting the map only names the pairing; the <a href="#stack-queue">stack</a> still does the matching (most-recent-open closes first).</div>
+
+  <hr class="wiki-hr">
+
+  <!-- 12 -->
+  <h2 id="confusions" data-toc-label="12 · Easily-confused pairs"><span class="sec-num">12</span> Easily-confused pairs — the tie-breakers</h2>
+  <table class="t-versus">
+    <thead><tr><th>Looks like both…</th><th>Tie-breaker</th></tr></thead>
+    <tbody>
+      <tr><td>Sliding window vs two pointers</td><td>Contiguous range with a grow/shrink validity rule → window. Pair/area from sorted ends → converging two pointers.</td></tr>
+      <tr><td>Sliding window vs sliding-window queue</td><td>Static indexable array → two index pointers. Live stream arriving one at a time → a queue holds the window.</td></tr>
+      <tr><td>Prefix/suffix vs prefix sum</td><td>Need best (max/min) to both sides at a fixed position → prefix/suffix arrays. Need the sum of an arbitrary <code>[i…j]</code> at runtime → cumulative prefix sum.</td></tr>
+      <tr><td>Hashmap complement vs converging two pointers (pair-sum)</td><td>Unsorted input, or you must return an <em>index</em> → hashmap (value → index, one pass). Sorted input and O(1) space wanted → converging two pointers.</td></tr>
+      <tr><td>Hashmap config map vs <code>if/else</code> chain</td><td>A fixed set of "this matches that" rules → table it in a literal map, don't branch. The map is data; the branch is code that drifts.</td></tr>
+      <tr><td>Monotonic stack vs suffix-max</td><td>Nearest qualifying element → stack. The maximum regardless of distance → suffix-max.</td></tr>
+      <tr><td>BFS vs Dijkstra</td><td>Unweighted (every move costs 1) → BFS. Weighted / min-max edges → Dijkstra.</td></tr>
+      <tr><td>Backtracking vs DP</td><td>"list all / enumerate every" → backtracking. "count / min / max" with overlapping subproblems → memoized DP.</td></tr>
+      <tr><td>Stack parse vs recursion</td><td>Same algorithm — the explicit stack IS the call stack. Prefer the iterative stack per the wiki standard.</td></tr>
+      <tr><td>Greedy vs DP</td><td>Greedy: each item is independent, a locally-best pick is globally optimal (exchange argument holds). DP: choices affect future options, the exchange argument fails — you need to track state across decisions.</td></tr>
+      <tr><td>Greedy sort-largest vs greedy sort-smallest</td><td>"Cover a total with fewest containers" → sort largest first (each big item buys down remaining demand fastest). "Fill fewest gaps, minimize leftover" → depends on the pairing rule — trace a small example to confirm direction.</td></tr>
+    </tbody>
+  </table>
+
+  <hr class="wiki-hr">
+
+  <!-- 13 -->
+  <h2 id="greedy" data-toc-label="13 · Greedy signal"><span class="sec-num">13</span> Greedy signal — sort &amp; commit</h2>
+  <p>A greedy algorithm makes one locally-optimal decision at a time and never revisits it. It works when the <strong>exchange argument</strong> holds: swapping any two choices in the optimal set can only make things worse, so "always take the best available" leads to the global optimum.</p>
+
+  <div class="co co-idea">
+    <strong>THE TELL:</strong> The problem lets you ignore <em>who</em> owns what and only cares about <em>totals</em> or <em>capacity</em>. Passengers can move freely. Weights can be repacked. Slots are interchangeable. The moment individual assignments stop mattering, collapse to totals and sort.
+  </div>
+
+  <table class="t-clue">
+    <thead><tr><th>Signal in the problem</th><th>Greedy move</th><th>Example</th></tr></thead>
+    <tbody>
+      <tr><td>"Fewest containers / cars / slots to cover all passengers / weight / demand" — items are freely redistributable</td><td>Sum the total demand. Sort capacities largest first. Accumulate until covered. Count how many you took.</td><td>CUSTOM Car Pooling</td></tr>
+      <tr><td>"Fit items of fixed individual sizes into fewest bins" — items cannot be split or merged</td><td>First-Fit Decreasing (FFD): sort items heaviest first, scan open bins and place in first that fits, else open a new bin.</td><td>CUSTOM Container Packing</td></tr>
+      <tr><td>"Minimum number of intervals / ranges to cover a span"</td><td>Sort by start, greedily extend reach as far right as possible before moving to the next interval.</td><td>Classic interval covering</td></tr>
+    </tbody>
+  </table>
+
+  <div class="co co-insight">
+    <strong>Why sort largest first?</strong> Each large item buys down remaining demand faster than any smaller item. If you pick a small item when a large one is available, you can always swap them and do no worse — that's the exchange argument. Sorting largest first just applies every such swap upfront.
+  </div>
+
+  <div class="co co-note">
+    <strong>The red herring disguise:</strong> greedy problems often dress up the input to look like it matters (car passengers in specific seats, items in specific boxes). Strip the story: if there's no cost to moving things and no constraint on how many moves, the current assignment is noise. Only the capacity and the total demand are real.
+  </div>
+
+  <div class="co co-note">
+    <strong>When greedy fails — reach for DP instead:</strong> if items have individual sizes that create packing interactions (bin packing, knapsack), a locally-best pick can block a better global solution. Bin packing is NP-hard; FFD is a heuristic, not an exact solver. The cue to switch to DP: "does picking this item now change what I can pick later?" If yes, greedy cannot commit blindly.
+  </div>
+
+  <div class="co co-note">
+    <strong>What is NP-hard?</strong> A problem is NP-hard when no known algorithm can solve it <em>optimally</em> in polynomial time — O(n), O(n log n), O(n²), etc. The only guaranteed-exact approach is to try every possible combination, which grows exponentially: 20 items already means millions of possibilities, 50 items is astronomical. In practice we accept a fast heuristic (like FFD) that gets very close but cannot promise the absolute minimum in every case. The famous open question — whether a polynomial-time exact solution <em>could</em> exist but hasn't been found yet — is the <strong>P vs NP</strong> problem, unsolved since 1971. For interviews: if you hear "bin packing", "knapsack", or "job scheduling" — those are NP-hard flags. The expected answer is a greedy heuristic or DP approximation, not an exact solver.
+  </div>
+
+  <div class="page-footer">
+    Study Wiki · Review &amp; Reference · Companion: <a href="code_snippets.html">Code Snippets &amp; Gotchas</a> · Full Big-O: <a href="cheatsheet.html">Big-O &amp; DS/A Cheatsheet</a> · See also: Theory masterfiles and LeetCode walkthroughs
+  </div>
+
+</main>
+</div>
+
+<script src="../static/generated/manifest.js"></script>
+<script src="../static/generated/nav.js"></script>
+<script src="../static/generated/toc.js"></script>
+</body>
+</html>

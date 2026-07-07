@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Big-O &amp; DS/A Cheatsheet · Study Wiki</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Big-O & DS/A Cheatsheet",
+  "nav": "Big-O Cheatsheet",
+  "topics": [
+    "Complexity",
+    "DS&A",
+    "Reference"
+  ],
+  "blurb": "Time/space complexity by data structure, input-size heuristics, and the Big-O chart.",
+  "order": 6
+}
+</script>
+<link rel="stylesheet" href="../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="reference">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+<main class="content">
+
+  <h1 class="page-title">Big-O &amp; DS/A Cheatsheet</h1>
+  <div class="page-meta">
+    <span>Review &amp; Reference</span>
+    <span>·</span>
+    <span>Complexity · DS&amp;A · Reference</span>
+  </div>
+
+  <div class="lead">
+    <p>Time and space complexity of every common data structure operation, plus input-size heuristics for picking the right approach fast.</p>
+  </div>
+
+  <h2 id="chart" data-toc-label="Big-O Chart"><span class="sec-num">1</span> Big-O Complexity Chart</h2>
+  <figure class="fig">
+    <img src="big_o.png" alt="Big-O complexity chart — growth rates from O(1) to O(n!)" class="fig-img">
+  </figure>
+
+  <h2 id="arrays" data-toc-label="Arrays"><span class="sec-num">2</span> Arrays (Dynamic Array)</h2>
+  <p>Given <code>n = arr.length</code>:</p>
+  <table class="t-cmx">
+    <thead><tr><th>Operation</th><th>Time</th></tr></thead>
+    <tbody>
+      <tr><td>Add / remove at end</td><td class="sc">O(1) amortized</td></tr>
+      <tr><td>Add / remove at arbitrary index</td><td class="tc">O(n)</td></tr>
+      <tr><td>Access / modify at arbitrary index</td><td class="sc">O(1)</td></tr>
+      <tr><td>Check if element exists</td><td class="tc">O(n)</td></tr>
+      <tr><td>Two pointers / sliding window</td><td>O(n·k) where k = work per iteration</td></tr>
+      <tr><td>Build prefix sum</td><td class="tc">O(n)</td></tr>
+      <tr><td>Query subarray sum (given prefix sum)</td><td class="sc">O(1)</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="strings" data-toc-label="Strings"><span class="sec-num">3</span> Strings (Immutable)</h2>
+  <p>Given <code>n = s.length</code>:</p>
+  <table class="t-cmx">
+    <thead><tr><th>Operation</th><th>Time</th></tr></thead>
+    <tbody>
+      <tr><td>Add or remove character</td><td class="tc">O(n)</td></tr>
+      <tr><td>Access element at arbitrary index</td><td class="sc">O(1)</td></tr>
+      <tr><td>Concatenation (other string length m)</td><td>O(n+m)</td></tr>
+      <tr><td>Create substring of length m</td><td>O(m)</td></tr>
+      <tr><td>Two pointers / sliding window</td><td>O(n·k)</td></tr>
+      <tr><td>Join array → string</td><td class="tc">O(n)</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="linked-lists" data-toc-label="Linked Lists"><span class="sec-num">4</span> Linked Lists</h2>
+  <p>Given <code>n</code> = number of nodes:</p>
+  <table class="t-cmx">
+    <thead><tr><th>Operation</th><th>Time</th></tr></thead>
+    <tbody>
+      <tr><td>Add / remove given pointer to location</td><td class="sc">O(1)</td></tr>
+      <tr><td>Add / remove given pointer (doubly linked, at location)</td><td class="sc">O(1)</td></tr>
+      <tr><td>Add / remove at arbitrary position (no pointer)</td><td class="tc">O(n)</td></tr>
+      <tr><td>Access arbitrary position (no pointer)</td><td class="tc">O(n)</td></tr>
+      <tr><td>Check if element exists</td><td class="tc">O(n)</td></tr>
+      <tr><td>Reverse between positions i and j</td><td>O(j−i)</td></tr>
+      <tr><td>Detect cycle (fast-slow pointers)</td><td class="tc">O(n)</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="hash" data-toc-label="Hash Table / Set"><span class="sec-num">5</span> Hash Table / Set</h2>
+  <p>Given <code>n = dict.length</code>. Note: O(1) is relative to n; hashing a string key costs O(m) where m = key length.</p>
+  <table class="t-cmx">
+    <thead><tr><th>Operation</th><th>Time</th></tr></thead>
+    <tbody>
+      <tr><td>Add / remove key-value pair</td><td class="sc">O(1)</td></tr>
+      <tr><td>Check if key exists</td><td class="sc">O(1)</td></tr>
+      <tr><td>Check if value exists</td><td class="tc">O(n)</td></tr>
+      <tr><td>Access / modify value by key</td><td class="sc">O(1)</td></tr>
+      <tr><td>Iterate over all keys / values</td><td class="tc">O(n)</td></tr>
+      <tr><td>Set: add / remove element</td><td class="sc">O(1)</td></tr>
+      <tr><td>Set: check if element exists</td><td class="sc">O(1)</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="stack-queue" data-toc-label="Stack &amp; Queue"><span class="sec-num">6</span> Stack &amp; Queue</h2>
+  <p>Stack (dynamic array implementation), Queue (doubly linked list implementation):</p>
+  <table class="t-cmx">
+    <thead><tr><th>Operation</th><th>Stack</th><th>Queue</th></tr></thead>
+    <tbody>
+      <tr><td>Push / Enqueue</td><td class="sc">O(1)</td><td class="sc">O(1)</td></tr>
+      <tr><td>Pop / Dequeue</td><td class="sc">O(1)</td><td class="sc">O(1)</td></tr>
+      <tr><td>Peek (top / front)</td><td class="sc">O(1)</td><td class="sc">O(1)</td></tr>
+      <tr><td>Access by index</td><td class="sc">O(1)</td><td class="tc">O(n)</td></tr>
+      <tr><td>Check if element exists</td><td class="tc">O(n)</td><td class="tc">O(n)</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="trees" data-toc-label="Trees &amp; Graphs"><span class="sec-num">7</span> Binary Trees &amp; BST</h2>
+  <p>Given <code>n</code> = number of nodes:</p>
+  <table class="t-cmx">
+    <thead><tr><th>Operation</th><th>Time</th></tr></thead>
+    <tbody>
+      <tr><td>DFS / BFS traversal (general binary tree)</td><td>O(n·k), k = work per node</td></tr>
+      <tr><td>BST: add / remove / search (balanced)</td><td class="sc">O(log n) avg</td></tr>
+      <tr><td>BST: add / remove / search (degenerate)</td><td class="tc">O(n) worst</td></tr>
+    </tbody>
+  </table>
+  <div class="co co-note">
+    Average case assumes a well-balanced BST. Worst case is a straight-line tree (effectively a linked list).
+  </div>
+
+  <h2 id="heap" data-toc-label="Heap"><span class="sec-num">8</span> Heap / Priority Queue</h2>
+  <p>Given <code>n = heap.length</code> (min-heap):</p>
+  <table class="t-cmx">
+    <thead><tr><th>Operation</th><th>Time</th></tr></thead>
+    <tbody>
+      <tr><td>Add element</td><td class="tc">O(log n)</td></tr>
+      <tr><td>Remove minimum</td><td class="tc">O(log n)</td></tr>
+      <tr><td>Find minimum (peek)</td><td class="sc">O(1)</td></tr>
+      <tr><td>Check if element exists</td><td class="tc">O(n)</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="search" data-toc-label="Binary Search"><span class="sec-num">9</span> Binary Search</h2>
+  <p>Given <code>n</code> = size of initial search space:</p>
+  <table class="t-cmx">
+    <thead><tr><th>Case</th><th>Time</th></tr></thead>
+    <tbody>
+      <tr><td>Worst case</td><td class="sc">O(log n)</td></tr>
+    </tbody>
+  </table>
+
+  <h2 id="misc" data-toc-label="Miscellaneous"><span class="sec-num">10</span> Miscellaneous</h2>
+  <table class="t-cmx">
+    <thead><tr><th>Operation</th><th>Time</th><th>Space</th></tr></thead>
+    <tbody>
+      <tr><td>Sorting</td><td class="tc">O(n log n)</td><td>O(n) or O(log n)</td></tr>
+      <tr><td>DFS / BFS on graph</td><td>O(n·k + e)</td><td>O(n) or O(n+e)</td></tr>
+      <tr><td>Dynamic programming</td><td>O(n·k) states × work</td><td class="tc">O(n) states</td></tr>
+    </tbody>
+  </table>
+  <p class="u-note-text">n = nodes, e = edges, k = work per node/state.</p>
+
+  <h2 id="input-sizes" data-toc-label="Input Sizes"><span class="sec-num">11</span> Input Sizes → Expected Complexity</h2>
+  <div class="co co-insight">
+    Constraints are hints. Use input size to infer the expected time complexity before picking an algorithm. In interviews you won't always be told n explicitly — but it never hurts to ask.
+  </div>
+
+  <p><strong>n ≤ 10</strong></p>
+  <p>Expected complexity likely has a factorial or exponential with base &gt; 2 — O(n²·n!) or O(4ⁿ). This is extremely small; almost any correct algorithm will be fast enough. Think backtracking or brute-force recursion.</p>
+
+  <p><strong>10 &lt; n ≤ 20</strong></p>
+  <p>Expected complexity involves O(2ⁿ). Any higher base or factorial is too slow (3²⁰ ≈ 3.5 billion; 20! is much larger). O(2ⁿ) usually means you're considering all subsets/subsequences — for each element, take it or don't. Consider backtracking and recursion.</p>
+
+  <p><strong>20 &lt; n ≤ 100</strong></p>
+  <p>Exponentials are too slow. Upper bound is likely O(n³). Problems marked "Easy" on LeetCode often have this constraint — deceptively, because there may be an O(n) solution, but the small bound lets brute force pass. Consider nested loops; analyze the slow steps and try improving them with hash maps or heaps.</p>
+
+  <p><strong>100 &lt; n ≤ 1,000</strong></p>
+  <p>O(n²) should be sufficient as long as the constant factor isn't too large. Nested loops are expected here and O(n²) is often the optimal complexity in this range — it may not be possible to improve.</p>
+
+  <p><strong>1,000 &lt; n ≤ 100,000</strong></p>
+  <p>The most common LeetCode constraint. Slowest acceptable: O(n log n). Linear O(n) is the common goal. O(n²) is unacceptable — simulate nested loop behavior in O(1) or O(log n) using:</p>
+  <ul>
+    <li>Hash map</li>
+    <li>Two pointers / sliding window</li>
+    <li>Monotonic stack</li>
+    <li>Binary search</li>
+    <li>Heap</li>
+    <li>A combination of the above</li>
+  </ul>
+  <div class="co co-note">
+    For string problems at this scale, O(26n) is acceptable — looping over the alphabet at each step is still linear.
+  </div>
+
+  <p><strong>100,000 &lt; n ≤ 1,000,000</strong></p>
+  <p>Rare constraint. Likely requires O(n). O(n log n) is usually safe with a small constant factor. A hash map will almost certainly be involved.</p>
+
+  <p><strong>n &gt; 1,000,000</strong></p>
+  <p>Typically n ≥ 10⁹. Expected complexity is O(log n) or O(1). You must either drastically reduce the search space each iteration (binary search) or use constant-time tricks (math, clever hash map usage).</p>
+
+  <table class="t-cmx u-mt-24">
+    <thead><tr><th>n</th><th>Expected Complexity</th><th>Typical Approach</th></tr></thead>
+    <tbody>
+      <tr><td>≤ 10</td><td>O(n!·n²) or O(4ⁿ)</td><td>Brute force, backtracking</td></tr>
+      <tr><td>≤ 20</td><td>O(2ⁿ)</td><td>Bitmask DP, backtracking, subsets</td></tr>
+      <tr><td>≤ 100</td><td>O(n³)</td><td>Nested loops, brute force is fine</td></tr>
+      <tr><td>≤ 1,000</td><td>O(n²)</td><td>Nested loops, usually optimal here</td></tr>
+      <tr><td>≤ 100,000</td><td class="sc">O(n log n) or O(n)</td><td>Sorting, heap, sliding window, binary search, hash map, monotonic stack</td></tr>
+      <tr><td>≤ 1,000,000</td><td class="sc">O(n)</td><td>Linear scan, hash map essential</td></tr>
+      <tr><td>&gt; 10⁶</td><td class="sc">O(log n) or O(1)</td><td>Binary search, math trick, clever hash</td></tr>
+    </tbody>
+  </table>
+
+  <!-- Sorting Algorithms -->
+  <h2 id="sorting-algos" data-toc-label="Sorting Algorithms"><span class="sec-num">12</span> Sorting Algorithms</h2>
+  <p>All major programming languages have a built-in sort. It is always correct to say sorting costs <strong>O(n log n)</strong>, where n is the number of elements. The specific algorithm varies by language — Python uses Timsort; C++ is not mandated by spec and varies.</p>
+
+  <figure class="u-my-16-12">
+    <img src="sorting.png" alt="Sorting algorithm complexity chart" class="fig-img">
+    <figcaption class="u-note-gap">Sorting algorithm complexity comparison</figcaption>
+  </figure>
+
+  <div class="co co-note">
+    <strong>Stable sort (Wikipedia):</strong> "Stable sorting algorithms maintain the relative order of records with equal keys. That is, if R appears before S in the original list and both have the same key, R will appear before S in the sorted list."
+  </div>
+  <p>See <a href="sort_complexity.html">Sorting Algorithm Complexity</a> for a full breakdown of Timsort vs Heapsort vs Counting Sort and when theory diverges from practice.</p>
+
+  <!-- DS/A Flowchart -->
+  <h2 id="flowchart" data-toc-label="DS/A Flowchart"><span class="sec-num">13</span> General DS/A Flowchart</h2>
+  <p>A flowchart to help decide which data structure or algorithm to use. Note: this is intentionally general — it cannot cover every scenario, and more advanced algorithms like Dijkstra's are excluded.</p>
+
+  <figure class="u-my-16-12">
+    <img src="flowchart.png" alt="Data structures and algorithms decision flowchart" class="fig-img">
+    <figcaption class="u-note-gap">General DS/A decision flowchart</figcaption>
+  </figure>
+
+  <!-- Interview Stages Cheat Sheet -->
+  <h2 id="stages-cheat" data-toc-label="Interview Stages"><span class="sec-num">14</span> Interview Stages Cheat Sheet</h2>
+  <p>A condensed summary of the <a href="interview_stages.html">Stages of an Interview</a> guide. Print this and keep it visible during a remote interview.</p>
+
+  <div class="u-panel">
+
+    <p class="u-mb-4"><strong>Stage 1 — Introductions</strong></p>
+    <ul class="u-mb-16">
+      <li>Rehearsed 30–60 sec intro (education, experience, interests)</li>
+      <li>Smile and speak with confidence</li>
+      <li>Pay attention when the interviewer talks about themselves — use it for questions later</li>
+    </ul>
+
+    <p class="u-mb-4"><strong>Stage 2 — Problem Statement</strong></p>
+    <ul class="u-mb-16">
+      <li>Paraphrase the problem back after they read it</li>
+      <li>Ask clarifying questions: input types, sorted/unsorted, empty input, invalid input, expected size</li>
+      <li>Walk through one example test case to confirm understanding</li>
+    </ul>
+
+    <p class="u-mb-4"><strong>Stage 3 — Brainstorming DS&amp;A</strong></p>
+    <ul class="u-mb-16">
+      <li>Always think out loud</li>
+      <li>Break it down: what do I need to do → what DS/A accomplishes it efficiently?</li>
+      <li>Be receptive to interviewer hints — they want you to succeed</li>
+      <li>Explain your approach and get agreement before coding</li>
+    </ul>
+
+    <p class="u-mb-4"><strong>Stage 4 — Implementation</strong></p>
+    <ul class="u-mb-16">
+      <li>Narrate decisions as you code ("this Set prevents revisiting nodes")</li>
+      <li>Write clean, convention-following code</li>
+      <li>Avoid duplicate logic — use helpers or loops</li>
+      <li>Stuck? Communicate, don't go silent</li>
+      <li>Brute force first is fine — acknowledge it, then optimize together</li>
+    </ul>
+
+    <p class="u-mb-4"><strong>Stage 5 — Testing &amp; Debugging</strong></p>
+    <ul class="u-mb-16">
+      <li>Track variable values in writing as you walk through cases</li>
+      <li>Condense trivial steps ("after this loop, prefix sum = …")</li>
+      <li>Use print statements if the environment allows running code</li>
+    </ul>
+
+    <p class="u-mb-4"><strong>Stage 6 — Follow-ups</strong></p>
+    <ul class="u-mb-16">
+      <li>Time and space complexity — worst case, average if significantly different</li>
+      <li>Justify your data structure / algorithm choices</li>
+      <li>If asked "can it be improved?" — answer is usually yes</li>
+    </ul>
+
+    <p class="u-mb-4"><strong>Stage 7 — Outro</strong></p>
+    <ul class="u-m-0">
+      <li>Have 2–3 questions about the company/role ready</li>
+      <li>Stay engaged, smile, ask follow-up questions to their answers</li>
+    </ul>
+
+  </div>
+
+  <div class="page-footer">
+    Source: Interview-sheet.md §3 · Review &amp; Reference · Study Wiki
+  </div>
+
+</main>
+</div>
+
+<script src="../static/generated/manifest.js"></script>
+<script src="../static/generated/nav.js"></script>
+<script src="../static/generated/toc.js"></script>
+</body>
+</html>

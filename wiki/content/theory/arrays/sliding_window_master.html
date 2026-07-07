@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sliding Window · Theory Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Sliding Window",
+  "nav": "Sliding Window",
+  "topics": [
+    "Arrays",
+    "Strings",
+    "Two Pointers"
+  ],
+  "blurb": "Two monotonic pointers over a contiguous range — fixed window, longest (grow), shortest (shrink) — O(n) for all variants."
+}
+</script>
+<link rel="stylesheet" href="../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="theory">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">Sliding Window</h1>
+  <div class="page-meta">
+    <span>Theory Masterfile</span><span>·</span>
+    <span>Language: Swift</span><span>·</span>
+    <span>Fixed window · Longest (grow) · Shortest (shrink)</span>
+  </div>
+
+  <!-- 1. Definition -->
+  <section id="lead" data-toc-label="Definition">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Array / string traversal technique</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v">Two monotonic pointers bound a contiguous range; state updates incrementally</div></div>
+      <div class="infobox-row"><div class="infobox-k">Time</div><div class="infobox-v">O(n) — each element enters and exits at most once</div></div>
+      <div class="infobox-row"><div class="infobox-k">Space</div><div class="infobox-v">O(k) window state; O(1) for bounded alphabets</div></div>
+      <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"longest", "shortest", "substring", "contiguous subarray"</div></div>
+      <div class="infobox-row"><div class="infobox-k">Requires sorted?</div><div class="infobox-v">No — unlike two pointers</div></div>
+      <div class="infobox-row"><div class="infobox-k">Walkthroughs</div><div class="infobox-v mono"><a href="../../walkthroughs/LC3_master.html">LC3_master.html</a> · <a href="../../walkthroughs/LC76_master.html">LC76_master.html</a> · <a href="../../walkthroughs/LC209_master.html">LC209_master.html</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p>The <strong>sliding window</strong> is a traversal technique that finds an optimal contiguous subarray or substring by maintaining a range between two pointers — a right pointer that only ever advances, and a left pointer that only ever follows — while keeping an incremental summary of the range's contents.</p>
+      <p>Because both pointers move monotonically, every element is added to the window once and removed at most once, giving linear time even when the code contains a nested loop. The technique converts a naive "examine all O(n²) subarrays" search into a single pass, and it is the standard tool whenever a problem asks for the longest, shortest, or counted contiguous range satisfying a constraint.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Recognition signals -->
+  <section id="signals" data-toc-label="Recognition Signals">
+    <h2>2 &nbsp; Recognition Signals — when to reach for it</h2>
+    <p>Sliding window problems rarely say "sliding window." They say one of these:</p>
+    <table class="t-clue">
+      <thead><tr><th>When the problem says…</th><th>It means…</th></tr></thead>
+      <tbody>
+        <tr><td>"longest substring/subarray such that…"</td><td>Variant 8.2 — grow right, shrink left on invalid, record after the shrink loop</td></tr>
+        <tr><td>"shortest/minimum subarray such that…"</td><td>Variant 8.3 — shrink while valid, record inside the shrink loop</td></tr>
+        <tr><td>"…of size k" / "every window of length k"</td><td>Variant 8.1 — fixed window, left trails right by exactly k − 1</td></tr>
+        <tr><td>"contains all characters of t"</td><td>Frequency-map window + matched-count validity (LC 76)</td></tr>
+        <tr><td>"at most k distinct / at most k replacements"</td><td>Budget-style validity: shrink when the budget is exceeded</td></tr>
+        <tr><td>"count the subarrays that…"</td><td>Counting window: every valid right pointer contributes right − left + 1</td></tr>
+      </tbody>
+    </table>
+    <div class="co-when"><strong>The disqualifier:</strong> the answer must be contiguous. If the problem allows picking non-adjacent elements (a subsequence), the window's incremental add/remove logic has nothing to maintain — reach for DP or greedy instead.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Terminology decoder -->
+  <section id="terminology" data-toc-label="Terminology Decoder">
+    <h2>3 &nbsp; Terminology Decoder</h2>
+    <table class="t-decoder">
+      <thead><tr><th>Term</th><th>Plain meaning</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td>Window</td><td>The contiguous range [left, right] currently under consideration</td><td><code>"DOBEC"</code> inside <code>"ADOBECODEBANC"</code></td></tr>
+        <tr><td>Window state</td><td>The incremental summary of the window's contents — a sum, a count map, a budget</td><td><code>windowCounts = [A:1, B:1]</code></td></tr>
+        <tr><td>Validity</td><td>The problem-specific condition the window must (or must not) satisfy</td><td>"contains every char of t at required multiplicity"</td></tr>
+        <tr><td>Expand</td><td>Advance the right pointer one step and fold the new element into the state</td><td><code>windowSum += nums[right]</code></td></tr>
+        <tr><td>Shrink / contract</td><td>Advance the left pointer one step and remove its element from the state</td><td><code>windowSum -= nums[left]; left += 1</code></td></tr>
+        <tr><td>Monotonic pointers</td><td>Neither pointer ever moves backward — the property that guarantees O(n)</td><td>right and left only increase</td></tr>
+        <tr><td>Amortized analysis</td><td>Charging total work to elements (2 touches each) instead of to loop iterations</td><td>why the nested while is still O(n)</td></tr>
+        <tr><td>Matched count</td><td>An integer tracking how many distinct requirements are currently satisfied, so validity is O(1) to check</td><td><code>matchedCount == targetCounts.count</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Mental model -->
+  <section id="mental-model" data-toc-label="Mental Model">
+    <h2>4 &nbsp; Mental Model — a caterpillar, not a snapshot</h2>
+
+    <div class="co-idea">
+      <div class="co-idea-title">The one idea</div>
+      The window is a caterpillar crawling along the array: the head (right) pulls forward one step every iteration; the tail (left) catches up only when the body breaks a rule. The body never teleports and never backs up — and that is the entire reason the algorithm is linear.
+    </div>
+
+    <p>Watch the longest-window variant find the longest substring without repeating characters in <code>"abcabcbb"</code>:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">expand on every step; shrink only when a repeat appears</span></div>
+    <pre class="dry"><span class="tr-var">right=0 'a'</span>  window="a"      <span class="tr-ok">valid</span>   best=1
+<span class="tr-var">right=1 'b'</span>  window="ab"     <span class="tr-ok">valid</span>   best=2
+<span class="tr-var">right=2 'c'</span>  window="abc"    <span class="tr-ok">valid</span>   best=3
+<span class="tr-var">right=3 'a'</span>  window="abca"   <span class="tr-bad">repeat 'a'</span> → shrink: drop 'a' (left=1)
+             window="bca"    <span class="tr-ok">valid</span>   best=3
+<span class="tr-var">right=4 'b'</span>  window="bcab"   <span class="tr-bad">repeat 'b'</span> → shrink: drop 'b' (left=2)
+             window="cab"    <span class="tr-ok">valid</span>   best=3
+<span class="tr-var">right=7 'b'</span>  …window="b"     <span class="tr-aha">left chased right; total pointer moves ≤ 2n</span></pre>
+    <p class="ascii-caption">Each character enters the window once (right passes it) and leaves at most once (left passes it). Sixteen pointer moves for eight characters — never more than 2n.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Pseudocode primer -->
+  <section id="pseudocode" data-toc-label="Pseudocode Primer">
+    <h2>5 &nbsp; Pseudocode Primer</h2>
+    <p>Every sliding window solution is this loop. Variants differ only in <em>when</em> the left pointer moves and <em>where</em> the answer is recorded.</p>
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">the canonical (longest) form</span></div>
+    <pre class="pseudo"><span class="pk">FUNCTION</span> slidingWindow(input):
+    windowState ← empty
+    left ← 0
+    best ← 0
+
+    <span class="pk">FOR</span> right <span class="pk">FROM</span> 0 <span class="pk">TO</span> length(input) − 1:
+        <span class="pc">① EXPAND — fold input[right] into windowState</span>
+        add input[right] to windowState
+
+        <span class="pc">② RESTORE — while the window violates the rule, shrink from the left</span>
+        <span class="pk">WHILE</span> windowState is invalid:
+            remove input[left] from windowState
+            left ← left + 1
+
+        <span class="pc">③ RECORD — the window is valid here, by construction</span>
+        best ← max(best, right − left + 1)
+
+    <span class="pk">RETURN</span> best</pre>
+    <div class="co-insight"><strong>Why it works:</strong> after the while loop the window is always valid, so step ③ never records garbage — the loop is a self-restoring invariant. For shortest-window problems the invariant flips: the while loop runs <em>while valid</em>, and the record moves <em>inside</em> it (see 8.3).</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. Iterative-only pattern -->
+  <section id="iterative" data-toc-label="Iterative-Only Pattern">
+    <h2>6 &nbsp; Iterative-Only Pattern — no recursion, ever</h2>
+    <p>Sliding window is inherently iterative: the entire algorithm is one <code>for</code> loop with a nested <code>while</code>, and the only "data structure" is the window state itself. There is no recursive formulation worth writing — a recursive substring enumeration is exactly the O(n²) brute force the window exists to delete.</p>
+    <ul>
+      <li><strong>No call stack</strong> — state lives in two integers and one small map; nothing to overflow at n = 10⁵.</li>
+      <li><strong>Explicit invariant</strong> — "after the while loop, the window is valid" is visible in the code, where a recursive version would hide it in call frames.</li>
+      <li><strong>Single direction</strong> — both pointers only increase. If you ever feel the need to move <code>right</code> backwards or restart the window, you have left the pattern (and probably its O(n) guarantee).</li>
+    </ul>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Swift translation -->
+  <section id="swift" data-toc-label="Swift Translation">
+    <h2>7 &nbsp; Swift Translation</h2>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">annotated longest-window template — compilable starting point</span></div>
+    <pre class="swift"><span class="kw">func</span> <span class="fn">longestValidWindow</span>(<span class="kw">_</span> s: <span class="tp">String</span>) -&gt; <span class="tp">Int</span> {
+    <span class="cm">// Swift String has no O(1) integer indexing — convert once, up front.</span>
+    <span class="kw">let</span> characters = <span class="tp">Array</span>(s)
+    <span class="kw">var</span> windowCounts: [<span class="tp">Character</span>: <span class="tp">Int</span>] = [:]
+    <span class="kw">var</span> leftPointer = <span class="nm">0</span>
+    <span class="kw">var</span> bestLength  = <span class="nm">0</span>
+
+    <span class="kw">for</span> (rightPointer, rightCharacter) <span class="kw">in</span> characters.enumerated() {
+        <span class="cm">// ① EXPAND</span>
+        windowCounts[rightCharacter, <span class="kw">default</span>: <span class="nm">0</span>] += <span class="nm">1</span>
+
+        <span class="cm">// ② RESTORE validity — replace the condition per problem</span>
+        <span class="kw">while</span> windowCounts[rightCharacter]! &gt; <span class="nm">1</span> {
+            <span class="kw">let</span> leftCharacter = characters[leftPointer]
+            windowCounts[leftCharacter]! -= <span class="nm">1</span>
+            leftPointer += <span class="nm">1</span>
+        }
+
+        <span class="cm">// ③ RECORD — window is valid here by construction</span>
+        bestLength = <span class="fn">max</span>(bestLength, rightPointer - leftPointer + <span class="nm">1</span>)
+    }
+    <span class="kw">return</span> bestLength
+}</pre>
+    <div class="co-note"><strong>Note:</strong> the Swift-specific costs to say out loud in an interview: <code>Array(s)</code> is O(n) once and buys O(1) indexing forever; dictionary subscript with <code>default:</code> is O(1) amortized; never call <code>.max()</code> or rebuild a map inside the loop — that silently reintroduces O(n²).</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 8. Variant catalog -->
+  <section id="variants" data-toc-label="Variant Catalog">
+    <h2>8 &nbsp; Variant Catalog</h2>
+
+    <div class="pattern-block" id="v-fixed" data-toc-label="8.1 Fixed window">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.1</span>
+        <span class="block-name">Fixed-size window</span>
+        <div class="block-pills"><span class="pill pill-t">O(n)</span><span class="pill pill-s">O(k)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> the problem fixes the window size k (max average of k elements, anagrams of a fixed pattern). No validity check exists — the left pointer is always exactly <code>right − k + 1</code>.</div>
+        <pre class="pseudo"><span class="pk">FOR</span> right <span class="pk">FROM</span> 0 <span class="pk">TO</span> n − 1:
+    add input[right]
+    <span class="pk">IF</span> right ≥ k − 1:
+        record(windowState)
+        remove input[right − k + 1]</pre>
+      </div>
+    </div>
+
+    <div class="pattern-block" id="v-longest" data-toc-label="8.2 Longest (grow)">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.2</span>
+        <span class="block-name">Longest window — grow, shrink on invalid</span>
+        <div class="block-pills"><span class="pill pill-t">O(n)</span><span class="pill pill-s">O(k)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> "longest substring/subarray such that…". The while loop moves you <em>toward</em> validity, so the answer is recorded <em>after</em> it. This is the §5 primer verbatim.</div>
+        <p>Examples: Longest Substring Without Repeating Characters (<a href="../../walkthroughs/LC3_master.html">LC 3</a>), Longest Repeating Character Replacement (LC 424), Max Consecutive Ones III (LC 1004).</p>
+      </div>
+    </div>
+
+    <div class="pattern-block" id="v-shortest" data-toc-label="8.3 Shortest (shrink)">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.3</span>
+        <span class="block-name">Shortest window — shrink while valid</span>
+        <div class="block-pills"><span class="pill pill-t">O(n)</span><span class="pill pill-s">O(k)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> "shortest/minimum window such that…". The while loop now runs <em>while the window is valid</em> and moves you <em>away</em> from validity, so the answer is recorded <em>inside</em> it, before each shrink step.</div>
+        <pre class="pseudo"><span class="pk">FOR</span> right <span class="pk">FROM</span> 0 <span class="pk">TO</span> n − 1:
+    add input[right]
+    <span class="pk">WHILE</span> windowState is valid:
+        record(right − left + 1)      <span class="pc">← inside: window is valid right now</span>
+        remove input[left]
+        left ← left + 1</pre>
+        <div class="co-insight"><strong>The inversion rule:</strong> ask "does my while loop move me toward validity or away from it?" Toward → record after the loop (8.2). Away → record inside the loop (8.3). Getting this placement wrong is the #1 sliding window bug, and it is the entire difficulty of <a href="../../walkthroughs/LC76_master.html">LC 76</a>.</div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 9. Complexity -->
+  <section id="complexity" data-toc-label="Complexity Analysis">
+    <h2>9 &nbsp; Complexity Analysis</h2>
+    <p><strong>Why the nested while loop is still O(n).</strong> Count work per <em>element</em>, not per iteration: each element is added to the window exactly once (when right passes it) and removed at most once (when left passes it). Total pointer movement is therefore at most 2n across the whole run, regardless of how the shrink steps cluster. A window that shrinks 50 times in one iteration paid for those 50 steps by not shrinking in the previous 50.</p>
+    <table class="t-cmx">
+      <thead><tr><th>Variant</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Fixed (8.1)</td><td class="tc">O(n)</td><td class="sc">O(k)</td><td>One add and one remove per step; state holds at most k elements.</td></tr>
+        <tr><td>Longest (8.2)</td><td class="tc">O(n)</td><td class="sc">O(k)</td><td>Amortized: ≤ 2n pointer moves; map holds the window's distinct elements.</td></tr>
+        <tr><td>Shortest (8.3)</td><td class="tc">O(n)</td><td class="sc">O(k)</td><td>Same amortization; validity check must be O(1) (see matched count) or the bound degrades.</td></tr>
+        <tr class="bottleneck"><td>Hidden trap</td><td class="tc">O(n²)</td><td class="sc">—</td><td>Any per-iteration full scan of the state (comparing whole dictionaries, calling <code>.max()</code>) silently destroys the bound.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 10. Pitfalls -->
+  <section id="pitfalls" data-toc-label="Common Pitfalls">
+    <h2>10 &nbsp; Common Pitfalls</h2>
+    <div class="co-pitfall">
+      <div class="co-pitfall-title">Pitfalls — bugs this pattern invites</div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Recording in the wrong place.</strong> Longest records after the shrink loop; shortest records inside it. Swapping them returns answers off by an arbitrary amount, not by one — re-derive with the inversion rule (8.3).</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Resetting the window state on success.</strong> The window slides; it never restarts. A full reset throws away accumulated counts and breaks the ≤ 2n movement argument.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>O(n) validity checks.</strong> Comparing two dictionaries per step is O(k) hidden inside the loop. Maintain a <code>matchedCount</code> integer so validity is one comparison.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Window length off-by-one.</strong> The length is <code>right − left + 1</code>. Forgetting the +1 passes small tests (length 1 windows) and fails everything else.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Indexing a Swift String directly.</strong> <code>s[s.index(...)]</code> in a loop is quadratic. Convert with <code>Array(s)</code> before the loop, every time.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Leaving zero-count keys in the map.</strong> If validity checks <code>windowCounts.count</code>, a key with value 0 must be removed, or the distinct-count lies.</span></div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 11. Edge cases -->
+  <section id="edge-cases" data-toc-label="Edge Cases">
+    <h2>11 &nbsp; Edge Cases to Verbalize</h2>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected behavior</th><th>What it exercises</th></tr></thead>
+      <tbody>
+        <tr><td>s = ""</td><td>0 / "" — loop body never runs</td><td>initialization values</td></tr>
+        <tr><td>single element</td><td>window of size 1 is the answer</td><td>the +1 in the length formula</td></tr>
+        <tr><td>all elements identical</td><td>longest: depends on rule; shortest: smallest k</td><td>shrink loop terminating</td></tr>
+        <tr><td>entire input is the answer</td><td>left never moves</td><td>record placement, not shrink logic</td></tr>
+        <tr><td>no valid window exists</td><td>return the sentinel (0, "", −1) — never a partial window</td><td>sentinel initialization and final guard</td></tr>
+        <tr><td>k &gt; n (fixed variant)</td><td>defined by problem: usually sentinel</td><td>the <code>right ≥ k − 1</code> gate</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 12. Cheat sheet -->
+  <section id="cheatsheet" data-toc-label="Cheat Sheet">
+    <h2>12 &nbsp; Cheat Sheet</h2>
+    <table class="t-versus">
+      <thead><tr><th>You see</th><th>You use</th><th>Record</th></tr></thead>
+      <tbody>
+        <tr><td>"longest … such that"</td><td>8.2 grow / shrink-on-invalid</td><td>after the while loop</td></tr>
+        <tr><td>"shortest … such that"</td><td>8.3 shrink-while-valid</td><td>inside the while loop</td></tr>
+        <tr><td>"of size k"</td><td>8.1 fixed window</td><td>once window is full</td></tr>
+        <tr><td>"count subarrays"</td><td>8.2 + add <code>right − left + 1</code> each step</td><td>after the while loop</td></tr>
+        <tr><td>sorted array, pair sum</td><td>not a window — two pointers converging</td><td>—</td></tr>
+      </tbody>
+    </table>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">copy-paste skeleton</span></div>
+    <pre class="swift"><span class="kw">let</span> items = <span class="tp">Array</span>(input)
+<span class="kw">var</span> state: [<span class="tp">Character</span>: <span class="tp">Int</span>] = [:]
+<span class="kw">var</span> left = <span class="nm">0</span>, best = <span class="nm">0</span>
+<span class="kw">for</span> (right, item) <span class="kw">in</span> items.enumerated() {
+    <span class="cm">/* expand: fold item into state */</span>
+    <span class="kw">while</span> <span class="cm">/* invalid */</span> <span class="kw">false</span> {
+        <span class="cm">/* remove items[left] from state */</span>
+        left += <span class="nm">1</span>
+    }
+    best = <span class="fn">max</span>(best, right - left + <span class="nm">1</span>)
+}</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13. Cross-reference -->
+  <section id="practice" data-toc-label="Demonstrated in Practice">
+    <h2>13 &nbsp; Demonstrated in Practice</h2>
+    <p>The walkthroughs below are not free-form: each follows the walkthrough masterfile standard — problem restatement, constraint insights, edge-case inventory, a full interview simulation (clarifying questions + the spoken plan), pseudocode dry run, iterative Swift, complexity table, and follow-up bank. Each card says what you land on.</p>
+    <div class="ref-grid">
+      <a class="xref-card" href="../../walkthroughs/LC3_master.html">
+        <span class="ref-file">walkthroughs/LC3_master.html</span>
+        <span class="ref-title">LC 3 — Longest Substring Without Repeating Characters (Medium)</span>
+        <span class="ref-desc">The headline example of variant 8.2: grow greedily, shrink only while a character repeats, record after the repair. Shows both the classic count-map shrink and the last-seen-index jump optimization (with the "abba" backward-move trap), plus a full dry run on "abcabcbb". Its Theory Decoder maps every line back to §8.2.</span>
+      </a>
+      <a class="xref-card" href="../../walkthroughs/LC76_master.html">
+        <span class="ref-file">walkthroughs/LC76_master.html</span>
+        <span class="ref-title">LC 76 — Minimum Window Substring (Hard)</span>
+        <span class="ref-desc">Variant 8.3 shrink-while-valid at full difficulty: frequency-map validity, the matchedCount trick, and a complete dry run on "ADOBECODEBANC". Its Theory Decoder maps every solution line back to §8.3 of this page.</span>
+      </a>
+      <a class="xref-card" href="../../walkthroughs/LC209_master.html">
+        <span class="ref-file">walkthroughs/LC209_master.html</span>
+        <span class="ref-title">LC 209 — Minimum Size Subarray Sum (Medium)</span>
+        <span class="ref-desc">Variant 8.3 at its simplest: a single running-sum integer is the entire window state. Includes the Int.max initialization gotcha (and why init-to-0 silently corrupts every answer), a full dry run on [2,3,1,2,4,3], and a complete interview simulation spoken plan.</span>
+      </a>
+    </div>
+      <p class="u-note-gap">See also: <a href="arrays_hashing_overview_master.html">arrays_hashing_overview_master.html</a> — the hub decision layer that routes between sliding window and its sibling patterns.</p>
+
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 14. Solo problem -->
+  <section id="solo" data-toc-label="Solo Problem">
+    <h2>14 &nbsp; Solo Problem — no solution on this page</h2>
+    <div class="solo-box">
+      <div class="solo-banner">Solo problem — no solution on this page</div>
+      <p><strong>LC 209 — Minimum Size Subarray Sum (Medium).</strong> Given an array of positive integers and a target, return the minimal length of a contiguous subarray whose sum is ≥ target, or 0 if none exists. This is variant 8.3 with the simplest possible window state (a running sum) — rebuild it cold before opening anything.</p>
+      <ul class="checklist">
+        <li>Which variant is it, and why? (the word "minimal" decides)</li>
+        <li>What is the window state, and what makes the window valid?</li>
+        <li>Does the record go inside or after the while loop?</li>
+        <li>What do you return when no window is valid, and where is that guarded?</li>
+        <li>State the complexity before running: why is the nested while still O(n)?</li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="page-footer">
+    Sliding Window · Theory Masterfile · Demonstrated in practice:
+    <a href="../../walkthroughs/LC76_master.html">LC 76 — Minimum Window Substring</a> ·
+    <a href="../../walkthroughs/LC209_master.html">LC 209 — Minimum Size Subarray Sum</a> ·
+    Structure per <code>.claude/skills/wiki/references/theory-format.md</code>
+  </div>
+
+</main>
+</div>
+
+<script src="../../static/generated/manifest.js"></script>
+<script src="../../static/generated/nav.js"></script>
+<script src="../../static/generated/toc.js"></script>
+</body>
+</html>

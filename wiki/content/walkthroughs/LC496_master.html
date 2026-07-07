@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LC 496 — Next Greater Element I · Walkthrough Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "LC 496 — Next Greater Element I",
+  "nav": "LC 496",
+  "topics": [
+    "Stack",
+    "Monotonic Stack",
+    "Arrays"
+  ],
+  "blurb": "Monotonic decreasing stack (Pattern 4) — right-to-left sweep, evict dominated elements, record next-greater in a map. The canonical routing signal: 'next greater / nearest element satisfying a condition'.",
+  "difficulty": "E"
+}
+</script>
+<link rel="stylesheet" href="../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="walkthrough">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">LC 496 — Next Greater Element I</h1>
+  <div class="page-meta">
+    <span>Walkthrough Masterfile</span><span>·</span>
+    <span>Language: Swift</span><span>·</span>
+    <span>Easy · Monotonic Stack · Decreasing stack + lookup map</span>
+  </div>
+
+  <!-- 1. Restatement -->
+  <section id="lead" data-toc-label="The Problem">
+    <div class="infobox">
+      <div class="infobox-title">Problem at a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Difficulty</div><div class="infobox-v"><span class="tag tag-E">Easy</span></div></div>
+      <div class="infobox-row"><div class="infobox-k">Pattern</div><div class="infobox-v">Monotonic Stack — decreasing stack sweeping right-to-left, result stored in a map</div></div>
+      <div class="infobox-row"><div class="infobox-k">Tools</div><div class="infobox-v">A monotonically decreasing stack · a value → nextGreater dictionary · a final map lookup</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key insight</div><div class="infobox-v">Elements smaller than the new arrival can never be the next-greater for anything to the left — evict them. Whatever remains on top after eviction is the answer.</div></div>
+      <div class="infobox-row"><div class="infobox-k">Time / Space</div><div class="infobox-v">O(n + m) / O(n)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Theory</div><div class="infobox-v mono"><a href="../theory/stacks_queues/stack_master.html">stack_master.html</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p>You are given two arrays, <code>nums1</code> and <code>nums2</code>, where <code>nums1</code> is a subset of <code>nums2</code> (all values are unique). For each element in <code>nums1</code>, find the <strong>first element to its right in <code>nums2</code></strong> that is strictly greater. Return −1 if no such element exists. The relative positions in <code>nums1</code> don't matter — only the position of each value inside <code>nums2</code> determines the answer.</p>
+
+      <table class="t-example">
+        <thead><tr><th>Input</th><th>Output</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><code>nums1=[4,1,2], nums2=[1,3,4,2]</code></td><td><code>[-1,3,-1]</code></td><td>4 has nothing greater to its right; 1 → 3 is the first greater; 2 has nothing</td></tr>
+          <tr><td><code>nums1=[2,4], nums2=[1,2,3,4]</code></td><td><code>[3,-1]</code></td><td>2 → 3 is the first greater; 4 is the last element, nothing to its right</td></tr>
+          <tr><td><code>nums1=[1], nums2=[1]</code></td><td><code>[-1]</code></td><td>Only one element, nothing to its right at all</td></tr>
+        </tbody>
+      </table>
+
+      <p>The twist: a brute-force suffix scan is O(n·m), which works but misses the point of the problem. The real question is: can you compute the next-greater for <em>every</em> element in <code>nums2</code> in a single O(n) pass — and the answer is yes, via a monotonic stack.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Reading the problem -->
+  <section id="reading" data-toc-label="Reading the Problem">
+    <h2>2 &nbsp; Reading the Problem — insights from the constraints</h2>
+
+    <div class="co-insight"><strong>"First element to its right that is greater"</strong> — <em>first</em> is the tell. Not the maximum. Not any element. The <em>nearest</em> qualifying element. Any time a problem asks for the nearest element satisfying a condition, a monotonic stack is the O(n) answer — it processes each element exactly once while maintaining a structure that resolves "nearest" queries for free.</div>
+
+    <table class="t-clue">
+      <thead><tr><th>Phrase / constraint</th><th>Design decision it forces</th></tr></thead>
+      <tbody>
+        <tr><td>"next greater element" / "first to its right"</td><td>Nearest-qualifying pattern → monotonic stack (not a scan)</td></tr>
+        <tr><td><code>nums1</code> is a subset of <code>nums2</code></td><td>All values unique → a value can be used as a dictionary key without collision</td></tr>
+        <tr><td>1 ≤ nums1.length ≤ nums2.length ≤ 1000</td><td>O(n²) brute force passes; but monotonic stack is the intended insight</td></tr>
+        <tr><td>All values are unique</td><td>Safe to key a dictionary by value, not index — the lookup in the final step is unambiguous</td></tr>
+        <tr><td>Return −1 if no greater element exists</td><td>Seed the dictionary default as −1; elements still on the stack at the end of the sweep have no answer</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Edge cases -->
+  <section id="edge-cases" data-toc-label="Edge Case Inventory">
+    <h2>3 &nbsp; Edge Case Inventory</h2>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected behavior</th><th>Which line handles it</th></tr></thead>
+      <tbody>
+        <tr><td><code>nums2</code> is strictly ascending</td><td>Every element's next-greater is the one to its immediate right; last element → −1</td><td>Stack always empties on every step (every new element beats the top)</td></tr>
+        <tr><td><code>nums2</code> is strictly descending</td><td>No element has a next-greater; all return −1</td><td>Stack is never drained; all entries map to <code>stack.last ?? -1</code> = −1 from empty</td></tr>
+        <tr><td>Single element in <code>nums2</code></td><td>Always −1 — nothing to its right</td><td><code>stack.last ?? -1</code> returns −1 on an empty stack</td></tr>
+        <tr><td><code>nums1</code> element whose value does not appear in the map</td><td>Cannot happen — <code>nums1</code> is guaranteed a subset of <code>nums2</code>, so every value was processed</td><td><code>nextGreater[$0] ?? -1</code> covers the gap safely anyway</td></tr>
+        <tr><td>Duplicate values</td><td>Cannot happen — constraints guarantee all values are unique across both arrays</td><td>No special handling needed</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Try it yourself -->
+  <section id="hints" data-toc-label="Try It Yourself First">
+    <h2>4 &nbsp; Try It Yourself First</h2>
+    <details class="hint">
+      <summary>Hint 1 — constraint</summary>
+      <p>The constraints say "first element to its <em>right</em>" and all values are unique. What does "first" tell you about the kind of scan you need — and does O(n·m) brute force actually count as solving the problem the way an interviewer intends?</p>
+    </details>
+    <details class="hint">
+      <summary>Hint 2 — pattern</summary>
+      <p>You want the nearest element greater than each value. Think about what kind of stack stays useful: if a small element is sitting on the stack and a large element arrives, can the small element ever be the next-greater for anything to the left of the large element?</p>
+    </details>
+    <details class="hint">
+      <summary>Hint 3 — structure</summary>
+      <p>Sweep <code>nums2</code> right-to-left. Maintain a stack that is always decreasing from bottom to top. Before pushing a new value, pop everything smaller — they are dominated and useless. Whatever is on top after popping is the next-greater for the current value. Store that in a dictionary keyed by value, then answer <code>nums1</code> in one final map lookup.</p>
+    </details>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Interview simulation -->
+  <section id="simulation" data-toc-label="Interview Simulation">
+    <h2>5 &nbsp; Interview Simulation</h2>
+
+    <div class="sim-block">
+      <div class="sim-header">Interview Simulation — Say This Out Loud</div>
+
+      <div id="sim-questions" data-toc-label="5.1 Clarifying questions" class="u-pad-16-20-0">
+        <h3 class="u-mt-0">5.1 &nbsp; Clarifying Questions</h3>
+
+        <div>
+          <div class="sim-q">Q: Can values appear more than once across the two arrays?</div>
+          <div class="sim-a">A: No, all values are unique. → So I can safely key a dictionary by value rather than index — no collision risk.</div>
+        </div>
+        <div>
+          <div class="sim-q">Q: Is <code>nums1</code> guaranteed to be a subset of <code>nums2</code>?</div>
+          <div class="sim-a">A: Yes, always. → Every value I query in the final step was definitely processed during the <code>nums2</code> sweep.</div>
+        </div>
+        <div>
+          <div class="sim-q">Q: What should I return if no greater element exists to the right?</div>
+          <div class="sim-a">A: Return −1 for that position. → I'll use −1 as the default in my dictionary and as the fallback when the stack is empty at the end of the sweep.</div>
+        </div>
+      </div>
+
+      <div id="sim-plan" data-toc-label="5.2 The plan, spoken" class="u-pad-16-20">
+        <h3 class="u-mt-0">5.2 &nbsp; The Plan, Spoken</h3>
+        <div class="speech">
+"This is a monotonic stack problem. The signal is 'first element to its right that is greater' — whenever a problem asks for the nearest qualifying element, that phrase maps to a monotonic stack, which resolves nearest-greater queries in O(n) by reusing prior comparisons.
+
+The sequence goes like this: I sweep <code>nums2</code> right-to-left. I maintain a stack that is always decreasing from bottom to top — meaning the top is always the smallest thing on the stack. When I visit a new element, I pop everything off the top that is smaller than or equal to it. Those smaller elements are dominated: if they cannot be the next-greater for the current element, they cannot be the next-greater for anything further to the left either — because the current element is already blocking them. After the pops, whatever is left on top is the first element to the right that is greater than the current one. I record that mapping in a dictionary: <code>nextGreater[currentValue] = stack.last ?? -1</code>. Then I push the current value onto the stack, because it could be the next-greater for something to its left. After the full sweep I answer <code>nums1</code> with a single map lookup per value.
+
+The state I need: a stack of Ints, decreasing bottom-to-top; a dictionary of <code>[Int: Int]</code> mapping each value to its next-greater.
+
+The invariant: after processing each element, the stack contains, in decreasing order, the candidates that could still be the next-greater for elements further to the left.
+
+The condition: pop while <code>stack.last &lt;= currentValue</code> — those elements are dominated. Record <code>stack.last ?? -1</code> before pushing.
+
+Let me walk <code>nums2 = [1, 3, 4, 2]</code> right-to-left. Start at 2: stack empty → nextGreater[2] = -1, push 2. Stack: [2]. Move to 4: pop 2 (2 ≤ 4), stack empty → nextGreater[4] = -1, push 4. Stack: [4]. Move to 3: 4 &gt; 3, don't pop → nextGreater[3] = 4, push 3. Stack: [4, 3]. Move to 1: 3 &gt; 1, don't pop → nextGreater[1] = 3, push 1. Stack: [4, 3, 1]. Done. Then for nums1 = [4, 1, 2]: nextGreater[4]=-1, nextGreater[1]=3, nextGreater[2]=-1 → [-1, 3, -1]. Correct.
+
+Time is O(n + m) — each element is pushed and popped at most once during the sweep (O(n)), then one lookup per nums1 element (O(m)). Space is O(n) for the stack and dictionary."
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. Why this approach -->
+  <section id="approach" data-toc-label="Why This Approach">
+    <h2>6 &nbsp; Why This Approach</h2>
+
+    <table class="t-versus">
+      <thead><tr><th>Approach</th><th>Time</th><th>Space</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>Brute force — for each nums1 element, scan right in nums2</td><td>O(n · m)</td><td>O(1)</td><td>Correct but misses the insight. Interviewer will ask "can you do better?"</td></tr>
+        <tr><td>Suffix scan — precompute next-greater for all of nums2 by scanning right</td><td>O(n²)</td><td>O(n)</td><td>Still O(n²); you build the full table but pay O(n) per element to find the answer</td></tr>
+        <tr><td><strong>Monotonic stack (right-to-left sweep)</strong></td><td><strong>O(n + m)</strong></td><td><strong>O(n)</strong></td><td><strong>Optimal. Each element pushed and popped at most once.</strong></td></tr>
+      </tbody>
+    </table>
+
+    <div class="co-insight"><strong>Why not two pointers?</strong> Two pointers converge from the ends of a sorted array, or both run rightward in a sliding window. Neither motion answers "what is the first thing greater than me to my right?" for multiple unsorted elements simultaneously. Two pointers track a pair, not a pending set of unanswered queries. The monotonic stack is exactly the structure that holds "elements waiting for their answer" and resolves them the instant a qualifying element arrives.</div>
+
+    <div class="co-insight"><strong>Why not suffix precomputation (prefix/suffix)?</strong> A suffix-max pass tells you the <em>maximum</em> to the right, not the <em>nearest</em> element that is greater. If you want nearest, you'd still need to scan rightward per element — back to O(n²). The monotonic stack is the O(n) optimization over that suffix scan: instead of rescanning, it keeps the candidates alive on the stack and discards them exactly when they are proven useless.</div>
+
+    <div class="co-when"><strong>The routing signal for monotonic stack:</strong> "next greater / next smaller / nearest element satisfying condition X." If the problem asks for the <em>nearest</em> qualifying neighbor (left or right), that phrase alone selects a monotonic stack. If it asked for the <em>maximum</em> to the right → suffix precomputation. If it asked for <em>any</em> matching pair → hash map.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Data structures -->
+  <section id="structures" data-toc-label="Data Structures">
+    <h2>7 &nbsp; Data Structures</h2>
+    <table class="t-decoder">
+      <thead><tr><th>Structure</th><th>What it stores</th><th>Why this one</th></tr></thead>
+      <tbody>
+        <tr><td>Monotonically decreasing stack (<code>[Int]</code>)</td><td>Candidate next-greater values, bottom-to-top decreasing</td><td>LIFO lets us resolve queries in arrival order; the decreasing invariant ensures the top is always the smallest (nearest) candidate, so the first pop check is always the answer</td></tr>
+        <tr><td>Dictionary <code>[Int: Int]</code> — <code>nextGreater</code></td><td>Maps each value in <code>nums2</code> to its next-greater (or −1)</td><td>Values are unique, so value is a safe key; O(1) lookup; built during the single sweep so the final <code>nums1</code> pass is just map lookups</td></tr>
+      </tbody>
+    </table>
+
+    <div class="co-note"><strong>Why decreasing, not increasing?</strong> We want the stack to hold candidates for "next greater to the right." When a new element arrives, it beats any smaller elements — they are no longer candidates for anything to the left. Popping them (maintaining the decreasing invariant) is the same as saying: "the new element is a better answer than you for any future query." An increasing stack would be the right choice for "next <em>smaller</em>" problems.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 8. Pseudocode dry run -->
+  <section id="dryrun" data-toc-label="Pseudocode Dry Run">
+    <h2>8 &nbsp; Pseudocode Dry Run</h2>
+
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span></div>
+<pre class="pseudo"><span class="pk">function</span> nextGreaterElement(nums1, nums2):
+    nextGreater ← empty map
+    stack       ← empty stack          <span class="pc">// decreasing bottom-to-top</span>
+
+    <span class="pk">for</span> value <span class="pk">in</span> nums2.reversed():
+        <span class="pk">while</span> stack is not empty AND stack.top ≤ value:
+            stack.pop()                <span class="pc">// dominated — evict</span>
+        nextGreater[value] ← stack.top ?? -1
+        stack.push(value)
+
+    <span class="pk">return</span> nums1.map { nextGreater[$0] ?? -1 }</pre>
+
+    <p>Trace on <code>nums2 = [1, 3, 4, 2]</code>, sweeping right-to-left:</p>
+    <table class="t-decoder">
+      <thead><tr><th>Step (right→left)</th><th>Current value</th><th>Stack before pop</th><th>Pops?</th><th>Stack after pop</th><th>nextGreater[value]</th><th>Stack after push</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>2</td><td>[]</td><td>—</td><td>[]</td><td>−1</td><td>[2]</td></tr>
+        <tr><td>2</td><td>4</td><td>[2]</td><td>pop 2 (2 ≤ 4)</td><td>[]</td><td>−1</td><td>[4]</td></tr>
+        <tr><td>3</td><td>3</td><td>[4]</td><td>—</td><td>[4]</td><td>4</td><td>[4, 3]</td></tr>
+        <tr><td>4</td><td>1</td><td>[4, 3]</td><td>—</td><td>[4, 3]</td><td>3</td><td>[4, 3, 1]</td></tr>
+      </tbody>
+    </table>
+    <p>Final map: <code>{2: -1, 4: -1, 3: 4, 1: 3}</code>. Lookup for <code>nums1 = [4, 1, 2]</code> → <code>[-1, 3, -1]</code>. ✓</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 9. Swift solution -->
+  <section id="swift" data-toc-label="Swift Solution">
+    <h2>9 &nbsp; Swift Solution</h2>
+
+    <div class="solution-block">
+      <div class="block-header">
+        <span class="block-badge">A.1</span>
+        <span class="block-name">Monotonic Stack — right-to-left sweep</span>
+        <div class="block-pills"><span class="pill pill-t">O(n + m)</span><span class="pill pill-s">O(n)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-tip"><strong>PLAN:</strong> Sweep <code>nums2</code> reversed. Maintain a decreasing stack — pop everything ≤ current before recording and pushing. The top after popping is the next-greater. Answer <code>nums1</code> via dictionary lookup.</div>
+
+        <div class="code-label"><span class="code-lang lang-swift">Swift</span></div>
+<pre class="swift"><span class="kw">private func</span> <span class="fn">nextGreaterElement</span>(_ nums1: [<span class="tp">Int</span>], _ nums2: [<span class="tp">Int</span>]) -> [<span class="tp">Int</span>] {
+    <span class="kw">var</span> nextGreater: [<span class="tp">Int</span>: <span class="tp">Int</span>] = [:]
+    <span class="kw">var</span> stack: [<span class="tp">Int</span>] = []          <span class="cm">// monotonically decreasing, bottom → top</span>
+
+    <span class="kw">for</span> value <span class="kw">in</span> nums2.<span class="fn">reversed</span>() {
+        <span class="kw">while let</span> top = stack.last, top <= value {
+            stack.<span class="fn">removeLast</span>()       <span class="cm">// top is dominated — it can never be next-greater for anything further left</span>
+        }
+        nextGreater[value] = stack.last ?? -<span class="nm">1</span>
+        stack.<span class="fn">append</span>(value)
+    }
+
+    <span class="kw">return</span> nums1.<span class="fn">map</span> { nextGreater[$0] ?? -<span class="nm">1</span> }
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 10. Code dry run -->
+  <section id="code-dry-run" data-toc-label="Code Dry Run">
+    <h2>10 &nbsp; Code Dry Run</h2>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">nextGreaterElement([4,1,2], [1,3,4,2])</span></div>
+<pre class="dry">────────────────────────────────
+/code-dry-run
+Problem: LC 496 — Next Greater Element I
+Input:   nums1 = [4, 1, 2]   nums2 = [1, 3, 4, 2]
+────────────────────────────────
+INIT
+  nextGreater = [:]
+  stack       = []
+
+nums2.reversed() = [2, 4, 3, 1]
+
+────────────────────────────────
+ITERATION 1   value = 2
+  stack.last = nil → while loop skipped
+  nextGreater[2] = nil ?? -1  →  nextGreater = {2: -1}
+  stack.append(2)             →  stack = [2]
+
+State: nextGreater={2:-1}  stack=[2]
+
+────────────────────────────────
+ITERATION 2   value = 4
+  stack.last = 2  →  2 <= 4? YES → removeLast()   stack = []
+  stack.last = nil → while exits
+  nextGreater[4] = nil ?? -1  →  nextGreater = {2:-1, 4:-1}
+  stack.append(4)             →  stack = [4]
+
+State: nextGreater={2:-1, 4:-1}  stack=[4]
+
+────────────────────────────────
+ITERATION 3   value = 3
+  stack.last = 4  →  4 <= 3? NO → while exits  ↑ 4 stays — it IS greater than 3
+  nextGreater[3] = 4          →  nextGreater = {2:-1, 4:-1, 3:4}
+  stack.append(3)             →  stack = [4, 3]
+
+State: nextGreater={2:-1, 4:-1, 3:4}  stack=[4,3]
+
+────────────────────────────────
+ITERATION 4   value = 1
+  stack.last = 3  →  3 <= 1? NO → while exits  ↑ 3 stays — it IS greater than 1
+  nextGreater[1] = 3          →  nextGreater = {2:-1, 4:-1, 3:4, 1:3}
+  stack.append(1)             →  stack = [4, 3, 1]
+
+State: nextGreater={2:-1, 4:-1, 3:4, 1:3}  stack=[4,3,1]
+
+────────────────────────────────
+FINAL MAP LOOKUP   nums1 = [4, 1, 2]
+  nextGreater[4] = -1
+  nextGreater[1] =  3
+  nextGreater[2] = -1
+
+RESULT
+  return [-1, 3, -1]
+────────────────────────────────</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 11. Question → code map -->
+  <section id="qmap" data-toc-label="Question → Code Map">
+    <h2>11 &nbsp; Question → Code Map</h2>
+    <table class="t-qmap">
+      <thead><tr><th>Clarifying question / plan decision</th><th>The line it became</th></tr></thead>
+      <tbody>
+        <tr><td>"Are all values unique?" → yes, safe to key by value</td><td><code>var nextGreater: [Int: Int] = [:]</code> — value is the key</td></tr>
+        <tr><td>"What if no greater element exists?" → return −1</td><td><code>stack.last ?? -1</code> and final <code>?? -1</code> fallback</td></tr>
+        <tr><td>Sweep direction — right-to-left so the stack holds future candidates</td><td><code>for value in nums2.reversed()</code></td></tr>
+        <tr><td>Evict dominated elements before recording</td><td><code>while let top = stack.last, top &lt;= value { stack.removeLast() }</code></td></tr>
+        <tr><td>Record next-greater before pushing current value</td><td><code>nextGreater[value] = stack.last ?? -1</code> then <code>stack.append(value)</code></td></tr>
+        <tr><td>Answer nums1 in one pass using the prebuilt map</td><td><code>return nums1.map { nextGreater[$0] ?? -1 }</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 12. Complexity -->
+  <section id="complexity" data-toc-label="Complexity">
+    <h2>12 &nbsp; Complexity</h2>
+    <table class="t-cmx">
+      <thead><tr><th>Solution</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Monotonic stack (primary)</td><td class="tc">O(n + m)</td><td class="sc">O(n)</td><td>Each of the n elements in nums2 is pushed once and popped at most once → O(n). Final map lookup over m elements → O(m). Dictionary and stack each hold at most n entries.</td></tr>
+        <tr><td>Brute force suffix scan</td><td class="tc">O(n · m)</td><td class="sc">O(1)</td><td>For each of m nums1 elements, scan up to n positions in nums2.</td></tr>
+        <tr class="bottleneck"><td>Bottleneck</td><td class="tc">O(n)</td><td class="sc">—</td><td>The irreducible cost is the single sweep of nums2 — you must visit every element at least once to build any answer at all.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13. Follow-up bank -->
+  <section id="followups" data-toc-label="Follow-Up Bank">
+    <h2>13 &nbsp; Follow-Up Bank</h2>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: Before you push this to production — can you see any improvements you'd make?</div>
+      <p>The dictionary allocates O(n) space to store a mapping we only query once at the end. If nums1 is much shorter than nums2, we could filter to only track values that appear in nums1 — building a <code>Set(nums1)</code> and only inserting into the dictionary for those values. Same O(n) sweep, but the dictionary stays smaller: O(m) instead of O(n). The stack itself stays O(n) in the worst case regardless.</p>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: What if nums2 is circular — after the last element, the array wraps around and you look again from the start?</div>
+      <p>That is LC 503 — Next Greater Element II. The fix is to sweep the array <em>twice</em> (using index % n to wrap), which simulates the circular view without duplicating the array. Everything else stays the same — same monotonic stack, same eviction rule.</p>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: What if you want the next <em>smaller</em> element instead of the next greater?</div>
+      <p>Flip the stack to <em>increasing</em> (pop everything ≥ current instead of ≤). The structure is symmetric — a monotonically increasing stack resolves "nearest smaller to the right" in the same O(n) sweep. The eviction condition is the only line that changes.</p>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: What if nums1 and nums2 can have duplicates?</div>
+      <p>The value-keyed dictionary breaks — two identical values would overwrite each other. You'd need to key by index instead. Find each nums1 element's position in nums2 first (O(n) with a value→index map), then build the next-greater by index. Or store a list of indices per value. The monotonic stack logic is unchanged; only the lookup key shifts from value to index.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 14. Theory decoder -->
+  <section id="decoder" data-toc-label="Theory Decoder">
+    <h2>14 &nbsp; Theory Decoder</h2>
+    <p>This problem uses one concept from the parent stack theory: the <strong>monotonic stack</strong> — Pattern 4 of the stack theory page.</p>
+
+    <table class="t-decoder">
+      <thead><tr><th>Theory concept</th><th>How it appears in LC 496</th></tr></thead>
+      <tbody>
+        <tr><td>Monotonically decreasing stack</td><td>The stack holds values in decreasing order bottom-to-top. The top is always the smallest current candidate for "next-greater." Evicting elements ≤ the new arrival maintains this invariant and simultaneously answers their pending queries.</td></tr>
+        <tr><td>Push / pop at most once per element</td><td>Each of the n elements in nums2 is appended once and removed at most once during the sweep — the amortized O(n) argument. The loop body runs O(1) amortized even though the inner while loop can pop multiple times per step.</td></tr>
+        <tr><td>Stack as "pending queries"</td><td>Every element on the stack is an element that has not yet found its next-greater. It stays on the stack until a larger element arrives to its left (in the right-to-left sweep) and resolves it by eviction.</td></tr>
+        <tr><td>Dictionary lookup decouples the two arrays</td><td>By precomputing a value→nextGreater map from nums2, the nums1 query becomes a pure O(m) lookup — the monotonic stack does all the work upfront, independent of nums1.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="co-insight"><strong>The eviction IS the answer.</strong> When you pop an element from the stack because it is dominated, you are not discarding it — you have just determined that the current element is its next-greater, and you already recorded that before popping (via <code>nextGreater[value] = stack.last ?? -1</code> for the incoming value). The pop is the resolution of a pending query, not a discard.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 15. Parent theory -->
+  <section id="parent" data-toc-label="Parent Theory">
+    <h2>15 &nbsp; Parent Theory</h2>
+    <div class="ref-grid">
+      <a class="backref-card" href="../theory/stacks_queues/stack_master.html">
+        <span class="ref-file">theory/stacks_queues/stack_master.html</span>
+        <span class="ref-title">Stack — LIFO Deep Dive</span>
+        <span class="ref-desc">Parent theory for this walkthrough. Section §4 covers all four stack patterns including the Monotonic Stack variant (Pattern 4) — routing signal, skeleton, decreasing vs increasing choice, and the "pending queries" mental model that this walkthrough instantiates.</span>
+      </a>
+    </div>
+  </section>
+
+  <div class="page-footer">
+    LC 496 — Next Greater Element I · Walkthrough Masterfile ·
+    Theory: <a href="../theory/stacks_queues/stack_master.html">stack_master.html</a> ·
+    Pattern: Monotonic Stack (Pattern 4)
+  </div>
+
+</main>
+</div>
+
+<script src="../static/generated/manifest.js"></script>
+<script src="../static/generated/nav.js"></script>
+<script src="../static/generated/toc.js"></script>
+</body>
+</html>

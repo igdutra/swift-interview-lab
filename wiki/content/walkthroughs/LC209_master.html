@@ -1,0 +1,513 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LC 209 — Minimum Size Subarray Sum · Walkthrough Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "LC 209 — Minimum Size Subarray Sum",
+  "nav": "LC 209",
+  "topics": [
+    "Sliding Window",
+    "Arrays"
+  ],
+  "blurb": "Shrink-while-valid at its simplest — one running sum, no maps. Includes the Int.max init gotcha and full interview simulation.",
+  "difficulty": "M"
+}
+</script>
+<link rel="stylesheet" href="../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="walkthrough">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">LC 209 — Minimum Size Subarray Sum</h1>
+  <div class="page-meta">
+    <span>Walkthrough Masterfile</span><span>·</span>
+    <span>Language: Swift</span><span>·</span>
+    <span>Medium · Shrink-while-valid window · Simplest variant of the minimum family</span>
+  </div>
+
+  <!-- 1. Restatement -->
+  <section id="lead" data-toc-label="The Problem">
+    <div class="infobox">
+      <div class="infobox-title">Problem at a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Difficulty</div><div class="infobox-v"><span class="tag tag-M">Medium</span></div></div>
+      <div class="infobox-row"><div class="infobox-k">Pattern</div><div class="infobox-v">Sliding window — shrink while valid (variant 8.3)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Tools</div><div class="infobox-v">Two pointers + one running sum integer</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key insight</div><div class="infobox-v">"Minimum" → shrink WHILE valid, record INSIDE the shrink loop</div></div>
+      <div class="infobox-row"><div class="infobox-k">Time / Space</div><div class="infobox-v">O(n) / O(1)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Theory</div><div class="infobox-v mono"><a href="../theory/arrays/sliding_window_master.html">sliding_window_master.html</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p>You are given an array of positive integers and a target. Find the length of the shortest contiguous subarray whose sum is greater than or equal to the target — and return <code>0</code> if no such subarray exists.</p>
+
+      <table class="t-example">
+        <thead><tr><th>Input</th><th>Output</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><code>target = 7, nums = [2,3,1,2,4,3]</code></td><td><code>2</code></td><td>[4,3] sums to 7 — the tightest valid subarray</td></tr>
+          <tr><td><code>target = 4, nums = [1,4,4]</code></td><td><code>1</code></td><td>[4] alone already meets the target</td></tr>
+          <tr><td><code>target = 11, nums = [1,1,1,1,1,1,1,1]</code></td><td><code>0</code></td><td>Entire array sums to 8 — no valid subarray exists</td></tr>
+        </tbody>
+      </table>
+
+      <p>This is the purest form of the minimum-window sliding window: the window state is a single running sum, validity is a single integer comparison, and no frequency maps or auxiliary structures are needed at all. What it does share with its harder siblings — LC 76 especially — is the inversion that trips people up: you shrink the window <em>while it is valid</em>, recording at each step, rather than after it breaks. That word "minimum" is the entire signal.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Reading the problem -->
+  <section id="reading" data-toc-label="Reading the Problem">
+    <h2>2 &nbsp; Reading the Problem — insights from the statement</h2>
+
+    <div class="co-insight"><strong>"Minimal length":</strong> the word "minimal" does all the work. You are searching for the <em>smallest</em> valid window — so once the running sum reaches the target you must keep shrinking, recording every valid length as you go. This is the exact opposite of longest-window problems, where you only shrink when broken and record after the repair.</div>
+
+    <div class="co-insight"><strong>"Sum ≥ target":</strong> the validity condition is a single integer comparison. There is no character set to track, no frequency map to maintain — just a scalar <code>currentSum</code> that updates in O(1) as the window expands or contracts. This is what makes LC 209 the simplest member of the minimum-window family.</div>
+
+    <div class="co-insight"><strong>"Positive integers":</strong> all elements are strictly positive (<code>nums[i] ≥ 1</code>). This guarantees that shrinking the window always reduces the sum, so the shrink loop terminates correctly. If negatives were allowed, a window could grow valid again after shrinking — the two-pointer approach would break.</div>
+
+    <div class="co-insight"><strong>"Return 0 if no such subarray":</strong> there is a possibility of no answer. The sentinel for "not found" must be chosen carefully — initializing the best-length variable to <code>0</code> would corrupt the answer for a real length-1 result. Initialize to <code>Int.max</code> and convert to <code>0</code> at the return.</div>
+
+    <table class="t-clue">
+      <thead><tr><th>Phrase / constraint</th><th>What it forces</th></tr></thead>
+      <tbody>
+        <tr><td>"minimal length"</td><td>Variable window, shrink while valid, record inside the shrink loop</td></tr>
+        <tr><td>"sum ≥ target" (single comparison)</td><td>No frequency map needed — one running sum integer is enough</td></tr>
+        <tr><td>"positive integers only"</td><td>Shrinking always reduces the sum → two-pointer works; no negative-element trap</td></tr>
+        <tr><td>"return 0 if impossible"</td><td>Init best with <code>Int.max</code>, not <code>0</code>; convert at the return</td></tr>
+        <tr><td>n up to 10⁵, values up to 10⁴</td><td>O(n²) brute force reaches 10¹⁰ — one-pass O(n) required</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Edge cases -->
+  <section id="edge-cases" data-toc-label="Edge Case Inventory">
+    <h2>3 &nbsp; Edge Case Inventory</h2>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected</th><th>Handled by</th></tr></thead>
+      <tbody>
+        <tr><td>No window reaches target — <code>[1,1,1,1,1,1,1,1], target=11</code></td><td>0</td><td><code>minLength == Int.max</code> → return 0</td></tr>
+        <tr><td>Single element equals target — <code>[5], target=5</code></td><td>1</td><td>Shrink loop fires, records length 1, evicts — sum drops to 0, loop exits</td></tr>
+        <tr><td>Single element below target — <code>[3], target=5</code></td><td>0</td><td>Sum never reaches target; <code>Int.max</code> returned as 0</td></tr>
+        <tr><td>Answer at the very start — <code>[6,1,1,1,1], target=6</code></td><td>1</td><td>Shrink fires on right=0, records 1, evicts; never improved later</td></tr>
+        <tr><td>Answer at the very end — <code>[1,1,1,1,6], target=6</code></td><td>1</td><td>Shrink fires only at right=4; record inside shrink captures it</td></tr>
+        <tr><td>Entire array needed — <code>[1,2,3,4,5], target=15</code></td><td>5</td><td>Sum reaches target only when right=4; shrink records 5, eviction breaks it</td></tr>
+        <tr><td>All elements identical — <code>[2,2,2,2,2], target=6</code></td><td>3</td><td>First valid window at right=2, shrinks to 3, eviction invalidates</td></tr>
+        <tr><td>GOTCHA: init with 0, not Int.max</td><td>corrupts every answer</td><td><code>min(0, anyPositive)</code> always returns 0 — the bug is silent and total</td></tr>
+      </tbody>
+    </table>
+
+    <div class="co-pitfall"><strong>The Int.max gotcha.</strong> Initializing <code>minLength = 0</code> instead of <code>Int.max</code> silently corrupts every test case: <code>min(0, realAnswer)</code> always returns <code>0</code>. The debug move that caught this during development: print <code>leftPointer</code> and <code>currentSum</code> at each shrink iteration — the window is visibly valid but the recorded length never updates.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Hints -->
+  <section id="hints" data-toc-label="Try It Yourself First">
+    <h2>4 &nbsp; Try It Yourself First</h2>
+    <p>Attempt the problem before reading on. Open hints one at a time.</p>
+    <details class="hint"><summary>Hint 1 — the constraint</summary><p>n up to 10⁵ rules out checking all O(n²) subarrays. The array has only positive integers — what does that let you do with two pointers over a running sum?</p></details>
+    <details class="hint"><summary>Hint 2 — the pattern</summary><p>Sliding window — the minimum-length variant. Ask: when the sum reaches the target, do I stop or keep going? Which direction does my while loop run, and where do I record the answer?</p></details>
+    <details class="hint"><summary>Hint 3 — the gotcha</summary><p>What value do you initialize the best-length variable to? Think about what happens when no valid window exists — and what happens to <code>min(yourInitialValue, 1)</code> if you get that initialization wrong.</p></details>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Interview simulation -->
+  <section id="simulation" data-toc-label="Interview Simulation">
+    <h2>5 &nbsp; Interview Simulation</h2>
+    <p>The interviewer has stated the problem. The script starts with your first words — practice it out loud.</p>
+
+    <div class="sim-block" id="sim-questions" data-toc-label="5.1 Clarifying questions">
+      <div class="sim-header">Step 1 — Clarifying questions</div>
+      <div class="sim-body">
+        <div class="sim-q">Q: "Are all the integers in the array strictly positive, or can I have zeros or negatives?"</div>
+        <div class="sim-a">A: Strictly positive, at least 1. <strong>→ Shrinking always reduces the sum, so a two-pointer window is safe. If negatives were allowed I'd need a different approach.</strong></div>
+
+        <div class="sim-q">Q: "If no subarray reaches the target sum, should I return 0?"</div>
+        <div class="sim-a">A: Yes, return 0. <strong>→ I need a sentinel that doesn't collide with a real length. I'll initialize the answer to Int.max and convert to 0 at the return.</strong></div>
+
+        <div class="sim-q">Q: "Is the target inclusive — sum ≥ target, or strictly greater than?"</div>
+        <div class="sim-a">A: Greater than or equal. <strong>→ The validity condition is <code>currentSum >= target</code>.</strong></div>
+
+        <div class="sim-q">Q: "How large can the array get — should I optimize for time?"</div>
+        <div class="sim-a">A: Up to 10⁵ elements. <strong>→ O(n²) brute force is out. I'm aiming for a single O(n) pass.</strong></div>
+      </div>
+    </div>
+
+    <div class="sim-block" id="sim-plan" data-toc-label="5.2 The plan, spoken">
+      <div class="sim-header">Step 2 — The plan, before any code</div>
+      <div class="sim-body">
+        <div class="speech">
+          <div class="speech-kicker">The plan, spoken</div>
+          <p>"This is a sliding window problem — specifically the <em>minimum</em>-length variant. The signal is the word 'minimal' over a contiguous subarray: I need the shortest window whose sum reaches the target, so once a window becomes valid I have to keep shrinking it to find the tightest possible fit."</p>
+          <p>"Before I touch a data structure, let me pin the conditions, because they drive everything else. The validity condition is: <code>currentSum &gt;= target</code>. The invalid condition is the mirror: the window goes invalid the moment an eviction drops the sum below the target. The loop runs <em>while valid</em> — shrinking toward a smaller window — and the answer is recorded <em>inside</em> that loop, before each eviction, because that is exactly the moment I hold a valid window. The invariant: every pass through the shrink loop holds a valid window. This is the inversion that trips people up: in longest-window problems you shrink while <em>invalid</em> and record after. Here it flips."</p>
+          <p>"Those conditions tell me exactly what I need to track. The window state is a single running sum — I add the new right element on expand, subtract the left element on eviction. No frequency map, no set, just three scalars: <code>leftPointer</code>, <code>currentSum</code>, and <code>minSubArrayLength</code>. I initialize <code>minSubArrayLength</code> to <code>Int.max</code> — not 0 — so that <code>min()</code> works correctly on the very first valid window. At the return, if it is still <code>Int.max</code>, I return 0."</p>
+          <p>"The walk is simple: advance the right pointer over the array, accumulate the sum. The moment <code>currentSum &gt;= target</code>, enter the shrink loop: record the current window length if it beats the best, subtract the left element, advance the left pointer. Repeat until the window goes invalid. Each element enters the window once and leaves at most once."</p>
+          <p>"Time complexity is O(n) — each element is processed at most twice. Space is O(1) — four scalar variables regardless of input size. I'll code it now and trace <code>target = 7, nums = [2,3,1,2,4,3]</code> to verify."</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. Approach rationale -->
+  <section id="approach" data-toc-label="Why This Approach">
+    <h2>6 &nbsp; Why This Approach — and not the others</h2>
+    <table class="t-versus">
+      <thead><tr><th>Candidate</th><th>Cost</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>Brute force: check every subarray</td><td>O(n²)</td><td>10⁵ input reaches 10¹⁰ operations — dead on arrival, but name it for the baseline</td></tr>
+        <tr><td>Prefix sums + binary search</td><td>O(n log n)</td><td>Works and handles negative numbers too, but strictly worse here since all values are positive and the two-pointer beats it</td></tr>
+        <tr><td><strong>Sliding window — shrink while valid</strong></td><td>O(n)</td><td><strong>Chosen.</strong> Positive integers guarantee shrinking always reduces the sum; the minimum-length record inside the while gives the answer in one pass</td></tr>
+      </tbody>
+    </table>
+    <div class="co-when"><strong>The deciding signal:</strong> "minimum contiguous subarray" + "positive integers" — contiguity makes the window applicable, positivity makes shrinking monotone, and "minimum" flips the record placement inside the while.</div>
+    <div class="co-note"><strong>Why prefix sums still matter.</strong> If the problem asked for the minimum-length subarray summing to <em>exactly</em> a target, or if negatives were allowed, the sliding window breaks and prefix sums with a hash map become the correct approach. The positive-integer constraint is load-bearing.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Data structures -->
+  <section id="structures" data-toc-label="Data Structures">
+    <h2>7 &nbsp; Data Structures — choice and justification</h2>
+    <table class="t-decoder">
+      <thead><tr><th>Structure</th><th>Holds</th><th>Why this and not weaker/stronger</th></tr></thead>
+      <tbody>
+        <tr><td><code>currentSum: Int</code></td><td>Running sum of the current window</td><td>A single integer suffices because all values are positive and validity is one comparison. No map or set needed.</td></tr>
+        <tr><td><code>minSubArrayLength: Int</code></td><td>Best (smallest) valid window length seen</td><td>Initialized to <code>Int.max</code> so <code>min()</code> works on the first valid window and the "no answer" case is distinguishable from a real length of 0.</td></tr>
+        <tr><td><code>leftPointer: Int</code></td><td>Left boundary of the current window</td><td>Index into <code>nums</code>, advanced one step per eviction. No deque or buffer needed — direct index access is O(1).</td></tr>
+      </tbody>
+    </table>
+    <div class="co-insight"><strong>Why this is the simplest minimum-window problem.</strong> LC 76 needs two frequency maps and a matchedCount integer to answer "is the window valid?" in O(1). LC 209 answers that same question with a single scalar comparison. Same variant, same control structure — O(1) window state instead of O(k).</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 8. Dry run -->
+  <section id="dryrun" data-toc-label="Pseudocode Dry Run">
+    <h2>8 &nbsp; Pseudocode Dry Run</h2>
+
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">shrink-while-valid, minimum length</span></div>
+    <pre class="pseudo">minLength ← Int.max; leftPointer ← 0; currentSum ← 0
+
+<span class="pk">FOR</span> (rightPointer, rightNumber) <span class="pk">IN</span> nums.enumerated():
+    currentSum += rightNumber
+
+    <span class="pk">WHILE</span> currentSum &gt;= target:          <span class="pc">// window is VALID</span>
+        minLength ← min(minLength, rightPointer - leftPointer + 1)
+        currentSum -= nums[leftPointer]
+        leftPointer += 1
+
+<span class="pk">RETURN</span> minLength == Int.max ? 0 : minLength</pre>
+
+    <p>Trace on <code>target = 7, nums = [2,3,1,2,4,3]</code>:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">milestone steps</span></div>
+    <pre class="dry"><span class="tr-var">right=0  num=2</span>  sum=2  → WHILE? 2≥7? NO
+<span class="tr-var">right=1  num=3</span>  sum=5  → WHILE? 5≥7? NO
+<span class="tr-var">right=2  num=1</span>  sum=6  → WHILE? 6≥7? NO
+<span class="tr-var">right=3  num=2</span>  sum=8  → WHILE? 8≥7? YES
+   record len=4 (right3-left0+1), evict nums[0]=2, sum=6, left=1
+   WHILE? 6≥7? NO
+<span class="tr-var">right=4  num=4</span>  sum=10 → WHILE? 10≥7? YES
+   record len=4 (right4-left1+1), evict nums[1]=3, sum=7, left=2
+   WHILE? 7≥7? YES
+   record len=3 (right4-left2+1), evict nums[2]=1, sum=6, left=3
+   WHILE? 6≥7? NO
+<span class="tr-var">right=5  num=3</span>  sum=9  → WHILE? 9≥7? YES
+   record len=3 (right5-left3+1), evict nums[3]=2, sum=7, left=4
+   WHILE? 7≥7? YES
+   <span class="tr-aha">record len=2 (right5-left4+1)  ← new best!</span> evict nums[4]=4, sum=3, left=5
+   WHILE? 3≥7? NO
+<span class="tr-ok">RETURN 2</span></pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 9. Swift solution -->
+  <section id="swift" data-toc-label="Swift Solution">
+    <h2>9 &nbsp; Swift Solution — iterative</h2>
+
+    <div class="solution-block">
+      <div class="block-header">
+        <span class="block-badge">A.1</span>
+        <span class="block-name">Shrink-while-valid window — running sum</span>
+        <div class="block-pills"><span class="pill pill-t">O(n)</span><span class="pill pill-s">O(1)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="approach-box">
+          <div class="approach-title">Plan</div>
+          One pass of the right pointer over nums. Expand: add the right element to currentSum. While valid (sum ≥ target): record the window length if it beats the best, subtract the left element, advance leftPointer. Return the best length, or 0 if no valid window was found.
+        </div>
+
+        <pre class="swift"><span class="kw">func</span> <span class="fn">minSubArrayLen</span>(<span class="kw">_</span> target: <span class="tp">Int</span>, <span class="kw">_</span> nums: [<span class="tp">Int</span>]) -&gt; <span class="tp">Int</span> {
+    <span class="kw">var</span> leftPointer = <span class="nm">0</span>
+    <span class="cm">// GOTCHA: init with Int.max, not 0 — lets min() work on the first valid window</span>
+    <span class="kw">var</span> minSubArrayLength = <span class="tp">Int</span>.max
+    <span class="kw">var</span> currentSum = <span class="nm">0</span>
+
+    <span class="kw">for</span> (rightPointer, rightNumber) <span class="kw">in</span> nums.enumerated() {
+        currentSum += rightNumber
+
+        <span class="cm">// Shrink from the left while the window is valid; record at every valid size</span>
+        <span class="kw">while</span> currentSum >= target {
+            minSubArrayLength = min(minSubArrayLength, rightPointer - leftPointer + <span class="nm">1</span>)
+            currentSum -= nums[leftPointer]
+            leftPointer += <span class="nm">1</span>
+        }
+    }
+
+    <span class="cm">// GOTCHA: no valid window found → return 0 instead of Int.max</span>
+    <span class="kw">return</span> minSubArrayLength == <span class="tp">Int</span>.max ? <span class="nm">0</span> : minSubArrayLength
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 10. Code dry run -->
+  <section id="code-dry-run" data-toc-label="Code Dry Run">
+    <h2>10 &nbsp; Code Dry Run — the Swift solution, traced</h2>
+    <p>The §8 trace runs the pseudocode at milestone level. This one runs the actual Swift solution above, debugger-style — every variable mutation traced, in <code>/code-dry-run</code> format. Canonical input: <code>target = 7, nums = [2,3,1,2,4,3]</code> → expected output <code>2</code>.</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">full execution trace — /code-dry-run format</span></div>
+    <pre class="dry">────────────────────────────────
+/code-dry-run
+Problem: LC 209 — Minimum Size Subarray Sum
+Input:   target = 7, nums = [2,3,1,2,4,3]
+────────────────────────────────
+
+minSubArrayLen
+  leftPointer        = 0
+  minSubArrayLength  = Int.max
+  currentSum         = 0
+
+────────────────────────────────
+right=0  rightNumber=2
+────────────────────────────────
+
+  currentSum = 0 + 2 = 2
+
+  SHRINK? currentSum(2) >= target(7)? NO → skip
+
+  State: window=[2], sum=2, left=0, minLen=Int.max
+
+────────────────────────────────
+right=1  rightNumber=3
+────────────────────────────────
+
+  currentSum = 2 + 3 = 5
+
+  SHRINK? currentSum(5) >= target(7)? NO → skip
+
+  State: window=[2,3], sum=5, left=0, minLen=Int.max
+
+────────────────────────────────
+right=2  rightNumber=1
+────────────────────────────────
+
+  currentSum = 5 + 1 = 6
+
+  SHRINK? currentSum(6) >= target(7)? NO → skip
+
+  State: window=[2,3,1], sum=6, left=0, minLen=Int.max
+
+────────────────────────────────
+right=3  rightNumber=2
+────────────────────────────────
+
+  currentSum = 6 + 2 = 8
+
+  SHRINK? currentSum(8) >= target(7)? YES → enter shrink loop
+  ↑ First valid window found — now squeeze left as far as possible
+
+    SHRINK ITERATION 1
+      minSubArrayLength = min(Int.max, 3 - 0 + 1) = min(Int.max, 4) = 4
+      currentSum -= nums[0](2) → currentSum = 8 - 2 = 6
+      leftPointer = 1
+      ↑ Evicting 2 dropped sum below target — exit shrink
+
+  SHRINK? currentSum(6) >= target(7)? NO → exit
+
+  State: window=[3,1,2], sum=6, left=1, minLen=4
+
+────────────────────────────────
+right=4  rightNumber=4
+────────────────────────────────
+
+  currentSum = 6 + 4 = 10
+
+  SHRINK? currentSum(10) >= target(7)? YES → enter shrink loop
+
+    SHRINK ITERATION 1
+      minSubArrayLength = min(4, 4 - 1 + 1) = min(4, 4) = 4
+      ↑ Ties the best — no improvement, same minLen
+      currentSum -= nums[1](3) → currentSum = 10 - 3 = 7
+      leftPointer = 2
+
+    SHRINK ITERATION 2
+      currentSum(7) >= target(7)? YES → continue
+      minSubArrayLength = min(4, 4 - 2 + 1) = min(4, 3) = 3
+      ↑ New best: length 3
+      currentSum -= nums[2](1) → currentSum = 7 - 1 = 6
+      leftPointer = 3
+
+  SHRINK? currentSum(6) >= target(7)? NO → exit
+
+  State: window=[2,4], sum=6, left=3, minLen=3
+
+────────────────────────────────
+right=5  rightNumber=3
+────────────────────────────────
+
+  currentSum = 6 + 3 = 9
+
+  SHRINK? currentSum(9) >= target(7)? YES → enter shrink loop
+
+    SHRINK ITERATION 1
+      minSubArrayLength = min(3, 5 - 3 + 1) = min(3, 3) = 3
+      ↑ Ties — no improvement
+      currentSum -= nums[3](2) → currentSum = 9 - 2 = 7
+      leftPointer = 4
+
+    SHRINK ITERATION 2
+      currentSum(7) >= target(7)? YES → continue
+      minSubArrayLength = min(3, 5 - 4 + 1) = min(3, 2) = 2
+      ↑ New best: length 2 — this is the final answer
+      currentSum -= nums[4](4) → currentSum = 7 - 4 = 3
+      leftPointer = 5
+
+  SHRINK? currentSum(3) >= target(7)? NO → exit
+
+  right pointer exhausted — loop ends
+
+────────────────────────────────
+RESULT
+────────────────────────────────
+
+  minSubArrayLength = 2
+  minSubArrayLength == Int.max? NO
+  return 2</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 11. Q→Code map -->
+  <section id="qmap" data-toc-label="Question → Code Map">
+    <h2>11 &nbsp; Question → Code Map</h2>
+    <p>Every question from the simulation became a specific construct:</p>
+    <table class="t-qmap">
+      <thead><tr><th>What you asked / planned</th><th>What it became</th></tr></thead>
+      <tbody>
+        <tr><td>"Strictly positive — can I use two pointers?"</td><td>Unlocks the sliding window entirely; if negatives were present, this approach breaks</td></tr>
+        <tr><td>"Valid = sum ≥ target"</td><td><code>while currentSum >= target</code></td></tr>
+        <tr><td>"Shrink while valid, record inside"</td><td>Record is the first line inside the <code>while</code> body, before any eviction</td></tr>
+        <tr><td>"Init to Int.max, not 0"</td><td><code>var minSubArrayLength = Int.max</code></td></tr>
+        <tr><td>"Return 0 when impossible"</td><td><code>return minSubArrayLength == Int.max ? 0 : minSubArrayLength</code></td></tr>
+        <tr><td>"Space O(1)"</td><td>Three scalar variables; no map, no auxiliary array</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 12. Complexity -->
+  <section id="complexity" data-toc-label="Complexity">
+    <h2>12 &nbsp; Complexity</h2>
+    <table class="t-cmx">
+      <thead><tr><th>Phase</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Window pass</td><td class="tc">O(n)</td><td class="sc">O(1)</td><td>Right pointer advances n times; left pointer advances at most n times total (amortized — each element is evicted at most once). Every operation inside the loop is O(1).</td></tr>
+        <tr class="bottleneck"><td>Total</td><td class="tc">O(n)</td><td class="sc">O(1)</td><td>The bottleneck is reading the input once. No auxiliary structure grows with n.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-insight"><strong>Why the nested while doesn't make it O(n²).</strong> The left pointer only moves forward, never backward. Across the entire run, it advances at most n times — the same as the right pointer. The shrink loop's total work, summed across all outer iterations, is therefore O(n), not O(n) per outer step.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13. Follow-ups -->
+  <section id="followups" data-toc-label="Follow-Up Bank">
+    <h2>13 &nbsp; Follow-Up Bank — the interviewer's second act</h2>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "What if the array can contain negative numbers?"</div>
+      <div class="followup-a">The sliding window breaks. Shrinking no longer guarantees a smaller sum — you might need to grow again after shrinking. The correct approach switches to prefix sums with a hash map: compute prefix[i], then for each i find the smallest j such that prefix[i] - prefix[j] ≥ target. That runs O(n log n) with a sorted structure or O(n) with a monotone deque.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Can you solve it in O(n log n) using a different technique — without the sliding window?"</div>
+      <div class="followup-a">Yes — prefix sums plus binary search. Build prefix[i] = sum of nums[0..i]. For each right index, binary-search the prefix array for the smallest left such that prefix[right] - prefix[left] ≥ target. This generalizes to non-positive inputs and is the fallback when the window doesn't apply, at the cost of an extra log-n factor.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "How would the code change for 'longest subarray with sum at most k'?"</div>
+      <div class="followup-a">That flips the variant: the while loop becomes "while sum &gt; k" (shrink while <em>invalid</em>), and the record moves to after the while, where the window is guaranteed valid again. The initialization of the best-length variable also flips — start at 0, not Int.max, since 0 is the correct answer when no valid window exists for a maximum problem. Saying this out loud shows ownership of the pattern, not just this problem.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "What if instead of the minimum length you needed the minimum sum that is ≥ target?"</div>
+      <div class="followup-a">That's just the target itself if a valid subarray exists — any sum ≥ target is valid, and you want the smallest one, which by definition is the first sum that hits the target exactly. If the problem asked for the exact minimum achievable sum ≥ target, you'd track the minimum <code>currentSum</code> at each record step inside the while, rather than the window length.</div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 14. Theory decoder -->
+  <section id="decoder" data-toc-label="Theory Decoder">
+    <h2>14 &nbsp; Theory Decoder — the theory as used here</h2>
+    <table class="t-decoder">
+      <thead><tr><th>General concept</th><th>Instantiated in this solution as</th><th>General form</th></tr></thead>
+      <tbody>
+        <tr><td>Shrink-while-valid window</td><td>The <code>while currentSum >= target</code> loop with the record as its first line</td><td><a href="../theory/arrays/sliding_window_master.html#v-shortest">theory §8.3</a></td></tr>
+        <tr><td>Window state</td><td>A single <code>currentSum</code> integer — add on expand, subtract on eviction</td><td><a href="../theory/arrays/sliding_window_master.html#terminology">theory §3</a></td></tr>
+        <tr><td>Amortized O(n) argument</td><td>Each element of nums is added once (expand) and subtracted at most once (eviction) — total O(n) operations across all shrink iterations</td><td><a href="../theory/arrays/sliding_window_master.html#complexity">theory §9</a></td></tr>
+        <tr><td>The inversion rule</td><td>"Minimum" → loop runs while valid → record inside; the exact opposite of longest-window template where you shrink while invalid and record after</td><td><a href="../theory/arrays/sliding_window_master.html#variants">theory §8</a></td></tr>
+        <tr><td>Positive-integer guarantee</td><td>Unlocks the two-pointer approach: shrinking always reduces sum, so the window never needs to "re-expand" after a shrink</td><td><a href="../theory/arrays/sliding_window_master.html#signals">theory §2</a></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 15. Back-reference -->
+  <section id="parent" data-toc-label="Parent Theory">
+    <h2>15 &nbsp; Parent Theory</h2>
+    <p>This walkthrough instantiates one variant of a larger pattern. The parent page is not free-form — it follows the theory masterfile standard, so here is exactly what you land on:</p>
+    <div class="ref-grid">
+      <a class="backref-card" href="../theory/arrays/sliding_window_master.html">
+        <span class="ref-file">theory/arrays/sliding_window_master.html</span>
+        <span class="ref-title">Sliding Window — Theory Masterfile</span>
+        <span class="ref-desc">The canonical reference: terminology decoder (§3), the pseudocode primer this solution specializes (§5), the full three-variant catalog with the inversion rule (§8), the amortized O(n) argument (§9), pitfalls and edge cases (§10–11), and a cheat sheet (§12). LC 209 appears as the solo practice problem in §14. Its cross-reference section (§13) links back to this walkthrough.</span>
+      </a>
+    </div>
+  </section>
+
+  <div class="page-footer">
+    LC 209 — Minimum Size Subarray Sum · Walkthrough Masterfile · Parent theory:
+    <a href="../theory/arrays/sliding_window_master.html">Sliding Window</a> ·
+    Structure per <code>.claude/skills/wiki/references/walkthrough-format.md</code>
+  </div>
+
+</main>
+</div>
+
+<script src="../static/generated/manifest.js"></script>
+<script src="../static/generated/nav.js"></script>
+<script src="../static/generated/toc.js"></script>
+</body>
+</html>

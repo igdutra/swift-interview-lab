@@ -5,7 +5,7 @@ A theory page is a **timeless, Wikipedia-style reference** for one technique. No
 
 ## The 14 sections, in order
 
-Canonical section ids/labels live in `wiki/tools/lib/templates.ts` (`THEORY_SECTIONS`) — the scaffolder emits them. Sequence:
+Canonical section ids/labels live in `wiki/wiki.config.ts` (the `theory` entry in `pageTypes[]`) — the scaffolder emits them from that skeleton. Sequence:
 
 | # | id | Section | What belongs there |
 |---|----|---------|--------------------|

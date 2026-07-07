@@ -1,6 +1,6 @@
 # CSS vocabulary (closed set)
 
-Single stylesheet: `wiki/_shared/wiki.css`. **Never write inline `style=""`** (validator error) and never invent a class (validator warns on classes absent from wiki.css). If a page needs a new visual, extend `wiki.css` first — tokens only via `var(--…)`, px sizes, no gradients/animations/icons/emoji. Spacing scale: 4/8/12/16/24/32/48.
+Single stylesheet: `wiki/static/wiki.css`. **Never write inline `style=""`** (validator error) and never invent a class (validator warns on classes absent from wiki.css). If a page needs a new visual, extend `wiki.css` first — tokens only via `var(--…)`, px sizes, no gradients/animations/icons/emoji. Spacing scale: 4/8/12/16/24/32/48.
 
 ## Design identity (keep intact)
 

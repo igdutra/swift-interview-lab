@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LC 362 — Design Hit Counter · Walkthrough Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "LC 362 — Design Hit Counter",
+  "nav": "LC 362",
+  "topics": [
+    "Queue",
+    "Sliding Window",
+    "Design"
+  ],
+  "blurb": "Sliding-window queue — enqueue hits, evict-while-stale on query, return count. Head-index O(1) dequeue, the amortized argument, and the circular-buffer O(1) space follow-up.",
+  "difficulty": "M"
+}
+</script>
+<link rel="stylesheet" href="../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="walkthrough">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">LC 362 — Design Hit Counter</h1>
+  <div class="page-meta">
+    <span>Walkthrough Masterfile</span><span>·</span>
+    <span>Language: Swift</span><span>·</span>
+    <span>Medium · Sliding-window queue · Full interview simulation</span>
+  </div>
+
+  <!-- 1. Restatement -->
+  <section id="lead" data-toc-label="The Problem">
+    <div class="infobox">
+      <div class="infobox-title">Problem at a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Difficulty</div><div class="infobox-v"><span class="tag tag-M">Medium</span></div></div>
+      <div class="infobox-row"><div class="infobox-k">Pattern</div><div class="infobox-v">Sliding-window queue — enqueue arrivals, evict expired front items</div></div>
+      <div class="infobox-row"><div class="infobox-k">Tools</div><div class="infobox-v">A single FIFO queue of timestamps</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key insight</div><div class="infobox-v">The queue front always holds the oldest hit — dequeue while it is outside the 300-second window</div></div>
+      <div class="infobox-row"><div class="infobox-k">Time / Space</div><div class="infobox-v">O(n) amortized per call / O(w) where w = hits in the window</div></div>
+      <div class="infobox-row"><div class="infobox-k">Theory</div><div class="infobox-v mono"><a href="../theory/stacks_queues/queue_master.html">queue_master.html</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p>Design a <strong>hit counter</strong> that supports two operations: <code>hit(timestamp)</code> records that a request arrived at a given second, and <code>getHits(timestamp)</code> returns how many requests have arrived in the last 300 seconds — that is, in the range <code>[timestamp − 299, timestamp]</code>, inclusive. Timestamps are always positive integers and calls to <code>hit</code> and <code>getHits</code> are guaranteed to arrive in non-decreasing order.</p>
+
+      <table class="t-example">
+        <thead><tr><th>Operations</th><th>Output</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><code>hit(1), hit(2), hit(3), getHits(4)</code></td><td><code>3</code></td><td>All three hits are within [4−299, 4] = [−295, 4]</td></tr>
+          <tr><td><code>hit(300), getHits(300)</code></td><td><code>4</code></td><td>Hits at 1, 2, 3, 300 — all within [1, 300]</td></tr>
+          <tr><td><code>getHits(301)</code></td><td><code>3</code></td><td>Hit at t=1 is now at 301−300=1 distance, just outside [2, 301] — evicted</td></tr>
+        </tbody>
+      </table>
+
+      <p>The twist: the window is time-based, not index-based. You are not sliding over an array — you are maintaining a live count of events inside a moving 300-second interval. That means stale hits must be evicted lazily, at query time, using the timestamp of the current call.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Reading the problem -->
+  <section id="reading" data-toc-label="Reading the Problem">
+    <h2>2 &nbsp; Reading the Problem — insights from the statement</h2>
+
+    <div class="co-insight"><strong>"Last 300 seconds":</strong> this is not a fixed-size index window — it is a time range that moves with each call. The window at <code>getHits(301)</code> is [2, 301], not [0, 300]. Any structure that indexes by position rather than by time needs extra bookkeeping; a queue of raw timestamps is the most natural fit.</div>
+
+    <div class="co-insight"><strong>"Non-decreasing order":</strong> hits always arrive at or after the previous timestamp. This is the key that makes the queue correct: the oldest element is always at the front. You never need to search or sort — just check the front and dequeue while it is expired.</div>
+
+    <div class="co-insight"><strong>"At most 300 hits per second":</strong> not stated explicitly, but the problem is framed as a rate-limiter. The real-world analogy is an API rate-limit check: "did this user exceed 300 requests in the last 5 minutes?" The queue models the sliding window of live requests.</div>
+
+    <table class="t-clue">
+      <thead><tr><th>Phrase / constraint</th><th>What it forces</th></tr></thead>
+      <tbody>
+        <tr><td>"last 300 seconds"</td><td>A time-based window — the expiry condition is <code>timestamp − 300 &gt;= front</code>, not an index bound</td></tr>
+        <tr><td>"non-decreasing order"</td><td>The queue front is always the oldest hit — no sorting, no search, O(1) eviction check</td></tr>
+        <tr><td>"at most 10⁴ calls"</td><td>O(n) amortized is fine; each timestamp is enqueued once and dequeued at most once</td></tr>
+        <tr><td>return count, not list</td><td>queue.count after eviction is the answer — no additional accumulator needed</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Edge cases -->
+  <section id="edge-cases" data-toc-label="Edge Case Inventory">
+    <h2>3 &nbsp; Edge Case Inventory</h2>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected</th><th>Handled by</th></tr></thead>
+      <tbody>
+        <tr><td>getHits before any hit</td><td>0</td><td>queue is empty — while loop skips, count = 0</td></tr>
+        <tr><td>All hits in the same second</td><td>all of them counted</td><td>each call to hit enqueues the timestamp; same timestamp appears multiple times</td></tr>
+        <tr><td>Boundary: hit at t=1, getHits(301)</td><td>0 — exactly expired</td><td><code>301 − 300 = 1</code>, and <code>1 &lt;= 1</code> is true → evicted</td></tr>
+        <tr><td>Boundary: hit at t=2, getHits(301)</td><td>1 — still inside</td><td><code>301 − 300 = 1</code>, and <code>2 &gt; 1</code> → not evicted</td></tr>
+        <tr><td>Long gap: hit at t=1, getHits(1000)</td><td>0</td><td>all hits evicted in the while loop before count is returned</td></tr>
+        <tr><td>Duplicate timestamps on hit</td><td>each counted separately</td><td>hit always enqueues — no deduplication</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Hints -->
+  <section id="hints" data-toc-label="Try It Yourself First">
+    <h2>4 &nbsp; Try It Yourself First</h2>
+    <p>Attempt the problem before reading on. Open hints one at a time.</p>
+    <details class="hint"><summary>Hint 1 — the constraint</summary><p>The window moves with time, not with index. What structure holds items in arrival order and lets you remove the oldest efficiently?</p></details>
+    <details class="hint"><summary>Hint 2 — the pattern</summary><p>Sliding-window queue. On each query, evict from the front while the front timestamp is older than <code>currentTime − 299</code>. The answer is then just the size of the queue.</p></details>
+    <details class="hint"><summary>Hint 3 — the structure</summary><p>A plain <code>[Int]</code> with a head-index for O(1) dequeue, or a <code>Deque</code>. Enqueue on <code>hit</code>, evict-then-count on <code>getHits</code>. No extra accumulator needed — queue size is the count.</p></details>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Interview simulation -->
+  <section id="simulation" data-toc-label="Interview Simulation">
+    <h2>5 &nbsp; Interview Simulation</h2>
+    <p>The interviewer has stated the problem. The script starts with your first words — practice it out loud.</p>
+
+    <div class="sim-block" id="sim-questions" data-toc-label="5.1 Clarifying questions">
+      <div class="sim-header">Step 1 — Clarifying questions</div>
+      <div class="sim-body">
+        <div class="sim-q">Q: "Are calls guaranteed to arrive in non-decreasing timestamp order — could a hit at t=5 arrive after a hit at t=10?"</div>
+        <div class="sim-a">A: Guaranteed non-decreasing. <strong>→ The queue front is always the oldest hit. No sorting or random access needed.</strong></div>
+
+        <div class="sim-q">Q: "Is 'last 300 seconds' inclusive on both ends — so getHits(301) includes a hit at t=2?"</div>
+        <div class="sim-a">A: Inclusive. The range is [timestamp−299, timestamp]. <strong>→ The eviction condition is front &lt; timestamp − 299, or equivalently front + 300 &lt;= timestamp.</strong></div>
+
+        <div class="sim-q">Q: "Can multiple hits arrive at the exact same timestamp?"</div>
+        <div class="sim-a">A: Yes. <strong>→ Each call to hit enqueues independently — same timestamp appears multiple times.</strong></div>
+
+        <div class="sim-q">Q: "Should I optimize for time or space? Could the window hold millions of hits?"</div>
+        <div class="sim-a">A: Optimize for time; window size is bounded by calls made. <strong>→ O(1) amortized per operation is the target; space is O(hits in window), acceptable.</strong></div>
+      </div>
+    </div>
+
+    <div class="sim-block" id="sim-plan" data-toc-label="5.2 The plan, spoken">
+      <div class="sim-header">Step 2 — The plan, before any code</div>
+      <div class="sim-body">
+        <div class="speech">
+          <div class="speech-kicker">The plan, spoken</div>
+          <p>"This is a sliding-window queue problem. The signal is 'last 300 seconds' — a time-based window that moves with each call. The queue models the live window directly: every hit is a timestamp enqueued at the back, and stale hits are dequeued from the front at query time. That FIFO discipline is what makes the front always hold the oldest hit."</p>
+          <p>"Let me pin the condition before I touch state. The validity condition is: a timestamp is inside the window if it satisfies <code>t &gt;= currentTime − 299</code>. The invalid condition is the mirror: a timestamp at the front is stale when <code>front &lt; currentTime − 299</code>, or equivalently <code>front + 300 &lt;= currentTime</code>. The eviction loop runs while that condition holds — dequeue from the front — and once it exits, every remaining element is in-window. The answer is then simply the queue's count."</p>
+          <p>"From those conditions, the state is minimal: one queue of Int timestamps. On <code>hit</code>, enqueue the timestamp — O(1) amortized. On <code>getHits</code>, evict from the front while the front is stale, then return count. Each timestamp is enqueued once and dequeued at most once, so the total work across all calls is O(n) — amortized O(1) per call."</p>
+          <p>"One thing worth noting: in Swift, Array.removeFirst() is O(n). I'll use a head-index approach — advance an index instead of shifting the array — to keep dequeue O(1). Let me code it and trace the example sequence to verify."</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. Approach rationale -->
+  <section id="approach" data-toc-label="Why This Approach">
+    <h2>6 &nbsp; Why This Approach — and not the others</h2>
+    <table class="t-versus">
+      <thead><tr><th>Candidate</th><th>Cost</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>Brute force: store all hits, count in range on each query</td><td>O(n) per getHits</td><td>Correct but wasteful — counts stale hits that will never contribute again</td></tr>
+        <tr><td>Fixed-size circular buffer of 300 buckets</td><td>O(1) per operation</td><td>Valid optimization: bucket[t % 300] stores (timestamp, count). O(1) and O(300) space. Named in follow-up; queue is clearer for the first pass.</td></tr>
+        <tr><td>Sorted set / binary search for range count</td><td>O(log n) per operation</td><td>Strictly worse than the queue — non-decreasing order makes binary search redundant</td></tr>
+        <tr><td><strong>Sliding-window queue + head-index</strong></td><td>O(1) amortized</td><td><strong>Chosen.</strong> Non-decreasing order means front = oldest; FIFO eviction is O(1) amortized. Count is always queue.count − headIndex.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-when"><strong>The deciding signal:</strong> "arrivals in non-decreasing order" + "count events in the last T seconds." Non-decreasing order is the invariant that makes the queue front always the oldest item — which is exactly what makes the eviction loop correct and amortized O(1).</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Data structures -->
+  <section id="structures" data-toc-label="Data Structures">
+    <h2>7 &nbsp; Data Structures — choice and justification</h2>
+    <table class="t-decoder">
+      <thead><tr><th>Structure</th><th>Holds</th><th>Why this and not weaker</th></tr></thead>
+      <tbody>
+        <tr><td><code>timestamps: [Int]</code></td><td>Every hit timestamp in arrival order</td><td>Array gives O(1) amortized append and O(1) index read; with head-index pattern, dequeue is also O(1) — Array.removeFirst() would be O(n)</td></tr>
+        <tr><td><code>headIndex: Int</code></td><td>The logical front of the queue</td><td>Advancing an index instead of shifting the array keeps every eviction O(1); the live count is <code>timestamps.count − headIndex</code></td></tr>
+      </tbody>
+    </table>
+    <div class="co-note"><strong>Swift cost note:</strong> <code>Array.removeFirst()</code> is O(n) — it shifts every remaining element. The head-index pattern avoids this. The array grows without bound over a session; if that matters, compact it periodically or switch to a true ring buffer.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 8. Pseudocode dry run -->
+  <section id="dryrun" data-toc-label="Pseudocode Dry Run">
+    <h2>8 &nbsp; Pseudocode Dry Run</h2>
+
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">sliding-window queue with head-index</span></div>
+    <pre class="pseudo">HitCounter:
+  timestamps ← []
+  head ← 0
+
+  <span class="pk">hit</span>(timestamp):
+    timestamps.append(timestamp)
+
+  <span class="pk">getHits</span>(timestamp):
+    <span class="pk">WHILE</span> head &lt; timestamps.count AND timestamps[head] + 300 &lt;= timestamp:
+      head += 1          <span class="pc">// evict stale front</span>
+    <span class="pk">RETURN</span> timestamps.count − head</pre>
+
+    <p>Trace on the sequence: <code>hit(1), hit(2), hit(3), hit(300), getHits(300), getHits(301)</code>:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">milestone steps</span></div>
+    <pre class="dry"><span class="tr-var">hit(1)</span>    timestamps=[1],       head=0
+<span class="tr-var">hit(2)</span>    timestamps=[1,2],     head=0
+<span class="tr-var">hit(3)</span>    timestamps=[1,2,3],   head=0
+<span class="tr-var">hit(300)</span>  timestamps=[1,2,3,300], head=0
+
+<span class="tr-var">getHits(300)</span>
+  evict: timestamps[0]=1, 1+300=301 &lt;= 300? NO → stop
+  <span class="tr-ok">return count − head = 4 − 0 = 4</span>
+
+<span class="tr-var">getHits(301)</span>
+  evict: timestamps[0]=1, 1+300=301 &lt;= 301? YES → head=1
+  evict: timestamps[1]=2, 2+300=302 &lt;= 301? NO → stop
+  <span class="tr-ok">return count − head = 4 − 1 = 3</span></pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 9. Swift solution -->
+  <section id="swift" data-toc-label="Swift Solution">
+    <h2>9 &nbsp; Swift Solution — iterative</h2>
+
+    <div class="solution-block">
+      <div class="block-header">
+        <span class="block-badge">A.1</span>
+        <span class="block-name">Sliding-window queue with head-index</span>
+        <div class="block-pills"><span class="pill pill-t">O(1) amortized</span><span class="pill pill-s">O(w)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="approach-box">
+          <div class="approach-title">Plan</div>
+          Enqueue every hit timestamp at the back. On getHits, advance the head index past any timestamp where <code>front + 300 &lt;= currentTime</code> (expired). Return <code>timestamps.count − headIndex</code> — the live count — without any shifting.
+        </div>
+
+        <pre class="swift"><span class="kw">class</span> <span class="tp">HitCounter</span> {
+    <span class="kw">private var</span> timestamps: [<span class="tp">Int</span>] = []
+    <span class="kw">private var</span> headIndex = <span class="nm">0</span>
+
+    <span class="kw">func</span> <span class="fn">hit</span>(<span class="kw">_</span> timestamp: <span class="tp">Int</span>) {
+        timestamps.<span class="fn">append</span>(timestamp)
+    }
+
+    <span class="kw">func</span> <span class="fn">getHits</span>(<span class="kw">_</span> timestamp: <span class="tp">Int</span>) -> <span class="tp">Int</span> {
+        <span class="cm">// evict timestamps that have fallen outside the 300-second window</span>
+        <span class="kw">while</span> headIndex &lt; timestamps.count,
+              timestamps[headIndex] + <span class="nm">300</span> &lt;= timestamp {
+            headIndex += <span class="nm">1</span>
+        }
+        <span class="kw">return</span> timestamps.count - headIndex
+    }
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 10. Code dry run -->
+  <section id="code-dry-run" data-toc-label="Code Dry Run">
+    <h2>10 &nbsp; Code Dry Run — the Swift solution, traced</h2>
+    <p>Full debugger-level trace of the Swift code above on the sequence <code>hit(1), hit(2), hit(3), hit(300), getHits(300), getHits(301)</code> → expected outputs <code>4</code> then <code>3</code>.</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">full execution trace — /code-dry-run format</span></div>
+    <pre class="dry">────────────────────────────────
+/code-dry-run
+Problem: LC 362 — Design Hit Counter
+Input:   hit(1), hit(2), hit(3), hit(300), getHits(300), getHits(301)
+────────────────────────────────
+
+HitCounter.init
+  timestamps = []
+  headIndex  = 0
+
+────────────────────────────────
+hit(1)
+────────────────────────────────
+
+  timestamps.append(1)
+  timestamps = [1]
+  headIndex  = 0
+
+────────────────────────────────
+hit(2)
+────────────────────────────────
+
+  timestamps.append(2)
+  timestamps = [1, 2]
+  headIndex  = 0
+
+────────────────────────────────
+hit(3)
+────────────────────────────────
+
+  timestamps.append(3)
+  timestamps = [1, 2, 3]
+  headIndex  = 0
+
+────────────────────────────────
+hit(300)
+────────────────────────────────
+
+  timestamps.append(300)
+  timestamps = [1, 2, 3, 300]
+  headIndex  = 0
+
+────────────────────────────────
+getHits(300)   timestamp=300
+────────────────────────────────
+
+  EVICT LOOP
+    headIndex(0) < count(4)? YES → check front
+    timestamps[0]=1, 1+300=301 <= 300? NO → stop eviction
+    ↑ t=1 is still inside [1, 300] — the window starts at 300−299=1
+
+  return count − headIndex = 4 − 0 = 4
+
+  State: timestamps=[1,2,3,300], headIndex=0
+
+────────────────────────────────
+RESULT for getHits(300): 4
+────────────────────────────────
+
+────────────────────────────────
+getHits(301)   timestamp=301
+────────────────────────────────
+
+  EVICT LOOP
+
+    EVICT ITERATION 1
+      headIndex(0) < count(4)? YES → check front
+      timestamps[0]=1, 1+300=301 <= 301? YES → headIndex = 1
+      ↑ t=1 is now at 301−300=1 distance, exactly expired
+
+    EVICT ITERATION 2
+      headIndex(1) < count(4)? YES → check front
+      timestamps[1]=2, 2+300=302 <= 301? NO → stop eviction
+      ↑ t=2 maps to 2+300=302 which exceeds 301 — still in window
+
+  return count − headIndex = 4 − 1 = 3
+
+  State: timestamps=[1,2,3,300], headIndex=1
+
+────────────────────────────────
+RESULT for getHits(301): 3
+────────────────────────────────</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 11. Q→Code map -->
+  <section id="qmap" data-toc-label="Question → Code Map">
+    <h2>11 &nbsp; Question → Code Map</h2>
+    <table class="t-qmap">
+      <thead><tr><th>What you asked / planned</th><th>What it became</th></tr></thead>
+      <tbody>
+        <tr><td>"Non-decreasing order — front is always oldest"</td><td>No sorting; the while loop just checks <code>timestamps[headIndex]</code></td></tr>
+        <tr><td>"Inclusive boundary — [timestamp−299, timestamp]"</td><td><code>timestamps[headIndex] + 300 &lt;= timestamp</code> (expired when front + 300 &lt;= current)</td></tr>
+        <tr><td>"removeFirst is O(n) in Swift"</td><td><code>headIndex</code> advanced instead of mutating the array</td></tr>
+        <tr><td>"Count is just the live queue size"</td><td><code>return timestamps.count − headIndex</code> — no accumulator</td></tr>
+        <tr><td>"Multiple hits at same timestamp"</td><td><code>hit</code> always appends — no deduplication guard</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 12. Complexity -->
+  <section id="complexity" data-toc-label="Complexity">
+    <h2>12 &nbsp; Complexity</h2>
+    <table class="t-cmx">
+      <thead><tr><th>Operation</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>hit</td><td class="tc">O(1)</td><td class="sc">O(1)</td><td>Array append is O(1) amortized</td></tr>
+        <tr><td>getHits (per eviction)</td><td class="tc">O(k)</td><td class="sc">—</td><td>k = number of timestamps evicted; each timestamp evicted at most once total</td></tr>
+        <tr><td>getHits (amortized)</td><td class="tc">O(1)</td><td class="sc">—</td><td>Each timestamp is enqueued once, dequeued at most once — O(n) total work across all calls</td></tr>
+        <tr><td>Space (live window)</td><td class="tc">—</td><td class="sc">O(w)</td><td>w = hits within the current 300-second window; headIndex means stale entries are not freed unless compacted</td></tr>
+        <tr class="bottleneck"><td>Total</td><td class="tc">O(n) amortized</td><td class="sc">O(n)</td><td>n = total hit calls. Every timestamp touches the queue exactly twice — once on enqueue, once on eviction</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13. Follow-ups -->
+  <section id="followups" data-toc-label="Follow-Up Bank">
+    <h2>13 &nbsp; Follow-Up Bank — the interviewer's second act</h2>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Before you push this to production — can you see any improvements you'd make?"</div>
+      <div class="followup-a">Two things: first, the head-index approach lets the array grow unboundedly — compacting it periodically (replace <code>timestamps</code> with the live slice) recovers the memory at O(w) cost. Second, if the timestamp range is known to be bounded (say, always within a 24-hour window), a fixed-size circular buffer of 300 buckets is O(1) time and O(300) space — the bucket holds (lastTimestamp, count) and a stale bucket resets on write. That eliminates the growing array entirely.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "What if hits can arrive out of order — say due to network delay?"</div>
+      <div class="followup-a">The queue assumption breaks because the front is no longer always the oldest. You would need a sorted structure (a min-heap or a sorted deque) so eviction always removes the globally oldest timestamp. Hit becomes O(log w), getHits stays O(k + log w). If timestamps are bounded (e.g. at most 5 seconds of jitter), a small buffer sorted on flush is more practical than a full heap.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "What if there are multiple users — each needs their own 300-second window?"</div>
+      <div class="followup-a">Each user gets their own <code>HitCounter</code> instance, keyed in a dictionary by user ID. The per-user cost stays the same; the total space scales with active users × hits in their windows. This is the standard per-key rate-limiter shape used in API gateways.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Can you do O(1) time and O(1) space for this specific 300-second window?"</div>
+      <div class="followup-a">Yes — circular buffer of 300 buckets, each bucket is a <code>(timestamp, count)</code> pair. On hit: <code>bucket = timestamp % 300</code>; if <code>bucket.timestamp == timestamp</code> increment count, else reset to (timestamp, 1). On getHits: sum all buckets where <code>timestamp − bucket.timestamp &lt; 300</code>. Time O(300) = O(1), space O(300) = O(1). The trade-off is it aggregates hits per second rather than tracking individual timestamps — fine if sub-second granularity is not required.</div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 14. Theory decoder -->
+  <section id="decoder" data-toc-label="Theory Decoder">
+    <h2>14 &nbsp; Theory Decoder — the theory as used here</h2>
+    <table class="t-decoder">
+      <thead><tr><th>General concept</th><th>Instantiated in this solution as</th><th>General form</th></tr></thead>
+      <tbody>
+        <tr><td>Sliding-window queue</td><td>Enqueue each hit; evict-while-stale on getHits; return queue size</td><td><a href="../theory/stacks_queues/queue_master.html#when">queue_master.html §4</a></td></tr>
+        <tr><td>FIFO front = oldest item</td><td>Non-decreasing timestamps → <code>timestamps[headIndex]</code> is always the oldest hit in O(1)</td><td><a href="../theory/stacks_queues/queue_master.html#fifo">queue_master.html §5</a></td></tr>
+        <tr><td>Head-index O(1) dequeue</td><td><code>headIndex += 1</code> instead of <code>timestamps.removeFirst()</code></td><td><a href="../theory/stacks_queues/queue_master.html#toolbox">queue_master.html §3</a></td></tr>
+        <tr><td>Amortized O(1) argument</td><td>Each timestamp enqueued once, dequeued at most once — O(n) total regardless of call order</td><td><a href="../theory/stacks_queues/queue_master.html#cheatsheet">queue_master.html §10</a></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 15. Back-reference -->
+  <section id="parent" data-toc-label="Parent Theory">
+    <h2>15 &nbsp; Parent Theory</h2>
+    <p>This walkthrough instantiates the sliding-window queue variant of the FIFO queue pattern. The parent page is not free-form — it follows the theory masterfile standard, so here is exactly what you land on:</p>
+    <div class="ref-grid">
+      <a class="backref-card" href="../theory/stacks_queues/queue_master.html">
+        <span class="ref-file">theory/stacks_queues/queue_master.html</span>
+        <span class="ref-title">Queue — FIFO Deep Dive</span>
+        <span class="ref-desc">The canonical queue reference: the two standard BFS skeletons (§2), the Swift toolbox with the head-index pattern (§3), the when-to-use decision table covering sliding-window rate-limiting (§4), the FIFO core mechanic (§5), the terminology decoder (§6), edge cases (§7), and the ultimate cheat sheet (§10). Its own cross-reference section (§8) links back to this walkthrough.</span>
+      </a>
+    </div>
+      <p class="u-note-gap">See also: <a href="../theory/design/stateful_system_design_deep_dive_master.html">stateful_system_design_deep_dive_master.html</a> — the mutate-and-query design frame this counter instantiates.</p>
+
+  </section>
+
+  <div class="page-footer">
+    LC 362 — Design Hit Counter · Walkthrough Masterfile · Parent theory:
+    <a href="../theory/stacks_queues/queue_master.html">Queue — FIFO Deep Dive</a> ·
+    Structure per <code>.claude/skills/wiki/references/walkthrough-format.md</code>
+  </div>
+
+</main>
+</div>
+
+<script src="../static/generated/manifest.js"></script>
+<script src="../static/generated/nav.js"></script>
+<script src="../static/generated/toc.js"></script>
+</body>
+</html>

@@ -5,7 +5,7 @@ A walkthrough instantiates a theory on one problem. It must let a reader navigat
 
 ## The 15 sections, in order
 
-Canonical ids/labels: `wiki/tools/lib/templates.ts` (`WALKTHROUGH_SECTIONS`). Model file: `walkthroughs/LC76_master.html` (fullest) or `LC209_master.html` (cleanest).
+Canonical ids/labels: `wiki/wiki.config.ts` (the `walkthrough` entry in `pageTypes[]`). Model file: `content/walkthroughs/LC76_master.html` (fullest) or `LC209_master.html` (cleanest).
 
 | # | id | Section | What belongs there |
 |---|----|---------|--------------------|

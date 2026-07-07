@@ -1,0 +1,13 @@
+{
+  "name": "wiki-engine",
+  "private": true,
+  "type": "module",
+  "description": "Zero-dependency TypeScript engine for the study wiki — the black box. Run directly with Node 24+ (type stripping) — no npm install, ever. To reuse: copy engine/ + static/wiki.css into a new repo and write a fresh wiki.config.ts.",
+  "scripts": {
+    "build": "node commands/build.ts",
+    "check": "node commands/check.ts",
+    "serve": "node commands/serve.ts",
+    "browser": "tsc -p browser",
+    "typecheck": "tsc --noEmit -p ."
+  }
+}

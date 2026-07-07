@@ -1,0 +1,167 @@
+// ============================================================
+// templates.ts — page rendering used by new-page.ts.
+// The engine knows no fixed section lists: skeletons come from
+// the page types declared in wiki.config.ts. These functions
+// only turn a skeleton into markup.
+// ============================================================
+
+import type { PageMeta, SectionSkeleton } from "./types.ts";
+import { CSS_HREF, MANIFEST_SRC, NAV_SRC, TOC_SRC } from "./paths.ts";
+
+const FONTS_LINK =
+  '<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">';
+
+function escapeHtml(text: string): string {
+  return text.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+
+export function renderMetaBlock(pageMeta: PageMeta): string {
+  const declaredMeta: Record<string, unknown> = {
+    title: pageMeta.title,
+    nav: pageMeta.nav,
+    topics: pageMeta.topics,
+    blurb: pageMeta.blurb,
+  };
+  if (pageMeta.difficulty !== undefined) {
+    declaredMeta["difficulty"] = pageMeta.difficulty;
+  }
+  if (pageMeta.order !== undefined) {
+    declaredMeta["order"] = pageMeta.order;
+  }
+  return `<script type="application/json" data-page-meta>\n${JSON.stringify(declaredMeta, null, 2)}\n</script>`;
+}
+
+export interface PageShellOptions {
+  rootPrefix: string; // "", "../", or "../../"
+  htmlTitle: string;
+  pageMeta: PageMeta;
+  bodyCategory: string;
+  bodyContent: string;
+}
+
+export function renderPageShell(options: PageShellOptions): string {
+  const { rootPrefix, htmlTitle, pageMeta, bodyCategory, bodyContent } = options;
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escapeHtml(htmlTitle)}</title>
+${renderMetaBlock(pageMeta)}
+<link rel="stylesheet" href="${rootPrefix}${CSS_HREF}">
+${FONTS_LINK}
+</head>
+<body data-category="${bodyCategory}">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+${bodyContent}
+</div>
+
+<script src="${rootPrefix}${MANIFEST_SRC}"></script>
+<script src="${rootPrefix}${NAV_SRC}"></script>
+<script src="${rootPrefix}${TOC_SRC}"></script>
+</body>
+</html>
+`;
+}
+
+export function renderArticleBody(pageTitle: string, metaLine: string, sections: SectionSkeleton[]): string {
+  const sectionMarkup = sections
+    .map((section, sectionIndex) => {
+      const sectionNumber = sectionIndex + 1;
+      const openTag = `<section id="${section.id}" data-toc-label="${escapeHtml(section.tocLabel)}">`;
+      if (section.heading === null) {
+        return `  ${openTag}
+    <div class="lead">
+      <p>TODO — opening definition / problem restatement.</p>
+    </div>
+  </section>`;
+      }
+      return `  ${openTag}
+    <h2>${sectionNumber} &nbsp; ${escapeHtml(section.heading)}</h2>
+    <p>TODO</p>
+  </section>`;
+    })
+    .join("\n\n  <hr class=\"wiki-hr\">\n\n");
+
+  return `
+<main class="content">
+
+  <h1 class="page-title">${escapeHtml(pageTitle)}</h1>
+  <div class="page-meta">
+    ${metaLine}
+  </div>
+
+${sectionMarkup}
+
+  <div class="page-footer">
+    ${escapeHtml(pageTitle)}
+  </div>
+
+</main>`;
+}
+
+/**
+ * Flat page types are h2-driven documents: no <section> wrappers,
+ * the TOC is generated from bare <h2 id data-toc-label> headings.
+ * Each skeleton entry with a heading becomes one <h2>; a lead entry
+ * (heading === null) becomes the opening paragraph.
+ */
+export function renderFlatBody(pageTitle: string, metaLine: string, sections: SectionSkeleton[]): string {
+  const leadSection = sections.find((section) => section.heading === null);
+  const headingSections = sections.filter((section) => section.heading !== null);
+  const headingMarkup = headingSections
+    .map(
+      (section, headingIndex) =>
+        `  <h2 id="${section.id}" data-toc-label="${escapeHtml(section.tocLabel)}"><span class="sec-num">${headingIndex + 1}</span> ${escapeHtml(section.heading as string)}</h2>
+  <p>TODO</p>`,
+    )
+    .join("\n\n  <hr class=\"wiki-hr\">\n\n");
+
+  const leadMarkup = leadSection !== undefined ? `${escapeHtml(leadSection.tocLabel)} — TODO` : "TODO — one paragraph describing this reference page.";
+
+  return `
+<main class="content">
+
+  <h1 class="page-title">${escapeHtml(pageTitle)}</h1>
+  <div class="page-meta">
+    ${metaLine}
+  </div>
+
+  <div class="lead">
+    <p>${leadMarkup}</p>
+  </div>
+
+${headingMarkup}
+
+  <div class="page-footer">
+    Study Wiki · ${escapeHtml(pageTitle)}
+  </div>
+
+</main>`;
+}
+
+export function renderHubBody(pageTitle: string, metaLine: string): string {
+  return `
+<main class="content content-centered">
+
+  <h1 class="page-title">${escapeHtml(pageTitle)}</h1>
+  <div class="page-meta">
+    ${metaLine}
+  </div>
+
+  <div class="lead">
+    <p>TODO — one paragraph describing this hub.</p>
+  </div>
+
+  <!-- Card grid generated by nav.js from the manifest -->
+  <div data-hub-grid></div>
+
+  <div class="page-footer">
+    Study Wiki · ${escapeHtml(pageTitle)}
+  </div>
+
+</main>`;
+}

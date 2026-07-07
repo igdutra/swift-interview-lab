@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LC 341 — Flatten Nested List Iterator · Walkthrough Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "LC 341 — Flatten Nested List Iterator",
+  "nav": "LC 341",
+  "topics": [
+    "Stack",
+    "Iterator",
+    "Design"
+  ],
+  "blurb": "Lazy stack flatten (Variant 8.2). Push the list reversed, unwind nested lists in hasNext until an integer is on top, pop in next — amortized O(1)/call, never eager. Full Swift + dry run.",
+  "difficulty": "M"
+}
+</script>
+<link rel="stylesheet" href="../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="walkthrough">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">LC 341 — Flatten Nested List Iterator</h1>
+  <div class="page-meta">
+    <span>Walkthrough Masterfile</span><span>·</span>
+    <span>Language: Swift</span><span>·</span>
+    <span>Medium · Lazy stack flatten · Descend on demand in hasNext</span>
+  </div>
+
+  <!-- 1. Restatement -->
+  <section id="lead" data-toc-label="The Problem">
+    <div class="infobox">
+      <div class="infobox-title">Problem at a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Difficulty</div><div class="infobox-v"><span class="tag tag-M">Medium</span></div></div>
+      <div class="infobox-row"><div class="infobox-k">Pattern</div><div class="infobox-v">Lazy flattening with a stack (Variant 8.2)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Tools</div><div class="infobox-v">A stack of <code>NestedInteger</code> · push reversed · descend in <code>hasNext</code></div></div>
+      <div class="infobox-row"><div class="infobox-k">Key insight</div><div class="infobox-v">Push the list reversed so the front is on top; in <code>hasNext</code>, unwind lists until an integer is on top</div></div>
+      <div class="infobox-row"><div class="infobox-k">Time / Space</div><div class="infobox-v">amortized O(1) per call / O(depth + width)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Theory</div><div class="infobox-v mono"><a href="../theory/design/iterator_design_deep_dive_master.html">iterator_design_deep_dive_master.html</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p>You are given a nested list of integers — each element is either an integer or another nested list — and you must implement an iterator that flattens it into a single in-order stream. Implement <code>NestedIterator(nestedList)</code>, <code>next()</code> returning the next integer, and <code>hasNext()</code> returning whether one remains. The list is exposed through the <code>NestedInteger</code> API: <code>isInteger()</code> tells you which kind an element is, <code>getInteger()</code> reads the integer, and <code>getList()</code> reads the sub-list.</p>
+
+      <table class="t-example">
+        <thead><tr><th>Input</th><th><code>next()</code> stream</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><code>[[1,1],2,[1,3]]</code></td><td><code>1, 1, 2, 1, 3</code></td><td>In-order flatten — descend each sub-list as it is reached</td></tr>
+          <tr><td><code>[1,[4,[6]]]</code></td><td><code>1, 4, 6</code></td><td>Deeper nesting: <code>6</code> sits two levels down, surfaced when reached</td></tr>
+          <tr><td><code>[[]]</code></td><td>(empty)</td><td>Only an empty sub-list → <code>hasNext()</code> is false from the start</td></tr>
+        </tbody>
+      </table>
+
+      <p>The twist that makes it more than a tree walk is the <em>iterator contract</em>: you cannot flatten everything in the constructor (that defeats laziness and breaks on huge inputs). You must produce one integer per <code>next()</code>, descending into nesting only when a call actually needs the next value — and keep <code>hasNext</code> and <code>next</code> perfectly consistent.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Reading the problem -->
+  <section id="reading" data-toc-label="Reading the Problem">
+    <h2>2 &nbsp; Reading the Problem — insights from the constraints</h2>
+
+    <div class="co-insight"><strong>"Implement <code>next</code> and <code>hasNext</code>":</strong> this is a pull interface — the caller drives. Your object must pause between integers and resume on demand. A recursive flatten runs to completion and can't pause, so the recursion must become an explicit stack you can stop and restart across calls.</div>
+
+    <div class="co-insight"><strong>"Each element is an integer or a nested list":</strong> the structure is a tree. An in-order flatten is a depth-first traversal that yields integers at the leaves. The stack holds the frontier of not-yet-processed elements, with the next one to emit nearest the top.</div>
+
+    <div class="co-insight"><strong>Laziness is the real requirement:</strong> flattening the whole tree in the constructor is O(total) up front and pointless if the caller stops early — or impossible if the structure is enormous. The intended design pushes only the top level and descends into a sub-list exactly when <code>hasNext</code> needs to expose its first integer.</div>
+
+    <div class="co-insight"><strong>Stacks are LIFO, so order must be reversed:</strong> if you push a list front-to-back, popping yields it back-to-front. To emit in original order, push each list's elements <em>reversed</em>, so the front element ends up on top and pops first.</div>
+
+    <div class="co-insight"><strong>Empty and nested-empty lists yield nothing:</strong> <code>[[]]</code> or <code>[[],[]]</code> contain no integers. <code>hasNext</code> must drain those lists (popping and pushing their empty contents) and correctly conclude there is nothing to return — without <code>next</code> ever being called.</div>
+
+    <table class="t-clue">
+      <thead><tr><th>Phrase / constraint</th><th>What it forces</th></tr></thead>
+      <tbody>
+        <tr><td>"<code>next</code> / <code>hasNext</code>"</td><td>Explicit stack you can pause/resume — no recursion</td></tr>
+        <tr><td>"integer or nested list"</td><td>DFS over a tree; integers at leaves are the stream</td></tr>
+        <tr><td>"iterator" (laziness)</td><td>Push only the top level; descend on demand in <code>hasNext</code></td></tr>
+        <tr><td>"in original order"</td><td>Push each list reversed so the front pops first</td></tr>
+        <tr><td>Empty / nested-empty lists</td><td><code>hasNext</code> drains them and returns false correctly</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Edge cases -->
+  <section id="edge-cases" data-toc-label="Edge Case Inventory">
+    <h2>3 &nbsp; Edge Case Inventory</h2>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected</th><th>Handled by</th></tr></thead>
+      <tbody>
+        <tr><td><code>[]</code> — empty top list</td><td><code>hasNext()</code> false immediately</td><td>Constructor pushes nothing; the stack starts empty.</td></tr>
+        <tr><td><code>[[]]</code> — one empty sub-list</td><td><code>hasNext()</code> false</td><td><code>hasNext</code> pops the empty list, pushes its zero contents, sees an empty stack → false.</td></tr>
+        <tr><td><code>[[],[]]</code> — all empty</td><td><code>hasNext()</code> false</td><td>The <code>while</code> in <code>hasNext</code> drains both empties to nothing.</td></tr>
+        <tr><td><code>[5]</code> — single integer</td><td><code>5</code>, then false</td><td>Top is already an integer; <code>next</code> pops and returns it.</td></tr>
+        <tr><td><code>[[[[7]]]]</code> — deeply nested</td><td><code>7</code></td><td>One <code>hasNext</code> unwinds four list frames in a single <code>while</code> loop before exposing 7.</td></tr>
+        <tr><td><code>[1,[2,3]]</code> — mixed</td><td><code>1, 2, 3</code></td><td>1 emitted directly; the sub-list <code>[2,3]</code> descended when reached.</td></tr>
+        <tr><td><code>[[1,1],2,[1,3]]</code> — canonical</td><td><code>1,1,2,1,3</code></td><td>Reversed pushes keep original order across descents.</td></tr>
+        <tr><td>GOTCHA: repeated <code>hasNext()</code> calls</td><td>same answer; no consumption</td><td><code>hasNext</code> only descends (pops lists, pushes contents) and inspects the top — it never pops an integer, so it is idempotent.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="co-insight"><strong>Putting the descent in <code>hasNext</code> is what makes the iterator correct.</strong> <code>hasNext</code> unwinds lists until the top is an integer (or the stack empties), but it never removes that integer. So calling <code>hasNext</code> any number of times leaves the same integer ready, and <code>next</code> can safely pop it. If the descent lived in <code>next</code> instead, a <code>hasNext</code>-then-<code>next</code> sequence on nested data would misbehave.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Hints -->
+  <section id="hints" data-toc-label="Try It Yourself First">
+    <h2>4 &nbsp; Try It Yourself First</h2>
+    <p>Attempt the lazy design before reading on — eager flattening is the trap. Open hints one at a time.</p>
+    <details class="hint"><summary>Hint 1 — the constraint</summary><p>You must return one integer per <code>next()</code> and be able to pause between them. Recursion can't pause mid-traversal, so turn it into an explicit stack you control. Do <em>not</em> flatten everything in the constructor.</p></details>
+    <details class="hint"><summary>Hint 2 — the pattern</summary><p>Push the top-level elements onto a stack. To get original order out of a LIFO stack, push them <em>reversed</em> (front element on top). In <code>hasNext</code>, while the top is a list, pop it and push its contents reversed — keep going until the top is an integer or the stack is empty.</p></details>
+    <details class="hint"><summary>Hint 3 — keeping next/hasNext consistent</summary><p>Let <code>hasNext</code> do all the descending (it's idempotent — it never removes an integer, only unwinds lists). <code>next</code> first calls <code>hasNext</code> to guarantee an integer is on top, then pops and returns it. That single rule keeps the two methods in lockstep and makes repeated <code>hasNext</code> calls harmless.</p></details>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Interview simulation -->
+  <section id="simulation" data-toc-label="Interview Simulation">
+    <h2>5 &nbsp; Interview Simulation</h2>
+    <p>The interviewer has stated the problem. The script starts with your first words — practice it out loud.</p>
+
+    <div class="sim-block" id="sim-questions" data-toc-label="5.1 Clarifying questions">
+      <div class="sim-header">Step 1 — Clarifying questions</div>
+      <div class="sim-body">
+        <div class="sim-q">Q: "Should the iterator flatten lazily, or is flattening everything up front in the constructor acceptable?"</div>
+        <div class="sim-a">A: Lazily — that's the point of an iterator. <strong>→ I push only the top level and descend on demand; the constructor stays cheap.</strong></div>
+
+        <div class="sim-q">Q: "Can sub-lists be empty or arbitrarily deeply nested?"</div>
+        <div class="sim-a">A: Yes to both. <strong>→ <code>hasNext</code> must drain empty lists to conclude false, and unwind multiple levels in one call for deep nesting.</strong></div>
+
+        <div class="sim-q">Q: "Is <code>next()</code> only ever called when <code>hasNext()</code> is true?"</div>
+        <div class="sim-a">A: Yes, the caller checks first. <strong>→ <code>next</code> can assume an element is available, but I'll still route it through <code>hasNext</code> to position the cursor.</strong></div>
+
+        <div class="sim-q">Q: "What's the <code>NestedInteger</code> API — how do I tell an integer from a list?"</div>
+        <div class="sim-a">A: <code>isInteger()</code>, <code>getInteger()</code>, and <code>getList()</code>. <strong>→ My stack holds <code>NestedInteger</code> values; I branch on <code>isInteger()</code> when inspecting the top.</strong></div>
+      </div>
+    </div>
+
+    <div class="sim-block" id="sim-plan" data-toc-label="5.2 The plan, spoken">
+      <div class="sim-header">Step 2 — The plan, before any code</div>
+      <div class="sim-body">
+        <div class="speech">
+          <div class="speech-kicker">The plan, spoken</div>
+          <p>"This is lazy flattening with a stack — Variant 8.2 of the Iterator Design family. The signal is 'flatten a nested list behind <code>next</code>/<code>hasNext</code>,' and the constraint that makes it interesting is laziness: I descend only when asked."</p>
+          <p>"Let me pin the conditions before the structure. The invariant I maintain is: the stack holds the not-yet-emitted elements with the next one to produce nearest the top, and after <code>hasNext</code> runs, the top is always an integer (or the stack is empty). The governing condition lives in <code>hasNext</code>: <em>while</em> the stack is non-empty and its top is a list, pop that list and push its elements reversed — stop when the top is an integer or the stack empties. It must be a <code>while</code>, not an <code>if</code>, because a list can contain lists, and empties must be fully drained. The consistency condition: <code>hasNext</code> never pops an integer, so it's idempotent; <code>next</code> calls <code>hasNext</code> first, then pops and returns the integer now guaranteed on top."</p>
+          <p>"The structures follow: a single stack of <code>NestedInteger</code>. I push the top-level list reversed in the constructor so the front element is on top — that's what turns LIFO popping back into original order. I need nothing else; the stack <em>is</em> the paused depth-first traversal."</p>
+          <p>"The walk: constructor pushes the input reversed. <code>hasNext</code> runs the unwind loop and returns whether the stack is non-empty. <code>next</code> calls <code>hasNext</code>, then pops the top and returns its <code>getInteger()</code>. Each element is pushed once and popped once across the whole traversal, so per-call cost is amortized O(1); space is O(depth + width) for the stack."</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. Approach rationale -->
+  <section id="approach" data-toc-label="Why This Approach">
+    <h2>6 &nbsp; Why This Approach — and not the others</h2>
+    <table class="t-versus">
+      <thead><tr><th>Candidate</th><th>Cost</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>Flatten everything into a flat array in the constructor, then index</td><td>O(total) up front, O(1)/call after</td><td>Simple and passes, but eager: it does all the work even if the caller takes one element, and stores every integer. Breaks the spirit of an iterator and the "huge/lazy source" follow-up.</td></tr>
+        <tr><td>Recursive generator / iterator</td><td>O(1) amortized</td><td>Elegant in languages with native generators, but Swift has none here, and a hand-rolled recursive iterator must still externalize its call stack — which is exactly the explicit-stack design, just obscured.</td></tr>
+        <tr><td><strong>Explicit stack, push reversed, descend in <code>hasNext</code></strong></td><td>amortized O(1)/call, O(depth+width)</td><td><strong>Chosen.</strong> Truly lazy, pausable, no recursion-depth limit, and <code>hasNext</code>/<code>next</code> stay consistent by construction.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-when"><strong>The deciding signal:</strong> a <code>next</code>/<code>hasNext</code> contract over a nested or generated structure. Whenever you must pause a traversal between elements, externalize the recursion into an explicit stack and prepare the next element lazily in <code>hasNext</code>. The same shape iterates trees, merges streams, and flattens any nested container.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Data structures -->
+  <section id="structures" data-toc-label="Data Structures">
+    <h2>7 &nbsp; Data Structures — choice and justification</h2>
+    <table class="t-decoder">
+      <thead><tr><th>Structure</th><th>Holds</th><th>Why this and not weaker/stronger</th></tr></thead>
+      <tbody>
+        <tr><td><code>stack: [NestedInteger]</code></td><td>The frontier of not-yet-emitted elements, next-to-emit on top</td><td>A stack is the externalized DFS call stack — it lets the traversal pause and resume between <code>next</code> calls. <code>append</code>/<code>removeLast</code> are O(1). A flat pre-built array would be eager; a queue would give the wrong order without reversing anyway.</td></tr>
+        <tr><td>push-reversed discipline</td><td>(no storage) the order convention</td><td>Pushing each list's elements reversed makes the front element pop first, recovering original order from LIFO. Without it the stream comes out per-list-reversed.</td></tr>
+        <tr><td>the <code>hasNext</code> unwind loop</td><td>(no storage) the laziness mechanism</td><td>A <code>while</code> that pops lists and pushes their contents until an integer is on top. Centralizing descent here keeps it idempotent and keeps <code>next</code> trivial.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-insight"><strong>Why the stack holds <code>NestedInteger</code>, not <code>Int</code>.</strong> The stack must remember <em>unexpanded</em> elements — some are integers, some are still-nested lists awaiting descent. Storing the raw <code>NestedInteger</code> lets <code>hasNext</code> decide, lazily, whether each is a leaf to emit or a list to unwind. A stack of <code>Int</code> would require pre-flattening, which is the eager design we are avoiding.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 8. Pseudocode dry run -->
+  <section id="dryrun" data-toc-label="Pseudocode Dry Run">
+    <h2>8 &nbsp; Pseudocode Dry Run</h2>
+
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">push reversed; descend lazily in hasNext</span></div>
+<pre class="pseudo"><span class="pk">CLASS</span> NestedIterator(nestedList):
+    stack ← push nestedList's elements in REVERSE order
+
+    <span class="pk">METHOD</span> hasNext() -&gt; Bool:
+        <span class="pk">WHILE</span> stack not empty <span class="pk">AND</span> top(stack) is a list:
+            list ← pop(stack)
+            push list's elements in REVERSE order
+        <span class="pk">RETURN</span> stack not empty        <span class="pc">top is now an integer, if any</span>
+
+    <span class="pk">METHOD</span> next() -&gt; Int:
+        _ = hasNext()                  <span class="pc">ensure an integer is on top</span>
+        <span class="pk">RETURN</span> getInteger(pop(stack))</pre>
+
+    <p>Trace on <code>[[1,1],2,[1,3]]</code> — expected stream <code>1,1,2,1,3</code>:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">stack evolution (top shown on the right)</span></div>
+<pre class="dry"><span class="tr-var">init: push [[1,1],2,[1,3]] reversed → stack = [ [1,3], 2, [1,1] ]</span>
+
+next() hasNext: top [1,1] is list → pop, push reversed → [ [1,3], 2, 1, 1 ]
+                top 1 is int → stop
+        pop → <span class="tr-ok">return 1</span>                              stack = [ [1,3], 2, 1 ]
+next() hasNext: top 1 is int → stop
+        pop → <span class="tr-ok">return 1</span>                              stack = [ [1,3], 2 ]
+next() hasNext: top 2 is int → stop
+        pop → <span class="tr-ok">return 2</span>                              stack = [ [1,3] ]
+next() hasNext: top [1,3] is list → pop, push reversed → [ 3, 1 ]
+                top 1 is int → stop
+        pop → <span class="tr-ok">return 1</span>                              stack = [ 3 ]
+next() hasNext: top 3 is int → stop
+        pop → <span class="tr-ok">return 3</span>                              stack = [ ]
+hasNext: stack empty → <span class="tr-bad">false</span></pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 9. Swift solution -->
+  <section id="swift" data-toc-label="Swift Solution">
+    <h2>9 &nbsp; Swift Solution — iterative</h2>
+
+    <p>LeetCode supplies the <code>NestedInteger</code> class with <code>isInteger() -&gt; Bool</code>, <code>getInteger() -&gt; Int</code>, and <code>getList() -&gt; [NestedInteger]</code>. The iterator below uses it directly.</p>
+
+    <div class="solution-block">
+      <div class="block-header">
+        <span class="block-badge">A.1</span>
+        <span class="block-name">Explicit stack, push reversed, descend in hasNext</span>
+        <div class="block-pills"><span class="pill pill-t">amortized O(1)/call</span><span class="pill pill-s">O(depth+width)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="approach-box">
+          <div class="approach-title">Plan</div>
+          Push the input list reversed so its front element is on top. <code>hasNext</code> unwinds lists — while the top is a list, pop it and push its contents reversed — until an integer is on top or the stack empties, then reports whether anything remains. <code>next</code> calls <code>hasNext</code> to position the cursor, then pops and returns the integer.
+        </div>
+
+        <pre class="swift"><span class="kw">class</span> <span class="tp">NestedIterator</span> {
+    <span class="kw">private</span> <span class="kw">var</span> stack: [<span class="tp">NestedInteger</span>] = []
+
+    <span class="kw">init</span>(<span class="kw">_</span> nestedList: [<span class="tp">NestedInteger</span>]) {
+        <span class="cm">// Push reversed so the front element ends up on top.</span>
+        <span class="kw">for</span> element <span class="kw">in</span> nestedList.reversed() {
+            stack.append(element)
+        }
+    }
+
+    <span class="kw">func</span> <span class="fn">next</span>() -&gt; <span class="tp">Int</span> {
+        <span class="cm">// Precondition assured by hasNext: the top is an integer.</span>
+        _ = <span class="fn">hasNext</span>()
+        <span class="kw">return</span> stack.removeLast().<span class="fn">getInteger</span>()
+    }
+
+    <span class="kw">func</span> <span class="fn">hasNext</span>() -&gt; <span class="tp">Bool</span> {
+        <span class="cm">// Unwind lists until an integer is on top (or the stack is empty).</span>
+        <span class="kw">while</span> <span class="kw">let</span> top = stack.last, !top.<span class="fn">isInteger</span>() {
+            stack.removeLast()
+            <span class="kw">for</span> element <span class="kw">in</span> top.<span class="fn">getList</span>().reversed() {
+                stack.append(element)
+            }
+        }
+        <span class="kw">return</span> !stack.isEmpty
+    }
+}</pre>
+        <div class="co-note"><strong>On the unwind loop.</strong> <code>while let top = stack.last, !top.isInteger()</code> peeks (does not pop) the top and continues only while it is a list. Inside, it pops that list and pushes its reversed contents. Because it never removes an integer, calling <code>hasNext</code> repeatedly is harmless — it stops the instant an integer surfaces, leaving it ready for <code>next</code>.</div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 10. Code dry run -->
+  <section id="code-dry-run" data-toc-label="Code Dry Run">
+    <h2>10 &nbsp; Code Dry Run — the Swift solution, traced</h2>
+    <p>Full debugger-style trace on <code>[1,[4,[6]]]</code> → expected stream <code>1, 4, 6</code>.</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">full execution trace — /code-dry-run format</span></div>
+<pre class="dry">────────────────────────────────
+/code-dry-run
+Problem: LC 341 — Flatten Nested List Iterator
+Input:   [1, [4, [6]]]
+────────────────────────────────
+
+NestedIterator.init([1, [4,[6]]])
+  push reversed: push [4,[6]] then push 1
+  stack = [ [4,[6]] , 1 ]          (top is 1, on the right)
+
+────────────────────────────────
+CALL 1  next()
+────────────────────────────────
+
+  hasNext():
+    stack.last = 1 ; 1.isInteger()? YES → loop condition false → exit
+    return !isEmpty = true
+  stack.removeLast() = 1 → getInteger() = 1
+  return 1
+
+  State: stack = [ [4,[6]] ]
+
+────────────────────────────────
+CALL 2  next()
+────────────────────────────────
+
+  hasNext():
+    stack.last = [4,[6]] ; isInteger()? NO → enter loop
+      removeLast() [4,[6]] ; push getList().reversed() = push [6] then push 4
+      stack = [ [6] , 4 ]
+    stack.last = 4 ; isInteger()? YES → exit loop
+    return true
+  stack.removeLast() = 4 → getInteger() = 4
+  return 4
+
+  State: stack = [ [6] ]
+
+────────────────────────────────
+CALL 3  next()
+────────────────────────────────
+
+  hasNext():
+    stack.last = [6] ; isInteger()? NO → enter loop
+      removeLast() [6] ; push getList().reversed() = push 6
+      stack = [ 6 ]
+    stack.last = 6 ; isInteger()? YES → exit loop
+    ↑ one call unwound the [6] frame to expose the integer
+    return true
+  stack.removeLast() = 6 → getInteger() = 6
+  return 6
+
+  State: stack = [ ]
+
+────────────────────────────────
+CALL 4  hasNext()
+────────────────────────────────
+
+  stack.last = nil → loop body never runs
+  return !isEmpty = false
+
+────────────────────────────────
+RESULT
+────────────────────────────────
+
+  stream: 1, 4, 6 ; then hasNext() → false</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 11. Q→Code map -->
+  <section id="qmap" data-toc-label="Question → Code Map">
+    <h2>11 &nbsp; Question → Code Map</h2>
+    <table class="t-qmap">
+      <thead><tr><th>What you asked / planned</th><th>What it became</th></tr></thead>
+      <tbody>
+        <tr><td>"Explicit stack, no recursion"</td><td><code>private var stack: [NestedInteger] = []</code></td></tr>
+        <tr><td>"Push reversed for original order"</td><td><code>for element in nestedList.reversed() { stack.append(element) }</code></td></tr>
+        <tr><td>"Descend lazily, in hasNext"</td><td><code>while let top = stack.last, !top.isInteger() { … }</code></td></tr>
+        <tr><td>"Unwind a list: pop, push reversed"</td><td><code>stack.removeLast(); for e in top.getList().reversed() { stack.append(e) }</code></td></tr>
+        <tr><td>"hasNext is idempotent (peek, don't pop integers)"</td><td>loop condition <code>!top.isInteger()</code> stops before popping an integer</td></tr>
+        <tr><td>"next positions then pops"</td><td><code>_ = hasNext(); return stack.removeLast().getInteger()</code></td></tr>
+        <tr><td>"anything left?"</td><td><code>return !stack.isEmpty</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 12. Complexity -->
+  <section id="complexity" data-toc-label="Complexity">
+    <h2>12 &nbsp; Complexity</h2>
+    <table class="t-cmx">
+      <thead><tr><th>Operation</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><code>init</code></td><td class="tc">O(top-level count)</td><td class="sc">O(top-level count)</td><td>Pushes only the top-level elements reversed — not the whole tree. Lazy by design.</td></tr>
+        <tr><td><code>hasNext</code> / <code>next</code></td><td class="tc">amortized O(1)</td><td class="sc">—</td><td>Each element is pushed once and popped once over the iterator's life. A single call may unwind several frames, but the total across all calls is O(total elements).</td></tr>
+        <tr class="bottleneck"><td>Whole traversal</td><td class="tc">O(total elements)</td><td class="sc">O(depth + width)</td><td>Every node is touched a constant number of times. Stack size peaks at the nesting depth plus the widest sibling group pushed at once — never the full flattened size.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-insight"><strong>Why "amortized" O(1) and not strict O(1).</strong> One <code>next</code> on a deeply nested element (like <code>[[[[6]]]]</code>) unwinds several list frames in a single call — that call is O(depth). But each list is unwound exactly once ever, so summed across all calls the work is O(total elements); dividing by the number of <code>next</code> calls gives O(1) on average. This is the eager-vs-lazy trade: we never pay O(total) up front, only as elements are consumed.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13. Follow-ups -->
+  <section id="followups" data-toc-label="Follow-Up Bank">
+    <h2>13 &nbsp; Follow-Up Bank — the interviewer's second act</h2>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Before you push this to production — can you see any improvements you'd make?"</div>
+      <div class="followup-a">The design is already lazy and amortized O(1). The one robustness note is the precondition on <code>next</code>: it assumes <code>hasNext</code> is true. I route <code>next</code> through <code>hasNext</code> to position the cursor, but if a caller ignores the contract and calls <code>next</code> on an empty iterator, <code>removeLast</code> would crash — in production I'd return an optional or trap with a clear message. Otherwise it's optimal.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Why push reversed — what breaks if you push in order?"</div>
+      <div class="followup-a">The stack is LIFO, so the last thing pushed pops first. If I push a list front-to-back, the back element is on top and comes out first — the stream would be each list reversed. Pushing reversed puts the front element on top so it pops first, recovering original order. It's the single most important detail and the most common bug if missed.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Add a <code>peek()</code> that returns the next integer without consuming it."</div>
+      <div class="followup-a">That's the LC 284 — Peeking Iterator idea applied here: call <code>hasNext</code> to position the cursor, then return <code>stack.last!.getInteger()</code> <em>without</em> popping. Because <code>hasNext</code> already guarantees an integer on top and is idempotent, <code>peek</code> is a one-liner that reads the top; <code>next</code> still does the popping. The two compose cleanly.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Compare this to first parsing the structure — how does it relate to LC 385?"</div>
+      <div class="followup-a"><a href="LC385_master.html">LC 385 — Mini Parser</a> builds the <code>NestedInteger</code> tree from a string; this problem walks an already-built tree on demand. They compose: parse with LC 385, then feed the result into this iterator to stream the integers. Parsing is the producer, the iterator is the lazy consumer — together a full round trip from text to a pull-based integer stream.</div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 14. Theory decoder -->
+  <section id="decoder" data-toc-label="Theory Decoder">
+    <h2>14 &nbsp; Theory Decoder — the theory as used here</h2>
+    <table class="t-decoder">
+      <thead><tr><th>General concept</th><th>Instantiated in this solution as</th><th>General form</th></tr></thead>
+      <tbody>
+        <tr><td>Lazy stack flatten</td><td>Push the list reversed; <code>hasNext</code> unwinds lists until an integer is on top; <code>next</code> pops it.</td><td><a href="../theory/design/iterator_design_deep_dive_master.html#v-flatten">theory §8.2</a></td></tr>
+        <tr><td>Explicit stack = paused recursion</td><td>The <code>[NestedInteger]</code> stack holds the DFS frontier across <code>next</code> calls — no recursive descent.</td><td><a href="../theory/design/iterator_design_deep_dive_master.html#iterative">theory §6</a></td></tr>
+        <tr><td>hasNext / next consistency</td><td>All descent lives in the idempotent <code>hasNext</code>; <code>next</code> relies on it before popping.</td><td><a href="../theory/design/iterator_design_deep_dive_master.html#pseudocode">theory §5</a></td></tr>
+        <tr><td>Push-reversed for order</td><td><code>for element in list.reversed() { stack.append(element) }</code> recovers original order from LIFO.</td><td><a href="../theory/design/iterator_design_deep_dive_master.html#v-flatten">theory §8.2</a></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 15. Back-reference -->
+  <section id="parent" data-toc-label="Parent Theory">
+    <h2>15 &nbsp; Parent Theory</h2>
+    <p>This walkthrough instantiates Variant 8.2 of a larger pattern. The parent page is not free-form — it follows the theory masterfile standard, so here is exactly what you land on:</p>
+    <div class="ref-grid">
+      <a class="backref-card" href="../theory/design/iterator_design_deep_dive_master.html">
+        <span class="ref-file">theory/design/iterator_design_deep_dive_master.html</span>
+        <span class="ref-title">Iterator Design — Deep Dive Theory Masterfile</span>
+        <span class="ref-desc">The canonical reference for the iterator family: the advance-just-in-time mental model with this exact lazy-flatten trace (§4), the four-variant catalog with Variant 8.2 Lazy Stack Flatten this problem instantiates (§8.2), the explicit-stack/no-recursion rule (§6), the eager-flatten and push-order pitfalls (§10), the empty and deep-nesting edge cases (§11), and the cheat sheet (§12). Its cross-reference section (§13) links back to this walkthrough, and it sits under the Object &amp; System Design hub.</span>
+      </a>
+    </div>
+      <p class="u-note-gap">See also: <a href="../theory/stacks_queues/stack_master.html">stack_master.html</a> — the LIFO core mechanic behind the lazy flatten stack.</p>
+
+  </section>
+
+  <div class="page-footer">
+    LC 341 — Flatten Nested List Iterator · Walkthrough Masterfile · Parent theory:
+    <a href="../theory/design/iterator_design_deep_dive_master.html">Iterator Design</a> ·
+    Structure per <code>.claude/skills/wiki/references/walkthrough-format.md</code>
+  </div>
+
+</main>
+</div>
+
+<script src="../static/generated/manifest.js"></script>
+<script src="../static/generated/nav.js"></script>
+<script src="../static/generated/toc.js"></script>
+</body>
+</html>
