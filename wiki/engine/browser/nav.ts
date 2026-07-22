@@ -64,11 +64,15 @@
   // page, which keeps the cascade at two levels: the hub page itself is
   // the third level, reached by clicking instead of hovering further.
 
-  /** One entry in a submenu: a real link with a label. */
+  /**
+   * One entry in a submenu. `isHub` drives its weight: a hub leads
+   * somewhere further (bold), a leaf page is a destination (regular).
+   */
   interface SubmenuEntry {
     label: string;
     path: string | null;
     difficulty: string | null;
+    isHub: boolean;
   }
 
   function renderSubmenuEntry(entry: SubmenuEntry): string {
@@ -76,9 +80,10 @@
       return `<span class="nav-item nav-item-empty">${escapeHtml(entry.label)}</span>`;
     }
     const currentClass = entry.path === currentPath ? " current" : "";
+    const hubClass = entry.isHub ? " nav-item-hub" : "";
     const chip =
       entry.difficulty !== null ? `<span class="tag tag-${entry.difficulty}">${entry.difficulty}</span> ` : "";
-    return `<a class="nav-item${currentClass}" href="${pageUrl(entry.path)}">${chip}${escapeHtml(entry.label)}</a>`;
+    return `<a class="nav-item${hubClass}${currentClass}" href="${pageUrl(entry.path)}">${chip}${escapeHtml(entry.label)}</a>`;
   }
 
   /** A category row inside a domain menu, with its own fly-out submenu. */
@@ -89,11 +94,13 @@
             label: section.label,
             path: section.hubPath,
             difficulty: null,
+            isHub: true, // a section hub — it opens onto more pages
           }))
         : category.pagePaths.map((pagePath) => ({
             label: WIKI_MANIFEST.pages[pagePath].title,
             path: pagePath,
             difficulty: WIKI_MANIFEST.pages[pagePath].difficulty,
+            isHub: false, // a leaf page — the end of the line
           }));
 
     if (entries.length === 0) {

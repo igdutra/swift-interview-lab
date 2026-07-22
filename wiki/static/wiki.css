@@ -150,8 +150,11 @@ hr.wiki-hr { border: none; border-top: 1px solid var(--border-xlt); margin: 48px
 /* second level: a category row that flies its own menu out to the right.
    Capped here — a submenu never contains a further submenu, so the
    deepest hover chain is bar > menu > submenu. */
+/* Weight carries meaning: BOLD = leads somewhere further (a hub),
+   regular = a destination page. Category rows are always hubs. The
+   .nav-menu selector below is needed to beat ".nav-menu a"'s weight. */
 .nav-subgroup { position: relative; }
-.nav-subtrigger {
+.nav-menu .nav-subtrigger {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
   padding: 4px 14px; font-weight: 600; color: var(--link); cursor: pointer;
 }
@@ -169,6 +172,8 @@ hr.wiki-hr { border: none; border-top: 1px solid var(--border-xlt); margin: 48px
 .nav-subgroup:focus-within > .nav-submenu { display: block; }
 .nav-submenu a { display: block; padding: 4px 14px; font-weight: 400; white-space: nowrap;
   overflow: hidden; text-overflow: ellipsis; }
+/* a section hub inside a submenu still opens onto more pages */
+.nav-submenu a.nav-item-hub { font-weight: 600; }
 .nav-submenu a:hover { background: var(--info-bg); text-decoration: none; }
 .nav-submenu a.current { color: var(--text); background: var(--info-bg); }
 .nav-item-empty { display: block; padding: 4px 14px; color: var(--text3); font-weight: 400; }
