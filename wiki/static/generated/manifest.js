@@ -193,6 +193,43 @@ const WIKI_MANIFEST = {
             }
           ],
           "pagePaths": []
+        },
+        {
+          "identifier": "concurrency-theory",
+          "label": "Concurrency · Theory",
+          "layout": "sections",
+          "hubPath": "ios/concurrency/theory/index.html",
+          "sections": [
+            {
+              "identifier": "fundamentals",
+              "label": "Fundamentals",
+              "hubPath": "ios/concurrency/theory/fundamentals/index.html",
+              "pagePaths": [
+                "ios/concurrency/theory/fundamentals/task_vs_thread_master.html",
+                "ios/concurrency/theory/fundamentals/structured_concurrency_master.html"
+              ]
+            },
+            {
+              "identifier": "isolation",
+              "label": "Isolation & Data Races",
+              "hubPath": "ios/concurrency/theory/isolation/index.html",
+              "pagePaths": [
+                "ios/concurrency/theory/isolation/actors_master.html",
+                "ios/concurrency/theory/isolation/sendable_master.html"
+              ]
+            },
+            {
+              "identifier": "patterns",
+              "label": "Applied Patterns",
+              "hubPath": "ios/concurrency/theory/patterns/index.html",
+              "pagePaths": [
+                "ios/concurrency/theory/patterns/cancellation_master.html",
+                "ios/concurrency/theory/patterns/async_sequences_master.html",
+                "ios/concurrency/theory/patterns/continuations_master.html"
+              ]
+            }
+          ],
+          "pagePaths": []
         }
       ]
     }
@@ -212,6 +249,209 @@ const WIKI_MANIFEST = {
         "Swift"
       ],
       "blurb": "Theory masterfiles ↔ LeetCode walkthroughs, with full interview simulations.",
+      "difficulty": null,
+      "problemNumber": null,
+      "order": null
+    },
+    "ios/concurrency/theory/fundamentals/index.html": {
+      "path": "ios/concurrency/theory/fundamentals/index.html",
+      "domain": "ios",
+      "category": "concurrency-theory",
+      "section": "fundamentals",
+      "role": "hub",
+      "title": "Concurrency Fundamentals",
+      "nav": "Concurrency Fundamentals",
+      "topics": [
+        "Concurrency",
+        "Swift"
+      ],
+      "blurb": "Concurrency Fundamentals — Task ≠ Thread, Structured Concurrency.",
+      "difficulty": null,
+      "problemNumber": null,
+      "order": null
+    },
+    "ios/concurrency/theory/fundamentals/structured_concurrency_master.html": {
+      "path": "ios/concurrency/theory/fundamentals/structured_concurrency_master.html",
+      "domain": "ios",
+      "category": "concurrency-theory",
+      "section": "fundamentals",
+      "role": "deep-dive",
+      "title": "Structured Concurrency",
+      "nav": "Structured Concurrency",
+      "topics": [
+        "Concurrency",
+        "async let",
+        "TaskGroup",
+        "Child Tasks"
+      ],
+      "blurb": "Child tasks with lifetimes bound to their parent scope: async let for a fixed number, task groups for a dynamic one, out-of-order results, bounded concurrency, and what detached gives up.",
+      "difficulty": null,
+      "problemNumber": null,
+      "order": 2
+    },
+    "ios/concurrency/theory/fundamentals/task_vs_thread_master.html": {
+      "path": "ios/concurrency/theory/fundamentals/task_vs_thread_master.html",
+      "domain": "ios",
+      "category": "concurrency-theory",
+      "section": "fundamentals",
+      "role": "deep-dive",
+      "title": "Task ≠ Thread",
+      "nav": "Task ≠ Thread",
+      "topics": [
+        "Concurrency",
+        "Tasks",
+        "Threads",
+        "Suspension"
+      ],
+      "blurb": "What a Task actually is, the cooperative thread pool underneath it, what happens at an await, and why calling an async function does not create a new task.",
+      "difficulty": null,
+      "problemNumber": null,
+      "order": 1
+    },
+    "ios/concurrency/theory/index.html": {
+      "path": "ios/concurrency/theory/index.html",
+      "domain": "ios",
+      "category": "concurrency-theory",
+      "section": null,
+      "role": "hub",
+      "title": "Concurrency Theory",
+      "nav": "Concurrency Theory",
+      "topics": [
+        "Concurrency",
+        "Actors",
+        "Structured Concurrency",
+        "Cancellation"
+      ],
+      "blurb": "The Swift concurrency landing page — the execution model, isolation and data-race safety, and the applied patterns. Three sections, read in order.",
+      "difficulty": null,
+      "problemNumber": null,
+      "order": null
+    },
+    "ios/concurrency/theory/isolation/actors_master.html": {
+      "path": "ios/concurrency/theory/isolation/actors_master.html",
+      "domain": "ios",
+      "category": "concurrency-theory",
+      "section": "isolation",
+      "role": "deep-dive",
+      "title": "Actors & Isolation",
+      "nav": "Actors & Isolation",
+      "topics": [
+        "Concurrency",
+        "Actors",
+        "MainActor",
+        "Reentrancy"
+      ],
+      "blurb": "How actors serialize access to mutable state, why reentrancy at every await is the non-obvious hazard, and what @MainActor replaces DispatchQueue.main.async with.",
+      "difficulty": null,
+      "problemNumber": null,
+      "order": 1
+    },
+    "ios/concurrency/theory/isolation/index.html": {
+      "path": "ios/concurrency/theory/isolation/index.html",
+      "domain": "ios",
+      "category": "concurrency-theory",
+      "section": "isolation",
+      "role": "hub",
+      "title": "Isolation & Data Races",
+      "nav": "Isolation & Data Races",
+      "topics": [
+        "Concurrency",
+        "Swift"
+      ],
+      "blurb": "Isolation & Data Races — Actors, Sendable.",
+      "difficulty": null,
+      "problemNumber": null,
+      "order": null
+    },
+    "ios/concurrency/theory/isolation/sendable_master.html": {
+      "path": "ios/concurrency/theory/isolation/sendable_master.html",
+      "domain": "ios",
+      "category": "concurrency-theory",
+      "section": "isolation",
+      "role": "deep-dive",
+      "title": "Sendable",
+      "nav": "Sendable",
+      "topics": [
+        "Concurrency",
+        "Sendable",
+        "Data Races",
+        "Swift 6"
+      ],
+      "blurb": "Which values may cross an isolation boundary, what gets Sendable for free, the three honest ways to make a class safe, and why @unchecked is a promise rather than a fix.",
+      "difficulty": null,
+      "problemNumber": null,
+      "order": 2
+    },
+    "ios/concurrency/theory/patterns/async_sequences_master.html": {
+      "path": "ios/concurrency/theory/patterns/async_sequences_master.html",
+      "domain": "ios",
+      "category": "concurrency-theory",
+      "section": "patterns",
+      "role": "deep-dive",
+      "title": "Async Sequences",
+      "nav": "Async Sequences",
+      "topics": [
+        "Concurrency",
+        "AsyncSequence",
+        "AsyncStream",
+        "Bridging"
+      ],
+      "blurb": "Iterating values that arrive over time with for await, and bridging a repeating callback into an AsyncStream — including the onTermination cleanup everyone forgets.",
+      "difficulty": null,
+      "problemNumber": null,
+      "order": 2
+    },
+    "ios/concurrency/theory/patterns/cancellation_master.html": {
+      "path": "ios/concurrency/theory/patterns/cancellation_master.html",
+      "domain": "ios",
+      "category": "concurrency-theory",
+      "section": "patterns",
+      "role": "deep-dive",
+      "title": "Cancellation",
+      "nav": "Cancellation",
+      "topics": [
+        "Concurrency",
+        "Cancellation",
+        "task(id:)",
+        "Cooperative"
+      ],
+      "blurb": "Cancellation is cooperative, not preemptive: the .task(id:) contract, where Apple places checkCancellation(), and the APIs that already observe it for you.",
+      "difficulty": null,
+      "problemNumber": null,
+      "order": 1
+    },
+    "ios/concurrency/theory/patterns/continuations_master.html": {
+      "path": "ios/concurrency/theory/patterns/continuations_master.html",
+      "domain": "ios",
+      "category": "concurrency-theory",
+      "section": "patterns",
+      "role": "deep-dive",
+      "title": "Continuations",
+      "nav": "Continuations",
+      "topics": [
+        "Concurrency",
+        "Continuations",
+        "Bridging",
+        "Legacy APIs"
+      ],
+      "blurb": "Bridging a completion-handler API into async/await with withCheckedContinuation, why SwiftUI's refreshable spinner depends on it, and the resume-exactly-once rule.",
+      "difficulty": null,
+      "problemNumber": null,
+      "order": 3
+    },
+    "ios/concurrency/theory/patterns/index.html": {
+      "path": "ios/concurrency/theory/patterns/index.html",
+      "domain": "ios",
+      "category": "concurrency-theory",
+      "section": "patterns",
+      "role": "hub",
+      "title": "Applied Patterns",
+      "nav": "Applied Patterns",
+      "topics": [
+        "Concurrency",
+        "Swift"
+      ],
+      "blurb": "Applied Patterns — Cancellation, Async Sequences, Continuations.",
       "difficulty": null,
       "problemNumber": null,
       "order": null

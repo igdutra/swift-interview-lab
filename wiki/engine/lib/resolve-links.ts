@@ -38,6 +38,25 @@ function isAssetTarget(target: string): boolean {
   return !target.endsWith(".html");
 }
 
+/** Collapse "." and ".." segments; null if the path escapes the root. */
+function normalizeRelativePath(joinedPath: string): string | null {
+  const resolvedSegments: string[] = [];
+  for (const segment of joinedPath.split("/")) {
+    if (segment === "" || segment === ".") {
+      continue;
+    }
+    if (segment === "..") {
+      if (resolvedSegments.length === 0) {
+        return null;
+      }
+      resolvedSegments.pop();
+      continue;
+    }
+    resolvedSegments.push(segment);
+  }
+  return resolvedSegments.join("/");
+}
+
 /**
  * Rewrites every authored link in `html` for a page living at `pagePath`.
  * Page links resolve by identity; asset links resolve by depth.
@@ -83,6 +102,16 @@ export function rewritePageLinks(
 
     const resolution = resolveTarget(target, allPagePaths);
     if (resolution.kind !== "resolved") {
+      // An ambiguous identity may still be an ALREADY-RESOLVED relative
+      // path: "fundamentals/index.html" is ambiguous as an identity once
+      // two domains have that folder, but resolved against this page's
+      // own directory it names exactly one file. Keeping it verbatim is
+      // what makes the build idempotent as the wiki grows.
+      const pageFolder = pagePath.slice(0, pagePath.lastIndexOf("/") + 1);
+      const asRelativePath = normalizeRelativePath(`${pageFolder}${target}`);
+      if (asRelativePath !== null && allPagePaths.includes(asRelativePath)) {
+        return fullMatch;
+      }
       problems.push({ href: rawHref, message: resolution.message });
       return fullMatch;
     }

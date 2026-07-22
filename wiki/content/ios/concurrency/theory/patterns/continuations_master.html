@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Continuations · iOS Topic</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Continuations",
+  "nav": "Continuations",
+  "topics": [
+    "Concurrency",
+    "Continuations",
+    "Bridging",
+    "Legacy APIs"
+  ],
+  "blurb": "Bridging a completion-handler API into async/await with withCheckedContinuation, why SwiftUI's refreshable spinner depends on it, and the resume-exactly-once rule.",
+  "order": 3
+}
+</script>
+<link rel="stylesheet" href="../../../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="ios-topic">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<main class="content">
+
+  <h1 class="page-title">Continuations</h1>
+  <div class="page-meta">
+    <span>iOS Topic</span><span>·</span>
+    <span>Swift Concurrency</span><span>·</span>
+    <span>Bridging callbacks into <code>await</code></span>
+  </div>
+
+  <section id="lead" data-toc-label="Definition">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Section</div><div class="infobox-v"><a href="index.html">Applied Patterns</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Domain</div><div class="infobox-v"><a href="../index.html">Concurrency Theory</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Bridge — turns one callback into one <code>await</code></div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v">Suspend the task, hand a resume handle to the callback, continue when it fires</div></div>
+      <div class="infobox-row"><div class="infobox-k">Hard rule</div><div class="infobox-v">Resume <strong>exactly once</strong> — twice crashes, never hangs forever</div></div>
+      <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"the refresh spinner vanishes instantly", "legacy repository", "delegate callback"</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key APIs</div><div class="infobox-v mono">withCheckedContinuation · withCheckedThrowingContinuation</div></div>
+      <div class="infobox-row"><div class="infobox-k">Related</div><div class="infobox-v"><a href="async_sequences_master.html">Async Sequences</a> · <a href="../fundamentals/task_vs_thread_master.html">Task ≠ Thread</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p>Plenty of existing code delivers its result through a completion handler — delegate patterns, legacy repositories, third-party SDKs. A <strong>continuation</strong> converts one such callback into one <code>await</code>, without changing the original API's signature.</p>
+      <p>The motivating case is concrete: SwiftUI's <code>.refreshable</code> keeps its spinner visible for exactly as long as its <code>async</code> closure takes. A completion-handler call returns immediately, so <code>.refreshable</code> believes it is done and the native spinner disappears at once.</p>
+    </div>
+
+    <div class="co co-idea">
+      <span class="co-idea-title">THE ONE IDEA</span>
+      <code>continuation.resume</code> must be called <strong>exactly once</strong>. Twice is a runtime crash; never is a permanent hang — a leaked continuation with a task suspended forever. Every path through the callback must resume, and no path may resume twice.
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="mental-model" data-toc-label="Mental Model">
+    <h2><span class="sec-num">2</span> Mental Model — how to think about it</h2>
+
+    <pre class="ascii">async function                      legacy callback API
+     |
+     |-- withCheckedContinuation --&gt; calls repository.getTypes { ... }
+     |                                        |
+  [SUSPENDED]                                 | (work happens)
+     |                                        |
+     |&lt;----------- resume(returning:) --------+
+     |
+  [RESUMED, with the value]</pre>
+    <div class="ascii-caption">The task suspends rather than blocking, so its pool thread is released while the callback-based work runs.</div>
+
+    <p>Note what this does <em>not</em> do: it does not make the underlying API concurrent, cancellable, or safer. It converts one shape into another so the call site can use ordinary control flow.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="signals" data-toc-label="When It Applies">
+    <h2><span class="sec-num">3</span> When It Applies</h2>
+
+    <table class="t-clue">
+      <thead><tr><th>When you see…</th><th>The bridging question to ask</th></tr></thead>
+      <tbody>
+        <tr><td>A refresh spinner that disappears immediately</td><td>Is the call genuinely awaitable, or does it return before the work finishes?</td></tr>
+        <tr><td>A repository protocol with <code>completion:</code> parameters</td><td>Wrap it once at the boundary rather than at every call site.</td></tr>
+        <tr><td>A delegate that fires once with a result</td><td>A continuation. If it fires <em>many</em> times, use an <code>AsyncStream</code> instead.</td></tr>
+        <tr><td>Nested completion handlers three deep</td><td>Bridging the innermost API flattens the whole chain.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="api" data-toc-label="The API">
+    <h2><span class="sec-num">4</span> The API — types, modifiers, signatures</h2>
+
+    <table class="t-versus">
+      <thead><tr><th>Function</th><th>Use when</th></tr></thead>
+      <tbody>
+        <tr><td><code>withCheckedContinuation</code></td><td>The wrapped API cannot fail, or hands you a <code>Result</code> you want to return as-is.</td></tr>
+        <tr><td><code>withCheckedThrowingContinuation</code></td><td>The API can fail and you want <code>throws</code> rather than a <code>Result</code>.</td></tr>
+        <tr><td><code>continuation.resume(with: result)</code></td><td>The callback already gives you a <code>Result</code> — this plugs straight in.</td></tr>
+      </tbody>
+    </table>
+
+    <p>The "checked" variants detect misuse at runtime — a double resume traps, and a leaked continuation is reported. There are unchecked variants for hot paths; prefer checked until profiling says otherwise. Available from iOS 15, so safe for iOS 16 targets.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="patterns" data-toc-label="Patterns">
+    <h2><span class="sec-num">5</span> Patterns That Work</h2>
+
+    <h3>Wrap once, at the boundary</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The legacy API keeps its signature</span></div>
+    <pre class="swift"><span class="cm">// Existing closure-based API - do not change it.</span>
+<span class="kw">protocol</span> PaymentTypesRepository {
+    <span class="kw">func</span> <span class="fn">getTypes</span>(completion: <span class="kw">@escaping</span> (Result&lt;[<span class="tp">PaymentType</span>], PaymentError&gt;) -&gt; <span class="tp">Void</span>)
+}
+
+<span class="cm">// Wrap it once with withCheckedContinuation.</span>
+<span class="kw">private</span> <span class="kw">func</span> <span class="fn">fetchPaymentTypes</span>() <span class="kw">async</span> -&gt; Result&lt;[<span class="tp">PaymentType</span>], PaymentError&gt; {
+    <span class="kw">await</span> withCheckedContinuation { continuation <span class="kw">in</span>
+        repository.getTypes { result <span class="kw">in</span>
+            continuation.resume(returning: result)
+        }
+    }
+}
+
+<span class="cm">// Call site: plain await, no closures.</span>
+<span class="kw">private</span> <span class="kw">func</span> <span class="fn">loadPaymentTypes</span>() <span class="kw">async</span> {
+    <span class="kw">let</span> result = <span class="kw">await</span> fetchPaymentTypes()
+    <span class="cm">// ...</span>
+}</pre>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Now the SwiftUI spinners track the real duration</span></div>
+    <pre class="swift">.task { <span class="kw">await</span> loadPaymentTypes() }
+.refreshable { <span class="kw">await</span> loadPaymentTypes() }</pre>
+
+    <div class="co co-note">
+      <strong>Why this matters beyond tidiness:</strong> without the bridge, <code>.refreshable</code>'s native spinner vanishes instantly and only a manual overlay spinner — racing against it — ends up visible. Making the call genuinely awaitable lets the framework do its job.
+    </div>
+
+    <h3>Match the error type exactly</h3>
+    <p>The wrapper's <code>Result</code> error type must match the closure's declared type — <code>PaymentError</code>, not <code>Error</code>. A mismatch here produces confusing, cascading compiler errors elsewhere in the file, far from the actual cause.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="antipatterns" data-toc-label="Anti-Patterns">
+    <h2><span class="sec-num">6</span> Anti-Patterns — and the fix</h2>
+
+    <h3>A path that never resumes</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The permanent hang</span></div>
+    <pre class="swift"><span class="cm">// WRONG: the failure branch returns without resuming. The task stays</span>
+<span class="cm">// suspended forever and the continuation leaks.</span>
+<span class="kw">await</span> withCheckedContinuation { continuation <span class="kw">in</span>
+    repository.getTypes { result <span class="kw">in</span>
+        <span class="kw">guard</span> <span class="kw">case</span> .success(<span class="kw">let</span> types) = result <span class="kw">else</span> { <span class="kw">return</span> }
+        continuation.resume(returning: types)
+    }
+}
+
+<span class="cm">// RIGHT: every path resumes exactly once.</span>
+<span class="kw">await</span> withCheckedContinuation { continuation <span class="kw">in</span>
+    repository.getTypes { result <span class="kw">in</span>
+        continuation.resume(returning: result)
+    }
+}</pre>
+
+    <h3>Resuming twice</h3>
+    <p>A callback that can fire more than once — a delegate method invoked per update, or a handler retained across retries — will crash the second time it resumes. If the source emits repeatedly, it is an <a href="async_sequences_master.html">async sequence</a>, not a continuation.</p>
+
+    <h3>Blocking instead of bridging</h3>
+    <p>Reaching for a semaphore to "wait for the callback" blocks a cooperative pool thread and can deadlock the process. The continuation suspends instead, which is the entire point.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="pitfalls" data-toc-label="Pitfalls">
+    <h2><span class="sec-num">7</span> Pitfalls &amp; Gotchas</h2>
+
+    <div class="co co-pitfall">
+      <div class="co-pitfall-title">Continuation rules worth memorizing</div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">1.</span>
+        <span><strong>Resume exactly once.</strong> Twice is a runtime crash; never is a permanent hang. Audit every branch of the callback.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">2.</span>
+        <span><strong>Match the <code>Result</code> error type exactly.</strong> A mismatch surfaces as confusing errors elsewhere in the file.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">3.</span>
+        <span><strong>A continuation adds no cancellation.</strong> The wrapped API still runs to completion unless it observes cancellation itself.</span>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="related" data-toc-label="Related Topics">
+    <h2><span class="sec-num">8</span> Related Topics</h2>
+
+    <div class="ref-grid">
+      <a class="xref-card" href="async_sequences_master.html">
+        <span class="ref-title">Async Sequences</span>
+        <span class="ref-meta"><span class="ref-topics">Concurrency · Patterns</span></span>
+        <span class="ref-desc">The counterpart for callbacks that deliver <em>many</em> values rather than one — <code>AsyncStream</code>, with <code>yield</code> in place of a single <code>resume</code>.</span>
+      </a>
+      <a class="xref-card" href="../fundamentals/task_vs_thread_master.html">
+        <span class="ref-title">Task ≠ Thread</span>
+        <span class="ref-meta"><span class="ref-topics">Concurrency · Fundamentals</span></span>
+        <span class="ref-desc">Why suspending beats blocking: the cooperative pool is small, and a semaphore wait holds a thread every other task needs.</span>
+      </a>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="sources" data-toc-label="Sources">
+    <h2><span class="sec-num">9</span> Sources</h2>
+
+    <ul>
+      <li>Apple's documentation for <code>withCheckedContinuation</code> and <code>withCheckedThrowingContinuation</code>, including the checked variants' misuse detection.</li>
+      <li>The <code>.refreshable</code> spinner behaviour is observed rather than documented: the spinner tracks the async closure's duration, so a non-awaitable call makes it disappear immediately.</li>
+    </ul>
+  </section>
+
+  <div class="page-footer">
+    Study Wiki · Continuations · Concurrency Theory
+  </div>
+
+</main>
+</div>
+
+<script src="../../../../static/generated/manifest.js"></script>
+<script src="../../../../static/generated/nav.js"></script>
+<script src="../../../../static/generated/toc.js"></script>
+</body>
+</html>

@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cancellation · iOS Topic</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Cancellation",
+  "nav": "Cancellation",
+  "topics": [
+    "Concurrency",
+    "Cancellation",
+    "task(id:)",
+    "Cooperative"
+  ],
+  "blurb": "Cancellation is cooperative, not preemptive: the .task(id:) contract, where Apple places checkCancellation(), and the APIs that already observe it for you.",
+  "order": 1
+}
+</script>
+<link rel="stylesheet" href="../../../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="ios-topic">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<main class="content">
+
+  <h1 class="page-title">Cancellation</h1>
+  <div class="page-meta">
+    <span>iOS Topic</span><span>·</span>
+    <span>Swift Concurrency</span><span>·</span>
+    <span>Cooperative, never preemptive</span>
+  </div>
+
+  <section id="lead" data-toc-label="Definition">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Section</div><div class="infobox-v"><a href="index.html">Applied Patterns</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Domain</div><div class="infobox-v"><a href="../index.html">Concurrency Theory</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Cooperative protocol — a flag on the task, not an interrupt</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v">Cancelling sets a flag. Work stops only where someone checks it or an API observes it.</div></div>
+      <div class="infobox-row"><div class="infobox-k">Apple's rule</div><div class="infobox-v">Check <strong>before starting expensive work</strong>, not necessarily mid-loop</div></div>
+      <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"the request kept going", "stale results overwrote fresh ones"</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key APIs</div><div class="infobox-v mono">Task.checkCancellation() · Task.isCancelled · .task(id:)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Related</div><div class="infobox-v"><a href="../fundamentals/structured_concurrency_master.html">Structured Concurrency</a> · <a href="../fundamentals/task_vs_thread_master.html">Task ≠ Thread</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p>Cancellation in Swift is <strong>cooperative</strong>. Cancelling a task sets a flag on it; nothing is interrupted, no exception is injected, and no thread is killed. Work stops only at points where someone <em>checks</em> that flag — either your code, or an API that observes it internally.</p>
+      <p>That design is why cancellation composes: because an ordinary <code>async</code> call stays on the enclosing task, a check deep inside a helper is asking about the task that started the whole chain.</p>
+    </div>
+
+    <div class="co co-idea">
+      <span class="co-idea-title">THE ONE IDEA</span>
+      Apple's placement rule is <strong>check before starting expensive work</strong> — to avoid paying for a result already known to be unwanted. The entry-point guard is the pattern they demonstrate, not a check sprinkled through every loop iteration.
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="mental-model" data-toc-label="Mental Model">
+    <h2><span class="sec-num">2</span> Mental Model — how to think about it</h2>
+
+    <p>A cancelled task keeps running until it reaches a checkpoint. There are two kinds:</p>
+
+    <table class="t-decoder">
+      <thead><tr><th>Checkpoint</th><th>Who provides it</th></tr></thead>
+      <tbody>
+        <tr><td><code>try Task.checkCancellation()</code></td><td>You — throws <code>CancellationError</code> if the flag is set.</td></tr>
+        <tr><td><code>Task.isCancelled</code></td><td>You — a plain <code>Bool</code>, for when you want to return early rather than throw.</td></tr>
+        <tr><td>Built-in observation</td><td>The API itself. <code>URLSession</code>'s async methods and <code>Task.sleep</code> already do this.</td></tr>
+      </tbody>
+    </table>
+
+    <p>Between checkpoints, a cancelled task is indistinguishable from a healthy one. That is the whole trade: no preemption means no torn state, at the cost of needing checkpoints where they matter.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="signals" data-toc-label="When It Applies">
+    <h2><span class="sec-num">3</span> When It Applies</h2>
+
+    <table class="t-clue">
+      <thead><tr><th>When you see…</th><th>The cancellation question to ask</th></tr></thead>
+      <tbody>
+        <tr><td>A superseded search still writing results</td><td>Is anything checking the flag between the fetch and the assignment?</td></tr>
+        <tr><td>CPU-bound work continuing after the screen closed</td><td>Loops and filtering have no built-in observation — add a check.</td></tr>
+        <tr><td>A cancelled <code>URLSession</code> request</td><td>Nothing to add: it throws <code>URLError(.cancelled)</code> on its own.</td></tr>
+        <tr><td>A debounce that should discard the previous attempt</td><td>That is exactly the <code>.task(id:)</code> contract.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="api" data-toc-label="The API">
+    <h2><span class="sec-num">4</span> The API — types, modifiers, signatures</h2>
+
+    <div class="co co-note">
+      <strong>The <code>.task(id:)</code> contract:</strong> when <code>id</code> changes, the <em>previous</em> task is cancelled and a <em>new</em> one is started. The new task is fully independent — cancelling the old one never touches it. This is a documented contract, not an implementation detail, and it is what makes the SwiftUI debounce pattern work.
+    </div>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Two ways to observe the flag</span></div>
+    <pre class="swift"><span class="cm">// Throwing: propagates a CancellationError up the chain.</span>
+<span class="kw">try</span> <span class="tp">Task</span>.checkCancellation()
+
+<span class="cm">// Non-throwing: return early, no error to handle.</span>
+<span class="kw">guard</span> !<span class="tp">Task</span>.isCancelled <span class="kw">else</span> { <span class="kw">return</span> }</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="patterns" data-toc-label="Patterns">
+    <h2><span class="sec-num">5</span> Patterns That Work</h2>
+
+    <h3>Check before expensive work — Apple's own placement</h3>
+    <p>From WWDC23, <em>Beyond the basics of structured concurrency</em>, Apple's sample guards the entry point rather than the loop body:</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The guard goes before the group is populated</span></div>
+    <pre class="swift"><span class="kw">func</span> <span class="fn">chopIngredients</span>(_ ingredients: [<span class="kw">any</span> Ingredient]) <span class="kw">async</span> <span class="kw">throws</span> -&gt; [<span class="kw">any</span> ChoppedIngredient] {
+    <span class="kw">try</span> <span class="kw">await</span> withThrowingTaskGroup(of: (ChoppedIngredient?).<span class="kw">self</span>) { group <span class="kw">in</span>
+        <span class="kw">try</span> <span class="tp">Task</span>.checkCancellation()   <span class="cm">// BEFORE starting expensive work</span>
+
+        <span class="kw">for</span> ingredient <span class="kw">in</span> ingredients {
+            group.addTask { <span class="kw">await</span> chop(ingredient) }
+        }
+
+        <span class="kw">var</span> chopped: [<span class="kw">any</span> ChoppedIngredient] = []
+        <span class="kw">for</span> <span class="kw">try</span> <span class="kw">await</span> item <span class="kw">in</span> group {
+            <span class="kw">if</span> <span class="kw">let</span> item { chopped.append(item) }
+        }
+        <span class="kw">return</span> chopped
+    }
+}</pre>
+
+    <h3>Let structured constructs propagate for you</h3>
+    <p>Cancelling a parent cancels every child automatically. Inside <code>async let</code> or a task group there is no bookkeeping to write — which is the strongest practical argument for preferring them over a bare <code>Task { }</code>.</p>
+
+    <h3>Swallow <code>CancellationError</code> where cancellation is expected</h3>
+    <p>In a debounce, cancellation is the normal case rather than a failure — every keystroke causes one. Writing <code>try?</code> around a sleep there is deliberate, not sloppy.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="antipatterns" data-toc-label="Anti-Patterns">
+    <h2><span class="sec-num">6</span> Anti-Patterns — and the fix</h2>
+
+    <h3>Assuming cancellation is preemptive</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Nothing stops on its own</span></div>
+    <pre class="swift"><span class="cm">// WRONG: cancelling this task changes nothing. The loop has no</span>
+<span class="cm">// checkpoint, so it runs to completion regardless.</span>
+<span class="kw">func</span> <span class="fn">process</span>(_ items: [<span class="tp">Item</span>]) <span class="kw">async</span> -&gt; [Result] {
+    items.map { expensiveTransform($0) }
+}
+
+<span class="cm">// RIGHT: give the cooperative protocol somewhere to act.</span>
+<span class="kw">func</span> <span class="fn">process</span>(_ items: [<span class="tp">Item</span>]) <span class="kw">async</span> <span class="kw">throws</span> -&gt; [Result] {
+    <span class="kw">try</span> <span class="tp">Task</span>.checkCancellation()
+    <span class="kw">return</span> items.map { expensiveTransform($0) }
+}</pre>
+
+    <h3>Adding manual checks around APIs that already observe cancellation</h3>
+    <p><code>URLSession</code>'s async APIs observe task cancellation internally and throw <code>URLError(.cancelled)</code> on their own. A manual <code>checkCancellation()</code> wrapped around one is noise. The manual check is for <em>cooperative, CPU-bound work with no built-in awareness</em> — loops, filtering, chained awaits you wrote yourself.</p>
+
+    <h3>Treating <code>CancellationError</code> as a failure to report</h3>
+    <p>Surfacing "Operation cancelled" to a user who simply typed another character is a bug. Decide per site whether cancellation is expected; where it is, discard it silently.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="pitfalls" data-toc-label="Pitfalls">
+    <h2><span class="sec-num">7</span> Pitfalls &amp; Gotchas</h2>
+
+    <div class="co co-pitfall">
+      <div class="co-pitfall-title">Cancellation facts worth memorizing</div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">1.</span>
+        <span><strong>A cancelled task keeps running until a checkpoint.</strong> No thread is killed and no exception is injected.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">2.</span>
+        <span><strong>The new <code>.task(id:)</code> task is independent.</strong> Cancelling the previous one never affects it — that separation is what makes debouncing safe.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">3.</span>
+        <span><strong>A check after the work is finished is pointless.</strong> The cost has already been paid; the guard belongs before it.</span>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="related" data-toc-label="Related Topics">
+    <h2><span class="sec-num">8</span> Related Topics</h2>
+
+    <div class="ref-grid">
+      <a class="xref-card" href="../fundamentals/structured_concurrency_master.html">
+        <span class="ref-title">Structured Concurrency</span>
+        <span class="ref-meta"><span class="ref-topics">Concurrency · Fundamentals</span></span>
+        <span class="ref-desc">Where automatic propagation comes from: cancelling a parent cancels every child, which is the main reason to prefer <code>async let</code> and task groups.</span>
+      </a>
+      <a class="xref-card" href="../fundamentals/task_vs_thread_master.html">
+        <span class="ref-title">Task ≠ Thread</span>
+        <span class="ref-meta"><span class="ref-topics">Concurrency · Fundamentals</span></span>
+        <span class="ref-desc">Why a check inside a deeply nested helper still refers to the outermost task — ordinary <code>async</code> calls never create a new one.</span>
+      </a>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="sources" data-toc-label="Sources">
+    <h2><span class="sec-num">9</span> Sources</h2>
+
+    <ul>
+      <li>Apple WWDC23, <em>Beyond the basics of structured concurrency</em> (session 10170) — the <code>chopIngredients</code> sample and the check-before-expensive-work placement rule.</li>
+      <li>Apple's documentation for <code>Task.checkCancellation()</code>, <code>Task.isCancelled</code>, and <code>task(id:priority:_:)</code>.</li>
+    </ul>
+  </section>
+
+  <div class="page-footer">
+    Study Wiki · Cancellation · Concurrency Theory
+  </div>
+
+</main>
+</div>
+
+<script src="../../../../static/generated/manifest.js"></script>
+<script src="../../../../static/generated/nav.js"></script>
+<script src="../../../../static/generated/toc.js"></script>
+</body>
+</html>

@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sendable · iOS Topic</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Sendable",
+  "nav": "Sendable",
+  "topics": [
+    "Concurrency",
+    "Sendable",
+    "Data Races",
+    "Swift 6"
+  ],
+  "blurb": "Which values may cross an isolation boundary, what gets Sendable for free, the three honest ways to make a class safe, and why @unchecked is a promise rather than a fix.",
+  "order": 2
+}
+</script>
+<link rel="stylesheet" href="../../../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="ios-topic">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<main class="content">
+
+  <h1 class="page-title">Sendable</h1>
+  <div class="page-meta">
+    <span>iOS Topic</span><span>·</span>
+    <span>Swift Concurrency</span><span>·</span>
+    <span>What may cross an isolation boundary</span>
+  </div>
+
+  <section id="lead" data-toc-label="Definition">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Section</div><div class="infobox-v"><a href="index.html">Isolation &amp; Data Races</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Domain</div><div class="infobox-v"><a href="../index.html">Concurrency Theory</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Marker protocol — a compile-time safety claim, no runtime members</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v">Marks a type as safe to pass <em>between</em> isolation domains: actors, tasks, a <code>@MainActor</code> hop</div></div>
+      <div class="infobox-row"><div class="infobox-k">Enforced by</div><div class="infobox-v">Swift 6 strict checking; opt in earlier with <code>-strict-concurrency=complete</code></div></div>
+      <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"capture of non-Sendable type", "does not conform to Sendable"</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key APIs</div><div class="infobox-v mono">Sendable · @unchecked Sendable · @Sendable</div></div>
+      <div class="infobox-row"><div class="infobox-k">Related</div><div class="infobox-v"><a href="actors_master.html">Actors &amp; Isolation</a> · <a href="../fundamentals/task_vs_thread_master.html">Task ≠ Thread</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p><code>Sendable</code> marks a type as <strong>safe to pass across isolation boundaries</strong> — between actors, into a <code>Task</code>, across a <code>@MainActor</code> hop. Actors protect the state they own; <code>Sendable</code> governs what may travel <em>between</em> them. Together they are the two halves of compile-time data-race safety.</p>
+      <p>Under Swift 6's strict concurrency checking, the compiler rejects non-<code>Sendable</code> values crossing those boundaries. In Swift 5.x the same checking is available by opting in.</p>
+    </div>
+
+    <div class="co co-idea">
+      <span class="co-idea-title">THE ONE IDEA</span>
+      <code>@unchecked Sendable</code> silences the compiler; it does <strong>not</strong> make the type safe. It is a promise that you provide synchronization the compiler cannot see. Wrapping a legacy class in it to make an error go away is precisely how data races get shipped.
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="mental-model" data-toc-label="Mental Model">
+    <h2><span class="sec-num">2</span> Mental Model — how to think about it</h2>
+
+    <p>Ask one question: <em>if two isolation domains held this value at the same time, could they corrupt it?</em> If the answer is no — because it cannot change, or because access is serialized — the type is <code>Sendable</code>.</p>
+
+    <table class="t-decoder">
+      <thead><tr><th>Automatically Sendable</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Value types whose members are all <code>Sendable</code></td><td>Copies are independent — most structs and enums get it inferred.</td></tr>
+        <tr><td><code>actor</code> types</td><td>Always, by definition: access is serialized.</td></tr>
+        <tr><td>Immutable classes — <code>final</code>, all <code>let</code>, all <code>Sendable</code></td><td>Nothing can change, so sharing is harmless.</td></tr>
+        <tr><td>Primitives, <code>String</code>, stdlib collections of <code>Sendable</code> elements</td><td>Value semantics all the way down.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The dividing line</span></div>
+    <pre class="swift"><span class="kw">struct</span> <span class="tp">Item</span>: <span class="tp">Sendable</span> {              <span class="cm">// usually inferred; write it to be explicit</span>
+    <span class="kw">let</span> id: <span class="tp">Int</span>
+    <span class="kw">let</span> name: <span class="tp">String</span>
+}
+
+<span class="cm">// NOT Sendable: a mutable class. Two domains could write `count` at once.</span>
+<span class="kw">final</span> <span class="kw">class</span> Counter {
+    <span class="kw">var</span> count = <span class="nm">0</span>
+}</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="signals" data-toc-label="When It Applies">
+    <h2><span class="sec-num">3</span> When It Applies</h2>
+
+    <table class="t-clue">
+      <thead><tr><th>When you see…</th><th>The Sendable question to ask</th></tr></thead>
+      <tbody>
+        <tr><td>"Capture of non-Sendable type in a <code>@Sendable</code> closure"</td><td>Something mutable is being carried into a task. Which of the three fixes applies?</td></tr>
+        <tr><td>A model type passed into a <code>Task</code></td><td>Is it a struct of <code>Sendable</code> members? Then it is already fine.</td></tr>
+        <tr><td>A legacy class shared across actors</td><td>Immutable, actor, or genuinely locked — pick one; do not reach for <code>@unchecked</code> first.</td></tr>
+        <tr><td>Turning on strict concurrency for the first time</td><td>Enable it per-target and fix incrementally rather than all at once.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="api" data-toc-label="The API">
+    <h2><span class="sec-num">4</span> The API — types, modifiers, signatures</h2>
+
+    <table class="t-versus">
+      <thead><tr><th>Form</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>Sendable</code></td><td>The compiler verifies the claim structurally.</td></tr>
+        <tr><td><code>@unchecked Sendable</code></td><td>You assert it; the compiler stops checking. Requires real synchronization you provide.</td></tr>
+        <tr><td><code>@Sendable</code> on a closure</td><td>The closure may cross an isolation boundary, so everything it captures must be <code>Sendable</code> too.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="patterns" data-toc-label="Patterns">
+    <h2><span class="sec-num">5</span> Patterns That Work</h2>
+
+    <h3>The three honest ways to make a class Sendable</h3>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Immutable, actor, or genuinely locked</span></div>
+    <pre class="swift"><span class="cm">// 1. Make it immutable.</span>
+<span class="kw">final</span> <span class="kw">class</span> Configuration: <span class="tp">Sendable</span> {
+    <span class="kw">let</span> apiURL: <span class="tp">URL</span>          <span class="cm">// all `let`, all Sendable</span>
+}
+
+<span class="cm">// 2. Make it an actor.</span>
+<span class="kw">actor</span> Counter {
+    <span class="kw">private</span> <span class="kw">var</span> count = <span class="nm">0</span>
+    <span class="kw">func</span> <span class="fn">increment</span>() { count += <span class="nm">1</span> }
+}
+
+<span class="cm">// 3. Assert it manually - YOU take responsibility for the locking.</span>
+<span class="kw">final</span> <span class="kw">class</span> LockedCache: <span class="kw">@unchecked</span> <span class="tp">Sendable</span> {
+    <span class="kw">private</span> <span class="kw">let</span> lock = NSLock()
+    <span class="kw">private</span> <span class="kw">var</span> storage: [<span class="tp">String</span>: <span class="tp">Data</span>] = [:]
+
+    <span class="kw">func</span> <span class="fn">value</span>(<span class="kw">for</span> key: <span class="tp">String</span>) -&gt; <span class="tp">Data</span>? {
+        lock.lock(); <span class="kw">defer</span> { lock.unlock() }
+        <span class="kw">return</span> storage[key]
+    }
+}</pre>
+
+    <p>Options 1 and 2 are checked by the compiler. Option 3 is a promise, and is only defensible when the synchronization genuinely exists and is applied on <em>every</em> path.</p>
+
+    <h3>Adopt strict checking incrementally</h3>
+    <p>Turning on complete checking across a large codebase at once produces an unreadable wall of errors. Enable it per target, fix that target, then move on — the diagnostics are far easier to act on in small batches.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="antipatterns" data-toc-label="Anti-Patterns">
+    <h2><span class="sec-num">6</span> Anti-Patterns — and the fix</h2>
+
+    <h3><code>@unchecked Sendable</code> as an error-silencer</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The promise nobody kept</span></div>
+    <pre class="swift"><span class="cm">// WRONG: no lock, no serialization, no safety - just a silenced warning.</span>
+<span class="cm">// The race is still there; only the diagnostic is gone.</span>
+<span class="kw">final</span> <span class="kw">class</span> MutableCache: <span class="kw">@unchecked</span> <span class="tp">Sendable</span> {
+    <span class="kw">var</span> storage: [<span class="tp">String</span>: <span class="tp">Data</span>] = [:]
+}
+
+<span class="cm">// RIGHT: pick one of the three real options. An actor is usually the</span>
+<span class="cm">// least code and the most checkable.</span>
+<span class="kw">actor</span> MutableCache {
+    <span class="kw">private</span> <span class="kw">var</span> storage: [<span class="tp">String</span>: <span class="tp">Data</span>] = [:]
+}</pre>
+
+    <h3>Making a type <code>Sendable</code> that holds a non-<code>Sendable</code> member</h3>
+    <p>Conformance is structural: a struct is only <code>Sendable</code> if every stored property is. Declaring it anyway either fails to compile or, with <code>@unchecked</code>, hides a real hazard.</p>
+
+    <h3>Reaching for a lock before considering an actor</h3>
+    <p>A lock is invisible to the compiler, so it cannot help you find the path you forgot to guard. An actor gives the same serialization with compile-time enforcement.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="pitfalls" data-toc-label="Pitfalls">
+    <h2><span class="sec-num">7</span> Pitfalls &amp; Gotchas</h2>
+
+    <div class="co co-pitfall">
+      <div class="co-pitfall-title">Sendable facts worth memorizing</div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">1.</span>
+        <span><strong>Most structs and enums get it inferred.</strong> If a value type is rejected, look for a class or closure hiding among its members.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">2.</span>
+        <span><strong>A <code>@Sendable</code> closure constrains its captures.</strong> The error often points at the closure while the real problem is the captured object.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">3.</span>
+        <span><strong>Actors are <code>Sendable</code> automatically.</strong> Converting a shared mutable class into an actor usually resolves a cluster of errors at once.</span>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="related" data-toc-label="Related Topics">
+    <h2><span class="sec-num">8</span> Related Topics</h2>
+
+    <div class="ref-grid">
+      <a class="xref-card" href="actors_master.html">
+        <span class="ref-title">Actors &amp; Isolation</span>
+        <span class="ref-meta"><span class="ref-topics">Concurrency · Isolation</span></span>
+        <span class="ref-desc">The other half of the safety story: actors protect the state they own, <code>Sendable</code> governs what may travel between them — and converting a class to an actor is one of the three fixes here.</span>
+      </a>
+      <a class="xref-card" href="../fundamentals/task_vs_thread_master.html">
+        <span class="ref-title">Task ≠ Thread</span>
+        <span class="ref-meta"><span class="ref-topics">Concurrency · Fundamentals</span></span>
+        <span class="ref-desc">What "crossing into a Task" means, and why capturing a mutable class in one is exactly the boundary <code>Sendable</code> is checking.</span>
+      </a>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="sources" data-toc-label="Sources">
+    <h2><span class="sec-num">9</span> Sources</h2>
+
+    <ul>
+      <li>Apple's Swift documentation on <code>Sendable</code>, sendable closures, and strict concurrency checking.</li>
+      <li>Swift 6 enables complete checking by default; in Swift 5.x it is available via <code>-strict-concurrency=complete</code>, which is the recommended incremental adoption path.</li>
+    </ul>
+  </section>
+
+  <div class="page-footer">
+    Study Wiki · Sendable · Concurrency Theory
+  </div>
+
+</main>
+</div>
+
+<script src="../../../../static/generated/manifest.js"></script>
+<script src="../../../../static/generated/nav.js"></script>
+<script src="../../../../static/generated/toc.js"></script>
+</body>
+</html>

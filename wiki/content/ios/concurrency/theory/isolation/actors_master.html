@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Actors &amp; Isolation · iOS Topic</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Actors & Isolation",
+  "nav": "Actors & Isolation",
+  "topics": [
+    "Concurrency",
+    "Actors",
+    "MainActor",
+    "Reentrancy"
+  ],
+  "blurb": "How actors serialize access to mutable state, why reentrancy at every await is the non-obvious hazard, and what @MainActor replaces DispatchQueue.main.async with.",
+  "order": 1
+}
+</script>
+<link rel="stylesheet" href="../../../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="ios-topic">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<main class="content">
+
+  <h1 class="page-title">Actors &amp; Isolation</h1>
+  <div class="page-meta">
+    <span>iOS Topic</span><span>·</span>
+    <span>Swift Concurrency</span><span>·</span>
+    <span>Serialized access, enforced by the compiler</span>
+  </div>
+
+  <section id="lead" data-toc-label="Definition">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Section</div><div class="infobox-v"><a href="index.html">Isolation &amp; Data Races</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Domain</div><div class="infobox-v"><a href="../index.html">Concurrency Theory</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Reference type — protects mutable state by serializing access</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v">Data races eliminated <em>by construction</em>, checked by the compiler rather than by convention</div></div>
+      <div class="infobox-row"><div class="infobox-k">The hazard</div><div class="infobox-v"><strong>Reentrancy</strong> — at every <code>await</code> inside an actor method, other calls can run</div></div>
+      <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"two callers both downloaded it", "state changed after the await"</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key APIs</div><div class="infobox-v mono">actor · nonisolated · @MainActor · MainActor.run</div></div>
+      <div class="infobox-row"><div class="infobox-k">Related</div><div class="infobox-v"><a href="sendable_master.html">Sendable</a> · <a href="../fundamentals/task_vs_thread_master.html">Task ≠ Thread</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p>An <code>actor</code> is a reference type that protects its mutable state by <strong>serializing access</strong> to it. Inside the actor, code runs with exclusive access — no locks to write, no queues to manage. From outside, every access is asynchronous, because a call may need to wait its turn.</p>
+      <p>The compiler enforces this, which is the real advance: data races are eliminated by construction rather than by everyone remembering to take the right lock.</p>
+    </div>
+
+    <div class="co co-idea">
+      <span class="co-idea-title">THE ONE IDEA</span>
+      Actors are <strong>reentrant</strong>. At every <code>await</code> inside an actor method the actor can service <em>other</em> calls, so state you read before the <code>await</code> may be different after it. Mutual exclusion protects each individual access — it does <strong>not</strong> make a method atomic.
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="mental-model" data-toc-label="Mental Model">
+    <h2><span class="sec-num">2</span> Mental Model — how to think about it</h2>
+
+    <p>Think of an actor as a room only one caller may occupy at a time. What surprises people is that an <code>await</code> is a door: the occupant steps out, and someone else may walk in before they return.</p>
+
+    <pre class="ascii">Caller A enters image(for:)        [actor is busy with A]
+A reads storage[url] -> nil
+A hits `await download(url)`       [A LEAVES THE ROOM]
+                                   Caller B enters image(for:)
+                                   B reads storage[url] -> STILL nil
+                                   B hits `await download(url)`
+A resumes, writes storage[url]
+                                   B resumes, writes storage[url] again
+
+  => the same URL was downloaded TWICE</pre>
+    <div class="ascii-caption">Both callers saw a cache miss because the state they checked was re-read only after a suspension. This is correct actor behaviour, not a bug.</div>
+
+    <p>The fix is to store the <strong>in-flight task</strong> rather than only the finished result, and to publish it <em>before</em> the first suspension — so a second caller finds something to join.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="signals" data-toc-label="When It Applies">
+    <h2><span class="sec-num">3</span> When It Applies</h2>
+
+    <table class="t-clue">
+      <thead><tr><th>When you see…</th><th>The isolation question to ask</th></tr></thead>
+      <tbody>
+        <tr><td>Shared mutable state reached from several tasks</td><td>Make it an actor rather than adding a lock.</td></tr>
+        <tr><td>Duplicate network calls for the same resource</td><td>Reentrancy across an <code>await</code>. Cache the task, not just the result.</td></tr>
+        <tr><td><code>DispatchQueue.main.async</code> after every fetch</td><td><code>@MainActor</code> puts you back on main automatically after an <code>await</code>.</td></tr>
+        <tr><td>A property that never mutates but forces <code>await</code></td><td><code>nonisolated</code>, or make it a <code>let</code>.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="api" data-toc-label="The API">
+    <h2><span class="sec-num">4</span> The API — types, modifiers, signatures</h2>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Inside is synchronous; outside is async</span></div>
+    <pre class="swift"><span class="kw">actor</span> ImageCache {
+    <span class="kw">private</span> <span class="kw">var</span> storage: [<span class="tp">URL</span>: UIImage] = [:]
+
+    <span class="kw">func</span> <span class="fn">image</span>(<span class="kw">for</span> url: <span class="tp">URL</span>) -&gt; UIImage? {
+        storage[url]                        <span class="cm">// inside: synchronous, no await</span>
+    }
+
+    <span class="kw">func</span> <span class="fn">store</span>(_ image: UIImage, <span class="kw">for</span> url: <span class="tp">URL</span>) {
+        storage[url] = image
+    }
+}
+
+<span class="cm">// From outside, every access is asynchronous:</span>
+<span class="kw">let</span> cache = ImageCache()
+<span class="kw">await</span> cache.store(image, <span class="kw">for</span> : url)
+<span class="kw">let</span> cached = <span class="kw">await</span> cache.image(<span class="kw">for</span> : url)</pre>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">nonisolated — opting out where there is no mutable state</span></div>
+    <pre class="swift"><span class="kw">actor</span> ImageCache {
+    <span class="kw">let</span> identifier: <span class="tp">String</span>                  <span class="cm">// immutable - safe by definition</span>
+    <span class="kw">private</span> <span class="kw">var</span> storage: [<span class="tp">URL</span>: UIImage] = [:]
+
+    <span class="kw">nonisolated</span> <span class="kw">var</span> debugName: <span class="tp">String</span> {     <span class="cm">// no await needed at call sites</span>
+        <span class="st">"Cache(\(identifier))"</span>
+    }
+}</pre>
+
+    <p><code>let</code> constants are implicitly non-isolated already.</p>
+
+    <div class="co co-note">
+      <strong><code>@MainActor</code> is a global actor</strong> — a singleton whose executor is the main thread. Annotating a type makes every member main-actor-isolated, which is why <code>DispatchQueue.main.async</code> disappears: resuming after an <code>await</code> inside a <code>@MainActor</code> type returns you to the main actor automatically.
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="patterns" data-toc-label="Patterns">
+    <h2><span class="sec-num">5</span> Patterns That Work</h2>
+
+    <h3>Cache the task, not just the result</h3>
+    <p>The direct answer to reentrancy. Publishing the in-flight task <em>before</em> the first <code>await</code> means a second caller finds it and joins rather than starting duplicate work.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Request coalescing inside an actor</span></div>
+    <pre class="swift"><span class="kw">actor</span> ImageCache {
+    <span class="kw">private</span> <span class="kw">enum</span> Entry {
+        <span class="kw">case</span> inProgress(<span class="tp">Task</span>&lt;UIImage, <span class="tp">Error</span>&gt;)
+        <span class="kw">case</span> ready(UIImage)
+    }
+    <span class="kw">private</span> <span class="kw">var</span> entries: [<span class="tp">URL</span>: Entry] = [:]
+
+    <span class="kw">func</span> <span class="fn">image</span>(<span class="kw">for</span> url: <span class="tp">URL</span>) <span class="kw">async</span> <span class="kw">throws</span> -&gt; UIImage {
+        <span class="kw">switch</span> entries[url] {
+        <span class="kw">case</span> .ready(<span class="kw">let</span> image):
+            <span class="kw">return</span> image
+        <span class="kw">case</span> .inProgress(<span class="kw">let</span> task):
+            <span class="kw">return</span> <span class="kw">try</span> <span class="kw">await</span> task.value       <span class="cm">// join the existing download</span>
+        <span class="kw">case</span> <span class="kw">nil</span>:
+            <span class="kw">let</span> task = <span class="tp">Task</span> { <span class="kw">try</span> <span class="kw">await</span> download(url) }
+            entries[url] = .inProgress(task)  <span class="cm">// published BEFORE the await</span>
+            <span class="kw">let</span> image = <span class="kw">try</span> <span class="kw">await</span> task.value
+            entries[url] = .ready(image)
+            <span class="kw">return</span> image
+        }
+    }
+}</pre>
+
+    <h3><code>@MainActor</code> at the granularity you need</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Type, function, property, or an explicit hop</span></div>
+    <pre class="swift"><span class="kw">@MainActor</span> <span class="kw">final</span> <span class="kw">class</span> ViewModel { }        <span class="cm">// whole type</span>
+<span class="kw">@MainActor</span> <span class="kw">func</span> <span class="fn">updateUI</span>() { }              <span class="cm">// single function</span>
+<span class="kw">@MainActor</span> <span class="kw">private</span> <span class="kw">var</span> cachedTitle: <span class="tp">String</span>   <span class="cm">// single property</span>
+
+<span class="cm">// Force a hop from arbitrary context:</span>
+<span class="kw">await</span> <span class="tp">MainActor</span>.run { label.text = <span class="st">"Done"</span> }
+
+<span class="cm">// Assert without hopping (crashes if wrong - for known-main callbacks):</span>
+<span class="tp">MainActor</span>.assumeIsolated { label.text = <span class="st">"Done"</span> }</pre>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The DispatchQueue.main.async replacement</span></div>
+    <pre class="swift"><span class="kw">@MainActor</span>
+<span class="kw">final</span> <span class="kw">class</span> ItemsViewModel: <span class="tp">ObservableObject</span> {
+    <span class="kw">@Published</span> <span class="kw">private</span>(<span class="kw">set</span>) <span class="kw">var</span> items: [<span class="tp">Item</span>] = []
+
+    <span class="kw">func</span> <span class="fn">load</span>() <span class="kw">async</span> {
+        <span class="cm">// Guaranteed main thread here.</span>
+        <span class="kw">let</span> fetched = <span class="kw">await</span> repository.fetch()   <span class="cm">// hops off and back</span>
+        items = fetched                          <span class="cm">// safe: back on main</span>
+    }
+
+    <span class="kw">nonisolated</span> <span class="kw">func</span> <span class="fn">makeIdentifier</span>() -&gt; <span class="tp">String</span> { UUID().uuidString }
+}</pre>
+
+    <p>SwiftUI's <code>View</code> is <code>@MainActor</code>-annotated by the framework, and <code>ObservableObject</code> view models are conventionally annotated too.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="antipatterns" data-toc-label="Anti-Patterns">
+    <h2><span class="sec-num">6</span> Anti-Patterns — and the fix</h2>
+
+    <h3>Assuming an actor method is atomic</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Check-then-act across a suspension</span></div>
+    <pre class="swift"><span class="kw">actor</span> ImageCache {
+    <span class="kw">private</span> <span class="kw">var</span> storage: [<span class="tp">URL</span>: UIImage] = [:]
+
+    <span class="cm">// WRONG: two concurrent calls for the same URL both see a cache miss</span>
+    <span class="cm">// and both perform the download.</span>
+    <span class="kw">func</span> <span class="fn">image</span>(<span class="kw">for</span> url: <span class="tp">URL</span>) <span class="kw">async</span> <span class="kw">throws</span> -&gt; UIImage {
+        <span class="kw">if</span> <span class="kw">let</span> cached = storage[url] { <span class="kw">return</span> cached }
+
+        <span class="kw">let</span> image = <span class="kw">try</span> <span class="kw">await</span> download(url)   <span class="cm">// suspension: others run here</span>
+
+        storage[url] = image
+        <span class="kw">return</span> image
+    }
+}
+
+<span class="cm">// RIGHT: store the in-flight Task and publish it before suspending.</span>
+<span class="cm">// See the coalescing pattern above.</span></pre>
+
+    <h3>Marking everything <code>nonisolated</code> to silence <code>await</code></h3>
+    <p><code>nonisolated</code> is correct only for members that genuinely do not touch mutable state. Applied to make a compiler error go away, it removes exactly the protection the actor exists to provide.</p>
+
+    <h3>Wrapping UI updates in <code>MainActor.run</code> inside a <code>@MainActor</code> type</h3>
+    <p>Redundant. Inside a main-actor-isolated type you are already on the main actor after every <code>await</code>. Reach for <code>MainActor.run</code> only from genuinely non-isolated context.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="pitfalls" data-toc-label="Pitfalls">
+    <h2><span class="sec-num">7</span> Pitfalls &amp; Gotchas</h2>
+
+    <div class="co co-pitfall">
+      <div class="co-pitfall-title">Isolation facts worth memorizing</div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">1.</span>
+        <span><strong>Mutual exclusion is per access, not per method.</strong> Any <code>await</code> inside an actor method is a point where other calls may interleave.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">2.</span>
+        <span><strong>Re-check invariants after every <code>await</code>.</strong> Anything read beforehand may be stale by the time you resume.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">3.</span>
+        <span><strong><code>MainActor.assumeIsolated</code> crashes if you are wrong.</strong> It asserts rather than hops — use it only for callbacks documented to arrive on main.</span>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="related" data-toc-label="Related Topics">
+    <h2><span class="sec-num">8</span> Related Topics</h2>
+
+    <div class="ref-grid">
+      <a class="xref-card" href="sendable_master.html">
+        <span class="ref-title">Sendable</span>
+        <span class="ref-meta"><span class="ref-topics">Concurrency · Isolation</span></span>
+        <span class="ref-desc">The other half of data-race safety: which <em>values</em> may cross an isolation boundary at all, and the three honest ways to make a class safe to send.</span>
+      </a>
+      <a class="xref-card" href="../fundamentals/task_vs_thread_master.html">
+        <span class="ref-title">Task ≠ Thread</span>
+        <span class="ref-meta"><span class="ref-topics">Concurrency · Fundamentals</span></span>
+        <span class="ref-desc">Why "which actor am I isolated to" is the useful question and "which thread am I on" is not — plus what actually happens at a suspension point.</span>
+      </a>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="sources" data-toc-label="Sources">
+    <h2><span class="sec-num">9</span> Sources</h2>
+
+    <ul>
+      <li>Apple's Swift documentation on actors, actor isolation, and global actors.</li>
+      <li>Actor reentrancy is documented behaviour in the actors proposal, and is the single most common source of "the actor should have prevented this" surprise.</li>
+    </ul>
+  </section>
+
+  <div class="page-footer">
+    Study Wiki · Actors &amp; Isolation · Concurrency Theory
+  </div>
+
+</main>
+</div>
+
+<script src="../../../../static/generated/manifest.js"></script>
+<script src="../../../../static/generated/nav.js"></script>
+<script src="../../../../static/generated/toc.js"></script>
+</body>
+</html>

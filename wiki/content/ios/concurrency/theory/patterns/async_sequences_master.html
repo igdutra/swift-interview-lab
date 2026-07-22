@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Async Sequences · iOS Topic</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Async Sequences",
+  "nav": "Async Sequences",
+  "topics": [
+    "Concurrency",
+    "AsyncSequence",
+    "AsyncStream",
+    "Bridging"
+  ],
+  "blurb": "Iterating values that arrive over time with for await, and bridging a repeating callback into an AsyncStream — including the onTermination cleanup everyone forgets.",
+  "order": 2
+}
+</script>
+<link rel="stylesheet" href="../../../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="ios-topic">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<main class="content">
+
+  <h1 class="page-title">Async Sequences</h1>
+  <div class="page-meta">
+    <span>iOS Topic</span><span>·</span>
+    <span>Swift Concurrency</span><span>·</span>
+    <span>Values that arrive over time</span>
+  </div>
+
+  <section id="lead" data-toc-label="Definition">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Section</div><div class="infobox-v"><a href="index.html">Applied Patterns</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Domain</div><div class="infobox-v"><a href="../index.html">Concurrency Theory</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Protocol plus a concrete bridge — a sequence whose elements arrive asynchronously</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v">Ordinary <code>for</code> loop syntax over values that do not exist yet</div></div>
+      <div class="infobox-row"><div class="infobox-k">Versus a continuation</div><div class="infobox-v">One callback, one value → continuation. Repeating callback → stream.</div></div>
+      <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"location updates", "a delegate that fires repeatedly", "stream of events"</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key APIs</div><div class="infobox-v mono">for await · AsyncStream · continuation.yield · onTermination</div></div>
+      <div class="infobox-row"><div class="infobox-k">Related</div><div class="infobox-v"><a href="continuations_master.html">Continuations</a> · <a href="cancellation_master.html">Cancellation</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p>An <code>AsyncSequence</code> is a sequence whose elements arrive over time. You consume it with <code>for await</code>, which reads like an ordinary loop but suspends between elements instead of blocking — so the loop body runs each time a value shows up, with the thread released in between.</p>
+      <p><code>AsyncStream</code> is the concrete type for building one from a callback-based source: the counterpart to a continuation, for APIs that deliver <strong>many</strong> values rather than one.</p>
+    </div>
+
+    <div class="co co-idea">
+      <span class="co-idea-title">THE ONE IDEA</span>
+      <code>continuation.onTermination</code> is where you stop the underlying source. It fires on <strong>cancellation as well as normal completion</strong> — so it is the one place that reliably runs when a consumer walks away, and forgetting it leaks a location manager, a socket, or an observer.
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="mental-model" data-toc-label="Mental Model">
+    <h2><span class="sec-num">2</span> Mental Model — how to think about it</h2>
+
+    <p>The pairing with continuations is the clearest way in — same bridging job, different cardinality:</p>
+
+    <table class="t-versus">
+      <thead><tr><th>Source shape</th><th>Bridge</th><th>Terminates by</th></tr></thead>
+      <tbody>
+        <tr><td>Callback fires <strong>once</strong> with a result</td><td><code>withCheckedContinuation</code></td><td><code>resume</code>, exactly once</td></tr>
+        <tr><td>Callback fires <strong>repeatedly</strong></td><td><code>AsyncStream</code></td><td><code>finish()</code>, or the consumer stopping</td></tr>
+      </tbody>
+    </table>
+
+    <p>Standard sequence operators work on an async sequence, and they work lazily: <code>map</code>, <code>filter</code>, <code>compactMap</code>, <code>prefix</code>, <code>dropFirst</code>. Nothing is materialized up front, because nothing exists up front.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="signals" data-toc-label="When It Applies">
+    <h2><span class="sec-num">3</span> When It Applies</h2>
+
+    <table class="t-clue">
+      <thead><tr><th>When you see…</th><th>The question to ask</th></tr></thead>
+      <tbody>
+        <tr><td>A delegate firing many times (locations, sensor readings)</td><td><code>AsyncStream</code>, not a continuation.</td></tr>
+        <tr><td>Reading a file or socket line by line</td><td><code>for await</code> over the existing async sequence.</td></tr>
+        <tr><td>A hardware resource left running after a screen closed</td><td>Missing <code>onTermination</code> cleanup.</td></tr>
+        <tr><td>A Combine publisher used only to feed a view</td><td>An async sequence is often the smaller tool.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="api" data-toc-label="The API">
+    <h2><span class="sec-num">4</span> The API — types, modifiers, signatures</h2>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Consuming — an ordinary loop that suspends</span></div>
+    <pre class="swift"><span class="kw">for</span> <span class="kw">await</span> line <span class="kw">in</span> fileHandle.bytes.lines {
+    print(line)
+}
+
+<span class="kw">for</span> <span class="kw">try</span> <span class="kw">await</span> item <span class="kw">in</span> apiClient.streamItems() {   <span class="cm">// `try` if it can throw</span>
+    process(item)
+}</pre>
+
+    <table class="t-decoder">
+      <thead><tr><th>Member</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><code>continuation.yield(_:)</code></td><td>Emit one value to the consumer.</td></tr>
+        <tr><td><code>continuation.finish()</code></td><td>End the stream normally. <code>AsyncThrowingStream</code> adds <code>finish(throwing:)</code>.</td></tr>
+        <tr><td><code>continuation.onTermination</code></td><td>Called on cancellation <em>or</em> finish — the cleanup hook.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="patterns" data-toc-label="Patterns">
+    <h2><span class="sec-num">5</span> Patterns That Work</h2>
+
+    <h3>Bridge a repeating callback into a stream</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">yield to emit, onTermination to clean up</span></div>
+    <pre class="swift"><span class="kw">func</span> <span class="fn">locationUpdates</span>() -&gt; AsyncStream&lt;CLLocation&gt; {
+    AsyncStream { continuation <span class="kw">in</span>
+        <span class="kw">let</span> delegate = LocationDelegate { location <span class="kw">in</span>
+            continuation.yield(location)          <span class="cm">// emit a value</span>
+        }
+        locationManager.delegate = delegate
+        locationManager.startUpdatingLocation()
+
+        continuation.onTermination = { _ <span class="kw">in</span>       <span class="cm">// on cancel OR finish</span>
+            locationManager.stopUpdatingLocation()
+        }
+    }
+}
+
+<span class="cm">// Consumption reads like any other loop:</span>
+<span class="kw">for</span> <span class="kw">await</span> location <span class="kw">in</span> locationUpdates() {
+    updateMap(with: location)
+}</pre>
+
+    <h3>Let cancellation end the loop</h3>
+    <p>Cancelling the task running a <code>for await</code> ends the iteration and triggers <code>onTermination</code>. Combined with structured concurrency, a screen disappearing tears down its stream and stops the underlying hardware without any explicit teardown call.</p>
+
+    <h3>Use the lazy operators</h3>
+    <p><code>map</code>, <code>filter</code>, and <code>prefix</code> compose the same way as on a synchronous sequence, and evaluate per element as it arrives. <code>prefix</code> in particular is a clean way to consume a bounded number of events and let the stream terminate itself.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="antipatterns" data-toc-label="Anti-Patterns">
+    <h2><span class="sec-num">6</span> Anti-Patterns — and the fix</h2>
+
+    <h3>Omitting <code>onTermination</code></h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The leak that survives the screen</span></div>
+    <pre class="swift"><span class="cm">// WRONG: the consumer goes away, but the location manager keeps</span>
+<span class="cm">// running - draining the battery with nobody listening.</span>
+AsyncStream { continuation <span class="kw">in</span>
+    locationManager.startUpdatingLocation()
+    <span class="cm">// no onTermination</span>
+}
+
+<span class="cm">// RIGHT: stop the source when the stream ends, however it ends.</span>
+AsyncStream { continuation <span class="kw">in</span>
+    locationManager.startUpdatingLocation()
+    continuation.onTermination = { _ <span class="kw">in</span>
+        locationManager.stopUpdatingLocation()
+    }
+}</pre>
+
+    <h3>Using a continuation for a repeating callback</h3>
+    <p>A continuation may resume exactly once. Pointing one at a delegate that fires per update crashes on the second call. Repeating source means stream.</p>
+
+    <h3>Reaching for Combine out of habit</h3>
+    <p>If a publisher exists only to deliver values into a view, an async sequence is usually the smaller tool — no cancellables set, no subscription lifecycle to manage, and cancellation flows from the task automatically. Combine still earns its place for genuine multi-operator pipelines and multicast.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="pitfalls" data-toc-label="Pitfalls">
+    <h2><span class="sec-num">7</span> Pitfalls &amp; Gotchas</h2>
+
+    <div class="co co-pitfall">
+      <div class="co-pitfall-title">Stream details worth memorizing</div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">1.</span>
+        <span><strong><code>onTermination</code> fires on cancellation too</strong>, not only on <code>finish()</code>. That is exactly why it is the right place for teardown.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">2.</span>
+        <span><strong>A stream with no consumer still buffers.</strong> Choose a buffering policy deliberately for high-frequency sources rather than accepting the default.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">3.</span>
+        <span><strong>Forgetting <code>finish()</code> leaves the loop waiting.</strong> A stream that never terminates keeps its consumer suspended indefinitely.</span>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="related" data-toc-label="Related Topics">
+    <h2><span class="sec-num">8</span> Related Topics</h2>
+
+    <div class="ref-grid">
+      <a class="xref-card" href="continuations_master.html">
+        <span class="ref-title">Continuations</span>
+        <span class="ref-meta"><span class="ref-topics">Concurrency · Patterns</span></span>
+        <span class="ref-desc">The single-value counterpart. Same bridging job, different cardinality — and the reason a repeating callback must not use one.</span>
+      </a>
+      <a class="xref-card" href="cancellation_master.html">
+        <span class="ref-title">Cancellation</span>
+        <span class="ref-meta"><span class="ref-topics">Concurrency · Patterns</span></span>
+        <span class="ref-desc">What ends a <code>for await</code> loop from the outside, and why <code>onTermination</code> is the hook that reliably runs when it does.</span>
+      </a>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="sources" data-toc-label="Sources">
+    <h2><span class="sec-num">9</span> Sources</h2>
+
+    <ul>
+      <li>Apple's documentation for <code>AsyncSequence</code>, <code>AsyncStream</code>, <code>AsyncThrowingStream</code>, and the stream continuation's <code>yield</code> / <code>finish</code> / <code>onTermination</code> members.</li>
+      <li>The pairing with <code>withCheckedContinuation</code> — one value versus many — is the framing used throughout this section.</li>
+    </ul>
+  </section>
+
+  <div class="page-footer">
+    Study Wiki · Async Sequences · Concurrency Theory
+  </div>
+
+</main>
+</div>
+
+<script src="../../../../static/generated/manifest.js"></script>
+<script src="../../../../static/generated/nav.js"></script>
+<script src="../../../../static/generated/toc.js"></script>
+</body>
+</html>

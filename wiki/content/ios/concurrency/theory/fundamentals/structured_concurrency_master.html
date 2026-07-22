@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Structured Concurrency · iOS Topic</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Structured Concurrency",
+  "nav": "Structured Concurrency",
+  "topics": [
+    "Concurrency",
+    "async let",
+    "TaskGroup",
+    "Child Tasks"
+  ],
+  "blurb": "Child tasks with lifetimes bound to their parent scope: async let for a fixed number, task groups for a dynamic one, out-of-order results, bounded concurrency, and what detached gives up.",
+  "order": 2
+}
+</script>
+<link rel="stylesheet" href="../../../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="ios-topic">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<main class="content">
+
+  <h1 class="page-title">Structured Concurrency</h1>
+  <div class="page-meta">
+    <span>iOS Topic</span><span>·</span>
+    <span>Swift Concurrency</span><span>·</span>
+    <span>Child tasks with bounded lifetimes</span>
+  </div>
+
+  <section id="lead" data-toc-label="Definition">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Section</div><div class="infobox-v"><a href="index.html">Concurrency Fundamentals</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Domain</div><div class="infobox-v"><a href="../index.html">Concurrency Theory</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Language constructs — two of them, plus one escape hatch that opts out</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v">A child's lifetime is bound to its parent scope: the parent cannot return until children finish, and cancelling the parent cancels them all</div></div>
+      <div class="infobox-row"><div class="infobox-k">Fixed count</div><div class="infobox-v"><code>async let</code></div></div>
+      <div class="infobox-row"><div class="infobox-k">Dynamic count</div><div class="infobox-v">Task groups</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key APIs</div><div class="infobox-v mono">async let · withThrowingTaskGroup · group.addTask · group.next</div></div>
+      <div class="infobox-row"><div class="infobox-k">Related</div><div class="infobox-v"><a href="task_vs_thread_master.html">Task ≠ Thread</a> · <a href="../patterns/cancellation_master.html">Cancellation</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p><strong>Structured</strong> means child tasks have a lifetime <strong>bound to their parent scope</strong>. The parent cannot return until its children finish, and cancelling the parent cancels every child automatically. You get that guarantee from two constructs — and lose it entirely with <code>Task.detached</code>.</p>
+      <p>The practical payoff is that concurrency becomes local reasoning: if a function returns, its concurrent work is done. There is no orphaned task still writing to something you thought was finished with.</p>
+    </div>
+
+    <div class="co co-idea">
+      <span class="co-idea-title">THE ONE IDEA</span>
+      <code>async let</code> starts work <strong>immediately</strong>; the <code>await</code> only collects it. That is why two <code>async let</code> bindings take <code>max(a, b)</code> rather than <code>a + b</code> — and why writing the two calls as sequential <code>await</code>s quietly doubles your latency.
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="mental-model" data-toc-label="Mental Model">
+    <h2><span class="sec-num">2</span> Mental Model — how to think about it</h2>
+
+    <pre class="ascii">SEQUENTIAL await               STRUCTURED (async let)
+
+  |--- fetchUser 200ms ---|       |--- fetchUser 200ms ---|
+                          |       |--- fetchPosts 200ms --|
+  |--- fetchPosts 200ms --|
+                                  total: 200ms  (they overlap)
+  total: 400ms</pre>
+    <div class="ascii-caption">Both requests are already in flight by the time the first <code>await</code> runs. The <code>await</code> is a collection point, not a start signal.</div>
+
+    <table class="t-decoder">
+      <thead><tr><th>Construct</th><th>Number of children</th><th>Structured?</th></tr></thead>
+      <tbody>
+        <tr><td><code>async let</code></td><td>Fixed, known at compile time</td><td>Yes</td></tr>
+        <tr><td>Task group</td><td>Dynamic, decided at runtime</td><td>Yes</td></tr>
+        <tr><td><code>Task { }</code></td><td>One, unparented</td><td><strong>No</strong> — inherits context but is not a child</td></tr>
+        <tr><td><code>Task.detached { }</code></td><td>One, fully independent</td><td><strong>No</strong> — inherits nothing</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="signals" data-toc-label="When It Applies">
+    <h2><span class="sec-num">3</span> When It Applies</h2>
+
+    <table class="t-clue">
+      <thead><tr><th>When you see…</th><th>The structured-concurrency question</th></tr></thead>
+      <tbody>
+        <tr><td>Two independent <code>await</code>s in a row</td><td>Do they depend on each other? If not, <code>async let</code> halves the wall time.</td></tr>
+        <tr><td>A loop of <code>await</code> calls over a collection</td><td>A task group runs them concurrently instead of one at a time.</td></tr>
+        <tr><td>Results arriving in the wrong order</td><td>Groups yield in <em>completion</em> order — carry the index and sort.</td></tr>
+        <tr><td>Hundreds of concurrent requests</td><td>A group does not throttle. Window it explicitly.</td></tr>
+        <tr><td>Work continuing after its function returned</td><td>That is a <code>Task { }</code>, not a child. Store and cancel it.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="api" data-toc-label="The API">
+    <h2><span class="sec-num">4</span> The API — types, modifiers, signatures</h2>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">async let — a fixed number of children</span></div>
+    <pre class="swift"><span class="kw">func</span> <span class="fn">loadProfile</span>(id: User.ID) <span class="kw">async</span> <span class="kw">throws</span> -&gt; Profile {
+    <span class="kw">async</span> <span class="kw">let</span> user = api.fetchUser(id)            <span class="cm">// starts immediately</span>
+    <span class="kw">async</span> <span class="kw">let</span> posts = api.fetchPosts(userID: id)  <span class="cm">// also starts immediately</span>
+
+    <span class="cm">// Both are already in flight; `await` just collects them.</span>
+    <span class="kw">return</span> <span class="kw">try</span> <span class="kw">await</span> Profile(user: user, posts: posts)
+}</pre>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Task groups — a dynamic number of children</span></div>
+    <pre class="swift"><span class="kw">func</span> <span class="fn">loadItems</span>(ids: [<span class="tp">Item</span>.ID]) <span class="kw">async</span> <span class="kw">throws</span> -&gt; [<span class="tp">Item</span>] {
+    <span class="kw">try</span> <span class="kw">await</span> withThrowingTaskGroup(of: <span class="tp">Item</span>.<span class="kw">self</span>) { group <span class="kw">in</span>
+        <span class="kw">for</span> id <span class="kw">in</span> ids {
+            group.addTask { <span class="kw">try</span> <span class="kw">await</span> api.fetchItem(id) }
+        }
+
+        <span class="kw">var</span> items: [<span class="tp">Item</span>] = []
+        <span class="kw">for</span> <span class="kw">try</span> <span class="kw">await</span> item <span class="kw">in</span> group {      <span class="cm">// yields in COMPLETION order</span>
+            items.append(item)
+        }
+        <span class="kw">return</span> items
+    }
+}</pre>
+
+    <div class="co co-note">
+      <strong>Throwing versus non-throwing groups:</strong> in <code>withThrowingTaskGroup</code>, the first child error cancels the remaining children and propagates. Use <code>withTaskGroup</code> with a <code>Result</code> payload when you want partial success instead.
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="patterns" data-toc-label="Patterns">
+    <h2><span class="sec-num">5</span> Patterns That Work</h2>
+
+    <h3>Preserve order by carrying the index</h3>
+    <p>A group yields results as they finish, not as they were added. If order matters, tag each result and sort afterwards.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Tag, collect, sort</span></div>
+    <pre class="swift"><span class="kw">try</span> <span class="kw">await</span> withThrowingTaskGroup(of: (offset: <span class="tp">Int</span>, item: <span class="tp">Item</span>).<span class="kw">self</span>) { group <span class="kw">in</span>
+    <span class="kw">for</span> (offset, id) <span class="kw">in</span> ids.enumerated() {
+        group.addTask { (offset, <span class="kw">try</span> <span class="kw">await</span> api.fetchItem(id)) }
+    }
+    <span class="kw">var</span> collected: [(offset: <span class="tp">Int</span>, item: <span class="tp">Item</span>)] = []
+    <span class="kw">for</span> <span class="kw">try</span> <span class="kw">await</span> pair <span class="kw">in</span> group { collected.append(pair) }
+    <span class="kw">return</span> collected.sorted { $0.offset &lt; $1.offset }.map(\.item)
+}</pre>
+
+    <h3>Bound the concurrency</h3>
+    <p>A thousand <code>addTask</code> calls means a thousand concurrent requests. Groups do not throttle for you — window the work explicitly.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">A sliding window of in-flight children</span></div>
+    <pre class="swift"><span class="kw">try</span> <span class="kw">await</span> withThrowingTaskGroup(of: <span class="tp">Item</span>.<span class="kw">self</span>) { group <span class="kw">in</span>
+    <span class="kw">var</span> index = <span class="nm">0</span>
+    <span class="kw">let</span> maxConcurrent = <span class="nm">5</span>
+
+    <span class="kw">while</span> index &lt; ids.count {
+        <span class="kw">if</span> index &gt;= maxConcurrent {
+            _ = <span class="kw">try</span> <span class="kw">await</span> group.next()    <span class="cm">// wait for one to finish first</span>
+        }
+        group.addTask { [id = ids[index]] <span class="kw">in</span> <span class="kw">try</span> <span class="kw">await</span> api.fetchItem(id) }
+        index += <span class="nm">1</span>
+    }
+    <span class="cm">// drain the rest...</span>
+}</pre>
+
+    <h3>Let cancellation propagate</h3>
+    <p>Cancelling the parent cancels every child automatically — no bookkeeping required. That inheritance is the main reason to prefer a structured construct over a bare <code>Task { }</code> whenever the work belongs to the current scope.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="antipatterns" data-toc-label="Anti-Patterns">
+    <h2><span class="sec-num">6</span> Anti-Patterns — and the fix</h2>
+
+    <h3>Sequential awaits for independent work</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Doubling latency for nothing</span></div>
+    <pre class="swift"><span class="cm">// WRONG: sequential - 200ms + 200ms = 400ms, though neither call</span>
+<span class="cm">// depends on the other's result.</span>
+<span class="kw">let</span> user = <span class="kw">try</span> <span class="kw">await</span> api.fetchUser(id)
+<span class="kw">let</span> posts = <span class="kw">try</span> <span class="kw">await</span> api.fetchPosts(userID: id)
+
+<span class="cm">// RIGHT: concurrent - max(200ms, 200ms) = 200ms.</span>
+<span class="kw">async</span> <span class="kw">let</span> user = api.fetchUser(id)
+<span class="kw">async</span> <span class="kw">let</span> posts = api.fetchPosts(userID: id)
+<span class="kw">let</span> profile = <span class="kw">try</span> <span class="kw">await</span> Profile(user: user, posts: posts)</pre>
+
+    <h3>Reaching for <code>Task.detached</code> to "run in the background"</h3>
+    <p>Detached loses cancellation propagation, priority, and isolation inheritance. It is not "the background version" of <code>Task { }</code> — it is an unparented root task, and it is the usual cause of "why is this suddenly off the main actor". Reserve it for genuinely independent, fire-and-forget work.</p>
+
+    <h3>Unbounded task groups over large collections</h3>
+    <p>Adding one child per element is correct only when the collection is small. For anything user-supplied or paginated, window it — otherwise you launch every request at once and may be rate-limited or run out of connections.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="pitfalls" data-toc-label="Pitfalls">
+    <h2><span class="sec-num">7</span> Pitfalls &amp; Gotchas</h2>
+
+    <div class="co co-pitfall">
+      <div class="co-pitfall-title">Structured concurrency details worth memorizing</div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">1.</span>
+        <span><strong>Every <code>async let</code> must be awaited, or the scope must exit.</strong> An unconsumed one is implicitly cancelled and awaited at scope exit — safe, but the work was wasted.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">2.</span>
+        <span><strong>Group results arrive out of order.</strong> Completion order, not submission order. Carry the index if it matters.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">3.</span>
+        <span><strong>A <code>Task { }</code> inside a function is not that function's child.</strong> The function can return while it is still running, so bound its lifetime yourself.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">4.</span>
+        <span><strong>The first error in a throwing group cancels its siblings.</strong> That is usually what you want — but if partial success is acceptable, use a non-throwing group with a <code>Result</code> element.</span>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="related" data-toc-label="Related Topics">
+    <h2><span class="sec-num">8</span> Related Topics</h2>
+
+    <div class="ref-grid">
+      <a class="xref-card" href="task_vs_thread_master.html">
+        <span class="ref-title">Task ≠ Thread</span>
+        <span class="ref-meta"><span class="ref-topics">Concurrency · Fundamentals</span></span>
+        <span class="ref-desc">What a task actually is, and why only four constructs create one — the prerequisite for understanding what "child task" means.</span>
+      </a>
+      <a class="xref-card" href="../patterns/cancellation_master.html">
+        <span class="ref-title">Cancellation</span>
+        <span class="ref-meta"><span class="ref-topics">Concurrency · Patterns</span></span>
+        <span class="ref-desc">What the automatic parent-to-child propagation actually does, where Apple places <code>checkCancellation()</code>, and when you do not need it at all.</span>
+      </a>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="sources" data-toc-label="Sources">
+    <h2><span class="sec-num">9</span> Sources</h2>
+
+    <ul>
+      <li><a href="https://github.com/swiftlang/swift-evolution/blob/main/proposals/0304-structured-concurrency.md">SE-0304 Structured Concurrency</a> — the definition of structured child tasks and their lifetime guarantees.</li>
+      <li>Apple WWDC23, <em>Beyond the basics of structured concurrency</em> — task group patterns, including where to place cancellation checks.</li>
+    </ul>
+  </section>
+
+  <div class="page-footer">
+    Study Wiki · Structured Concurrency · Concurrency Theory
+  </div>
+
+</main>
+</div>
+
+<script src="../../../../static/generated/manifest.js"></script>
+<script src="../../../../static/generated/nav.js"></script>
+<script src="../../../../static/generated/toc.js"></script>
+</body>
+</html>

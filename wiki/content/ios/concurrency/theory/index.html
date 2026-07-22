@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Concurrency Theory · Study Wiki</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Concurrency Theory",
+  "nav": "Concurrency Theory",
+  "topics": [
+    "Concurrency",
+    "Actors",
+    "Structured Concurrency",
+    "Cancellation"
+  ],
+  "blurb": "The Swift concurrency landing page — the execution model, isolation and data-race safety, and the applied patterns. Three sections, read in order."
+}
+</script>
+<link rel="stylesheet" href="../../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="hub">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+  <main class="content content-centered">
+
+    <h1 class="page-title">Concurrency Theory</h1>
+    <div class="page-meta">
+      <span>iOS</span>
+      <span>·</span>
+      <span>Swift Concurrency</span>
+      <span>·</span>
+      <span>Fundamentals · Isolation · Applied Patterns</span>
+    </div>
+
+    <div class="lead">
+      <p>Swift concurrency replaces a runtime discipline with a compile-time one. Under GCD, avoiding data races meant everyone remembering to take the right lock or hop to the right queue; under structured concurrency and actors, the compiler checks it. That shift is what makes the model worth learning properly rather than pattern-matching from the old one.</p>
+      <p>Two ideas do most of the work, and both invert a GCD assumption. A <strong>task is not a thread</strong> — it is an identity that the runtime schedules onto a small cooperative pool. And <strong>isolation, not threading</strong>, is what determines whether an access is safe.</p>
+    </div>
+
+    <div class="co co-when u-measure">
+      <strong>Where to start:</strong> <a href="fundamentals/task_vs_thread_master.html">Task ≠ Thread</a>. Almost every confusing behaviour in this area — a thread changing across an <code>await</code>, a cancellation check that seems to reach the wrong task, a deadlock from a semaphore — resolves once the execution model is clear.
+    </div>
+
+    <div class="hub-section-title">The three sections</div>
+    <div class="ref-grid">
+      <a class="xref-card" href="fundamentals/index.html">
+        <span class="ref-title">Fundamentals</span>
+        <span class="ref-meta"><span class="ref-topics">Tasks · Threads · Child Tasks</span></span>
+        <span class="ref-desc">The execution model. What a <code>Task</code> is, the cooperative thread pool beneath it, what happens at a suspension point, and the two constructs that create children with lifetimes bound to their parent scope.</span>
+      </a>
+      <a class="xref-card" href="isolation/index.html">
+        <span class="ref-title">Isolation &amp; Data Races</span>
+        <span class="ref-meta"><span class="ref-topics">Actors · Sendable · @MainActor</span></span>
+        <span class="ref-desc">How races are eliminated by construction. Actors serialize access to the state they own, <code>Sendable</code> governs what may cross between them — and actor reentrancy is the hazard that surprises people who assume a method is atomic.</span>
+      </a>
+      <a class="xref-card" href="patterns/index.html">
+        <span class="ref-title">Applied Patterns</span>
+        <span class="ref-meta"><span class="ref-topics">Cancellation · Streams · Bridging</span></span>
+        <span class="ref-desc">The techniques real code needs: cooperative cancellation and where to check it, iterating values that arrive over time, and bridging callback APIs into <code>await</code> — one value with a continuation, many with a stream.</span>
+      </a>
+    </div>
+
+    <div class="page-footer">
+      Study Wiki · Concurrency Theory · iOS
+    </div>
+
+  </main>
+</div>
+
+<script src="../../../static/generated/manifest.js"></script>
+<script src="../../../static/generated/nav.js"></script>
+<script src="../../../static/generated/toc.js"></script>
+</body>
+</html>

@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Task ≠ Thread · iOS Topic</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Task ≠ Thread",
+  "nav": "Task ≠ Thread",
+  "topics": [
+    "Concurrency",
+    "Tasks",
+    "Threads",
+    "Suspension"
+  ],
+  "blurb": "What a Task actually is, the cooperative thread pool underneath it, what happens at an await, and why calling an async function does not create a new task.",
+  "order": 1
+}
+</script>
+<link rel="stylesheet" href="../../../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="ios-topic">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<main class="content">
+
+  <h1 class="page-title">Task ≠ Thread</h1>
+  <div class="page-meta">
+    <span>iOS Topic</span><span>·</span>
+    <span>Swift Concurrency</span><span>·</span>
+    <span>The execution model, corrected</span>
+  </div>
+
+  <section id="lead" data-toc-label="Definition">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Section</div><div class="infobox-v"><a href="index.html">Concurrency Fundamentals</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Domain</div><div class="infobox-v"><a href="../index.html">Concurrency Theory</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Execution model — the layer beneath every <code>async</code> call</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v">A <code>Task</code> is an identity and context, not a thread. Same task, possibly different thread, across an <code>await</code>.</div></div>
+      <div class="infobox-row"><div class="infobox-k">Thread pool</div><div class="infobox-v">Cooperative, sized roughly to CPU core count — never blocked, never grown on demand</div></div>
+      <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"which thread am I on", "did that spawn a task", "is this still cancellable"</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key APIs</div><div class="infobox-v mono">Task { } · Task.detached · await</div></div>
+      <div class="infobox-row"><div class="infobox-k">Related</div><div class="infobox-v"><a href="structured_concurrency_master.html">Structured Concurrency</a> · Actors</div></div>
+    </div>
+
+    <div class="lead">
+      <p>A <code>Task</code> is <strong>not</strong> a wrapper around a thread and does not own one. It is the identity and context an async call chain runs under — priority, cancellation flag, parent and child relationships, task-local values. The runtime schedules it onto threads, but it never reserves one for the task's lifetime.</p>
+      <p>Getting this backwards is the root of most Swift concurrency confusion, because it is exactly the opposite of the GCD mental model where a queue implies fixed dispatch semantics.</p>
+    </div>
+
+    <div class="co co-idea">
+      <span class="co-idea-title">THE ONE IDEA</span>
+      Across an <code>await</code> you have the <strong>same Task</strong> — same identity, same cancellation flag, same priority — but potentially a <strong>different Thread</strong>. That single sentence resolves almost every "which thread am I on" question.
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="mental-model" data-toc-label="Mental Model">
+    <h2><span class="sec-num">2</span> Mental Model — how to think about it</h2>
+
+    <p>SE-0304 puts it directly: <em>"A task is the basic unit of concurrency in the system. Every asynchronous function is executing in a task,"</em> and <em>"A task runs one function at a time; a single task has no concurrency."</em></p>
+
+    <p>Threads still exist underneath, but neither you nor a task may claim one permanently:</p>
+
+    <pre class="ascii">COOPERATIVE THREAD POOL  (~ number of CPU cores)
+  +----------+  +----------+  +----------+  +----------+
+  | thread 1 |  | thread 2 |  | thread 3 |  | thread 4 |
+  +----------+  +----------+  +----------+  +----------+
+       ^             ^              ^
+       |             |              |
+   Task A        Task B         Task A again, after an await
+   (job 1)       (job 1)        (job 2) -- possibly a DIFFERENT thread</pre>
+    <div class="ascii-caption">A task is scheduled as a succession of <strong>jobs</strong>, each ending at a suspension point. Between jobs the thread goes back to the pool.</div>
+
+    <p>What happens mechanically at an <code>await</code>:</p>
+
+    <ol>
+      <li>Code before the <code>await</code> runs as a job, on whatever thread the pool assigned.</li>
+      <li>At the <code>await</code>, if the runtime needs to switch context — hopping onto an actor's executor, for instance — the job's state is captured as a <strong>continuation</strong>, the thread is released back to the pool, and the task is marked suspended.</li>
+      <li>When the awaited work completes, the continuation is re-scheduled as a new job, <strong>possibly on a different thread</strong>, but always the <strong>same Task</strong>.</li>
+    </ol>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="signals" data-toc-label="When It Applies">
+    <h2><span class="sec-num">3</span> When It Applies</h2>
+
+    <table class="t-clue">
+      <thead><tr><th>When you see…</th><th>The question this page answers</th></tr></thead>
+      <tbody>
+        <tr><td>"Is <code>Task.checkCancellation()</code> checking <em>my</em> task?"</td><td>Yes — an ordinary <code>async</code> call does not create a new one.</td></tr>
+        <tr><td>A semaphore wait or <code>Thread.sleep</code> inside async code</td><td>That blocks a pool thread every other task shares. Never do it.</td></tr>
+        <tr><td>"Why did my thread change mid-function?"</td><td>An <code>await</code> released the thread; resumption picked another.</td></tr>
+        <tr><td>Work that should be independent of its caller</td><td>Only <code>Task { }</code>, <code>Task.detached</code>, <code>group.addTask</code>, and <code>async let</code> create tasks.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="api" data-toc-label="The API">
+    <h2><span class="sec-num">4</span> The API — types, modifiers, signatures</h2>
+
+    <p>Only four things create a task. Everything else runs on the enclosing one:</p>
+
+    <table class="t-decoder">
+      <thead><tr><th>Creates a new task</th><th>Does <em>not</em></th></tr></thead>
+      <tbody>
+        <tr><td><code>Task { }</code></td><td><code>await someAsyncFunction()</code></td></tr>
+        <tr><td><code>Task.detached { }</code></td><td>Nested async calls</td></tr>
+        <tr><td><code>group.addTask { }</code></td><td>Async calls inside a <code>for</code> loop</td></tr>
+        <tr><td><code>async let</code></td><td>Any ordinary control flow</td></tr>
+      </tbody>
+    </table>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">One task, several async calls</span></div>
+    <pre class="swift">.task(id: searchText) {              <span class="cm">// Task A created HERE - the only new task</span>
+    <span class="kw">try</span> <span class="kw">await</span> <span class="tp">Task</span>.sleep(...)        <span class="cm">// suspension point, still Task A</span>
+    <span class="kw">await</span> viewModel.search(matching: searchText)  <span class="cm">// NOT a new task, still Task A</span>
+}
+
+<span class="kw">func</span> <span class="fn">search</span>(matching query: <span class="tp">String</span>) <span class="kw">async</span> <span class="kw">throws</span> -&gt; [<span class="tp">Item</span>] {
+    <span class="kw">try</span> <span class="tp">Task</span>.checkCancellation()     <span class="cm">// asks: is Task A cancelled?</span>
+    ...
+}</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="patterns" data-toc-label="Patterns">
+    <h2><span class="sec-num">5</span> Patterns That Work</h2>
+
+    <h3>Suspend, never block</h3>
+    <p>Tasks cooperate by suspending at <code>await</code> and giving the thread back. That is the entire contract, and it is why the pool can be small. Any synchronous block starves every other task in the process.</p>
+
+    <h3>Prefer <code>Task { }</code> over <code>Task.detached</code></h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Inheritance is usually what you want</span></div>
+    <pre class="swift"><span class="tp">Task</span> {                    <span class="cm">// INHERITS priority, task-locals, and actor context</span>
+    <span class="kw">await</span> viewModel.load()
+}
+
+<span class="tp">Task</span>.detached {           <span class="cm">// inherits NOTHING - a fresh root task</span>
+    <span class="kw">await</span> backgroundCleanup()
+}</pre>
+
+    <p><code>Task { }</code> inside a <code>@MainActor</code> type stays on the main actor; <code>Task.detached</code> does not, which is the source of "why is this suddenly off the main actor" bugs. Reach for detached only for genuinely independent, fire-and-forget work.</p>
+
+    <h3>Rely on task identity for cancellation</h3>
+    <p>Because an ordinary <code>async</code> call stays on the enclosing task, a cancellation check deep inside a helper function is asking about the task that started the whole chain. That is what makes cooperative cancellation composable.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="antipatterns" data-toc-label="Anti-Patterns">
+    <h2><span class="sec-num">6</span> Anti-Patterns — and the fix</h2>
+
+    <h3>Blocking a cooperative pool thread</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Starving a shared resource</span></div>
+    <pre class="swift"><span class="cm">// WRONG: this holds a pool thread hostage. The pool is sized to core</span>
+<span class="cm">// count, so a handful of these can deadlock the whole process.</span>
+<span class="kw">func</span> <span class="fn">load</span>() <span class="kw">async</span> {
+    <span class="kw">let</span> semaphore = DispatchSemaphore(value: <span class="nm">0</span>)
+    legacyFetch { semaphore.signal() }
+    semaphore.wait()                     <span class="cm">// blocks the thread</span>
+}
+
+<span class="cm">// RIGHT: suspend instead of blocking - bridge the callback properly.</span>
+<span class="kw">func</span> <span class="fn">load</span>() <span class="kw">async</span> {
+    <span class="kw">await</span> withCheckedContinuation { continuation <span class="kw">in</span>
+        legacyFetch { continuation.resume() }
+    }
+}</pre>
+
+    <h3>Assuming <code>Task { }</code> is structured</h3>
+    <p>Neither <code>Task { }</code> nor <code>Task.detached</code> is structured. A <code>Task { }</code> created inside a function is <em>not</em> a child of that function's task, so the function can return while it is still running. If its lifetime should be bounded, store it and cancel it.</p>
+
+    <h3>Reasoning about threads instead of isolation</h3>
+    <p>"Which thread is this on" is almost never the useful question. The useful one is "which actor is this isolated to" — that is what the compiler enforces and what determines whether an access is safe.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="pitfalls" data-toc-label="Pitfalls">
+    <h2><span class="sec-num">7</span> Pitfalls &amp; Gotchas</h2>
+
+    <div class="co co-pitfall">
+      <div class="co-pitfall-title">Model mismatches worth memorizing</div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">1.</span>
+        <span><strong>The pool does not grow on demand.</strong> Unlike GCD, it is sized roughly to core count. Blocking is not "slower" — it can deadlock.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">2.</span>
+        <span><strong>A thread change across an <code>await</code> is normal.</strong> It is not a bug and not something to route around.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">3.</span>
+        <span><strong>Calling an <code>async</code> function is ordinary control flow.</strong> No task is created, so cancellation and priority flow straight through.</span>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="related" data-toc-label="Related Topics">
+    <h2><span class="sec-num">8</span> Related Topics</h2>
+
+    <div class="ref-grid">
+      <a class="xref-card" href="structured_concurrency_master.html">
+        <span class="ref-title">Structured Concurrency</span>
+        <span class="ref-meta"><span class="ref-topics">Concurrency · Fundamentals</span></span>
+        <span class="ref-desc">The two constructs that <em>do</em> create children with bounded lifetimes — <code>async let</code> and task groups — and what <code>Task.detached</code> gives up.</span>
+      </a>
+      <a class="xref-card" href="../isolation/actors_master.html">
+        <span class="ref-title">Actors</span>
+        <span class="ref-meta"><span class="ref-topics">Concurrency · Isolation</span></span>
+        <span class="ref-desc">The question worth asking instead of "which thread": which actor is this isolated to, and what happens at each suspension point inside it.</span>
+      </a>
+      <a class="xref-card" href="../patterns/cancellation_master.html">
+        <span class="ref-title">Cancellation</span>
+        <span class="ref-meta"><span class="ref-topics">Concurrency · Patterns</span></span>
+        <span class="ref-desc">Why a check deep inside a helper still refers to the outermost task, and where Apple places <code>checkCancellation()</code>.</span>
+      </a>
+      <a class="xref-card" href="../patterns/continuations_master.html">
+        <span class="ref-title">Continuations</span>
+        <span class="ref-meta"><span class="ref-topics">Concurrency · Patterns</span></span>
+        <span class="ref-desc">The correct way to wait for a callback: suspend rather than block, so the cooperative pool thread is released instead of held.</span>
+      </a>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="sources" data-toc-label="Sources">
+    <h2><span class="sec-num">9</span> Sources</h2>
+
+    <ul>
+      <li><a href="https://github.com/swiftlang/swift-evolution/blob/main/proposals/0304-structured-concurrency.md">SE-0304 Structured Concurrency</a> — the definitions of task, job, and suspension point quoted above, and the statement that tasks require no special scheduling support from the underlying thread system.</li>
+      <li>Apple WWDC21, <em>Swift concurrency: Behind the scenes</em> — the cooperative thread pool, its sizing, and why blocking is prohibited.</li>
+    </ul>
+  </section>
+
+  <div class="page-footer">
+    Study Wiki · Task ≠ Thread · Concurrency Theory
+  </div>
+
+</main>
+</div>
+
+<script src="../../../../static/generated/manifest.js"></script>
+<script src="../../../../static/generated/nav.js"></script>
+<script src="../../../../static/generated/toc.js"></script>
+</body>
+</html>
