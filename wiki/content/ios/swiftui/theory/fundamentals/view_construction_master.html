@@ -3,15 +3,18 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>TODO Title · iOS Topic</title>
+<title>View Construction · iOS Topic</title>
 <script type="application/json" data-page-meta>
 {
-  "title": "TODO Title",
-  "nav": "TODO",
+  "title": "View Construction",
+  "nav": "View Construction",
   "topics": [
-    "TODO"
+    "SwiftUI",
+    "ViewBuilder",
+    "Result Builders"
   ],
-  "blurb": "TODO — one line for the hub card."
+  "blurb": "What @ViewBuilder actually is, when you genuinely need it, and the honest answer to whether a helper function costs anything versus extracting a separate View struct.",
+  "order": 2
 }
 </script>
 <link rel="stylesheet" href="../../../../static/wiki.css">
@@ -25,76 +28,209 @@
 
 <main class="content">
 
-  <h1 class="page-title">TODO Title</h1>
+  <h1 class="page-title">View Construction</h1>
   <div class="page-meta">
     <span>iOS Topic</span><span>·</span>
-    <span>TODO — topic line</span>
+    <span>SwiftUI</span><span>·</span>
+    <span><code>@ViewBuilder</code> versus a separate <code>View</code> struct</span>
   </div>
 
   <section id="lead" data-toc-label="Definition">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Section</div><div class="infobox-v"><a href="index.html">SwiftUI Fundamentals</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Domain</div><div class="infobox-v"><a href="../index.html">SwiftUI Theory</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Compile-time transform — a result builder, not a runtime feature</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v">Rewrites a block of view statements into one concrete generic type, satisfying <code>some View</code></div></div>
+      <div class="infobox-row"><div class="infobox-k">Need it when</div><div class="infobox-v">The body branches (<code>if</code>/<code>switch</code>) or has more than one top-level view</div></div>
+      <div class="infobox-row"><div class="infobox-k">Costs</div><div class="infobox-v">Nothing at runtime — no boxing, no dynamic dispatch</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key APIs</div><div class="infobox-v mono">@ViewBuilder · @resultBuilder · TupleView</div></div>
+      <div class="infobox-row"><div class="infobox-k">Related</div><div class="infobox-v"><a href="view_identity_master.html">View Identity</a> · State Ownership</div></div>
+    </div>
+
     <div class="lead">
-      <p>TODO — opening definition / problem restatement.</p>
+      <p><code>@ViewBuilder</code> is a <strong>result builder</strong> — the same language feature behind SwiftData's query builders. Marking a function or computed property with it rewrites the block's statements into calls on a hidden builder type's static methods: <code>buildBlock</code>, <code>buildEither(first:second:)</code>, <code>buildOptional</code>, <code>buildArray</code>.</p>
+      <p>The result is that a block which <em>looks</em> like several statements resolves to <strong>one concrete type at compile time</strong> — which is what lets it satisfy <code>some View</code>. It is a pure syntactic transform: the attribute itself adds no runtime cost, no boxing, and no dynamic dispatch.</p>
+    </div>
+
+    <div class="co co-idea">
+      <span class="co-idea-title">THE ONE IDEA</span>
+      A <code>@ViewBuilder</code> helper function and an extracted <code>View</code> struct produce <strong>the same render tree</strong>. The performance question people mean to ask is not about the attribute — it is about what <em>branching</em> does to view identity.
     </div>
   </section>
 
   <hr class="wiki-hr">
 
   <section id="mental-model" data-toc-label="Mental Model">
-    <h2>2 &nbsp; Mental Model — how to think about it</h2>
-    <p>TODO</p>
+    <h2><span class="sec-num">2</span> Mental Model — how to think about it</h2>
+
+    <p>Think of <code>@ViewBuilder</code> as a compiler that collapses a list of views into a single nested type. Each construct maps to a wrapper:</p>
+
+    <table class="t-decoder">
+      <thead><tr><th>You write</th><th>The builder produces</th></tr></thead>
+      <tbody>
+        <tr><td>Two or more statements in a row</td><td><code>TupleView&lt;(A, B)&gt;</code></td></tr>
+        <tr><td><code>if</code> / <code>else</code></td><td><code>_ConditionalContent&lt;TrueContent, FalseContent&gt;</code></td></tr>
+        <tr><td><code>if</code> with no <code>else</code></td><td><code>Optional&lt;Content&gt;</code></td></tr>
+        <tr><td><code>for</code> in a <code>ForEach</code></td><td>An array-backed view</td></tr>
+      </tbody>
+    </table>
+
+    <p>Every one of those is a concrete generic type known at compile time. Nothing is erased, nothing is boxed — which is why the attribute costs nothing at runtime, and why an <code>if/else</code> produces <em>two different types</em>. That second fact is the whole basis of <a href="view_identity_master.html">view identity</a>.</p>
   </section>
 
   <hr class="wiki-hr">
 
   <section id="signals" data-toc-label="When It Applies">
-    <h2>3 &nbsp; When It Applies</h2>
-    <p>TODO</p>
+    <h2><span class="sec-num">3</span> When It Applies</h2>
+
+    <p>You need <code>@ViewBuilder</code> in exactly one circumstance: <strong>the body has branching or more than one top-level view expression.</strong></p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">One expression versus branching</span></div>
+    <pre class="swift"><span class="cm">// No @ViewBuilder needed — a single expression is already one type.</span>
+<span class="kw">private</span> <span class="kw">func</span> <span class="fn">title</span>(text: <span class="tp">String</span>) -&gt; <span class="kw">some</span> <span class="tp">View</span> {
+    <span class="tp">Text</span>(text).font(.title)
+}
+
+<span class="cm">// @ViewBuilder needed — the branches produce different types.</span>
+<span class="kw">@ViewBuilder</span>
+<span class="kw">private</span> <span class="kw">func</span> <span class="fn">badge</span>(isActive: <span class="tp">Bool</span>) -&gt; <span class="kw">some</span> <span class="tp">View</span> {
+    <span class="kw">if</span> isActive {
+        <span class="tp">Text</span>(<span class="st">"Active"</span>).foregroundStyle(.green)
+    } <span class="kw">else</span> {
+        <span class="tp">Text</span>(<span class="st">"Inactive"</span>).foregroundStyle(.gray)
+    }
+}</pre>
+
+    <p><strong>Should you mark it "just in case"?</strong> There is no performance reason not to — on a single-expression body the attribute is inert. But it is not free information either: it signals "this might branch" to a reader when it does not. Add it exactly when the body needs it.</p>
   </section>
 
   <hr class="wiki-hr">
 
   <section id="api" data-toc-label="The API">
-    <h2>4 &nbsp; The API — types, modifiers, signatures</h2>
-    <p>TODO</p>
+    <h2><span class="sec-num">4</span> The API — types, modifiers, signatures</h2>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The builder methods the transform calls</span></div>
+    <pre class="swift"><span class="cm">// @ViewBuilder is an instance of Swift's @resultBuilder feature. The</span>
+<span class="cm">// compiler rewrites a marked block into calls on these:</span>
+<span class="kw">static</span> <span class="kw">func</span> <span class="fn">buildBlock</span>&lt;...&gt;(...) -&gt; <span class="tp">TupleView</span>&lt;...&gt;
+<span class="kw">static</span> <span class="kw">func</span> <span class="fn">buildEither</span>(first: ...) -&gt; _ConditionalContent&lt;...&gt;
+<span class="kw">static</span> <span class="kw">func</span> <span class="fn">buildEither</span>(second: ...) -&gt; _ConditionalContent&lt;...&gt;
+<span class="kw">static</span> <span class="kw">func</span> <span class="fn">buildOptional</span>(...) -&gt; ...
+<span class="kw">static</span> <span class="kw">func</span> <span class="fn">buildArray</span>(...) -&gt; ...</pre>
+
+    <div class="co co-note">
+      <strong>Constraint:</strong> <code>@ViewBuilder</code> requires the function or property to return <code>some View</code> (or an explicit concrete/opaque view type). It does not work on arbitrary return types.
+    </div>
   </section>
 
   <hr class="wiki-hr">
 
   <section id="patterns" data-toc-label="Patterns">
-    <h2>5 &nbsp; Patterns That Work</h2>
-    <p>TODO</p>
+    <h2><span class="sec-num">5</span> Patterns That Work</h2>
+
+    <h3>A private helper function for view code used in one place</h3>
+    <p>If a chunk of view code is strictly for use inside the struct where it is declared, a <code>@ViewBuilder</code> function is the lower-boilerplate choice and costs nothing.</p>
+
+    <h3>A separate <code>struct</code> when you need what a struct gives you</h3>
+    <p>Extract to a <code>View</code> struct when you want one of three things a function cannot provide:</p>
+
+    <table class="t-versus">
+      <thead><tr><th>You need…</th><th>Why a function cannot do it</th></tr></thead>
+      <tbody>
+        <tr><td>Local <code>@State</code> or <code>@StateObject</code></td><td>State requires a durable, SwiftUI-tracked identity slot tied to a <code>View</code> conformer's position in the tree. A function has no such slot, so state inside one does not persist correctly. <strong>This is the real constraint.</strong></td></tr>
+        <tr><td>Reuse from another file or screen</td><td>A private function is scoped to its enclosing type.</td></tr>
+        <tr><td>An independent preview, or a unit test</td><td>Both need a nameable type to instantiate.</td></tr>
+      </tbody>
+    </table>
   </section>
 
   <hr class="wiki-hr">
 
   <section id="antipatterns" data-toc-label="Anti-Patterns">
-    <h2>6 &nbsp; Anti-Patterns — and the fix</h2>
-    <p>TODO</p>
+    <h2><span class="sec-num">6</span> Anti-Patterns — and the fix</h2>
+
+    <h3>Extracting a struct "for performance"</h3>
+    <p>A <code>@ViewBuilder</code>-marked private function called directly in <code>body</code> produces <strong>the same render tree</strong> as extracting that content into a separate <code>struct: View</code>. SwiftUI's diffing is structural — based on the type and position of the resulting view nodes, not on whether a function or a struct's <code>body</code> produced them. Both expand to an identical hierarchy, so there is no meaningful update-skip difference.</p>
+
+    <div class="co co-note">
+      <strong>Correction worth recording:</strong> an earlier version of these notes claimed a <code>@ViewBuilder</code> func has "no independent identity" and is diffed inline with its parent, implying a real cost. <strong>That was wrong</strong> for the common case. The primary source — <em>Thinking in SwiftUI</em> (objc.io) — states directly that there is no performance benefit to a separate struct over a helper function, because the render tree does not change.
+    </div>
+
+    <h3>Putting <code>@State</code> inside a <code>@ViewBuilder</code> function</h3>
+    <p>This is the one place the func-versus-struct choice genuinely bites, and it is a correctness issue rather than a performance one.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">State needs a struct</span></div>
+    <pre class="swift"><span class="cm">// WRONG: a function has no identity slot for SwiftUI to store state</span>
+<span class="cm">// against, so this does not persist across redraws the way you expect.</span>
+<span class="kw">@ViewBuilder</span>
+<span class="kw">private</span> <span class="kw">func</span> <span class="fn">expandableSection</span>() -&gt; <span class="kw">some</span> <span class="tp">View</span> {
+    <span class="kw">@State</span> <span class="kw">var</span> isExpanded = <span class="kw">false</span>   <span class="cm">// does not work</span>
+    ...
+}
+
+<span class="cm">// RIGHT: a struct conformer has a real position in the view tree, and</span>
+<span class="cm">// therefore a durable storage slot.</span>
+<span class="kw">private</span> <span class="kw">struct</span> ExpandableSection: <span class="tp">View</span> {
+    <span class="kw">@State</span> <span class="kw">private</span> <span class="kw">var</span> isExpanded = <span class="kw">false</span>
+    <span class="kw">var</span> body: <span class="kw">some</span> <span class="tp">View</span> { ... }
+}</pre>
+
+    <h3>Re-evaluating stored builder closures on every redraw</h3>
+    <p>Distinct from a plain private func called inline. If <code>@ViewBuilder</code> content is captured as a closure and stored — for example a container that holds it as <code>() -&gt; some View</code> — it re-runs on every <code>body</code> recompute. Captured once in an <code>init</code>, it is not re-evaluated later.</p>
   </section>
 
   <hr class="wiki-hr">
 
   <section id="pitfalls" data-toc-label="Pitfalls">
-    <h2>7 &nbsp; Pitfalls &amp; Gotchas</h2>
-    <p>TODO</p>
+    <h2><span class="sec-num">7</span> Pitfalls &amp; Gotchas</h2>
+
+    <div class="co co-pitfall">
+      <div class="co-pitfall-title">The question behind the question</div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">→</span>
+        <span>When someone asks "is a <code>@ViewBuilder</code> func slower than a struct?", the concern they actually have is almost always about <strong>view identity</strong> — what branching does to state and animations. That is a real effect with real consequences, and it is covered in <a href="view_identity_master.html">View Identity</a>. The attribute itself is not the variable.</span>
+      </div>
+    </div>
+
+    <ul>
+      <li><strong>The attribute requires an opaque or concrete view return type.</strong> It cannot be applied to a function returning something that is not a view.</li>
+      <li><strong>Marking every helper <code>@ViewBuilder</code> is noise.</strong> It is inert on single-expression bodies, but it tells a reader "expect branching here" — misleading when there is none.</li>
+    </ul>
   </section>
 
   <hr class="wiki-hr">
 
   <section id="related" data-toc-label="Related Topics">
-    <h2>8 &nbsp; Related Topics</h2>
-    <p>TODO</p>
+    <h2><span class="sec-num">8</span> Related Topics</h2>
+
+    <div class="ref-grid">
+      <a class="xref-card" href="view_identity_master.html">
+        <span class="ref-title">View Identity</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · Identity</span></span>
+        <span class="ref-desc">The topic people are really asking about when they ask about <code>@ViewBuilder</code> performance. <code>_ConditionalContent</code> — produced by the builder for every <code>if/else</code> — is exactly why branching resets state.</span>
+      </a>
+      <span class="xref-card xref-coming">
+        <span class="ref-title">State Ownership</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · State</span></span>
+        <span class="ref-desc">Why <code>@State</code> needs a struct conformer's identity slot, and where a view model should live instead.</span>
+      </span>
+    </div>
   </section>
 
   <hr class="wiki-hr">
 
   <section id="sources" data-toc-label="Sources">
-    <h2>9 &nbsp; Sources</h2>
-    <p>TODO</p>
+    <h2><span class="sec-num">9</span> Sources</h2>
+
+    <ul>
+      <li><strong>Thinking in SwiftUI</strong> (objc.io) — the primary source for the central claim: no performance benefit to a separate struct over a helper function, because the render tree does not change.</li>
+      <li>SwiftLee / Fernando Olivares — "if the subview is strictly for use inside the struct where the function is declared, a <code>@ViewBuilder</code> function makes more sense."</li>
+    </ul>
   </section>
 
   <div class="page-footer">
-    TODO Title
+    Study Wiki · View Construction · SwiftUI Theory
   </div>
 
 </main>

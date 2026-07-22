@@ -164,20 +164,32 @@ const WIKI_MANIFEST = {
               "hubPath": "ios/swiftui/theory/fundamentals/index.html",
               "pagePaths": [
                 "ios/swiftui/theory/fundamentals/view_identity_master.html",
-                "ios/swiftui/theory/fundamentals/view_construction_master.html"
+                "ios/swiftui/theory/fundamentals/view_construction_master.html",
+                "ios/swiftui/theory/fundamentals/layout_system_master.html"
               ]
             },
             {
               "identifier": "state",
               "label": "State & Data Flow",
               "hubPath": "ios/swiftui/theory/state/index.html",
-              "pagePaths": []
+              "pagePaths": [
+                "ios/swiftui/theory/state/state_ownership_master.html",
+                "ios/swiftui/theory/state/data_flow_master.html",
+                "ios/swiftui/theory/state/view_state_enum_master.html"
+              ]
             },
             {
               "identifier": "screens",
               "label": "Building Screens",
               "hubPath": "ios/swiftui/theory/screens/index.html",
-              "pagePaths": []
+              "pagePaths": [
+                "ios/swiftui/theory/screens/navigation_master.html",
+                "ios/swiftui/theory/screens/lists_master.html",
+                "ios/swiftui/theory/screens/modals_master.html",
+                "ios/swiftui/theory/screens/search_master.html",
+                "ios/swiftui/theory/screens/lifecycle_master.html",
+                "ios/swiftui/theory/screens/formatting_images_master.html"
+              ]
             }
           ],
           "pagePaths": []
@@ -223,21 +235,42 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
+    "ios/swiftui/theory/fundamentals/layout_system_master.html": {
+      "path": "ios/swiftui/theory/fundamentals/layout_system_master.html",
+      "domain": "ios",
+      "category": "swiftui-theory",
+      "section": "fundamentals",
+      "role": "deep-dive",
+      "title": "The Layout System",
+      "nav": "Layout System",
+      "topics": [
+        "SwiftUI",
+        "Layout",
+        "Frames",
+        "GeometryReader"
+      ],
+      "blurb": "Parent proposes, child chooses, parent positions — the three-step negotiation that explains every \"why is my view the wrong size\" question, plus frames, fixedSize, Spacer, and GeometryReader's greediness.",
+      "difficulty": null,
+      "problemNumber": null,
+      "order": 3
+    },
     "ios/swiftui/theory/fundamentals/view_construction_master.html": {
       "path": "ios/swiftui/theory/fundamentals/view_construction_master.html",
       "domain": "ios",
       "category": "swiftui-theory",
       "section": "fundamentals",
       "role": "deep-dive",
-      "title": "TODO Title",
-      "nav": "TODO",
+      "title": "View Construction",
+      "nav": "View Construction",
       "topics": [
-        "TODO"
+        "SwiftUI",
+        "ViewBuilder",
+        "Result Builders"
       ],
-      "blurb": "TODO — one line for the hub card.",
+      "blurb": "What @ViewBuilder actually is, when you genuinely need it, and the honest answer to whether a helper function costs anything versus extracting a separate View struct.",
       "difficulty": null,
       "problemNumber": null,
-      "order": null
+      "order": 2
     },
     "ios/swiftui/theory/fundamentals/view_identity_master.html": {
       "path": "ios/swiftui/theory/fundamentals/view_identity_master.html",
@@ -278,6 +311,25 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
+    "ios/swiftui/theory/screens/formatting_images_master.html": {
+      "path": "ios/swiftui/theory/screens/formatting_images_master.html",
+      "domain": "ios",
+      "category": "swiftui-theory",
+      "section": "screens",
+      "role": "deep-dive",
+      "title": "Formatting & Images",
+      "nav": "Formatting & Images",
+      "topics": [
+        "SwiftUI",
+        "AsyncImage",
+        "Text",
+        "Formatting"
+      ],
+      "blurb": "Currency and number formatting, sizing AsyncImage correctly (and why .resizable needs the closure form), and the truncation and centring traps in multiline text.",
+      "difficulty": null,
+      "problemNumber": null,
+      "order": 6
+    },
     "ios/swiftui/theory/screens/index.html": {
       "path": "ios/swiftui/theory/screens/index.html",
       "domain": "ios",
@@ -298,6 +350,120 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
+    "ios/swiftui/theory/screens/lifecycle_master.html": {
+      "path": "ios/swiftui/theory/screens/lifecycle_master.html",
+      "domain": "ios",
+      "category": "swiftui-theory",
+      "section": "screens",
+      "role": "deep-dive",
+      "title": "App Lifecycle",
+      "nav": "App Lifecycle",
+      "topics": [
+        "SwiftUI",
+        "ScenePhase",
+        "AppDelegate",
+        "Persistence"
+      ],
+      "blurb": "Three separate lifecycles and the tool for each: the AppDelegate for the process, scenePhase for the window, and .task/onAppear for a view — plus why you persist on .inactive, never onDisappear.",
+      "difficulty": null,
+      "problemNumber": null,
+      "order": 5
+    },
+    "ios/swiftui/theory/screens/lists_master.html": {
+      "path": "ios/swiftui/theory/screens/lists_master.html",
+      "domain": "ios",
+      "category": "swiftui-theory",
+      "section": "screens",
+      "role": "deep-dive",
+      "title": "Lists",
+      "nav": "Lists",
+      "topics": [
+        "SwiftUI",
+        "List",
+        "Refreshable",
+        "Separators"
+      ],
+      "blurb": "Keeping a List's background stable when it empties, separating initial load from refresh to avoid the empty flash, and making row separators span the full width.",
+      "difficulty": null,
+      "problemNumber": null,
+      "order": 2
+    },
+    "ios/swiftui/theory/screens/modals_master.html": {
+      "path": "ios/swiftui/theory/screens/modals_master.html",
+      "domain": "ios",
+      "category": "swiftui-theory",
+      "section": "screens",
+      "role": "deep-dive",
+      "title": "Modals",
+      "nav": "Modals",
+      "topics": [
+        "SwiftUI",
+        "Sheets",
+        "Alerts",
+        "Detents"
+      ],
+      "blurb": "Sheets, full-screen covers, alerts and confirmation dialogs — why item: beats isPresented:, how dismissal works from the child, and the one-presentation-per-view rule.",
+      "difficulty": null,
+      "problemNumber": null,
+      "order": 3
+    },
+    "ios/swiftui/theory/screens/navigation_master.html": {
+      "path": "ios/swiftui/theory/screens/navigation_master.html",
+      "domain": "ios",
+      "category": "swiftui-theory",
+      "section": "screens",
+      "role": "deep-dive",
+      "title": "Navigation",
+      "nav": "Navigation",
+      "topics": [
+        "SwiftUI",
+        "NavigationStack",
+        "Routing",
+        "Coordinator"
+      ],
+      "blurb": "NavigationStack's root-versus-path split, why setting the path never replaces the root, where .navigationDestination must be attached, and the injected navigator pattern.",
+      "difficulty": null,
+      "problemNumber": null,
+      "order": 1
+    },
+    "ios/swiftui/theory/screens/search_master.html": {
+      "path": "ios/swiftui/theory/screens/search_master.html",
+      "domain": "ios",
+      "category": "swiftui-theory",
+      "section": "screens",
+      "role": "deep-dive",
+      "title": "Search",
+      "nav": "Search",
+      "topics": [
+        "SwiftUI",
+        "Searchable",
+        "Debouncing",
+        "Cancellation"
+      ],
+      "blurb": "The .searchable modifier, why it must live inside a NavigationStack, and debouncing keystrokes with .task(id:) — a whole Combine pipeline replaced by cancellation semantics.",
+      "difficulty": null,
+      "problemNumber": null,
+      "order": 4
+    },
+    "ios/swiftui/theory/state/data_flow_master.html": {
+      "path": "ios/swiftui/theory/state/data_flow_master.html",
+      "domain": "ios",
+      "category": "swiftui-theory",
+      "section": "state",
+      "role": "deep-dive",
+      "title": "Data Flow",
+      "nav": "Data Flow",
+      "topics": [
+        "SwiftUI",
+        "Binding",
+        "PreferenceKey",
+        "Environment"
+      ],
+      "blurb": "Four directions state can travel and the distinct tool for each: Binding down, closures up, PreferenceKey up through layout, and Environment down to any descendant.",
+      "difficulty": null,
+      "problemNumber": null,
+      "order": 2
+    },
     "ios/swiftui/theory/state/index.html": {
       "path": "ios/swiftui/theory/state/index.html",
       "domain": "ios",
@@ -316,6 +482,44 @@ const WIKI_MANIFEST = {
       "difficulty": null,
       "problemNumber": null,
       "order": null
+    },
+    "ios/swiftui/theory/state/state_ownership_master.html": {
+      "path": "ios/swiftui/theory/state/state_ownership_master.html",
+      "domain": "ios",
+      "category": "swiftui-theory",
+      "section": "state",
+      "role": "deep-dive",
+      "title": "State Ownership",
+      "nav": "State Ownership",
+      "topics": [
+        "SwiftUI",
+        "StateObject",
+        "Dependency Injection",
+        "Observable"
+      ],
+      "blurb": "Where a view model should live, injecting it without the double-init bug, keeping real work out of init, and the 2x redraw skip that observing the wrong thing throws away.",
+      "difficulty": null,
+      "problemNumber": null,
+      "order": 1
+    },
+    "ios/swiftui/theory/state/view_state_enum_master.html": {
+      "path": "ios/swiftui/theory/state/view_state_enum_master.html",
+      "domain": "ios",
+      "category": "swiftui-theory",
+      "section": "state",
+      "role": "deep-dive",
+      "title": "View State as an Enum",
+      "nav": "View State as an Enum",
+      "topics": [
+        "SwiftUI",
+        "State Modelling",
+        "Enums",
+        "Type Safety"
+      ],
+      "blurb": "Replacing parallel booleans with one enum so invalid states are unrepresentable, and why the in-flight case should carry the data it is operating on.",
+      "difficulty": null,
+      "problemNumber": null,
+      "order": 3
     },
     "leetcode/reference/cheatsheet.html": {
       "path": "leetcode/reference/cheatsheet.html",

@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modals · iOS Topic</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Modals",
+  "nav": "Modals",
+  "topics": [
+    "SwiftUI",
+    "Sheets",
+    "Alerts",
+    "Detents"
+  ],
+  "blurb": "Sheets, full-screen covers, alerts and confirmation dialogs — why item: beats isPresented:, how dismissal works from the child, and the one-presentation-per-view rule.",
+  "order": 3
+}
+</script>
+<link rel="stylesheet" href="../../../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="ios-topic">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<main class="content">
+
+  <h1 class="page-title">Modals</h1>
+  <div class="page-meta">
+    <span>iOS Topic</span><span>·</span>
+    <span>SwiftUI</span><span>·</span>
+    <span>Sheets, covers, alerts, and dialogs</span>
+  </div>
+
+  <section id="lead" data-toc-label="Definition">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Section</div><div class="infobox-v"><a href="index.html">Building Screens</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Domain</div><div class="infobox-v"><a href="../index.html">SwiftUI Theory</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Screen-level API — presentation rather than stack navigation</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v">Drive presentation from the <em>data</em> (<code>item:</code>), not from a separate boolean</div></div>
+      <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"the sheet shows stale content", "my second sheet never appears", "the sheet is empty"</div></div>
+      <div class="infobox-row"><div class="infobox-k">Hard rule</div><div class="infobox-v">One presentation modifier per view — a second silently wins</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key APIs</div><div class="infobox-v mono">.sheet · .fullScreenCover · .alert · .confirmationDialog · .presentationDetents</div></div>
+      <div class="infobox-row"><div class="infobox-k">Related</div><div class="infobox-v"><a href="navigation_master.html">Navigation</a> · <a href="../state/view_state_enum_master.html">View State as an Enum</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p>Modal presentation covers four APIs that share one shape: a binding drives whether something is shown. <code>.sheet</code> and <code>.fullScreenCover</code> present a whole screen; <code>.alert</code> confirms a single action; <code>.confirmationDialog</code> offers a choice among several.</p>
+      <p>The decision that matters most is which <em>kind</em> of binding drives them. A boolean says "show something"; an optional item says "show <em>this</em>" — and only the second makes it impossible to present before the content exists.</p>
+    </div>
+
+    <div class="co co-idea">
+      <span class="co-idea-title">THE ONE IDEA</span>
+      Prefer <code>item:</code> over <code>isPresented:</code> whenever the content depends on data. The boolean form lets you set the flag and the item separately, so the sheet can appear before the item is assigned — showing stale or empty content. The <code>item:</code> form makes that state <strong>unrepresentable</strong>.
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="mental-model" data-toc-label="Mental Model">
+    <h2><span class="sec-num">2</span> Mental Model — how to think about it</h2>
+
+    <p>A modal is not part of the navigation stack. It is presented <em>over</em> the current context, which has two consequences people trip on: the presenter's <code>NavigationStack</code> does not extend into it, and on older iOS versions its environment is not fully inherited.</p>
+
+    <table class="t-decoder">
+      <thead><tr><th>Binding style</th><th>What it can express</th></tr></thead>
+      <tbody>
+        <tr><td><code>isPresented: Binding&lt;Bool&gt;</code></td><td>"Show something." Whether the content is ready is a separate, uncoordinated fact.</td></tr>
+        <tr><td><code>item: Binding&lt;Item?&gt;</code></td><td>"Show this item." Presentation and content are the same value, so they cannot disagree.</td></tr>
+      </tbody>
+    </table>
+
+    <p>This is the same "make invalid states unrepresentable" principle as <a href="../state/view_state_enum_master.html">modelling view state as an enum</a>, applied to presentation.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="signals" data-toc-label="When It Applies">
+    <h2><span class="sec-num">3</span> When It Applies</h2>
+
+    <table class="t-versus">
+      <thead><tr><th>Need</th><th>Use</th></tr></thead>
+      <tbody>
+        <tr><td>A secondary screen the user can dismiss</td><td><code>.sheet</code></td></tr>
+        <tr><td>Something that must be completed or explicitly cancelled</td><td><code>.fullScreenCover</code></td></tr>
+        <tr><td>Partial height, with content still visible behind</td><td><code>.sheet</code> + <code>.presentationDetents</code></td></tr>
+        <tr><td>Confirm one destructive action</td><td><code>.alert</code></td></tr>
+        <tr><td>Choose among several actions</td><td><code>.confirmationDialog</code></td></tr>
+        <tr><td>Push within a flow, with a back button</td><td><a href="navigation_master.html">NavigationStack</a></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="api" data-toc-label="The API">
+    <h2><span class="sec-num">4</span> The API — types, modifiers, signatures</h2>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The two binding shapes</span></div>
+    <pre class="swift"><span class="cm">// Boolean-driven - fine when there is exactly one thing to present.</span>
+<span class="kw">@State</span> <span class="kw">private</span> <span class="kw">var</span> isShowingSettings = <span class="kw">false</span>
+
+<span class="tp">Button</span>(<span class="st">"Settings"</span>) { isShowingSettings = <span class="kw">true</span> }
+    .sheet(isPresented: $isShowingSettings) {
+        SettingsView()
+    }
+
+<span class="cm">// Item-driven - PREFERRED when the sheet depends on a value.</span>
+<span class="kw">@State</span> <span class="kw">private</span> <span class="kw">var</span> selectedItem: <span class="tp">Item</span>?
+
+<span class="tp">List</span>(items) { item <span class="kw">in</span>
+    <span class="tp">Button</span>(item.name) { selectedItem = item }
+}
+.sheet(item: $selectedItem) { item <span class="kw">in</span>      <span class="cm">// Item must be Identifiable</span>
+    DetailView(item: item)
+}</pre>
+
+    <p><code>.fullScreenCover</code> is identical in API shape but covers the whole screen and cannot be swipe-dismissed — the right choice for onboarding, login, or anything requiring an explicit decision.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="patterns" data-toc-label="Patterns">
+    <h2><span class="sec-num">5</span> Patterns That Work</h2>
+
+    <h3>Dismiss from the child, without knowing who presented it</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The reusable way</span></div>
+    <pre class="swift"><span class="kw">struct</span> SettingsView: <span class="tp">View</span> {
+    <span class="kw">@Environment</span>(\.dismiss) <span class="kw">private</span> <span class="kw">var</span> dismiss
+
+    <span class="kw">var</span> body: <span class="kw">some</span> <span class="tp">View</span> {
+        <span class="tp">Button</span>(<span class="st">"Done"</span>) { dismiss() }
+    }
+}</pre>
+
+    <p><code>@Environment(\.dismiss)</code> works for sheets, covers, and navigation pops alike — the child does not need to know which. That is the point: it dismisses "whatever presented me", so the view stays reusable. Setting the binding back from the parent also works, but requires threading a <code>Binding</code> down.</p>
+
+    <h3>Partial-height sheets with detents</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">iOS 16+</span></div>
+    <pre class="swift">.sheet(isPresented: $isShowing) {
+    FilterView()
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+}
+
+<span class="cm">// Track or control which detent is active:</span>
+<span class="kw">@State</span> <span class="kw">private</span> <span class="kw">var</span> detent: <span class="tp">PresentationDetent</span> = .medium
+.presentationDetents([.medium, .large], selection: $detent)
+
+<span class="cm">// Custom heights:</span>
+.presentationDetents([.height(<span class="nm">200</span>), .fraction(<span class="nm">0.75</span>)])</pre>
+
+    <p>Companion modifiers: <code>.presentationCornerRadius</code>, <code>.presentationBackground</code>, and <code>.presentationBackgroundInteraction(.enabled)</code> to let the user interact with content behind the sheet — a map beneath a search sheet, for instance.</p>
+
+    <h3>Alerts driven by an error value</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Roles drive styling and placement</span></div>
+    <pre class="swift">.alert(<span class="st">"Delete item?"</span>, isPresented: $isShowingDeleteConfirmation) {
+    <span class="tp">Button</span>(<span class="st">"Delete"</span>, role: .destructive) { delete() }
+    <span class="tp">Button</span>(<span class="st">"Cancel"</span>, role: .cancel) { }
+} message: {
+    <span class="tp">Text</span>(<span class="st">"This can't be undone."</span>)
+}</pre>
+
+    <p><code>.destructive</code> renders red; <code>.cancel</code> is bold and always placed last. With no buttons supplied you get a default "OK". Driving the alert from an optional error value is the cleaner pattern, for the same reason <code>item:</code> beats <code>isPresented:</code>.</p>
+
+    <h3>Confirmation dialogs for a choice among actions</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The action-sheet replacement</span></div>
+    <pre class="swift">.confirmationDialog(<span class="st">"Sort by"</span>, isPresented: $isShowingSortOptions, titleVisibility: .visible) {
+    <span class="tp">Button</span>(<span class="st">"Name"</span>) { sort = .name }
+    <span class="tp">Button</span>(<span class="st">"Date"</span>) { sort = .date }
+    <span class="tp">Button</span>(<span class="st">"Cancel"</span>, role: .cancel) { }
+}</pre>
+
+    <p>On iPhone it slides up from the bottom; on iPad and Mac it becomes a popover automatically.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="antipatterns" data-toc-label="Anti-Patterns">
+    <h2><span class="sec-num">6</span> Anti-Patterns — and the fix</h2>
+
+    <h3>A boolean plus a separately-assigned item</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Two facts that can disagree</span></div>
+    <pre class="swift"><span class="cm">// WRONG: two independent pieces of state. Present before the item is</span>
+<span class="cm">// set - or fail to clear it afterwards - and the sheet shows stale or</span>
+<span class="cm">// empty content.</span>
+<span class="kw">@State</span> <span class="kw">private</span> <span class="kw">var</span> isShowingDetail = <span class="kw">false</span>
+<span class="kw">@State</span> <span class="kw">private</span> <span class="kw">var</span> selectedItem: <span class="tp">Item</span>?
+
+<span class="cm">// RIGHT: one value drives both presentation and content.</span>
+.sheet(item: $selectedItem) { item <span class="kw">in</span> DetailView(item: item) }</pre>
+
+    <h3>Two presentation modifiers on the same view</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The second one silently wins</span></div>
+    <pre class="swift"><span class="cm">// WRONG: only one of these will ever present. No warning, no crash.</span>
+someView
+    .sheet(isPresented: $isShowingA) { AView() }
+    .sheet(isPresented: $isShowingB) { BView() }
+
+<span class="cm">// RIGHT: attach them to different views, or drive one sheet with an</span>
+<span class="cm">// enum of cases and switch inside the content closure.</span>
+.sheet(item: $activeSheet) { sheet <span class="kw">in</span>
+    <span class="kw">switch</span> sheet {
+    <span class="kw">case</span> .a: AView()
+    <span class="kw">case</span> .b: BView()
+    }
+}</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="pitfalls" data-toc-label="Pitfalls">
+    <h2><span class="sec-num">7</span> Pitfalls &amp; Gotchas</h2>
+
+    <div class="co co-pitfall">
+      <div class="co-pitfall-title">Presentation quirks worth memorizing</div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">1.</span>
+        <span><strong>One presentation modifier per view.</strong> A second <code>.sheet</code> on the same view silently wins, and the first never fires.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">2.</span>
+        <span><strong>A sheet does not fully inherit the presenter's environment on older iOS versions.</strong> If a sheet comes up empty or crashes on an <code>@EnvironmentObject</code>, pass it explicitly.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">3.</span>
+        <span><strong>Presenting from inside a <code>List</code> row can be unreliable.</strong> Attach the modifier to the <code>List</code> or a container instead.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">4.</span>
+        <span><strong>The presenter's navigation stack does not extend into a sheet.</strong> If the sheet needs navigation, give it its own <code>NavigationStack</code>.</span>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="related" data-toc-label="Related Topics">
+    <h2><span class="sec-num">8</span> Related Topics</h2>
+
+    <div class="ref-grid">
+      <a class="xref-card" href="navigation_master.html">
+        <span class="ref-title">Navigation</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · Screens</span></span>
+        <span class="ref-desc">The alternative to presenting: pushing onto a stack. Also where the sheet's own <code>NavigationStack</code> comes from, since the presenter's does not extend into it.</span>
+      </a>
+      <a class="xref-card" href="../state/view_state_enum_master.html">
+        <span class="ref-title">View State as an Enum</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · State</span></span>
+        <span class="ref-desc">The same principle behind <code>item:</code> over <code>isPresented:</code>, generalized: one value with associated data beats several booleans that can disagree.</span>
+      </a>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="sources" data-toc-label="Sources">
+    <h2><span class="sec-num">9</span> Sources</h2>
+
+    <ul>
+      <li>Apple's documentation for <code>sheet(item:)</code>, <code>sheet(isPresented:)</code>, <code>fullScreenCover</code>, <code>alert</code>, <code>confirmationDialog</code>, and the <code>presentationDetents</code> family (iOS 16+).</li>
+      <li>The one-modifier-per-view rule and the environment-inheritance gap are recorded from direct observation — both fail silently rather than producing a diagnostic.</li>
+    </ul>
+  </section>
+
+  <div class="page-footer">
+    Study Wiki · Modals · SwiftUI Theory
+  </div>
+
+</main>
+</div>
+
+<script src="../../../../static/generated/manifest.js"></script>
+<script src="../../../../static/generated/nav.js"></script>
+<script src="../../../../static/generated/toc.js"></script>
+</body>
+</html>

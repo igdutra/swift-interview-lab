@@ -1,0 +1,335 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Data Flow · iOS Topic</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Data Flow",
+  "nav": "Data Flow",
+  "topics": [
+    "SwiftUI",
+    "Binding",
+    "PreferenceKey",
+    "Environment"
+  ],
+  "blurb": "Four directions state can travel and the distinct tool for each: Binding down, closures up, PreferenceKey up through layout, and Environment down to any descendant.",
+  "order": 2
+}
+</script>
+<link rel="stylesheet" href="../../../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="ios-topic">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<main class="content">
+
+  <h1 class="page-title">Data Flow</h1>
+  <div class="page-meta">
+    <span>iOS Topic</span><span>·</span>
+    <span>SwiftUI</span><span>·</span>
+    <span>Four directions, four distinct tools</span>
+  </div>
+
+  <section id="lead" data-toc-label="Definition">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Section</div><div class="infobox-v"><a href="index.html">State &amp; Data Flow</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Domain</div><div class="infobox-v"><a href="../index.html">SwiftUI Theory</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Plumbing model — how a value reaches the view that needs it</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v">The direction and the <em>kind</em> of thing being moved pick the tool</div></div>
+      <div class="infobox-row"><div class="infobox-k">Down</div><div class="infobox-v"><code>@Binding</code> (read+write) · <code>@Environment</code> (any descendant)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Up</div><div class="infobox-v">closure (an event) · <code>PreferenceKey</code> (measured geometry)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key APIs</div><div class="infobox-v mono">@Binding · @Environment · PreferenceKey · .onPreferenceChange</div></div>
+      <div class="infobox-row"><div class="infobox-k">Related</div><div class="infobox-v"><a href="state_ownership_master.html">State Ownership</a> · <a href="view_state_enum_master.html">View State as an Enum</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p>Once you know <a href="state_ownership_master.html">who owns a value</a>, the remaining question is how it reaches the view that needs it. SwiftUI has four answers, and they are not interchangeable — each is wired into a different part of the framework.</p>
+      <p>The common mistake is reaching for a closure when a <code>Binding</code> would do, or contorting a <code>Binding</code> around something that is really an event. Choosing correctly is mostly a matter of naming what you are moving: shared state, a discrete event, a measured number, or an ambient dependency.</p>
+    </div>
+
+    <div class="co co-idea">
+      <span class="co-idea-title">THE ONE IDEA</span>
+      Pick the tool by asking <strong>what kind of thing is moving</strong>, not just which way it goes. <code>Binding</code> is for state the parent owns and the child edits; a closure is for "this happened"; <code>PreferenceKey</code> is for numbers that only exist after layout; <code>Environment</code> is for values any descendant might need.
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="mental-model" data-toc-label="Mental Model">
+    <h2><span class="sec-num">2</span> Mental Model — how to think about it</h2>
+
+    <pre class="ascii">                    ANCESTOR
+                   /        \
+        @Environment          @Binding          (downward: values and write access)
+             |                    |
+             v                    v
+                    DESCENDANT
+             |                    |
+        PreferenceKey          closure          (upward: measurements and events)
+             ^                    ^
+              \                  /
+                    ANCESTOR</pre>
+    <div class="ascii-caption">Two directions, but four tools — because "a measured height" and "the user tapped" travel upward for entirely different reasons.</div>
+
+    <table class="t-decoder">
+      <thead><tr><th>Situation</th><th>Tool</th></tr></thead>
+      <tbody>
+        <tr><td>State the user changed; the child reads <em>and</em> writes it</td><td><code>@Binding</code></td></tr>
+        <tr><td>A discrete thing that happened, with no read-back</td><td>closure</td></tr>
+        <tr><td>A number that only exists after layout (size, position, anchor)</td><td><code>PreferenceKey</code></td></tr>
+        <tr><td>A value any descendant may need, injected from above</td><td><code>@Environment</code></td></tr>
+      </tbody>
+    </table>
+
+    <p><code>Binding</code> is the community-approved default for simple shared state — not for full dependencies like a service or a view model, which belong in <code>@Environment</code> or an initializer.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="signals" data-toc-label="When It Applies">
+    <h2><span class="sec-num">3</span> When It Applies</h2>
+
+    <table class="t-clue">
+      <thead><tr><th>When you see…</th><th>The data-flow question to ask</th></tr></thead>
+      <tbody>
+        <tr><td>A chain of closures threaded through three view layers</td><td>Is this really shared state? A <code>Binding</code> or <code>@Environment</code> may collapse the chain.</td></tr>
+        <tr><td>"How do I read the child's <code>@State</code> from the parent?"</td><td>You cannot — and the question itself means the state is in the wrong place.</td></tr>
+        <tr><td>A parent that needs a child's rendered height</td><td><code>PreferenceKey</code>. Neither a binding nor a closure is wired into the layout pass.</td></tr>
+        <tr><td>The same value passed through many intermediate views</td><td><code>@Environment</code> skips the intermediates entirely.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="api" data-toc-label="The API">
+    <h2><span class="sec-num">4</span> The API — types, modifiers, signatures</h2>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The PreferenceKey protocol</span></div>
+    <pre class="swift"><span class="cm">// reduce() combines values when several descendants report one. It runs</span>
+<span class="cm">// bottom-up as the layout pass resolves.</span>
+<span class="kw">protocol</span> PreferenceKey {
+    <span class="kw">associatedtype</span> Value
+    <span class="kw">static</span> <span class="kw">var</span> defaultValue: Value { get }
+    <span class="kw">static</span> <span class="kw">func</span> <span class="fn">reduce</span>(value: <span class="kw">inout</span> Value, nextValue: () -&gt; Value)
+}
+
+<span class="cm">// Report a value up; observe it from an ancestor.</span>
+<span class="kw">func</span> <span class="fn">preference</span>&lt;K: PreferenceKey&gt;(key: K.<span class="tp">Type</span>, value: K.Value) -&gt; <span class="kw">some</span> <span class="tp">View</span>
+<span class="kw">func</span> <span class="fn">onPreferenceChange</span>&lt;K: PreferenceKey&gt;(_ key: K.<span class="tp">Type</span>, perform: <span class="kw">@escaping</span> (K.Value) -&gt; <span class="tp">Void</span>) -&gt; <span class="kw">some</span> <span class="tp">View</span></pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="patterns" data-toc-label="Patterns">
+    <h2><span class="sec-num">5</span> Patterns That Work</h2>
+
+    <h3>Direction 1 — parent to child, with write access</h3>
+    <p>Use <code>@Binding</code>. The child gets read and write access to state it does not own.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Pass with $</span></div>
+    <pre class="swift"><span class="kw">struct</span> ParentView: <span class="tp">View</span> {
+    <span class="kw">@State</span> <span class="kw">private</span> <span class="kw">var</span> isOn = <span class="kw">false</span>
+    <span class="kw">var</span> body: <span class="kw">some</span> <span class="tp">View</span> {
+        ToggleRow(isOn: $isOn)
+    }
+}
+
+<span class="kw">struct</span> ToggleRow: <span class="tp">View</span> {
+    <span class="kw">@Binding</span> <span class="kw">var</span> isOn: <span class="tp">Bool</span>   <span class="cm">// child can read AND write</span>
+    <span class="kw">var</span> body: <span class="kw">some</span> <span class="tp">View</span> {
+        <span class="tp">Toggle</span>(<span class="st">"Enabled"</span>, isOn: $isOn)
+    }
+}</pre>
+
+    <h3>Direction 2 — child to parent, reporting an event</h3>
+    <p>A leaf needs to tell an ancestor "this got picked". Two idiomatic options; pick by the shape of the problem.</p>
+
+    <p><strong>Option A — pass a <code>Binding</code> down anyway</strong>, preferred when there is one piece of shared state. The parent still owns the source of truth; the child is bound to "is this me".</p>
+
+    <p><strong>Option B — a plain closure</strong>, preferred when the child fires discrete <em>events</em> rather than reflecting state. A tap, a swipe-to-delete, a submit.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The converged single-selection pattern</span></div>
+    <pre class="swift"><span class="kw">struct</span> PaymentInfoView: <span class="tp">View</span> {
+    <span class="kw">@State</span> <span class="kw">private</span> <span class="kw">var</span> selectedPaymentType: <span class="tp">PaymentType</span>?
+
+    <span class="kw">var</span> body: <span class="kw">some</span> <span class="tp">View</span> {
+        <span class="tp">List</span>(paymentTypes) { paymentType <span class="kw">in</span>
+            PaymentRow(
+                name: paymentType.name,
+                isSelected: selectedPaymentType?.id == paymentType.id,
+                onSelect: { selectedPaymentType = paymentType }
+            )
+        }
+    }
+}
+
+<span class="kw">struct</span> PaymentRow: <span class="tp">View</span> {
+    <span class="kw">let</span> name: <span class="tp">String</span>
+    <span class="kw">let</span> isSelected: <span class="tp">Bool</span>          <span class="cm">// derived, read-only</span>
+    <span class="kw">let</span> onSelect: () -&gt; <span class="tp">Void</span>      <span class="cm">// event, not state</span>
+
+    <span class="kw">var</span> body: <span class="kw">some</span> <span class="tp">View</span> {
+        <span class="tp">HStack</span> {
+            <span class="tp">Text</span>(name)
+            <span class="tp">Spacer</span>()
+            <span class="kw">if</span> isSelected { <span class="tp">Image</span>(systemName: <span class="st">"checkmark"</span>) }
+        }
+        .contentShape(.rect)
+        .onTapGesture(perform: onSelect)
+    }
+}</pre>
+
+    <p>Single-selection from a list — radio-button style — is almost always modelled this way: the parent owns <code>@State private var selection: Item?</code>, and each row takes a derived <code>isSelected: Bool</code> plus an <code>onSelect</code> closure.</p>
+
+    <h3>Direction 3 — leaf to ancestor, for layout geometry</h3>
+    <p>Neither a binding nor a closure fits when the parent needs a number it can only know <em>after</em> the child is measured. <code>PreferenceKey</code> propagates a value up the tree during the layout pass — the mirror image of environment values.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Define, report, observe</span></div>
+    <pre class="swift"><span class="cm">// 1. Define a key: how to combine values if several leaves report one.</span>
+<span class="kw">struct</span> HeightPreferenceKey: PreferenceKey {
+    <span class="kw">static</span> <span class="kw">var</span> defaultValue: <span class="tp">CGFloat</span> = <span class="nm">0</span>
+    <span class="kw">static</span> <span class="kw">func</span> <span class="fn">reduce</span>(value: <span class="kw">inout</span> <span class="tp">CGFloat</span>, nextValue: () -&gt; <span class="tp">CGFloat</span>) {
+        value = nextValue()   <span class="cm">// last one wins; use max/sum to merge instead</span>
+    }
+}
+
+<span class="cm">// 2. The leaf reports its measured size.</span>
+<span class="kw">struct</span> InnerScrollContent: <span class="tp">View</span> {
+    <span class="kw">var</span> body: <span class="kw">some</span> <span class="tp">View</span> {
+        <span class="tp">VStack</span> { }
+            .background(
+                <span class="tp">GeometryReader</span> { proxy <span class="kw">in</span>
+                    <span class="tp">Color</span>.clear
+                        .preference(key: HeightPreferenceKey.<span class="kw">self</span>, value: proxy.size.height)
+                }
+            )
+    }
+}
+
+<span class="cm">// 3. The ancestor reads it and reacts.</span>
+<span class="kw">struct</span> OuterScrollView: <span class="tp">View</span> {
+    <span class="kw">@State</span> <span class="kw">private</span> <span class="kw">var</span> measuredInnerHeight: <span class="tp">CGFloat</span> = <span class="nm">0</span>
+
+    <span class="kw">var</span> body: <span class="kw">some</span> <span class="tp">View</span> {
+        <span class="tp">ScrollView</span> { InnerScrollContent() }
+            .frame(height: measuredInnerHeight)
+            .onPreferenceChange(HeightPreferenceKey.<span class="kw">self</span>) { newHeight <span class="kw">in</span>
+                measuredInnerHeight = newHeight
+            }
+    }
+}</pre>
+
+    <div class="co co-note">
+      <strong>Why not a <code>Binding</code> here:</strong> the child is not reporting "the user did X", it is reporting "here is my resolved geometry after layout" — a continuous, layout-phase value. <code>PreferenceKey</code> is specifically wired into the layout pass, with <code>reduce</code> running bottom-up as the tree resolves. A binding has no such mechanism.
+    </div>
+
+    <h3>Direction 4 — ancestor to any descendant</h3>
+    <p><code>@Environment</code> is the mirror image of <code>PreferenceKey</code>: implicit plumbing that flows <strong>top-down</strong>. An ancestor injects a value and any descendant can read it, without threading it through every intermediate view by hand.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="antipatterns" data-toc-label="Anti-Patterns">
+    <h2><span class="sec-num">6</span> Anti-Patterns — and the fix</h2>
+
+    <h3>Giving a leaf its own <code>@State</code> and expecting the parent to read it</h3>
+    <p>A child's <code>@State</code> is private and unreachable from outside. There is no idiomatic way to read state back out of a child — and wanting to is a reliable signal that the state does not belong there.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">State in the wrong place</span></div>
+    <pre class="swift"><span class="cm">// WRONG: the parent has no way to observe this, and each row's selection</span>
+<span class="cm">// is independent - so two rows can both think they are selected.</span>
+<span class="kw">struct</span> PaymentRow: <span class="tp">View</span> {
+    <span class="kw">@State</span> <span class="kw">private</span> <span class="kw">var</span> isSelected = <span class="kw">false</span>
+}
+
+<span class="cm">// RIGHT: lift the state to the common ancestor that needs to know, and</span>
+<span class="cm">// pass a derived Bool down plus a closure back up.</span>
+<span class="kw">struct</span> PaymentRow: <span class="tp">View</span> {
+    <span class="kw">let</span> isSelected: <span class="tp">Bool</span>
+    <span class="kw">let</span> onSelect: () -&gt; <span class="tp">Void</span>
+}</pre>
+
+    <h3>Using a closure where a <code>Binding</code> is simpler</h3>
+    <p>If the child both reads and writes the same piece of state, a closure pair (<code>value</code> plus <code>onChange</code>) is a hand-rolled binding. Use the real one.</p>
+
+    <h3>Using a <code>Binding</code> for geometry</h3>
+    <p>Writing to a binding from inside a <code>GeometryReader</code> during layout invites update loops. Layout-phase values belong in a <code>PreferenceKey</code>, which is designed for exactly that timing.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="pitfalls" data-toc-label="Pitfalls">
+    <h2><span class="sec-num">7</span> Pitfalls &amp; Gotchas</h2>
+
+    <div class="co co-pitfall">
+      <div class="co-pitfall-title">Choosing the wrong direction tool</div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">1.</span>
+        <span><strong>A child's <code>@State</code> is unreachable from its parent.</strong> If you want to read it, the state is in the wrong place — lift it to the nearest common ancestor.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">2.</span>
+        <span><strong><code>reduce</code> decides what happens when several leaves report.</strong> The default "last one wins" is rarely what you want for sums or maxima — write it deliberately.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">3.</span>
+        <span><strong><code>@Environment</code> is for ambient values, not for everything.</strong> Passing a required dependency implicitly makes a view's real requirements invisible at the call site.</span>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="related" data-toc-label="Related Topics">
+    <h2><span class="sec-num">8</span> Related Topics</h2>
+
+    <div class="ref-grid">
+      <a class="xref-card" href="state_ownership_master.html">
+        <span class="ref-title">State Ownership</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · State</span></span>
+        <span class="ref-desc">The prior question: which view holds the durable storage slot, and how to inject a view model without rebuilding it on every redraw.</span>
+      </a>
+      <a class="xref-card" href="../fundamentals/layout_system_master.html">
+        <span class="ref-title">The Layout System</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · Layout</span></span>
+        <span class="ref-desc">Why <code>GeometryReader</code> is greedy, and why reading a child's size through a <code>PreferenceKey</code> beats wrapping the layout in one.</span>
+      </a>
+      <a class="xref-card" href="view_state_enum_master.html">
+        <span class="ref-title">View State as an Enum</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · State</span></span>
+        <span class="ref-desc">Once data is flowing, this is how to model the resulting screen states so invalid combinations cannot be represented.</span>
+      </a>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="sources" data-toc-label="Sources">
+    <h2><span class="sec-num">9</span> Sources</h2>
+
+    <ul>
+      <li>Apple's SwiftUI documentation for <code>Binding</code>, <code>PreferenceKey</code>, and <code>EnvironmentValues</code>.</li>
+      <li>The single-selection pattern (parent owns the optional selection, rows take a derived <code>Bool</code> plus a closure) is the convergent community idiom rather than a documented API.</li>
+    </ul>
+  </section>
+
+  <div class="page-footer">
+    Study Wiki · Data Flow · SwiftUI Theory
+  </div>
+
+</main>
+</div>
+
+<script src="../../../../static/generated/manifest.js"></script>
+<script src="../../../../static/generated/nav.js"></script>
+<script src="../../../../static/generated/toc.js"></script>
+</body>
+</html>

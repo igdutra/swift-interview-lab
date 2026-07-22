@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>State Ownership · iOS Topic</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "State Ownership",
+  "nav": "State Ownership",
+  "topics": [
+    "SwiftUI",
+    "StateObject",
+    "Dependency Injection",
+    "Observable"
+  ],
+  "blurb": "Where a view model should live, injecting it without the double-init bug, keeping real work out of init, and the 2x redraw skip that observing the wrong thing throws away.",
+  "order": 1
+}
+</script>
+<link rel="stylesheet" href="../../../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="ios-topic">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<main class="content">
+
+  <h1 class="page-title">State Ownership</h1>
+  <div class="page-meta">
+    <span>iOS Topic</span><span>·</span>
+    <span>SwiftUI</span><span>·</span>
+    <span>Who owns a view model, and how it gets there</span>
+  </div>
+
+  <section id="lead" data-toc-label="Definition">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Section</div><div class="infobox-v"><a href="index.html">State &amp; Data Flow</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Domain</div><div class="infobox-v"><a href="../index.html">SwiftUI Theory</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Ownership model — which view holds the durable storage slot</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v"><code>@StateObject</code> owns and outlives redraws; <code>@ObservedObject</code> only borrows</div></div>
+      <div class="infobox-row"><div class="infobox-k">Decides</div><div class="infobox-v">Whether a view model is rebuilt on every redraw, and whether a mock can be injected</div></div>
+      <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"my view model keeps resetting", "can't inject a mock", "everything redraws"</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key APIs</div><div class="infobox-v mono">@StateObject · @ObservedObject · @Observable · .task</div></div>
+      <div class="infobox-row"><div class="infobox-k">Related</div><div class="infobox-v"><a href="data_flow_master.html">Data Flow</a> · View Identity</div></div>
+    </div>
+
+    <div class="lead">
+      <p>A view model has to live somewhere, and SwiftUI is strict about where. <strong><code>@StateObject</code> owns</strong> an object: the framework creates it once, on first render, and hands the same instance back across every subsequent redraw. <strong><code>@ObservedObject</code> borrows</strong> one: it subscribes to changes but has no storage, so if the view is recreated the object goes with it.</p>
+      <p>Getting this wrong produces two distinct bugs — a view model silently rebuilt on every parent redraw, and a view model that cannot be swapped for a mock in tests. Both are avoidable with one initializer pattern.</p>
+    </div>
+
+    <div class="co co-idea">
+      <span class="co-idea-title">THE ONE IDEA</span>
+      <code>StateObject(wrappedValue:)</code> takes an <strong><code>@autoclosure</code></strong>. The expression inside is evaluated only on first render — never again. Building the object at the call site instead defeats that entirely, because the enclosing <code>init</code> runs on every parent redraw.
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="mental-model" data-toc-label="Mental Model">
+    <h2><span class="sec-num">2</span> Mental Model — how to think about it</h2>
+
+    <p>SwiftUI views are structs, recreated constantly. Their <code>init</code> runs far more often than people assume — every time a parent redraws. What survives is not the struct but the <strong>storage slot</strong> SwiftUI keeps against the view's identity.</p>
+
+    <table class="t-decoder">
+      <thead><tr><th>Wrapper</th><th>Owns storage?</th><th>Use when</th></tr></thead>
+      <tbody>
+        <tr><td><code>@StateObject</code></td><td>Yes — created once, survives redraws</td><td>This view is the source of truth for the object.</td></tr>
+        <tr><td><code>@ObservedObject</code></td><td>No — subscribes only</td><td>The object is owned by an ancestor and passed down.</td></tr>
+        <tr><td><code>@State</code></td><td>Yes, for value types</td><td>Simple local state the view owns.</td></tr>
+      </tbody>
+    </table>
+
+    <p>Because <code>init</code> re-runs, anything expensive placed there runs repeatedly. That is why real work belongs in <code>.task</code>, which is tied to the view's <em>lifetime</em> rather than its construction.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="signals" data-toc-label="When It Applies">
+    <h2><span class="sec-num">3</span> When It Applies</h2>
+
+    <table class="t-clue">
+      <thead><tr><th>When you see…</th><th>The ownership question to ask</th></tr></thead>
+      <tbody>
+        <tr><td>"I can't write a test for this screen"</td><td>Is the view model hardcoded in a property initializer? It cannot be injected.</td></tr>
+        <tr><td>Network calls firing more than once</td><td>Is the work in <code>init</code> rather than <code>.task</code>?</td></tr>
+        <tr><td>"Every subview redraws when anything changes"</td><td>Are subviews taking <code>@ObservedObject</code> when a plain value would do?</td></tr>
+        <tr><td>A view model losing its data on a parent update</td><td><code>@ObservedObject</code> where <code>@StateObject</code> was needed.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="api" data-toc-label="The API">
+    <h2><span class="sec-num">4</span> The API — types, modifiers, signatures</h2>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The autoclosure that makes ownership work</span></div>
+    <pre class="swift"><span class="cm">// The @autoclosure is the whole point: the expression is evaluated</span>
+<span class="cm">// lazily, on first render only.</span>
+<span class="kw">init</span>(wrappedValue: <span class="kw">@autoclosure</span> <span class="kw">@escaping</span> () -&gt; ObjectType)
+
+<span class="cm">// Assigning through the underscore-prefixed synthesized property is how</span>
+<span class="cm">// you construct a @StateObject from an initializer.</span>
+_viewModel = <span class="tp">StateObject</span>(wrappedValue: <span class="tp">MyViewModel</span>(repository: repository))</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="patterns" data-toc-label="Patterns">
+    <h2><span class="sec-num">5</span> Patterns That Work</h2>
+
+    <h3>Inject the dependency, build the view model inline</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Testable and built exactly once</span></div>
+    <pre class="swift"><span class="kw">struct</span> MyView: <span class="tp">View</span> {
+    <span class="kw">@StateObject</span> <span class="kw">private</span> <span class="kw">var</span> viewModel: <span class="tp">MyViewModel</span>
+
+    <span class="kw">init</span>(repository: ItemRepositoryProtocol) {
+        _viewModel = <span class="tp">StateObject</span>(wrappedValue: <span class="tp">MyViewModel</span>(repository: repository))
+    }
+}</pre>
+
+    <p>The view takes a <em>protocol</em>, so a test or preview can pass a stub. The object itself is constructed inside the autoclosure, so it is built once regardless of how often <code>init</code> runs.</p>
+
+    <h3>Cheap <code>init</code>, real work in <code>.task</code></h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">init stores references; task does the loading</span></div>
+    <pre class="swift"><span class="kw">final</span> <span class="kw">class</span> MyViewModel: <span class="tp">ObservableObject</span> {
+    <span class="kw">@Published</span> <span class="kw">var</span> data: ViewData?
+    <span class="kw">private</span> <span class="kw">let</span> repository: ItemRepositoryProtocol
+
+    <span class="kw">init</span>(repository: ItemRepositoryProtocol) {
+        <span class="kw">self</span>.repository = repository   <span class="cm">// cheap - just stores a reference</span>
+    }
+
+    <span class="kw">func</span> <span class="fn">load</span>() <span class="kw">async</span> {
+        data = <span class="kw">await</span> repository.fetch()   <span class="cm">// real work happens HERE</span>
+    }
+}
+
+<span class="cm">// In the body:  .task { await viewModel.load() }</span></pre>
+
+    <h3>Pass plain values down, not the whole object (iOS 16)</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Only the parent observes</span></div>
+    <pre class="swift"><span class="kw">struct</span> ParentView: <span class="tp">View</span> {
+    <span class="kw">@ObservedObject</span> <span class="kw">var</span> viewModel: ViewModel
+    <span class="kw">var</span> body: <span class="kw">some</span> <span class="tp">View</span> {
+        DetailRow(title: viewModel.title)   <span class="cm">// a plain value goes down</span>
+    }
+}
+
+<span class="kw">struct</span> DetailRow: <span class="tp">View</span> {
+    <span class="kw">let</span> title: <span class="tp">String</span>                   <span class="cm">// NOT @ObservedObject</span>
+    <span class="kw">var</span> body: <span class="kw">some</span> <span class="tp">View</span> { <span class="tp">Text</span>(title) }
+}
+<span class="cm">// Mutating an unrelated property -> DetailRow receives the same title</span>
+<span class="cm">// -> its body call is SKIPPED entirely.</span></pre>
+
+    <h3>iOS 17+: <code>@Observable</code> tracks per property</h3>
+    <div class="co co-note">
+      <strong>Context only</strong> — do not use this on an iOS 16 target. With <code>@Observable</code>, a view redraws only if it actually <em>read</em> the property that changed, so passing the object directly is fine and the manual value-threading above becomes unnecessary.
+    </div>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Per-property tracking</span></div>
+    <pre class="swift"><span class="kw">@Observable</span>
+<span class="kw">final</span> <span class="kw">class</span> ViewModel {
+    <span class="kw">var</span> title: <span class="tp">String</span> = <span class="st">""</span>
+    <span class="kw">var</span> subtitle: <span class="tp">String</span> = <span class="st">""</span>
+}
+
+<span class="kw">struct</span> DetailRow: <span class="tp">View</span> {
+    <span class="kw">let</span> viewModel: ViewModel        <span class="cm">// plain reference, no wrapper</span>
+    <span class="kw">var</span> body: <span class="kw">some</span> <span class="tp">View</span> { <span class="tp">Text</span>(viewModel.subtitle) }
+}
+<span class="cm">// Mutating title -> DetailRow does NOT redraw (it never read title).</span></pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="antipatterns" data-toc-label="Anti-Patterns">
+    <h2><span class="sec-num">6</span> Anti-Patterns — and the fix</h2>
+
+    <h3>Hardcoding the view model in a property initializer</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Untestable by construction</span></div>
+    <pre class="swift"><span class="cm">// WRONG: the dependency is baked in. No test or preview can substitute</span>
+<span class="cm">// a stub, because there is no seam to inject through.</span>
+<span class="kw">struct</span> MyView: <span class="tp">View</span> {
+    <span class="kw">@StateObject</span> <span class="kw">var</span> viewModel = <span class="tp">MyViewModel</span>()
+}</pre>
+
+    <h3>Building the object at the call site — the double-init bug</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Constructed on every redraw, then discarded</span></div>
+    <pre class="swift"><span class="cm">// WRONG: this expression runs on EVERY parent redraw. SwiftUI keeps the</span>
+<span class="cm">// instance from the first render and throws each new one away, so the</span>
+<span class="cm">// work is pure waste - and any init side effect fires repeatedly.</span>
+<span class="kw">let</span> viewModel = <span class="tp">MyViewModel</span>(repository: <span class="tp">RealRepository</span>())
+MyView(viewModel: viewModel)
+
+<span class="cm">// RIGHT: pass the dependency, construct inside the autoclosure.</span>
+MyView(repository: <span class="tp">RealRepository</span>())</pre>
+
+    <h3>Observing the whole object in every subview</h3>
+    <p>On iOS 16, <code>@ObservedObject</code> subscribes to the <em>entire</em> object. A subview that reads one property still re-runs its <code>body</code> when any other property changes.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Wasted body calls</span></div>
+    <pre class="swift"><span class="cm">// WRONG: mutating any property on the view model re-runs this body,</span>
+<span class="cm">// even though it only ever reads one value.</span>
+<span class="kw">struct</span> DetailRow: <span class="tp">View</span> {
+    <span class="kw">@ObservedObject</span> <span class="kw">var</span> viewModel: ViewModel
+    <span class="kw">var</span> body: <span class="kw">some</span> <span class="tp">View</span> { <span class="tp">Text</span>(viewModel.title) }
+}</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="pitfalls" data-toc-label="Pitfalls">
+    <h2><span class="sec-num">7</span> Pitfalls &amp; Gotchas</h2>
+
+    <div class="co co-pitfall">
+      <div class="co-pitfall-title">The 2x skip you throw away</div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">→</span>
+        <span>When a subview receives <strong>plain values</strong>, SwiftUI can skip twice: the <code>body</code> closure never executes (CPU saved), and no diff is needed at render (redraw saved). Taking <code>@ObservedObject</code> or <code>@StateObject</code> on the object that changed <strong>bypasses both skips, every time</strong>. Under <code>@Observable</code> (iOS 17+) the skip is restored automatically, because tracking is per property rather than per object.</span>
+      </div>
+    </div>
+
+    <ul>
+      <li><strong><code>init</code> runs far more often than you think.</strong> Treat it as "store references only" — anything else belongs in <code>.task</code>.</li>
+      <li><strong><code>@StateObject</code> creates once; <code>@ObservedObject</code> does not create at all.</strong> Using the latter where the view is the owner means the object can vanish on a redraw.</li>
+      <li><strong>A view model injected as a concrete type is untestable.</strong> Depend on a protocol so the seam exists.</li>
+    </ul>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="related" data-toc-label="Related Topics">
+    <h2><span class="sec-num">8</span> Related Topics</h2>
+
+    <div class="ref-grid">
+      <a class="xref-card" href="data_flow_master.html">
+        <span class="ref-title">Data Flow</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · State</span></span>
+        <span class="ref-desc">Once you know who owns a value, this is how it travels: bindings down, closures up, preferences up through layout, environment down to any descendant.</span>
+      </a>
+      <a class="xref-card" href="../fundamentals/view_identity_master.html">
+        <span class="ref-title">View Identity</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · Identity</span></span>
+        <span class="ref-desc">The other half of the story: ownership decides where state lives, identity decides whether it survives the next redraw.</span>
+      </a>
+      <a class="xref-card" href="../screens/navigation_master.html">
+        <span class="ref-title">Navigation</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · Screens</span></span>
+        <span class="ref-desc">Where an injected navigator object lives — the same ownership question applied to the navigation path.</span>
+      </a>
+      <a class="xref-card" href="../screens/lifecycle_master.html">
+        <span class="ref-title">App Lifecycle</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · Screens</span></span>
+        <span class="ref-desc">The view-level lifecycle that makes <code>.task</code> the right home for real work, plus the scene and process levels above it.</span>
+      </a>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="sources" data-toc-label="Sources">
+    <h2><span class="sec-num">9</span> Sources</h2>
+
+    <ul>
+      <li>Apple's documentation for <code>StateObject</code>, in particular the <code>@autoclosure</code> initializer that makes lazy first-render construction possible.</li>
+      <li>Apple's <code>Observation</code> framework documentation for the iOS 17+ per-property tracking model.</li>
+    </ul>
+  </section>
+
+  <div class="page-footer">
+    Study Wiki · State Ownership · SwiftUI Theory
+  </div>
+
+</main>
+</div>
+
+<script src="../../../../static/generated/manifest.js"></script>
+<script src="../../../../static/generated/nav.js"></script>
+<script src="../../../../static/generated/toc.js"></script>
+</body>
+</html>

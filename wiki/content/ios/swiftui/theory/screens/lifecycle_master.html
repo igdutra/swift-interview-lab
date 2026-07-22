@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>App Lifecycle · iOS Topic</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "App Lifecycle",
+  "nav": "App Lifecycle",
+  "topics": [
+    "SwiftUI",
+    "ScenePhase",
+    "AppDelegate",
+    "Persistence"
+  ],
+  "blurb": "Three separate lifecycles and the tool for each: the AppDelegate for the process, scenePhase for the window, and .task/onAppear for a view — plus why you persist on .inactive, never onDisappear.",
+  "order": 5
+}
+</script>
+<link rel="stylesheet" href="../../../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="ios-topic">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<main class="content">
+
+  <h1 class="page-title">App Lifecycle</h1>
+  <div class="page-meta">
+    <span>iOS Topic</span><span>·</span>
+    <span>SwiftUI</span><span>·</span>
+    <span>Process, scene, and view — three lifecycles</span>
+  </div>
+
+  <section id="lead" data-toc-label="Definition">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Section</div><div class="infobox-v"><a href="index.html">Building Screens</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Domain</div><div class="infobox-v"><a href="../index.html">SwiftUI Theory</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Framework model — three nested lifecycles, three distinct tools</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v"><code>scenePhase</code> describes <strong>the scene</strong> — not the app, and not any view</div></div>
+      <div class="infobox-row"><div class="infobox-k">The forgotten phase</div><div class="infobox-v"><code>.inactive</code> — visible but not receiving events</div></div>
+      <div class="infobox-row"><div class="infobox-k">Headline rule</div><div class="infobox-v"><code>onDisappear</code> is <strong>not</strong> a termination hook and may never run</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key APIs</div><div class="infobox-v mono">@Environment(\.scenePhase) · @UIApplicationDelegateAdaptor · .task · onAppear</div></div>
+      <div class="infobox-row"><div class="infobox-k">Related</div><div class="infobox-v"><a href="../state/state_ownership_master.html">State Ownership</a> · <a href="lists_master.html">Lists</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p>There are three lifecycles in an iOS app, nested inside each other, and most lifecycle bugs come from reaching for a tool that belongs to a different level. The <strong>process</strong> launches and receives push tokens. The <strong>scene</strong> moves between active, inactive, and background. An <strong>individual view</strong> enters and leaves the hierarchy.</p>
+      <p><code>ScenePhase</code> has exactly three cases, and the mental model that matters is that they describe the <em>scene</em> — not the app, and not any view inside it.</p>
+    </div>
+
+    <div class="co co-idea">
+      <span class="co-idea-title">THE ONE IDEA</span>
+      <code>onDisappear</code> never means "the app is closing". <code>scenePhase</code> never delivers a payload. The AppDelegate never tells you a view went away. Conflating the three is what almost every lifecycle bug turns out to be.
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="mental-model" data-toc-label="Mental Model">
+    <h2><span class="sec-num">2</span> Mental Model — how to think about it</h2>
+
+    <table class="t-decoder">
+      <thead><tr><th>Level</th><th>Tool</th><th>Fires for</th></tr></thead>
+      <tbody>
+        <tr><td>App process</td><td><code>@UIApplicationDelegateAdaptor</code></td><td>Launch, push tokens, background task registration</td></tr>
+        <tr><td>Scene / window</td><td><code>@Environment(\.scenePhase)</code></td><td>active ↔ inactive ↔ background</td></tr>
+        <tr><td>Individual view</td><td><code>.task</code> / <code>onAppear</code> / <code>onDisappear</code></td><td>A view entering or leaving the hierarchy</td></tr>
+      </tbody>
+    </table>
+
+    <p>The three phases, with the one people forget in the middle:</p>
+
+    <table class="t-versus">
+      <thead><tr><th>Phase</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>.active</code></td><td>Foreground and receiving events.</td></tr>
+        <tr><td><code>.inactive</code></td><td><strong>Visible but not receiving events.</strong> Phone calls, the app switcher, Control Center, an incoming FaceTime — all produce this, not <code>.background</code>.</td></tr>
+        <tr><td><code>.background</code></td><td>Not visible. The system may terminate you from here without running any more of your code.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="signals" data-toc-label="When It Applies">
+    <h2><span class="sec-num">3</span> When It Applies</h2>
+
+    <table class="t-clue">
+      <thead><tr><th>When you see…</th><th>The lifecycle question to ask</th></tr></thead>
+      <tbody>
+        <tr><td>Draft data lost when the app is killed</td><td>Is the save in <code>onDisappear</code>? It is not guaranteed to run.</td></tr>
+        <tr><td>Setup running twice, or not at all, on launch</td><td><code>scenePhase</code> cannot distinguish cold launch from resume — track it explicitly.</td></tr>
+        <tr><td>Background logic firing during a phone call</td><td>An interruption produces <code>.inactive</code>, not <code>.background</code>.</td></tr>
+        <tr><td>Needing a push token or a launch payload</td><td>That is AppDelegate territory; <code>scenePhase</code> carries no data.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="api" data-toc-label="The API">
+    <h2><span class="sec-num">4</span> The API — types, modifiers, signatures</h2>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Observing the scene phase</span></div>
+    <pre class="swift"><span class="kw">@main</span>
+<span class="kw">struct</span> MyApp: App {
+    <span class="kw">@Environment</span>(\.scenePhase) <span class="kw">private</span> <span class="kw">var</span> scenePhase
+
+    <span class="kw">var</span> body: <span class="kw">some</span> Scene {
+        WindowGroup {
+            ContentView()
+        }
+        .onChange(of: scenePhase) { newPhase <span class="kw">in</span>
+            <span class="kw">switch</span> newPhase {
+            <span class="kw">case</span> .active:     <span class="kw">break</span>   <span class="cm">// foreground, receiving events</span>
+            <span class="kw">case</span> .inactive:   <span class="kw">break</span>   <span class="cm">// visible but NOT receiving events</span>
+            <span class="kw">case</span> .background: <span class="kw">break</span>   <span class="cm">// not visible; termination can follow</span>
+            <span class="kw">@unknown</span> <span class="kw">default</span>:  <span class="kw">break</span>
+            }
+        }
+    }
+}</pre>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Bridging to an AppDelegate when you need one</span></div>
+    <pre class="swift"><span class="kw">struct</span> MyApp: App {
+    <span class="kw">@UIApplicationDelegateAdaptor</span>(<span class="tp">AppDelegate</span>.<span class="kw">self</span>) <span class="kw">private</span> <span class="kw">var</span> appDelegate
+
+    <span class="kw">var</span> body: <span class="kw">some</span> Scene {
+        WindowGroup { ContentView() }
+    }
+}</pre>
+
+    <div class="co co-note">
+      <strong>The one-sentence version:</strong> <code>scenePhase</code> reports <em>state</em>; the AppDelegate receives <em>events with data</em>. They are not substitutes for one another.
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="patterns" data-toc-label="Patterns">
+    <h2><span class="sec-num">5</span> Patterns That Work</h2>
+
+    <h3>Persist on <code>.inactive</code>, not <code>.background</code></h3>
+    <p><code>.inactive</code> is the last phase you are <strong>guaranteed</strong> to see. The system can move you from <code>.background</code> to terminated without running more of your code, and <code>.background</code> gives only a limited execution window anyway. <code>.inactive</code> fires on the way out of <em>every</em> exit path — interruption, app switcher, backgrounding.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The last reliably-executed moment</span></div>
+    <pre class="swift">.onChange(of: scenePhase) { newPhase <span class="kw">in</span>
+    <span class="kw">if</span> newPhase == .inactive {
+        viewModel.persistDraft()
+    }
+}</pre>
+
+    <p>The tradeoff worth stating out loud: <code>.inactive</code> fires more often than you strictly need — every phone call, every app-switcher peek. So the save must be <strong>cheap and idempotent</strong>. If it is expensive, debounce it or write incrementally rather than deferring the work to <code>.background</code>.</p>
+
+    <h3>Distinguish cold launch from resume yourself</h3>
+    <p><code>scenePhase</code> carries no history. It is a snapshot of the current phase, not a transition log, so both a cold launch and a return from background surface as a transition into <code>.active</code>.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">An explicit flag is the reliable model</span></div>
+    <pre class="swift"><span class="kw">@Environment</span>(\.scenePhase) <span class="kw">private</span> <span class="kw">var</span> scenePhase
+<span class="kw">@State</span> <span class="kw">private</span> <span class="kw">var</span> hasLaunched = <span class="kw">false</span>
+
+.onChange(of: scenePhase) { newPhase <span class="kw">in</span>
+    <span class="kw">guard</span> newPhase == .active <span class="kw">else</span> { <span class="kw">return</span> }
+    <span class="kw">if</span> hasLaunched {
+        <span class="cm">// returning from background - refresh stale data</span>
+    } <span class="kw">else</span> {
+        hasLaunched = <span class="kw">true</span>
+        <span class="cm">// cold launch - one-time setup</span>
+    }
+}</pre>
+
+    <p><code>.onChange</code> fires only on <em>changes</em>, so the very first <code>.active</code> on a cold launch may not fire at all, depending on when observation begins. That is precisely why an explicit flag — or a <code>.task</code> on the root view — is the dependable way to model "first launch".</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="antipatterns" data-toc-label="Anti-Patterns">
+    <h2><span class="sec-num">6</span> Anti-Patterns — and the fix</h2>
+
+    <h3>Saving in <code>onDisappear</code></h3>
+    <p>This is the headline mistake. <code>onDisappear</code> is a <em>view-hierarchy</em> callback, not a termination hook. If the system kills a backgrounded app — memory pressure, a swipe-up in the app switcher, jetsam — the views are never torn down in a way that runs it.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Data loss waiting to happen</span></div>
+    <pre class="swift"><span class="cm">// WRONG: "save before we die" logic that may simply never execute.</span>
+.onDisappear { viewModel.persistDraft() }
+
+<span class="cm">// RIGHT: the scene-level hook that fires on every exit path.</span>
+.onChange(of: scenePhase) { newPhase <span class="kw">in</span>
+    <span class="kw">if</span> newPhase == .inactive { viewModel.persistDraft() }
+}</pre>
+
+    <h3>Treating an interruption as backgrounding</h3>
+    <p>A phone call, a notification banner, or the app switcher moves the scene to <code>.inactive</code>, not <code>.background</code>. Logic keyed on <code>.background</code> will not run; logic keyed on <code>.inactive</code> will run more often than expected. Both are worth knowing before writing either.</p>
+
+    <h3>Expecting <code>scenePhase</code> to carry a payload</h3>
+    <p>It reports a phase and nothing else. Push tokens, launch options, and background-task registration all live on the AppDelegate.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="pitfalls" data-toc-label="Pitfalls">
+    <h2><span class="sec-num">7</span> Pitfalls &amp; Gotchas</h2>
+
+    <div class="co co-pitfall">
+      <div class="co-pitfall-title">Lifecycle facts worth memorizing</div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">1.</span>
+        <span><strong><code>onDisappear</code> is not guaranteed before termination.</strong> Never put save-before-we-die logic there.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">2.</span>
+        <span><strong>Interruptions produce <code>.inactive</code>, not <code>.background</code>.</strong> The app reaches <code>.background</code> only if the user actually leaves.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">3.</span>
+        <span><strong><code>scenePhase</code> cannot distinguish cold launch from resume.</strong> Both appear as a transition into <code>.active</code>, with no history attached.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">4.</span>
+        <span><strong>A notification banner does not background you.</strong> At most you briefly pass through <code>.inactive</code>.</span>
+      </div>
+    </div>
+
+    <div class="co co-note">
+      <strong>Confidence note, carried from the source material:</strong> the macOS multi-window cases are genuinely scene-dependent and were reasoned from Apple's documented lifecycle model rather than confirmed on a running device. Treat those as reasoning to state, not facts to quote.
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="related" data-toc-label="Related Topics">
+    <h2><span class="sec-num">8</span> Related Topics</h2>
+
+    <div class="ref-grid">
+      <a class="xref-card" href="../state/state_ownership_master.html">
+        <span class="ref-title">State Ownership</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · State</span></span>
+        <span class="ref-desc">Why real work belongs in <code>.task</code> rather than <code>init</code> — the view-level lifecycle hook, and the third of the three levels described here.</span>
+      </a>
+      <a class="xref-card" href="lists_master.html">
+        <span class="ref-title">Lists</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · Screens</span></span>
+        <span class="ref-desc">Where <code>.task</code> versus <code>.refreshable</code> becomes a visible design decision: first load may show a spinner, a refresh must not.</span>
+      </a>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="sources" data-toc-label="Sources">
+    <h2><span class="sec-num">9</span> Sources</h2>
+
+    <ul>
+      <li>Apple's documentation for <code>ScenePhase</code>, <code>UIApplicationDelegateAdaptor</code>, and the view lifecycle modifiers.</li>
+      <li>The <code>.inactive</code>-versus-<code>.background</code> distinction for interruptions, and the non-guarantee around <code>onDisappear</code>, are the two claims most worth remembering and the ones most often gotten wrong.</li>
+    </ul>
+  </section>
+
+  <div class="page-footer">
+    Study Wiki · App Lifecycle · SwiftUI Theory
+  </div>
+
+</main>
+</div>
+
+<script src="../../../../static/generated/manifest.js"></script>
+<script src="../../../../static/generated/nav.js"></script>
+<script src="../../../../static/generated/toc.js"></script>
+</body>
+</html>

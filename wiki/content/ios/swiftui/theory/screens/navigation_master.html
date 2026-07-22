@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Navigation · iOS Topic</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Navigation",
+  "nav": "Navigation",
+  "topics": [
+    "SwiftUI",
+    "NavigationStack",
+    "Routing",
+    "Coordinator"
+  ],
+  "blurb": "NavigationStack's root-versus-path split, why setting the path never replaces the root, where .navigationDestination must be attached, and the injected navigator pattern.",
+  "order": 1
+}
+</script>
+<link rel="stylesheet" href="../../../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="ios-topic">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<main class="content">
+
+  <h1 class="page-title">Navigation</h1>
+  <div class="page-meta">
+    <span>iOS Topic</span><span>·</span>
+    <span>SwiftUI</span><span>·</span>
+    <span>The root, the path, and the difference between them</span>
+  </div>
+
+  <section id="lead" data-toc-label="Definition">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Section</div><div class="infobox-v"><a href="index.html">Building Screens</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Domain</div><div class="infobox-v"><a href="../index.html">SwiftUI Theory</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Screen-level API — a stack driven by a path binding</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v">The <code>path</code> is what sits <em>on top of</em> the root — never the root itself</div></div>
+      <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"there's a back button nobody asked for", "the push does nothing", "pop to root"</div></div>
+      <div class="infobox-row"><div class="infobox-k">Deprecated</div><div class="infobox-v"><code>NavigationView</code> — always <code>NavigationStack</code></div></div>
+      <div class="infobox-row"><div class="infobox-k">Key APIs</div><div class="infobox-v mono">NavigationStack(path:) · .navigationDestination(for:) · NavigationPath</div></div>
+      <div class="infobox-row"><div class="infobox-k">Related</div><div class="infobox-v"><a href="modals_master.html">Modals</a> · State Ownership</div></div>
+    </div>
+
+    <div class="lead">
+      <p>A <code>NavigationStack</code> has exactly two parts, and confusing them causes the most common navigation bug in SwiftUI. The <strong>root view</strong> is the trailing closure passed to the stack: fixed at the call site, living permanently at the bottom, and never a member of the path. The <strong>path</strong> is an ordered list of everything pushed <em>on top of</em> that root.</p>
+      <p>So <code>path</code> is not "which screen is showing". It is "how many screens are stacked above the root, and what they are". <code>path.count == 0</code> means the root is on screen; <code>path.count == 1</code> means the root plus one pushed screen, with a back button.</p>
+    </div>
+
+    <div class="co co-idea">
+      <span class="co-idea-title">THE ONE IDEA</span>
+      Setting <code>path = [.finished]</code> does <strong>not</strong> mean "show <code>.finished</code> instead of the root". It means "push <code>.finished</code> on top of the root" — which is exactly why a back chevron appears. There is still something underneath to go back to.
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="mental-model" data-toc-label="Mental Model">
+    <h2><span class="sec-num">2</span> Mental Model — how to think about it</h2>
+
+    <pre class="ascii">path = []                 path = [.detail]           path = [.detail, .edit]
+
+  +-----------+             +-----------+              +-----------+
+  |           |             |  detail   | &lt;- pushed    |   edit    | &lt;- pushed
+  |   ROOT    |             +-----------+              +-----------+
+  |           |             |   ROOT    | &lt;- still     |  detail   | &lt;- still
+  +-----------+             +-----------+    mounted   +-----------+
+                                                       |   ROOT    | &lt;- still
+   no back button            back button               +-----------+
+                                                        back button</pre>
+    <div class="ascii-caption">The root never leaves. Emptying the path does not destroy anything — it just stops covering it.</div>
+
+    <p>This is why "pop to root" is cheap: the root was mounted the entire time, merely hidden beneath the pushed screens. It does not need to be recreated or re-fetched, because it never went away.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="signals" data-toc-label="When It Applies">
+    <h2><span class="sec-num">3</span> When It Applies</h2>
+
+    <table class="t-clue">
+      <thead><tr><th>When you see…</th><th>The navigation question to ask</th></tr></thead>
+      <tbody>
+        <tr><td>A back button on a screen that should be terminal</td><td>Are you pushing when the requirement is to <em>replace</em> the root?</td></tr>
+        <tr><td>A push that produces a blank screen with a back chevron</td><td>Is <code>.navigationDestination</code> attached inside the stack's content, or on the stack itself?</td></tr>
+        <tr><td>Routing to more than one <em>kind</em> of destination</td><td><code>NavigationPath</code> (type-erased) rather than a typed array.</td></tr>
+        <tr><td>Navigation state scattered across several views</td><td>An injected navigator object with a single source of truth.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="api" data-toc-label="The API">
+    <h2><span class="sec-num">4</span> The API — types, modifiers, signatures</h2>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The anatomy, annotated</span></div>
+    <pre class="swift"><span class="tp">NavigationStack</span>(path: $path) {
+    RootView()   <span class="cm">// the ROOT. Fixed. NOT an element of `path`.</span>
+        .navigationDestination(<span class="kw">for</span> : MyRoute.<span class="kw">self</span>) { route <span class="kw">in</span>
+            DestinationView(route)   <span class="cm">// one per entry in `path`</span>
+        }
+}</pre>
+
+    <table class="t-versus">
+      <thead><tr><th>Path type</th><th>Use when</th></tr></thead>
+      <tbody>
+        <tr><td><code>NavigationPath</code></td><td>Type-erased. Holds a <em>mix</em> of different <code>Hashable</code> types pushed in any order. Reach for it when a stack routes to more than one kind of destination over its lifetime.</td></tr>
+        <tr><td><code>[Route]</code> (a typed array)</td><td>One route enum covers every destination. Simpler to inspect, pattern-match, and test — prefer it when it fits.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="patterns" data-toc-label="Patterns">
+    <h2><span class="sec-num">5</span> Patterns That Work</h2>
+
+    <h3>Replace the root by choosing it outside the stack</h3>
+    <p>When the requirement is "go to screen X and there is no going back" — onboarding to main app, splash to home, login to dashboard, a Finish screen — mutating the path is the wrong tool. Make the <em>choice of root itself</em> conditional.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Two mutually exclusive roots</span></div>
+    <pre class="swift"><span class="kw">var</span> body: <span class="kw">some</span> <span class="tp">View</span> {
+    <span class="kw">switch</span> navigation.route.last {
+    <span class="kw">case</span> .finished:
+        FinishView()          <span class="cm">// becomes the root - no stack, no back button</span>
+    <span class="kw">default</span>:
+        <span class="tp">NavigationStack</span>(path: $navigation.route) {
+            ContentView(navigation: navigation)
+                .navigationDestination(<span class="kw">for</span> : Screen.<span class="kw">self</span>) { screen <span class="kw">in</span>
+                    destination(<span class="kw">for</span> : screen)
+                }
+        }
+    }
+}</pre>
+
+    <p>This is view-tree replacement rather than stack manipulation. Once on <code>FinishView</code> there is no <code>NavigationStack</code> at all — so no back button, and no underlying view to pop to.</p>
+
+    <h3>A single injected navigator</h3>
+    <p>Keeping the path in one observable object, injected where it is needed, gives navigation a single source of truth that can be driven from a view model or a deep link, and inspected in tests.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">One owner for the stack</span></div>
+    <pre class="swift"><span class="kw">final</span> <span class="kw">class</span> Navigator: <span class="tp">ObservableObject</span> {
+    <span class="kw">@Published</span> <span class="kw">var</span> route: [Screen] = []
+
+    <span class="kw">func</span> <span class="fn">push</span>(_ screen: Screen) { route.append(screen) }
+    <span class="kw">func</span> <span class="fn">popToRoot</span>()            { route.removeAll() }
+}</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="antipatterns" data-toc-label="Anti-Patterns">
+    <h2><span class="sec-num">6</span> Anti-Patterns — and the fix</h2>
+
+    <h3>Mutating the path to "replace" the root</h3>
+    <p>The single most common navigation bug. The requirement is "replace the main view with FinishView"; the implementation is <code>route = [.finished]</code>, which is a <em>push</em> with the root surviving underneath; the symptom is a back button nobody asked for.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Push versus replace</span></div>
+    <pre class="swift"><span class="cm">// WRONG: this pushes FinishView ON TOP of the root. The root is still</span>
+<span class="cm">// mounted underneath, so SwiftUI correctly offers a way back to it.</span>
+route = [.finished]
+
+<span class="cm">// RIGHT: choose a different root entirely, outside any NavigationStack.</span>
+<span class="cm">// See the pattern above.</span></pre>
+
+    <h3><code>.navigationDestination</code> on the stack instead of inside it</h3>
+    <p>A silent, easy-to-miss mistake: it compiles, the path still type-checks, but the destination is never registered against the stack's navigation context. Pushes resolve to nothing — a blank screen with a stray back button, no crash and no error.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Placement is load-bearing</span></div>
+    <pre class="swift"><span class="cm">// WRONG: the modifier is on the STACK, not inside its content.</span>
+<span class="tp">NavigationStack</span>(path: $path) {
+    RootView()
+}
+.navigationDestination(<span class="kw">for</span> : MyRoute.<span class="kw">self</span>) { route <span class="kw">in</span> ... }
+
+<span class="cm">// RIGHT: on the root view, inside the stack's content.</span>
+<span class="tp">NavigationStack</span>(path: $path) {
+    RootView()
+        .navigationDestination(<span class="kw">for</span> : MyRoute.<span class="kw">self</span>) { route <span class="kw">in</span> ... }
+}</pre>
+
+    <p>The root view may register <code>.navigationDestination</code> for types it never pushes itself — that is fine. The modifier just needs to be visible somewhere in the content tree the stack manages; it does not need to sit on the exact view that calls <code>append</code>.</p>
+
+    <h3>Still using <code>NavigationView</code></h3>
+    <p>Deprecated. <code>NavigationStack</code> with a path binding is the only shape worth writing now.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="pitfalls" data-toc-label="Pitfalls">
+    <h2><span class="sec-num">7</span> Pitfalls &amp; Gotchas</h2>
+
+    <div class="co co-pitfall">
+      <div class="co-pitfall-title">Stack behaviour that surprises people</div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">1.</span>
+        <span><strong>Emptying the path does not "clear the screen".</strong> <code>removeAll()</code> destroys nothing — the root was mounted the whole time, just hidden. That is why pop-to-root needs no re-fetch.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">2.</span>
+        <span><strong>The root can never be swapped by mutating the path.</strong> No amount of pushing, appending, or assigning replaces it. The root is chosen in code, at the call site.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">3.</span>
+        <span><strong>A misplaced <code>.navigationDestination</code> fails silently.</strong> No crash, no warning — just a push that lands nowhere. Check placement first when a push "does nothing".</span>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="related" data-toc-label="Related Topics">
+    <h2><span class="sec-num">8</span> Related Topics</h2>
+
+    <div class="ref-grid">
+      <a class="xref-card" href="modals_master.html">
+        <span class="ref-title">Modals</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · Screens</span></span>
+        <span class="ref-desc">The other way to present a screen. Sheets and covers are presentation rather than stack navigation, and <code>item:</code> versus <code>isPresented:</code> has its own sharp edge.</span>
+      </a>
+      <a class="xref-card" href="../state/state_ownership_master.html">
+        <span class="ref-title">State Ownership</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · State</span></span>
+        <span class="ref-desc">Where a navigator object should live, and how to inject it so the path has exactly one owner.</span>
+      </a>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="sources" data-toc-label="Sources">
+    <h2><span class="sec-num">9</span> Sources</h2>
+
+    <ul>
+      <li>Apple's <code>NavigationStack</code> and <code>navigationDestination(for:)</code> documentation, including the deprecation of <code>NavigationView</code>.</li>
+      <li>The root-versus-path distinction and the misplaced-modifier failure mode are documented here from direct observation — both compile cleanly and fail silently, which is what makes them worth writing down.</li>
+    </ul>
+  </section>
+
+  <div class="page-footer">
+    Study Wiki · Navigation · SwiftUI Theory
+  </div>
+
+</main>
+</div>
+
+<script src="../../../../static/generated/manifest.js"></script>
+<script src="../../../../static/generated/nav.js"></script>
+<script src="../../../../static/generated/toc.js"></script>
+</body>
+</html>

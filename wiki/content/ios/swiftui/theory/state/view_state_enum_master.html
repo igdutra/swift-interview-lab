@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>View State as an Enum · iOS Topic</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "View State as an Enum",
+  "nav": "View State as an Enum",
+  "topics": [
+    "SwiftUI",
+    "State Modelling",
+    "Enums",
+    "Type Safety"
+  ],
+  "blurb": "Replacing parallel booleans with one enum so invalid states are unrepresentable, and why the in-flight case should carry the data it is operating on.",
+  "order": 3
+}
+</script>
+<link rel="stylesheet" href="../../../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="ios-topic">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<main class="content">
+
+  <h1 class="page-title">View State as an Enum</h1>
+  <div class="page-meta">
+    <span>iOS Topic</span><span>·</span>
+    <span>SwiftUI</span><span>·</span>
+    <span>Making invalid states unrepresentable</span>
+  </div>
+
+  <section id="lead" data-toc-label="Definition">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Section</div><div class="infobox-v"><a href="index.html">State &amp; Data Flow</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Domain</div><div class="infobox-v"><a href="../index.html">SwiftUI Theory</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">State-modelling technique — type-driven design</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v">One enum instead of parallel booleans, so illegal combinations cannot be constructed</div></div>
+      <div class="infobox-row"><div class="infobox-k">The key move</div><div class="infobox-v">The in-flight case carries the data it operates on, encoding a precondition in the type</div></div>
+      <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"which flag wins?", "spinner over an empty screen", "isLoading and isSearching"</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key APIs</div><div class="infobox-v mono">enum with associated values · @Published private(set)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Related</div><div class="infobox-v"><a href="state_ownership_master.html">State Ownership</a> · Search</div></div>
+    </div>
+
+    <div class="lead">
+      <p>A screen that loads data has a handful of legitimate conditions: loading, loaded, failed, and often something in flight on top of loaded data. Modelled as parallel booleans, those four conditions become <strong>eight representable combinations</strong>, half of them nonsense — and every view that reads them has to defensively decide which flag wins.</p>
+      <p>Modelled as a single enum, the illegal combinations stop existing. The type system does the work that defensive <code>if</code> chains were doing, and the view becomes a straightforward <code>switch</code>.</p>
+    </div>
+
+    <div class="co co-idea">
+      <span class="co-idea-title">THE ONE IDEA</span>
+      Give the in-flight case an <strong>associated value carrying the data it operates on</strong>. <code>case searching(allItems: [Item])</code> encodes a precondition directly in the type: you cannot be searching unless you already have something to search within. A separate <code>isSearching</code> flag can be set at any moment, including before data ever arrives.
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="mental-model" data-toc-label="Mental Model">
+    <h2><span class="sec-num">2</span> Mental Model — how to think about it</h2>
+
+    <p>Count the states your type can represent, then count the ones that make sense. The gap is where bugs live.</p>
+
+    <pre class="ascii">FOUR BOOLEANS                          ONE ENUM
+  isLoading  : true | false              .loading
+  isSearching: true | false              .loaded(allItems:)
+  items      : [] | [...]                .searching(allItems:)
+  error      : nil | Error               .error(Error)
+
+  2 x 2 x 2 x 2 = 16 combinations        exactly 4 states
+  ~4 of them are valid                   all 4 are valid
+  the other 12 need defending against    the other 12 cannot be written</pre>
+    <div class="ascii-caption">The enum does not document the valid states — it makes the invalid ones impossible to construct.</div>
+
+    <p>The second idea is subtler. An enum case can carry data, and what it carries is a <em>guarantee</em>. If <code>.searching</code> requires an item list to construct, then "searching with nothing loaded" is not a state the program can enter — not by convention, but by construction.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="signals" data-toc-label="When It Applies">
+    <h2><span class="sec-num">3</span> When It Applies</h2>
+
+    <p>Local <code>@State</code> in the view is fine for purely local filtering. It stops being fine as soon as any of these are true:</p>
+
+    <table class="t-clue">
+      <thead><tr><th>When…</th><th>Why the enum earns its place</th></tr></thead>
+      <tbody>
+        <tr><td>The operation hits a network endpoint</td><td>Failure becomes a real state, not an edge case.</td></tr>
+        <tr><td>The result feeds anything beyond this one view</td><td>The state needs a single owner and a single shape.</td></tr>
+        <tr><td>You need to distinguish loading from in-flight-on-top-of-loaded</td><td>Booleans cannot express "both, but one is layered on the other".</td></tr>
+        <tr><td>You want to unit-test the transitions</td><td>A <code>switch</code> over four cases is testable; eight boolean combinations are not.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="api" data-toc-label="The API">
+    <h2><span class="sec-num">4</span> The API — types, modifiers, signatures</h2>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The state type</span></div>
+    <pre class="swift"><span class="kw">enum</span> ViewState {
+    <span class="kw">case</span> loading
+    <span class="kw">case</span> loaded(allItems: [<span class="tp">Item</span>])
+    <span class="kw">case</span> searching(allItems: [<span class="tp">Item</span>])   <span class="cm">// data already loaded; a search is in flight on top</span>
+    <span class="kw">case</span> error(<span class="tp">Error</span>)
+}
+
+<span class="cm">// private(set) is deliberate: only the view model transitions states,</span>
+<span class="cm">// so the view can never put it into an inconsistent one.</span>
+<span class="kw">@Published</span> <span class="kw">private</span>(<span class="kw">set</span>) <span class="kw">var</span> viewState: ViewState = .loading</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="patterns" data-toc-label="Patterns">
+    <h2><span class="sec-num">5</span> Patterns That Work</h2>
+
+    <h3>Store all the data; derive the filtered view</h3>
+    <p>The state holds the <em>full, unfiltered</em> list. Filtering happens downstream in a computed property. The state is the source of truth; the filtered array is a derived view of it.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Derivation, not mutation</span></div>
+    <pre class="swift"><span class="kw">var</span> visibleItems: [<span class="tp">Item</span>] {
+    <span class="kw">switch</span> viewState {
+    <span class="kw">case</span> .loaded(<span class="kw">let</span> allItems), .searching(<span class="kw">let</span> allItems):
+        <span class="kw">return</span> searchText.isEmpty
+            ? allItems
+            : allItems.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+    <span class="kw">case</span> .loading, .error:
+        <span class="kw">return</span> []
+    }
+}</pre>
+
+    <p>That separation is what lets a search be cancelled or superseded without ever having lost the underlying data — there is nothing to re-fetch, because nothing was thrown away.</p>
+
+    <h3>The view becomes a <code>switch</code></h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Exhaustive by construction</span></div>
+    <pre class="swift"><span class="kw">switch</span> viewModel.viewState {
+<span class="kw">case</span> .loading:
+    <span class="tp">ProgressView</span>()
+<span class="kw">case</span> .loaded:
+    itemList
+<span class="kw">case</span> .searching:
+    itemList.overlay(alignment: .top) { <span class="tp">ProgressView</span>() }
+<span class="kw">case</span> .error(<span class="kw">let</span> error):
+    ErrorView(error: error, retry: { <span class="tp">Task</span> { <span class="kw">await</span> viewModel.load() } })
+}</pre>
+
+    <p>The compiler enforces that every state is handled. Adding a fifth case later produces compile errors at exactly the places that need updating — which is the whole return on this design.</p>
+
+    <h3>Keep rows on screen while an operation is in flight</h3>
+    <p>Because <code>.searching</code> carries the same list <code>.loaded</code> had, the rows stay visible during the search. The UI layers a small progress indicator over live content instead of blanking to a full-screen spinner.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="antipatterns" data-toc-label="Anti-Patterns">
+    <h2><span class="sec-num">6</span> Anti-Patterns — and the fix</h2>
+
+    <h3>Parallel booleans</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Eight combinations, four of them meaningless</span></div>
+    <pre class="swift"><span class="cm">// WRONG: nothing stops isLoading == true alongside a populated items</span>
+<span class="cm">// array AND a non-nil error. Every view that reads this has to decide</span>
+<span class="cm">// defensively which flag wins.</span>
+<span class="kw">@Published</span> <span class="kw">var</span> isLoading = <span class="kw">false</span>
+<span class="kw">@Published</span> <span class="kw">var</span> isSearching = <span class="kw">false</span>
+<span class="kw">@Published</span> <span class="kw">var</span> items: [<span class="tp">Item</span>] = []
+<span class="kw">@Published</span> <span class="kw">var</span> error: <span class="tp">Error</span>?
+
+<span class="cm">// RIGHT: one value, four states, no combination to defend against.</span>
+<span class="kw">@Published</span> <span class="kw">private</span>(<span class="kw">set</span>) <span class="kw">var</span> viewState: ViewState = .loading</pre>
+
+    <h3>An in-flight case that carries nothing</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The bug the associated value prevents</span></div>
+    <pre class="swift"><span class="cm">// WRONG: .searching with no payload can be entered before the first load</span>
+<span class="cm">// finishes - producing a spinner over an empty screen, and losing the</span>
+<span class="cm">// rows that were already on display.</span>
+<span class="kw">case</span> searching
+
+<span class="cm">// RIGHT: you cannot construct this case without data, so "searching with</span>
+<span class="cm">// nothing loaded" is unrepresentable.</span>
+<span class="kw">case</span> searching(allItems: [<span class="tp">Item</span>])</pre>
+
+    <h3>Storing the filtered results in the state</h3>
+    <p>If the state stored the <em>filtered</em> list rather than the full one, every keystroke would destroy the previous results. Cancellation would leave a partially filtered set, and clearing the query would require a re-fetch of data you already had.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="pitfalls" data-toc-label="Pitfalls">
+    <h2><span class="sec-num">7</span> Pitfalls &amp; Gotchas</h2>
+
+    <div class="co co-pitfall">
+      <div class="co-pitfall-title">Modelling mistakes that reintroduce the problem</div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">1.</span>
+        <span><strong>Dropping <code>private(set)</code>.</strong> Without it a view can assign the state directly, which is exactly the inconsistency the enum was introduced to prevent.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">2.</span>
+        <span><strong>Adding a boolean "just for this one case".</strong> One flag beside the enum reintroduces the combinatorial problem. If a new condition exists, it is a new case or a new associated value.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">3.</span>
+        <span><strong>Using <code>default:</code> in the view's <code>switch</code>.</strong> It silences the compiler error that would otherwise tell you where to handle a newly added state — throwing away the main benefit.</span>
+      </div>
+    </div>
+
+    <p>This is the same principle as separating initial load from refresh: <strong>never discard data you still have</strong> just because a new operation started. The enum makes that principle structural rather than a matter of discipline.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="related" data-toc-label="Related Topics">
+    <h2><span class="sec-num">8</span> Related Topics</h2>
+
+    <div class="ref-grid">
+      <a class="xref-card" href="state_ownership_master.html">
+        <span class="ref-title">State Ownership</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · State</span></span>
+        <span class="ref-desc">Where this enum should live — a view model owned by the view via <code>@StateObject</code>, with the real work in <code>.task</code> rather than <code>init</code>.</span>
+      </a>
+      <a class="xref-card" href="../screens/search_master.html">
+        <span class="ref-title">Search</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · Screens</span></span>
+        <span class="ref-desc">The screen that motivated this design: <code>.searchable</code>, debouncing with <code>.task(id:)</code>, and cancelling a superseded query.</span>
+      </a>
+      <a class="xref-card" href="../screens/lists_master.html">
+        <span class="ref-title">Lists</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · Screens</span></span>
+        <span class="ref-desc">The same "do not blank the screen" principle applied to initial load versus refresh, and keeping a stable background across empty and loaded states.</span>
+      </a>
+      <a class="xref-card" href="../screens/modals_master.html">
+        <span class="ref-title">Modals</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · Screens</span></span>
+        <span class="ref-desc">The same principle in miniature: <code>item:</code> beats <code>isPresented:</code> because one value cannot disagree with itself.</span>
+      </a>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="sources" data-toc-label="Sources">
+    <h2><span class="sec-num">9</span> Sources</h2>
+
+    <ul>
+      <li>"Make invalid states unrepresentable" is a general type-driven-design principle, widely attributed to the ML and F# communities and adopted broadly in Swift.</li>
+      <li>The specific design — an in-flight case carrying the data it operates on, with filtering derived downstream — is the convergent pattern from building this screen, not a documented Apple API.</li>
+    </ul>
+  </section>
+
+  <div class="page-footer">
+    Study Wiki · View State as an Enum · SwiftUI Theory
+  </div>
+
+</main>
+</div>
+
+<script src="../../../../static/generated/manifest.js"></script>
+<script src="../../../../static/generated/nav.js"></script>
+<script src="../../../../static/generated/toc.js"></script>
+</body>
+</html>

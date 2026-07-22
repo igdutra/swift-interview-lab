@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Formatting &amp; Images · iOS Topic</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Formatting & Images",
+  "nav": "Formatting & Images",
+  "topics": [
+    "SwiftUI",
+    "AsyncImage",
+    "Text",
+    "Formatting"
+  ],
+  "blurb": "Currency and number formatting, sizing AsyncImage correctly (and why .resizable needs the closure form), and the truncation and centring traps in multiline text.",
+  "order": 6
+}
+</script>
+<link rel="stylesheet" href="../../../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="ios-topic">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<main class="content">
+
+  <h1 class="page-title">Formatting &amp; Images</h1>
+  <div class="page-meta">
+    <span>iOS Topic</span><span>·</span>
+    <span>SwiftUI</span><span>·</span>
+    <span>Numbers, remote images, and multiline text</span>
+  </div>
+
+  <section id="lead" data-toc-label="Definition">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Section</div><div class="infobox-v"><a href="index.html">Building Screens</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Domain</div><div class="infobox-v"><a href="../index.html">SwiftUI Theory</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Screen-level APIs — presentation details that bite in list rows</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v">Each of these has one non-obvious form that is the correct one</div></div>
+      <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"resizable doesn't exist", "the image overflows", "centred text looks crooked"</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key APIs</div><div class="infobox-v mono">.formatted · AsyncImage · .lineLimit · .truncationMode · .multilineTextAlignment</div></div>
+      <div class="infobox-row"><div class="infobox-k">Related</div><div class="infobox-v"><a href="lists_master.html">Lists</a> · <a href="../fundamentals/layout_system_master.html">The Layout System</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p>Three small topics that share a trait: each has an obvious form that almost works, and a slightly different form that is correct. Currency formatting where the locale must be a <code>Locale</code> rather than a string; <code>AsyncImage</code> where <code>.resizable()</code> only exists inside the content closure; multiline text where "centred" does not look centred.</p>
+      <p>All three surface most often in list rows, where inconsistent sizing is immediately visible down a column.</p>
+    </div>
+
+    <div class="co co-idea">
+      <span class="co-idea-title">THE ONE IDEA</span>
+      With <code>AsyncImage</code>, <code>.resizable()</code> goes <strong>inside</strong> the content closure and <code>.frame</code>/<code>.clipped()</code> go <strong>outside</strong> it. Inside, because only the loaded <code>Image</code> has that modifier; outside, so the sizing also applies to the placeholder — otherwise the row jumps when loading finishes.
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="mental-model" data-toc-label="Mental Model">
+    <h2><span class="sec-num">2</span> Mental Model — how to think about it</h2>
+
+    <p><code>AsyncImage</code> has two distinct regions and it matters which one a modifier lands in:</p>
+
+    <pre class="ascii">AsyncImage(url:) { image in
+    image
+        .resizable()          &lt;- INSIDE: applies to the loaded Image only
+        .aspectRatio(...)
+} placeholder: {
+    ProgressView()            &lt;- INSIDE: the loading state
+}
+.frame(width:height:)         &lt;- OUTSIDE: applies to BOTH states
+.clipped()                    &lt;- OUTSIDE: crops whatever is shown</pre>
+    <div class="ascii-caption">Sizing outside the closure is what keeps the layout stable across the loading-to-loaded transition.</div>
+
+    <p>The reason <code>.resizable()</code> cannot go outside is that <code>AsyncImage</code> is not an <code>Image</code> — it is a view that <em>may eventually contain</em> one. Only inside the closure do you hold the actual <code>Image</code> that has the modifier.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="signals" data-toc-label="When It Applies">
+    <h2><span class="sec-num">3</span> When It Applies</h2>
+
+    <table class="t-clue">
+      <thead><tr><th>When you see…</th><th>The question to ask</th></tr></thead>
+      <tbody>
+        <tr><td>"Value of type <code>AsyncImage</code> has no member <code>resizable</code>"</td><td>Use the content-closure form; <code>.resizable()</code> belongs on the loaded <code>Image</code>.</td></tr>
+        <tr><td>Rows jumping when images finish loading</td><td>Is <code>.frame</code> outside the closure, so the placeholder is sized too?</td></tr>
+        <tr><td>An image bleeding past its frame</td><td><code>.fill</code> without <code>.clipped()</code>.</td></tr>
+        <tr><td>A centred two-line title looking staggered</td><td>Each wrapped line centres on its own width, not the block's.</td></tr>
+        <tr><td>Currency showing the wrong symbol</td><td>Was the locale passed as a raw string rather than a <code>Locale</code>?</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="api" data-toc-label="The API">
+    <h2><span class="sec-num">4</span> The API — types, modifiers, signatures</h2>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Currency and numbers</span></div>
+    <pre class="swift"><span class="cm">// Force a specific locale for currency - pass a Locale, not a raw string.</span>
+dollarAmount.formatted(.currency(code: <span class="st">"USD"</span>).locale(<span class="tp">Locale</span>(identifier: <span class="st">"en_US"</span>)))
+
+<span class="cm">// Limit decimal places on a plain number.</span>
+dollarAmount.formatted(.number.precision(.fractionLength(<span class="nm">2</span>)))</pre>
+
+    <table class="t-decoder">
+      <thead><tr><th>Modifier</th><th>What it controls</th></tr></thead>
+      <tbody>
+        <tr><td><code>.aspectRatio(contentMode: .fit)</code></td><td>Scales to stay <em>inside</em> the frame.</td></tr>
+        <tr><td><code>.aspectRatio(contentMode: .fill)</code></td><td>Fills the frame and may overflow — pair with <code>.clipped()</code>.</td></tr>
+        <tr><td><code>.frame(width:height:)</code></td><td>Set <em>both</em> dimensions, not just <code>maxWidth</code>, so content below is predictable.</td></tr>
+        <tr><td><code>.lineLimit(_:)</code></td><td>Caps the number of lines. Wrapping happens by default; this limits how many lines before truncating.</td></tr>
+        <tr><td><code>.truncationMode(.head/.tail/.middle)</code></td><td>Where the ellipsis goes.</td></tr>
+        <tr><td><code>.minimumScaleFactor(_:)</code></td><td>Shrink text instead of truncating, down to the given fraction.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="patterns" data-toc-label="Patterns">
+    <h2><span class="sec-num">5</span> Patterns That Work</h2>
+
+    <h3>A correctly sized remote image</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Closure form, sizing outside</span></div>
+    <pre class="swift"><span class="tp">AsyncImage</span>(url: viewData.imageURL) { image <span class="kw">in</span>
+    image
+        .resizable()
+        .aspectRatio(contentMode: .fill)
+} placeholder: {
+    <span class="tp">ProgressView</span>()
+}
+.frame(width: <span class="nm">100</span>, height: <span class="nm">100</span>)   <span class="cm">// applies to the placeholder too</span>
+.clipped()                          <span class="cm">// required with .fill</span></pre>
+
+    <h3>Multiline text that truncates predictably</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Cap the lines, choose the ellipsis</span></div>
+    <pre class="swift"><span class="tp">Text</span>(viewData.name)
+    .lineLimit(<span class="nm">2</span>)
+    .truncationMode(.tail)</pre>
+
+    <h3>Two fixes for crooked centred text</h3>
+    <p>With <code>.multilineTextAlignment(.center)</code>, each wrapped line centres around <em>its own</em> text width rather than the full block width — so a two-line title reads as visually staggered even though it is technically centred.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Pick one</span></div>
+    <pre class="swift"><span class="cm">// Option 1: left-align titles. Most common choice for list rows.</span>
+<span class="tp">Text</span>(viewData.name)
+    .lineLimit(<span class="nm">2</span>)
+    .truncationMode(.tail)
+    .multilineTextAlignment(.leading)
+
+<span class="cm">// Option 2: stay centred, but give the Text a fixed frame so every line</span>
+<span class="cm">// centres against the same width.</span>
+<span class="tp">Text</span>(viewData.name)
+    .lineLimit(<span class="nm">2</span>)
+    .truncationMode(.tail)
+    .multilineTextAlignment(.center)
+    .frame(maxWidth: .infinity)</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="antipatterns" data-toc-label="Anti-Patterns">
+    <h2><span class="sec-num">6</span> Anti-Patterns — and the fix</h2>
+
+    <h3>Calling <code>.resizable()</code> on <code>AsyncImage</code> itself</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The modifier does not exist there</span></div>
+    <pre class="swift"><span class="cm">// WRONG: AsyncImage(url:) alone gives a view that may eventually contain</span>
+<span class="cm">// an Image - it has no .resizable() member of its own.</span>
+<span class="tp">AsyncImage</span>(url: url)
+    .resizable()
+
+<span class="cm">// RIGHT: use the closure form so .resizable() lands on the loaded Image.</span>
+<span class="tp">AsyncImage</span>(url: url) { image <span class="kw">in</span>
+    image.resizable()
+} placeholder: {
+    <span class="tp">ProgressView</span>()
+}</pre>
+
+    <h3>Putting <code>.frame</code> inside the content closure</h3>
+    <p>Sized inside, the frame applies only to the loaded image — the placeholder keeps its intrinsic size, so the row visibly resizes the moment loading completes. Outside the closure, both states share one frame.</p>
+
+    <h3>Passing a locale identifier as a raw string</h3>
+    <p><code>.locale</code> expects a <code>Locale</code>. Handing it a bare string does not select the locale you meant, and the currency symbol quietly follows the device instead.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="pitfalls" data-toc-label="Pitfalls">
+    <h2><span class="sec-num">7</span> Pitfalls &amp; Gotchas</h2>
+
+    <div class="co co-pitfall">
+      <div class="co-pitfall-title">Presentation details that bite in list rows</div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">1.</span>
+        <span><strong><code>.fill</code> without <code>.clipped()</code> overflows.</strong> Fill mode is allowed to exceed the frame; clipping is what cuts it back.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">2.</span>
+        <span><strong>Set both frame dimensions, not just <code>maxWidth</code>.</strong> Otherwise the height is content-dependent and everything below shifts as images load.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">3.</span>
+        <span><strong>"Centred" multiline text centres per line.</strong> Give it a fixed frame, or left-align it — the staggered look is not a rendering bug.</span>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="related" data-toc-label="Related Topics">
+    <h2><span class="sec-num">8</span> Related Topics</h2>
+
+    <div class="ref-grid">
+      <a class="xref-card" href="lists_master.html">
+        <span class="ref-title">Lists</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · Screens</span></span>
+        <span class="ref-desc">Where these details matter most — inconsistent image sizing or text height is immediately visible down a column of rows.</span>
+      </a>
+      <a class="xref-card" href="../fundamentals/layout_system_master.html">
+        <span class="ref-title">The Layout System</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · Layout</span></span>
+        <span class="ref-desc">Why <code>.frame</code> wraps rather than resizes, and why modifier order changes the result — the model underneath every sizing decision here.</span>
+      </a>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="sources" data-toc-label="Sources">
+    <h2><span class="sec-num">9</span> Sources</h2>
+
+    <ul>
+      <li>Apple's documentation for <code>AsyncImage</code>, the <code>FormatStyle</code> family (<code>.currency</code>, <code>.number.precision</code>), and the <code>Text</code> truncation modifiers.</li>
+      <li>The per-line centring behaviour and the placeholder-sizing requirement are recorded from direct observation — both look like rendering bugs until the cause is known.</li>
+    </ul>
+  </section>
+
+  <div class="page-footer">
+    Study Wiki · Formatting &amp; Images · SwiftUI Theory
+  </div>
+
+</main>
+</div>
+
+<script src="../../../../static/generated/manifest.js"></script>
+<script src="../../../../static/generated/nav.js"></script>
+<script src="../../../../static/generated/toc.js"></script>
+</body>
+</html>

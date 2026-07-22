@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Search · iOS Topic</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Search",
+  "nav": "Search",
+  "topics": [
+    "SwiftUI",
+    "Searchable",
+    "Debouncing",
+    "Cancellation"
+  ],
+  "blurb": "The .searchable modifier, why it must live inside a NavigationStack, and debouncing keystrokes with .task(id:) — a whole Combine pipeline replaced by cancellation semantics.",
+  "order": 4
+}
+</script>
+<link rel="stylesheet" href="../../../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="ios-topic">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<main class="content">
+
+  <h1 class="page-title">Search</h1>
+  <div class="page-meta">
+    <span>iOS Topic</span><span>·</span>
+    <span>SwiftUI</span><span>·</span>
+    <span><code>.searchable</code> and debouncing without Combine</span>
+  </div>
+
+  <section id="lead" data-toc-label="Definition">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Section</div><div class="infobox-v"><a href="index.html">Building Screens</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Domain</div><div class="infobox-v"><a href="../index.html">SwiftUI Theory</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Screen-level API — search chrome plus a debounce technique</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v"><code>.task(id:)</code> cancels the previous run before starting a new one — that <em>is</em> the debounce</div></div>
+      <div class="infobox-row"><div class="infobox-k">Hard requirement</div><div class="infobox-v">Must be inside a <code>NavigationStack</code>, or nothing appears and no warning is given</div></div>
+      <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"the search field doesn't show", "it refilters on every keystroke", "stale results"</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key APIs</div><div class="infobox-v mono">.searchable · .task(id:) · .searchCompletion · \.isSearching</div></div>
+      <div class="infobox-row"><div class="infobox-k">Related</div><div class="infobox-v"><a href="lists_master.html">Lists</a> · <a href="../state/view_state_enum_master.html">View State as an Enum</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p><code>.searchable</code> adds a search field to a screen's navigation chrome and binds it to a string. The mechanics are simple; the part worth understanding is what happens on every keystroke, because a list that re-filters — or worse, re-fetches — on each character wastes work and lets stale results race back after newer ones.</p>
+      <p>The fix is a debounce, and SwiftUI has one built in without any Combine pipeline: <code>.task(id:)</code> restarts when its <code>id</code> changes, <strong>cancelling the previous run first</strong>.</p>
+    </div>
+
+    <div class="co co-idea">
+      <span class="co-idea-title">THE ONE IDEA</span>
+      Each keystroke cancels the prior 300 ms wait and starts a fresh one. Only a value the user stops changing for 300 ms survives long enough to be committed. That is the entire debounce — no <code>PassthroughSubject</code>, no <code>.debounce</code>, no <code>.sink</code>, no <code>cancellables</code> set.
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="mental-model" data-toc-label="Mental Model">
+    <h2><span class="sec-num">2</span> Mental Model — how to think about it</h2>
+
+    <p>Keep two pieces of state, and be strict about which one filtering reads:</p>
+
+    <pre class="ascii">searchText            &lt;- mutated by .searchable on EVERY keystroke
+     |
+     |  .task(id: searchText)  -- cancels the previous run, sleeps 300ms
+     v
+debouncedSearchText   &lt;- the ONLY thing filtering ever reads</pre>
+    <div class="ascii-caption">The gap between the two is the debounce. Filtering on the top one directly reintroduces the exact problem this pattern exists to solve.</div>
+
+    <p>Cancellation is the mechanism, not an error path. <code>Task.sleep</code> throws <code>CancellationError</code> when interrupted, and here that is the <em>expected, frequent</em> case — which is why the sleep is written with <code>try?</code>.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="signals" data-toc-label="When It Applies">
+    <h2><span class="sec-num">3</span> When It Applies</h2>
+
+    <table class="t-clue">
+      <thead><tr><th>When you see…</th><th>The search question to ask</th></tr></thead>
+      <tbody>
+        <tr><td>No search field appears at all</td><td>Is <code>.searchable</code> inside a <code>NavigationStack</code>? Outside one it renders nothing, silently.</td></tr>
+        <tr><td>A network call per keystroke</td><td>Is filtering reading <code>searchText</code> instead of the debounced copy?</td></tr>
+        <tr><td>Older results overwriting newer ones</td><td>Same cause — without cancellation, in-flight requests can finish out of order.</td></tr>
+        <tr><td>The list blanking while a search runs</td><td>The in-flight state should carry the data it is filtering.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="api" data-toc-label="The API">
+    <h2><span class="sec-num">4</span> The API — types, modifiers, signatures</h2>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The basic shape</span></div>
+    <pre class="swift"><span class="kw">struct</span> ItemsView: <span class="tp">View</span> {
+    <span class="kw">@State</span> <span class="kw">private</span> <span class="kw">var</span> searchText = <span class="st">""</span>
+
+    <span class="kw">var</span> body: <span class="kw">some</span> <span class="tp">View</span> {
+        <span class="tp">NavigationStack</span> {          <span class="cm">// required - the field is navigation chrome</span>
+            <span class="tp">List</span>(items) { item <span class="kw">in</span>
+                <span class="tp">Text</span>(item.name)
+            }
+            .searchable(text: $searchText)
+        }
+    }
+}</pre>
+
+    <table class="t-decoder">
+      <thead><tr><th>API</th><th>What it does</th></tr></thead>
+      <tbody>
+        <tr><td><code>placement:</code></td><td><code>.automatic</code>, <code>.navigationBarDrawer(displayMode: .always)</code> to keep it permanently visible, <code>.toolbar</code>, <code>.sidebar</code>.</td></tr>
+        <tr><td><code>.searchCompletion(_:)</code></td><td>Suggestions from a trailing closure; tapping one replaces the text.</td></tr>
+        <tr><td><code>@Environment(\.isSearching)</code></td><td>Whether the field is active. Must be read from a <strong>child</strong> view, not the one declaring <code>.searchable</code>.</td></tr>
+        <tr><td><code>@Environment(\.dismissSearch)</code></td><td>Closes the search field programmatically.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="patterns" data-toc-label="Patterns">
+    <h2><span class="sec-num">5</span> Patterns That Work</h2>
+
+    <h3>Debounce with <code>.task(id:)</code></h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Two pieces of state, one of them authoritative</span></div>
+    <pre class="swift"><span class="kw">@State</span> <span class="kw">private</span> <span class="kw">var</span> searchText = <span class="st">""</span>
+<span class="cm">// The only thing filtering ever reads - never written from the field.</span>
+<span class="kw">@State</span> <span class="kw">private</span> <span class="kw">var</span> debouncedSearchText = <span class="st">""</span>
+
+<span class="kw">private</span> <span class="kw">var</span> filteredItems: [<span class="tp">Item</span>] {
+    <span class="kw">guard</span> !debouncedSearchText.isEmpty <span class="kw">else</span> { <span class="kw">return</span> items }
+    <span class="kw">return</span> items.filter {
+        $0.name.localizedCaseInsensitiveContains(debouncedSearchText)
+    }
+}</pre>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The debounce itself</span></div>
+    <pre class="swift"><span class="tp">List</span>(filteredItems) { item <span class="kw">in</span>
+    <span class="tp">Text</span>(item.name)
+}
+.searchable(text: $searchText)
+.task(id: searchText) {
+    <span class="kw">try</span>? <span class="kw">await</span> <span class="tp">Task</span>.sleep(<span class="kw">for</span> : .milliseconds(<span class="nm">300</span>))
+    <span class="kw">guard</span> !<span class="tp">Task</span>.isCancelled <span class="kw">else</span> { <span class="kw">return</span> }
+    debouncedSearchText = searchText
+}</pre>
+
+    <h3>Use <code>localizedCaseInsensitiveContains</code></h3>
+    <p>Prefer it over calling <code>.lowercased()</code> on both sides of <code>.contains</code>. It is one call, it reads as intent, and it is locale-correct — naive ASCII lowercasing mishandles the Turkish dotted and dotless <em>i</em>.</p>
+
+    <h3>Move search state into a view model when it grows</h3>
+    <p>Local <code>@State</code> is fine for purely local filtering. Lift it to a view model as soon as the search hits the network, feeds more than this one view, needs to distinguish loading from searching, or has to be unit-tested — see <a href="../state/view_state_enum_master.html">View State as an Enum</a> for the state shape that keeps rows on screen during an in-flight search.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="antipatterns" data-toc-label="Anti-Patterns">
+    <h2><span class="sec-num">6</span> Anti-Patterns — and the fix</h2>
+
+    <h3>Filtering on <code>searchText</code> directly</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The most common mistake here</span></div>
+    <pre class="swift"><span class="cm">// WRONG: skips the debounced copy entirely, silently reintroducing the</span>
+<span class="cm">// per-keystroke work the pattern exists to prevent.</span>
+items.filter { $0.name.localizedCaseInsensitiveContains(searchText) }
+
+<span class="cm">// RIGHT: read only the debounced value.</span>
+items.filter { $0.name.localizedCaseInsensitiveContains(debouncedSearchText) }</pre>
+
+    <h3>Reaching for a Combine pipeline</h3>
+    <p>A <code>PassthroughSubject</code> with <code>.debounce</code>, <code>.sink</code>, and a <code>cancellables</code> set does the same job with considerably more machinery. Reach for Combine only if you are already in a pipeline elsewhere in the same view.</p>
+
+    <h3>Putting <code>.searchable</code> outside a navigation container</h3>
+    <p>The field is rendered by the navigation chrome, not by the <code>List</code>. Outside a <code>NavigationStack</code> or <code>NavigationSplitView</code> nothing appears — and there is no warning to tell you why.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="pitfalls" data-toc-label="Pitfalls">
+    <h2><span class="sec-num">7</span> Pitfalls &amp; Gotchas</h2>
+
+    <div class="co co-pitfall">
+      <div class="co-pitfall-title">Search details worth memorizing</div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">1.</span>
+        <span><strong><code>try?</code> on the sleep is deliberate.</strong> <code>Task.sleep</code> throws <code>CancellationError</code> when cancelled, and cancellation is the expected, frequent case here — not an error to surface.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">2.</span>
+        <span><strong><code>@Environment(\.isSearching)</code> must be read from a child view</strong>, not the view that declares <code>.searchable</code>. Read in the wrong place it simply never becomes true.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">3.</span>
+        <span><strong>Version floors:</strong> <code>.task(id:)</code> needs iOS 15+, and <code>Task.sleep(for:)</code>'s <code>Duration</code> overload needs iOS 16+. Below that, use <code>Task.sleep(nanoseconds:)</code>.</span>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="related" data-toc-label="Related Topics">
+    <h2><span class="sec-num">8</span> Related Topics</h2>
+
+    <div class="ref-grid">
+      <a class="xref-card" href="../state/view_state_enum_master.html">
+        <span class="ref-title">View State as an Enum</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · State</span></span>
+        <span class="ref-desc">The state model this screen motivates: a <code>.searching</code> case carrying the full item list, so rows stay on screen while a search is in flight.</span>
+      </a>
+      <a class="xref-card" href="lists_master.html">
+        <span class="ref-title">Lists</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · Screens</span></span>
+        <span class="ref-desc">The container being filtered, and the same "never blank the screen" principle applied to initial load versus refresh.</span>
+      </a>
+      <a class="xref-card" href="navigation_master.html">
+        <span class="ref-title">Navigation</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · Screens</span></span>
+        <span class="ref-desc">The <code>NavigationStack</code> that <code>.searchable</code> requires — the search field is part of its chrome, not the list's.</span>
+      </a>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="sources" data-toc-label="Sources">
+    <h2><span class="sec-num">9</span> Sources</h2>
+
+    <ul>
+      <li>Apple's documentation for <code>searchable(text:placement:prompt:)</code>, <code>searchCompletion(_:)</code>, and the <code>isSearching</code> / <code>dismissSearch</code> environment values.</li>
+      <li>The <code>.task(id:)</code> cancellation contract — a new <code>id</code> cancels the previous run before starting the next — is what makes the debounce work; see Apple's <code>task(id:priority:_:)</code> documentation.</li>
+    </ul>
+  </section>
+
+  <div class="page-footer">
+    Study Wiki · Search · SwiftUI Theory
+  </div>
+
+</main>
+</div>
+
+<script src="../../../../static/generated/manifest.js"></script>
+<script src="../../../../static/generated/nav.js"></script>
+<script src="../../../../static/generated/toc.js"></script>
+</body>
+</html>

@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lists · iOS Topic</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Lists",
+  "nav": "Lists",
+  "topics": [
+    "SwiftUI",
+    "List",
+    "Refreshable",
+    "Separators"
+  ],
+  "blurb": "Keeping a List's background stable when it empties, separating initial load from refresh to avoid the empty flash, and making row separators span the full width.",
+  "order": 2
+}
+</script>
+<link rel="stylesheet" href="../../../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="ios-topic">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<main class="content">
+
+  <h1 class="page-title">Lists</h1>
+  <div class="page-meta">
+    <span>iOS Topic</span><span>·</span>
+    <span>SwiftUI</span><span>·</span>
+    <span>Backgrounds, refresh, and separators</span>
+  </div>
+
+  <section id="lead" data-toc-label="Definition">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Section</div><div class="infobox-v"><a href="index.html">Building Screens</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Domain</div><div class="infobox-v"><a href="../index.html">SwiftUI Theory</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Screen-level API — a scrolling container with built-in styling</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v">Several <code>List</code> behaviours are <strong>row-count dependent</strong>, so an empty list looks different from a populated one</div></div>
+      <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"the background flashes white", "rows disappear on pull-to-refresh", "the separator is inset"</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key APIs</div><div class="infobox-v mono">.listStyle · .scrollContentBackground · .refreshable · .alignmentGuide</div></div>
+      <div class="infobox-row"><div class="infobox-k">Related</div><div class="infobox-v"><a href="../state/view_state_enum_master.html">View State as an Enum</a> · <a href="../fundamentals/view_identity_master.html">View Identity</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p><code>List</code> carries a lot of built-in behaviour, and some of it is <strong>row-count dependent</strong> — most visibly the background of <code>.insetGrouped</code>, which renders differently with zero rows than with content. That is the root of the classic "my list flashes white while refreshing" complaint.</p>
+      <p>The fix is never to fight the flash where it appears. It is to stop the row count from dropping to zero in the first place, and to paint the background unconditionally rather than relying on the style's state-dependent default.</p>
+    </div>
+
+    <div class="co co-idea">
+      <span class="co-idea-title">THE ONE IDEA</span>
+      Never discard data you still have just because a new load started. A refresh that resets state to <code>.loading</code> throws away the rows the user is looking at — and takes the background with them. Initial load and refresh are <strong>different operations</strong> and deserve different code paths.
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="mental-model" data-toc-label="Mental Model">
+    <h2><span class="sec-num">2</span> Mental Model — how to think about it</h2>
+
+    <p>Think of <code>List</code> as a UIKit table view wearing a SwiftUI coat. Several of its defaults are inherited from that implementation, and they are conditional on content:</p>
+
+    <table class="t-decoder">
+      <thead><tr><th>Behaviour</th><th>What it depends on</th></tr></thead>
+      <tbody>
+        <tr><td>The grouped background colour</td><td>Whether the list currently has rows</td></tr>
+        <tr><td>Row separator insets</td><td>The row content's leading alignment guide</td></tr>
+        <tr><td>Row identity and diffing</td><td><code>Identifiable</code> — the same explicit identity mechanism covered in <a href="../fundamentals/view_identity_master.html">View Identity</a></td></tr>
+      </tbody>
+    </table>
+
+    <p>Because these are conditional, a list that <em>momentarily</em> empties will visibly change appearance and then change back. The flash is not a bug in <code>.refreshable</code>; it is the list correctly rendering an empty state you did not intend to enter.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="signals" data-toc-label="When It Applies">
+    <h2><span class="sec-num">3</span> When It Applies</h2>
+
+    <table class="t-clue">
+      <thead><tr><th>When you see…</th><th>The list question to ask</th></tr></thead>
+      <tbody>
+        <tr><td>The background flashing white mid-refresh</td><td>Does the row count hit zero during the reload? Does the style's default background still apply?</td></tr>
+        <tr><td>Rows vanishing on pull-to-refresh</td><td>Is the refresh path resetting state to <code>.loading</code>?</td></tr>
+        <tr><td>Separators that stop short of the row's leading edge</td><td>The alignment guide, applied per row rather than on the list.</td></tr>
+        <tr><td>An empty list that looks broken rather than intentional</td><td>Use an explicit empty state via <code>.overlay</code> instead of the default rendering.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="api" data-toc-label="The API">
+    <h2><span class="sec-num">4</span> The API — types, modifiers, signatures</h2>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">A stable background, whatever the row count</span></div>
+    <pre class="swift"><span class="tp">List</span>(items) { item <span class="kw">in</span>
+    <span class="tp">Text</span>(item.name)
+}
+.listStyle(.insetGrouped)
+.scrollContentBackground(.hidden)                          <span class="cm">// remove the built-in one</span>
+.background(<span class="tp">Color</span>(uiColor: .systemGroupedBackground))  <span class="cm">// paint it unconditionally</span></pre>
+
+    <p><code>.scrollContentBackground(.hidden)</code> removes the row-count-dependent background entirely; the explicit <code>.background</code> behind it then paints the correct grouped colour whether the list is empty, loading, or full.</p>
+
+    <div class="co co-note">
+      <strong>Order is load-bearing:</strong> <code>.scrollContentBackground(.hidden)</code> must come <strong>before</strong> <code>.background(...)</code>. Reversed, the default background is still drawn and your custom colour ends up behind it, invisible.
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="patterns" data-toc-label="Patterns">
+    <h2><span class="sec-num">5</span> Patterns That Work</h2>
+
+    <h3>Separate initial load from refresh</h3>
+    <p>If the visible items are derived from a <a href="../state/view_state_enum_master.html">state enum</a>, do not route every load through a function that resets to <code>.loading</code>. That collapses the item list to empty mid-refresh — which both triggers the background flash and loses the rows the user was reading.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Two entry points, two behaviours</span></div>
+    <pre class="swift">.task {
+    <span class="kw">await</span> loadItems()       <span class="cm">// first load: a loading state is fine, the list is empty anyway</span>
+}
+.refreshable {
+    <span class="kw">await</span> refreshItems()    <span class="cm">// refresh: keep existing rows on screen</span>
+}</pre>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The shared tail, without the reset</span></div>
+    <pre class="swift"><span class="kw">private</span> <span class="kw">func</span> <span class="fn">loadItems</span>() <span class="kw">async</span> {
+    viewState = .loading
+    <span class="kw">await</span> applyFetchResult()
+}
+
+<span class="kw">private</span> <span class="kw">func</span> <span class="fn">refreshItems</span>() <span class="kw">async</span> {
+    <span class="cm">// No `viewState = .loading` here - existing rows and their background</span>
+    <span class="cm">// stay on screen while the new data loads.</span>
+    <span class="kw">await</span> applyFetchResult()
+}
+
+<span class="kw">private</span> <span class="kw">func</span> <span class="fn">applyFetchResult</span>() <span class="kw">async</span> {
+    <span class="kw">switch</span> <span class="kw">await</span> fetchItems() {
+    <span class="kw">case</span> .success(<span class="kw">let</span> items): viewState = .loaded(items)
+    <span class="kw">case</span> .failure(<span class="kw">let</span> error): viewState = .error(error)
+    }
+}</pre>
+
+    <h3>Full-width row separators</h3>
+    <p><code>List</code> generates a separator per row and insets it. The confirmed fix is to apply the alignment guide <strong>per row content</strong>, not on the <code>List</code> itself.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Per row, not per list</span></div>
+    <pre class="swift"><span class="tp">List</span>(restaurants) { restaurant <span class="kw">in</span>
+    RestaurantRowView(restaurant: restaurant)
+        .alignmentGuide(.listRowSeparatorLeading) { _ <span class="kw">in</span> <span class="nm">0</span> }
+}</pre>
+
+    <h3>An intentional empty state</h3>
+    <p>If you want a distinct empty look — a centred message rather than a blank list — draw it yourself via <code>.overlay</code> rather than letting <code>List</code> fall back to its default empty rendering. <code>ContentUnavailableView</code> is the iOS 17+ tool; on iOS 16 a <code>VStack</code> in an overlay does the same job.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="antipatterns" data-toc-label="Anti-Patterns">
+    <h2><span class="sec-num">6</span> Anti-Patterns — and the fix</h2>
+
+    <h3>One load function for both first load and refresh</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The reset that causes the flash</span></div>
+    <pre class="swift"><span class="cm">// WRONG: pull-to-refresh routes through the same reset as the first</span>
+<span class="cm">// load, so the rows vanish and the background flashes before the new</span>
+<span class="cm">// data arrives.</span>
+.refreshable { <span class="kw">await</span> loadItems() }   <span class="cm">// loadItems() sets .loading</span>
+
+<span class="cm">// RIGHT: a refresh path that never returns to .loading.</span>
+.refreshable { <span class="kw">await</span> refreshItems() }</pre>
+
+    <h3>Fighting the flash with a fixed height or a delay</h3>
+    <p>Both treat the symptom. The list is correctly rendering an empty state; the fix is to not enter that state, and to paint the background unconditionally.</p>
+
+    <h3>Putting the alignment guide on the <code>List</code></h3>
+    <p>It has to be on the row content. Applied to the list it silently does nothing, which reads as "the fix does not work".</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="pitfalls" data-toc-label="Pitfalls">
+    <h2><span class="sec-num">7</span> Pitfalls &amp; Gotchas</h2>
+
+    <div class="co co-pitfall">
+      <div class="co-pitfall-title">List quirks worth memorizing</div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">1.</span>
+        <span><strong>This is a <code>List</code> rendering quirk, not a <code>.refreshable</code> bug.</strong> The same empty-versus-loaded background mismatch happens without <code>.refreshable</code> at all, any time the row count can drop to zero temporarily.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">2.</span>
+        <span><strong>Modifier order matters for the background.</strong> <code>.scrollContentBackground(.hidden)</code> before <code>.background(...)</code>, or the custom colour is drawn behind the default and never seen.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">3.</span>
+        <span><strong><code>.refreshable</code>'s spinner tracks a real <code>await</code>.</strong> For it to reflect the true duration of a completion-handler API, the call must be genuinely awaitable — bridge it with a continuation rather than returning immediately.</span>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="related" data-toc-label="Related Topics">
+    <h2><span class="sec-num">8</span> Related Topics</h2>
+
+    <div class="ref-grid">
+      <a class="xref-card" href="../state/view_state_enum_master.html">
+        <span class="ref-title">View State as an Enum</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · State</span></span>
+        <span class="ref-desc">The state model that makes "keep the rows during a refresh" structural rather than a matter of discipline — an in-flight case that carries the data it operates on.</span>
+      </a>
+      <a class="xref-card" href="../fundamentals/view_identity_master.html">
+        <span class="ref-title">View Identity</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · Identity</span></span>
+        <span class="ref-desc">Where explicit identity does its heaviest lifting: <code>Identifiable</code> diffing is how <code>List</code> decides a row is the same row across an update.</span>
+      </a>
+      <a class="xref-card" href="search_master.html">
+        <span class="ref-title">Search</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · Screens</span></span>
+        <span class="ref-desc">Filtering a list with <code>.searchable</code>, debouncing the query, and applying the same "do not blank the screen" principle to an in-flight search.</span>
+      </a>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="sources" data-toc-label="Sources">
+    <h2><span class="sec-num">9</span> Sources</h2>
+
+    <ul>
+      <li>Apple's documentation for <code>List</code>, <code>listStyle(_:)</code>, <code>scrollContentBackground(_:)</code>, and <code>refreshable(action:)</code>.</li>
+      <li>The separator fix (alignment guide per row rather than on the list) and the background-order requirement are recorded from direct observation — both are silent failures rather than documented behaviour.</li>
+      <li><code>ContentUnavailableView</code> availability: iOS 17+.</li>
+    </ul>
+  </section>
+
+  <div class="page-footer">
+    Study Wiki · Lists · SwiftUI Theory
+  </div>
+
+</main>
+</div>
+
+<script src="../../../../static/generated/manifest.js"></script>
+<script src="../../../../static/generated/nav.js"></script>
+<script src="../../../../static/generated/toc.js"></script>
+</body>
+</html>

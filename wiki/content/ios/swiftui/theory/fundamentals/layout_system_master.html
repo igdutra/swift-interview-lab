@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Layout System · iOS Topic</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "The Layout System",
+  "nav": "Layout System",
+  "topics": [
+    "SwiftUI",
+    "Layout",
+    "Frames",
+    "GeometryReader"
+  ],
+  "blurb": "Parent proposes, child chooses, parent positions — the three-step negotiation that explains every \"why is my view the wrong size\" question, plus frames, fixedSize, Spacer, and GeometryReader's greediness.",
+  "order": 3
+}
+</script>
+<link rel="stylesheet" href="../../../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="ios-topic">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<main class="content">
+
+  <h1 class="page-title">The Layout System</h1>
+  <div class="page-meta">
+    <span>iOS Topic</span><span>·</span>
+    <span>SwiftUI</span><span>·</span>
+    <span>How sizes are negotiated between parent and child</span>
+  </div>
+
+  <section id="lead" data-toc-label="Definition">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Section</div><div class="infobox-v"><a href="index.html">SwiftUI Fundamentals</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Domain</div><div class="infobox-v"><a href="../index.html">SwiftUI Theory</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Framework model — a three-step size negotiation, repeated down the tree</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v">Parent proposes · child chooses · parent positions. A parent can never force a size on a child.</div></div>
+      <div class="infobox-row"><div class="infobox-k">Decides</div><div class="infobox-v">Every "why is my view the wrong size" question</div></div>
+      <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"the border is too big", "my text is truncated", "GeometryReader broke my layout"</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key APIs</div><div class="infobox-v mono">.frame · .fixedSize · .layoutPriority · Spacer · GeometryReader · ViewThatFits</div></div>
+      <div class="infobox-row"><div class="infobox-k">Related</div><div class="infobox-v"><a href="view_identity_master.html">View Identity</a> · Data Flow (PreferenceKey)</div></div>
+    </div>
+
+    <div class="lead">
+      <p>Almost every "why is my view the wrong size" question comes from not knowing one small model. Layout in SwiftUI is a <strong>three-step negotiation</strong>, repeated at every level of the tree: the parent <strong>proposes</strong> a size, the child <strong>chooses</strong> its own, and the parent <strong>positions</strong> the child within its bounds.</p>
+      <p>The step people do not expect is the middle one. A child is <em>not</em> obligated to accept the proposal, and a parent can never force a size on it. <code>Text</code> takes only the width it needs; <code>Color</code> takes everything offered; <code>Image</code> takes its intrinsic size unless made <code>.resizable()</code>.</p>
+    </div>
+
+    <div class="co co-idea">
+      <span class="co-idea-title">THE ONE IDEA</span>
+      <code>.frame()</code> does not resize a view. It <strong>wraps</strong> it in a new view of that size, and the original sits inside — still choosing its own size. That single fact explains why borders look "too big", why modifier order matters, and why a fixed frame does not truncate text.
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="mental-model" data-toc-label="Mental Model">
+    <h2><span class="sec-num">2</span> Mental Model — how to think about it</h2>
+
+    <p>Think of it as a conversation rather than a command:</p>
+
+    <pre class="ascii">PARENT: "You may have up to 100 x 100."        &lt;- proposal (may be nil = "anything")
+CHILD:  "Thanks, I only need 24 x 17."          &lt;- the child decides
+PARENT: "Fine, I'll centre you in my 100 x 100." &lt;- positioning</pre>
+    <div class="ascii-caption">The proposal is an offer, not an instruction. This repeats at every level down the tree.</div>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Why the border looks too big</span></div>
+    <pre class="swift"><span class="cm">// The frame PROPOSES 100x100. Text still chooses its own smaller size,</span>
+<span class="cm">// then gets centred inside the 100x100 region.</span>
+<span class="tp">Text</span>(<span class="st">"Hi"</span>)
+    .frame(width: <span class="nm">100</span>, height: <span class="nm">100</span>)
+    .border(.red)          <span class="cm">// the border is on the 100x100 frame, not the text</span></pre>
+
+    <p>This is why <code>.background</code> and <code>.border</code> sometimes look oversized: they are drawing around the <em>frame</em>, not around the content.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="signals" data-toc-label="When It Applies">
+    <h2><span class="sec-num">3</span> When It Applies</h2>
+
+    <table class="t-clue">
+      <thead><tr><th>When you see…</th><th>The layout question to ask</th></tr></thead>
+      <tbody>
+        <tr><td>A background or border that is bigger than expected</td><td>Is it wrapping a <code>.frame</code> rather than the content? Check modifier order.</td></tr>
+        <tr><td>Text truncated to "Some long te…"</td><td>The parent proposed too little and the child accepted. <code>.fixedSize</code> or <code>.layoutPriority</code>.</td></tr>
+        <tr><td>A view that will not fill the width</td><td><code>.frame(maxWidth: .infinity)</code> — the single most-used layout modifier.</td></tr>
+        <tr><td>Adding a <code>GeometryReader</code> destroyed the layout</td><td>It accepts the <em>full</em> proposal. Use it as a background/overlay instead.</td></tr>
+        <tr><td>A stack suddenly fills its parent</td><td>A <code>Spacer</code> makes the stack greedy along its axis.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="api" data-toc-label="The API">
+    <h2><span class="sec-num">4</span> The API — types, modifiers, signatures</h2>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The two frame overloads behave differently</span></div>
+    <pre class="swift">.frame(width: <span class="nm">100</span>, height: <span class="nm">100</span>)                    <span class="cm">// fixed proposal</span>
+.frame(maxWidth: .infinity, alignment: .leading)   <span class="cm">// flexible: "take what's offered"</span></pre>
+
+    <table class="t-decoder">
+      <thead><tr><th>Modifier</th><th>What it does to the negotiation</th></tr></thead>
+      <tbody>
+        <tr><td><code>.frame(width:height:)</code></td><td>Wraps the view in a new fixed-size view and proposes that size to the original.</td></tr>
+        <tr><td><code>.frame(maxWidth: .infinity)</code></td><td>Accepts whatever the parent offers along that axis. The workhorse for "fill available width".</td></tr>
+        <tr><td><code>.fixedSize()</code></td><td>Tells the child to ignore the proposal and use its ideal size. Can overflow the parent, by design.</td></tr>
+        <tr><td><code>.layoutPriority(_:)</code></td><td>When a stack must compress children, higher priority is compressed last. Default is 0.</td></tr>
+        <tr><td><code>Spacer(minLength:)</code></td><td>A flexible view that expands along the stack's axis. <code>minLength</code> guarantees a floor.</td></tr>
+        <tr><td><code>ViewThatFits</code></td><td>iOS 16+. Evaluates children in order, uses the first that fits in both dimensions.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="patterns" data-toc-label="Patterns">
+    <h2><span class="sec-num">5</span> Patterns That Work</h2>
+
+    <h3><code>.fixedSize</code> to rescue truncated content</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The escape hatch for compressed text</span></div>
+    <pre class="swift"><span class="cm">// In a tight HStack this truncates to "Some long te..."</span>
+<span class="tp">HStack</span> {
+    <span class="tp">Text</span>(<span class="st">"Some long text that gets truncated"</span>)
+    <span class="tp">Spacer</span>()
+    <span class="tp">Button</span>(<span class="st">"Action"</span>) { }
+}
+
+<span class="cm">// fixedSize tells the Text to take its full ideal width instead.</span>
+<span class="tp">Text</span>(<span class="st">"Some long text that gets truncated"</span>)
+    .fixedSize(horizontal: <span class="kw">true</span>, vertical: <span class="kw">false</span>)</pre>
+
+    <h3><code>layoutPriority</code> to choose what survives compression</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Higher priority is compressed last</span></div>
+    <pre class="swift"><span class="tp">HStack</span> {
+    <span class="tp">Text</span>(veryLongTitle)
+        .layoutPriority(<span class="nm">1</span>)      <span class="cm">// gets the space it needs first</span>
+    <span class="tp">Text</span>(subtitle)              <span class="cm">// default priority 0 - compressed first</span>
+}</pre>
+
+    <p>The UIKit analogue is compression resistance, though SwiftUI collapses hugging and resistance into this single number.</p>
+
+    <h3><code>ViewThatFits</code> for declarative responsive layout</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">No manual measurement required</span></div>
+    <pre class="swift"><span class="tp">ViewThatFits</span> {
+    <span class="tp">HStack</span> {                      <span class="cm">// preferred: side by side</span>
+        <span class="tp">Label</span>(<span class="st">"Settings"</span>, systemImage: <span class="st">"gear"</span>)
+        <span class="tp">Spacer</span>()
+        <span class="tp">Text</span>(value)
+    }
+    <span class="tp">VStack</span>(alignment: .leading) { <span class="cm">// fallback: stacked</span>
+        <span class="tp">Label</span>(<span class="st">"Settings"</span>, systemImage: <span class="st">"gear"</span>)
+        <span class="tp">Text</span>(value)
+    }
+}</pre>
+
+    <h3>Alignment guides for cross-view alignment</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Aligning differently-sized siblings</span></div>
+    <pre class="swift"><span class="cm">// Align text baselines rather than view edges</span>
+<span class="tp">HStack</span>(alignment: .firstTextBaseline) {
+    <span class="tp">Text</span>(<span class="st">"Big"</span>).font(.largeTitle)
+    <span class="tp">Text</span>(<span class="st">"small"</span>).font(.caption)
+}
+
+<span class="cm">// A custom alignment, for non-adjacent views</span>
+<span class="kw">extension</span> VerticalAlignment {
+    <span class="kw">private</span> <span class="kw">enum</span> BadgeAlignment: AlignmentID {
+        <span class="kw">static</span> <span class="kw">func</span> <span class="fn">defaultValue</span>(<span class="kw">in</span> context: ViewDimensions) -&gt; <span class="tp">CGFloat</span> {
+            context[.top]
+        }
+    }
+    <span class="kw">static</span> <span class="kw">let</span> badge = VerticalAlignment(BadgeAlignment.<span class="kw">self</span>)
+}</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="antipatterns" data-toc-label="Anti-Patterns">
+    <h2><span class="sec-num">6</span> Anti-Patterns — and the fix</h2>
+
+    <h3>Dropping a <code>GeometryReader</code> into a stack</h3>
+    <p><code>GeometryReader</code> reports the size proposed to it, and it <strong>accepts the full proposal</strong> — so it swallows all available space along both axes. Its content is also <strong>top-leading aligned</strong> by default, not centred, which is a second surprise.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Greedy by design</span></div>
+    <pre class="swift"><span class="cm">// WRONG: GeometryReader takes ALL available height; the Text gets shoved.</span>
+<span class="tp">VStack</span> {
+    <span class="tp">GeometryReader</span> { proxy <span class="kw">in</span>
+        <span class="tp">Rectangle</span>().frame(width: proxy.size.width * <span class="nm">0.5</span>)
+    }
+    <span class="tp">Text</span>(<span class="st">"Below"</span>)
+}
+
+<span class="cm">// RIGHT: constrain it, or use it as a background/overlay where it</span>
+<span class="cm">// inherits the size of what it is attached to.</span>
+<span class="tp">Rectangle</span>()
+    .frame(height: <span class="nm">100</span>)
+    .background(
+        <span class="tp">GeometryReader</span> { proxy <span class="kw">in</span>
+            <span class="tp">Color</span>.clear.preference(key: WidthKey.<span class="kw">self</span>, value: proxy.size.width)
+        }
+    )</pre>
+
+    <p>Prefer the alternatives where they exist: <code>.containerRelativeFrame</code> (iOS 17+), <code>ViewThatFits</code>, or a <code>PreferenceKey</code> for reading a child's measured size without hijacking the layout.</p>
+
+    <h3>Assuming modifier order does not matter</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Each modifier wraps the previous result</span></div>
+    <pre class="swift"><span class="tp">Text</span>(<span class="st">"Hi"</span>).padding().background(.blue)   <span class="cm">// blue INCLUDES the padding</span>
+<span class="tp">Text</span>(<span class="st">"Hi"</span>).background(.blue).padding()   <span class="cm">// blue hugs the text; padding outside</span></pre>
+
+    <h3>Nesting greedy views inside each other</h3>
+    <p><code>Spacer</code>, <code>Color</code>, and <code>GeometryReader</code> all expand to fill what they are offered. Nesting them produces ambiguous layouts that appear to work until the content changes and one of them wins differently.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="pitfalls" data-toc-label="Pitfalls">
+    <h2><span class="sec-num">7</span> Pitfalls &amp; Gotchas</h2>
+
+    <div class="co co-pitfall">
+      <div class="co-pitfall-title">Sizing surprises worth memorizing</div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">1.</span>
+        <span><strong><code>.frame</code> wraps rather than resizes.</strong> The child may still choose a smaller size and be positioned inside the frame.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">2.</span>
+        <span><strong><code>GeometryReader</code> fills its proposal and top-leading aligns its content.</strong> Both behaviours surprise people, and both are by design.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">3.</span>
+        <span><strong><code>.fixedSize</code> can overflow its parent.</strong> You have explicitly told the child to stop negotiating, so use it sparingly.</span>
+      </div>
+      <div class="pitfall">
+        <span class="pitfall-bullet">4.</span>
+        <span><strong><code>.layoutPriority</code> on a <code>Spacer</code> is meaningless.</strong> Use <code>Spacer(minLength:)</code> to guarantee a floor instead.</span>
+      </div>
+    </div>
+
+    <p>A stack with no <code>Spacer</code> and no <code>.frame</code> sizes to fit its content. Adding a single <code>Spacer</code> makes it greedy along that axis — which is usually what you want in an <code>HStack</code> row, and usually a surprise in a <code>VStack</code>.</p>
+
+    <h3>Debugging layout</h3>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Fastest ways to see what is actually happening</span></div>
+    <pre class="swift">.border(.red)                          <span class="cm">// see the actual frame</span>
+.background(<span class="tp">Color</span>.blue.opacity(<span class="nm">0.3</span>))
+
+<span class="cm">// Inside a body, logs WHY it re-evaluated (iOS 15+). Useful when</span>
+<span class="cm">// layout churn turns out to be a state problem.</span>
+<span class="tp">Self</span>._printChanges()</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="related" data-toc-label="Related Topics">
+    <h2><span class="sec-num">8</span> Related Topics</h2>
+
+    <div class="ref-grid">
+      <a class="xref-card" href="view_identity_master.html">
+        <span class="ref-title">View Identity</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · Identity</span></span>
+        <span class="ref-desc">Why a hidden-but-present view still reserves its frame — the layout cost behind the <code>.opacity()</code> versus <code>if</code> decision.</span>
+      </a>
+      <a class="xref-card" href="../state/data_flow_master.html">
+        <span class="ref-title">Data Flow</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · State</span></span>
+        <span class="ref-desc"><code>PreferenceKey</code> — how a leaf reports its measured geometry <em>up</em> the tree, the correct alternative to hijacking layout with a <code>GeometryReader</code>.</span>
+      </a>
+      <a class="xref-card" href="../screens/formatting_images_master.html">
+        <span class="ref-title">Formatting &amp; Images</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · Screens</span></span>
+        <span class="ref-desc">These sizing rules applied to real content: why an <code>AsyncImage</code> needs both frame dimensions, and why <code>.fill</code> without <code>.clipped()</code> overflows.</span>
+      </a>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="sources" data-toc-label="Sources">
+    <h2><span class="sec-num">9</span> Sources</h2>
+
+    <ul>
+      <li>Apple's SwiftUI layout documentation for the proposal/response model and the <code>.frame</code> overloads.</li>
+      <li>WWDC sessions on SwiftUI layout for the parent-proposes/child-chooses framing.</li>
+      <li><code>ViewThatFits</code> and <code>.containerRelativeFrame</code> availability per Apple's API documentation (iOS 16+ and iOS 17+ respectively).</li>
+    </ul>
+  </section>
+
+  <div class="page-footer">
+    Study Wiki · The Layout System · SwiftUI Theory
+  </div>
+
+</main>
+</div>
+
+<script src="../../../../static/generated/manifest.js"></script>
+<script src="../../../../static/generated/nav.js"></script>
+<script src="../../../../static/generated/toc.js"></script>
+</body>
+</html>
