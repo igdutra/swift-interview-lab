@@ -89,7 +89,7 @@ const WIKI_MANIFEST = {
           "identifier": "walkthroughs",
           "label": "Walkthroughs",
           "layout": "flat",
-          "hubPath": null,
+          "hubPath": "leetcode/walkthroughs/index.html",
           "sections": [],
           "pagePaths": [
             "leetcode/walkthroughs/LC3_master.html",
@@ -848,6 +848,24 @@ const WIKI_MANIFEST = {
       ],
       "blurb": "Split/handoff coverage with raw day sets (Variant 8.5). Prefix-suffix precompute reduces pair-checking from O(t²·d) to O(t·d). Covers the ≤ vs == valid-pair condition gotcha.",
       "difficulty": "M",
+      "problemNumber": null,
+      "order": null
+    },
+    "leetcode/walkthroughs/index.html": {
+      "path": "leetcode/walkthroughs/index.html",
+      "domain": "leetcode",
+      "category": "walkthroughs",
+      "section": null,
+      "role": "hub",
+      "title": "Walkthroughs Hub",
+      "nav": "All Walkthroughs",
+      "topics": [
+        "LeetCode",
+        "Worked Problems",
+        "Interview Simulation"
+      ],
+      "blurb": "Every problem solved end to end: reading the statement, edge cases, an interview simulation, the iterative Swift solution, and a traced dry run.",
+      "difficulty": null,
       "problemNumber": null,
       "order": null
     },

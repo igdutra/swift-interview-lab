@@ -173,8 +173,10 @@ hr.wiki-hr { border: none; border-top: 1px solid var(--border-xlt); margin: 48px
 .nav-submenu a.current { color: var(--text); background: var(--info-bg); }
 .nav-item-empty { display: block; padding: 4px 14px; color: var(--text3); font-weight: 400; }
 
-/* flip the last domain's submenu to the left so it never runs off-screen */
-.nav-group:last-of-type .nav-submenu { left: auto; right: 100%; }
+/* Submenus open rightward by default. Whether that fits depends on the
+   viewport, which CSS cannot measure — nav.js adds .nav-submenu-left at
+   runtime when a submenu would overflow the right edge. */
+.nav-submenu-left { left: auto; right: 100%; }
 
 /* ---------- §5 TOC sidebar ---------- */
 .toc-col {

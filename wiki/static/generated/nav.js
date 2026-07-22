@@ -10,6 +10,7 @@
 //   <div data-hub-grid></div>                — section/category hub grid
 // ============================================================
 (function () {
+    var _a, _b;
     // --- wiki root URL, derived from this script's own src ---------------
     // The include is always "{prefix}static/generated/nav.js", so stripping
     // that suffix from the resolved src yields the wiki root at any depth,
@@ -97,6 +98,23 @@
             navParts.push(`<div class="nav-group">${trigger}<div class="nav-menu">${rows}</div></div>`);
         }
         topNav.innerHTML = navParts.join("");
+        // Flip a submenu leftward only when opening rightward would overflow
+        // the viewport. Measured on hover because a hidden element has no
+        // usable geometry, and re-measured every time since the viewport can
+        // be resized between openings.
+        for (const subgroup of Array.from(topNav.querySelectorAll(".nav-subgroup"))) {
+            subgroup.addEventListener("mouseenter", function () {
+                const submenu = subgroup.querySelector(".nav-submenu");
+                if (submenu === null) {
+                    return;
+                }
+                submenu.classList.remove("nav-submenu-left");
+                const bounds = submenu.getBoundingClientRect();
+                if (bounds.right > document.documentElement.clientWidth) {
+                    submenu.classList.add("nav-submenu-left");
+                }
+            });
+        }
     }
     // --- hub cards ----------------------------------------------------------
     function renderCard(pagePath, cardClass) {
@@ -119,26 +137,41 @@
     function renderCardGrid(pagePaths, cardClass) {
         return `<div class="ref-grid">${pagePaths.map((pagePath) => renderCard(pagePath, cardClass)).join("")}</div>`;
     }
-    // Root hub (<div id="hub"> on the home page): one group per category.
+    // Root hub (<div id="hub"> on the home page): ONE card per category,
+    // grouped by domain. The home page is an entry point, not a directory —
+    // listing every page made it grow without bound (52 cards at two
+    // domains, 37 of them individual walkthroughs). Depth lives one click
+    // away, in the category and section hubs.
     const rootHub = document.getElementById("hub");
     if (rootHub !== null) {
-        const showDomainLabels = WIKI_MANIFEST.domains.length > 1;
         const hubParts = [];
         for (const domain of WIKI_MANIFEST.domains) {
+            const cards = [];
             for (const category of domain.categories) {
-                const sectionTitle = showDomainLabels ? `${domain.label} — ${category.label}` : category.label;
-                hubParts.push(`<div class="hub-section-title">${escapeHtml(sectionTitle)}</div>`);
-                if (category.layout === "sections") {
-                    const hubPaths = category.sections
-                        .map((section) => section.hubPath)
-                        .filter((hubPath) => hubPath !== null);
-                    hubParts.push(renderCardGrid(hubPaths, "backref-card"));
+                const pageCount = category.layout === "sections"
+                    ? category.sections.reduce((runningTotal, section) => runningTotal + section.pagePaths.length, 0)
+                    : category.pagePaths.length;
+                if (pageCount === 0) {
+                    continue;
                 }
-                else {
-                    const pagePaths = category.hubPath !== null ? [category.hubPath, ...category.pagePaths] : category.pagePaths;
-                    hubParts.push(renderCardGrid(pagePaths, "xref-card"));
+                // Prefer the category's own hub; otherwise its first section hub.
+                const landingPath = (_b = (_a = category.hubPath) !== null && _a !== void 0 ? _a : category.sections.map((section) => section.hubPath).find((hubPath) => hubPath !== null)) !== null && _b !== void 0 ? _b : null;
+                if (landingPath === null) {
+                    continue;
                 }
+                const plural = (count, noun) => `${count} ${noun}${count === 1 ? "" : "s"}`;
+                const subtitle = category.layout === "sections"
+                    ? `${plural(category.sections.length, "section")} · ${plural(pageCount, "page")}`
+                    : plural(pageCount, "page");
+                cards.push(`<a class="xref-card" href="${pageUrl(landingPath)}">` +
+                    `<span class="ref-title">${escapeHtml(category.label)}</span>` +
+                    `<span class="ref-meta"><span class="ref-topics">${escapeHtml(subtitle)}</span></span></a>`);
             }
+            if (cards.length === 0) {
+                continue;
+            }
+            hubParts.push(`<div class="hub-section-title">${escapeHtml(domain.label)}</div>`);
+            hubParts.push(`<div class="ref-grid">${cards.join("")}</div>`);
         }
         rootHub.innerHTML = hubParts.join("");
     }
