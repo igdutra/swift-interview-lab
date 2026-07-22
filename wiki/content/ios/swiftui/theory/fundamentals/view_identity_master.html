@@ -103,24 +103,24 @@
     <p>The surface is small; the subtlety is entirely in what it means.</p>
 
     <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Explicit identity</span></div>
-    <pre class="swift">// Attach an explicit identity to a view. Changing `value` makes SwiftUI
-// treat this as an entirely different view.
-func id&lt;IdentifierValue&gt;(_ value: IdentifierValue) -&gt; some View
-    where IdentifierValue: Hashable
+    <pre class="swift"><span class="cm">// Attach an explicit identity to a view. Changing `value` makes SwiftUI</span>
+<span class="cm">// treat this as an entirely different view.</span>
+<span class="kw">func</span> id&lt;<span class="tp">IdentifierValue</span>&gt;(_ value: <span class="tp">IdentifierValue</span>) -&gt; <span class="kw">some</span> <span class="tp">View</span>
+    <span class="kw">where</span> <span class="tp">IdentifierValue</span>: <span class="tp">Hashable</span>
 
-// The protocol List and ForEach use to track elements across updates.
-protocol Identifiable {
-    associatedtype ID: Hashable
-    var id: ID { get }
+<span class="cm">// The protocol List and ForEach use to track elements across updates.</span>
+<span class="kw">protocol</span> <span class="tp">Identifiable</span> {
+    <span class="kw">associatedtype</span> <span class="tp">ID</span>: <span class="tp">Hashable</span>
+    <span class="kw">var</span> id: <span class="tp">ID</span> { get }
 }</pre>
 
     <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">What a branch compiles to</span></div>
-    <pre class="swift">// An if/else inside a ViewBuilder does NOT produce "one view that changes".
-// It produces a generic wrapper whose type differs per branch:
-_ConditionalContent&lt;TrueContent, FalseContent&gt;
+    <pre class="swift"><span class="cm">// An if/else inside a ViewBuilder does NOT produce "one view that changes".</span>
+<span class="cm">// It produces a generic wrapper whose type differs per branch:</span>
+_ConditionalContent&lt;<span class="tp">TrueContent</span>, <span class="tp">FalseContent</span>&gt;
 
-// Which is why flipping the condition swaps the concrete type occupying
-// that slot -- and a new type means a new identity.</pre>
+<span class="cm">// Which is why flipping the condition swaps the concrete type occupying</span>
+<span class="cm">// that slot -- and a new type means a new identity.</span></pre>
 
     <div class="co co-note">
       <strong>Why this matters:</strong> <code>_ConditionalContent</code> is the whole mechanism. Once you know an <code>if/else</code> is a <em>type-level</em> choice rather than a value-level one, the state-reset behaviour stops being surprising and becomes predictable.
@@ -136,47 +136,47 @@ _ConditionalContent&lt;TrueContent, FalseContent&gt;
     <p>When both outcomes are the same view with different values, do not branch. Same type, same position, same identity — no teardown, and the change animates for free.</p>
 
     <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The default choice</span></div>
-    <pre class="swift">// One Text, one identity, only the value varies.
-Text("Hi").foregroundStyle(isHighlighted ? .red : .blue)</pre>
+    <pre class="swift"><span class="cm">// One Text, one identity, only the value varies.</span>
+<span class="tp">Text</span>("Hi").foregroundStyle(isHighlighted ? .red : .blue)</pre>
 
     <h3><code>.id()</code> to force a deliberate reset</h3>
     <p>The common, intended use. A new <code>.id()</code> value tells SwiftUI "this is a different view now", discarding state on purpose — exactly right when moving between records.</p>
 
     <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Reset a form when the record changes</span></div>
-    <pre class="swift">EditorView(record: selectedRecord)
-    .id(selectedRecord.id)   // new record -> fresh EditorView state</pre>
+    <pre class="swift"><span class="tp">EditorView</span>(record: selectedRecord)
+    .id(selectedRecord.id)   <span class="cm">// new record -> fresh EditorView state</span></pre>
 
     <h3><code>.id()</code> to unify identity across branches</h3>
     <p>The rarer direction. Putting the <em>same</em> <code>.id()</code> on both sides overrides per-branch structural identity, so state can survive the flip. This is a targeted workaround for when the branches are genuinely different view types and continuity still matters — not the first tool to reach for.</p>
 
     <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Both branches share one identity</span></div>
-    <pre class="swift">Group {
-    if isEditing {
-        EditorView()
-    } else {
-        SummaryView()
+    <pre class="swift"><span class="tp">Group</span> {
+    <span class="kw">if</span> isEditing {
+        <span class="tp">EditorView</span>()
+    } <span class="kw">else</span> {
+        <span class="tp">SummaryView</span>()
     }
 }
-.id("record-detail")   // one continuous identity; less state churn</pre>
+.id("record-detail")   <span class="cm">// one continuous identity; less state churn</span></pre>
 
     <h3>Branch when you <em>want</em> the insert and remove</h3>
     <p>Everything above treats teardown as a cost. <code>.transition(_:)</code> turns it into the feature: it describes how a view animates as it is inserted into or removed from the tree, which only happens when identity changes.</p>
 
     <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The transition describes it; the animation drives it</span></div>
-    <pre class="swift">if isExpanded {
-    DetailPanel()
+    <pre class="swift"><span class="kw">if</span> isExpanded {
+    <span class="tp">DetailPanel</span>()
         .transition(.move(edge: .bottom).combined(with: .opacity))
 }
 
-// The state change must be animated, or the transition never runs:
-Button("Toggle") {
+<span class="cm">// The state change must be animated, or the transition never runs:</span>
+<span class="tp">Button</span>("Toggle") {
     withAnimation(.snappy) { isExpanded.toggle() }
 }</pre>
 
     <p>Pair <code>.id()</code> with <code>.transition()</code> to animate a <em>replacement</em> rather than an insertion — same slot, new identity, so SwiftUI treats it as remove-then-insert:</p>
 
     <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">New value = new identity = transition fires</span></div>
-    <pre class="swift">Text(currentQuote)
+    <pre class="swift"><span class="tp">Text</span>(currentQuote)
     .id(currentQuote)
     .transition(.opacity)</pre>
   </section>
@@ -190,33 +190,33 @@ Button("Toggle") {
     <p>The most common misreading. <code>.id()</code> is not a switch that makes SwiftUI hold on to identity through conditional code — by default it is the opposite primitive, used to <em>discard</em> identity deliberately. That it also happens to work in the unifying direction is what makes the confusion durable.</p>
 
     <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The branch that quietly resets state</span></div>
-    <pre class="swift">// WRONG: flipping `isEditing` destroys and recreates whichever branch
-// appears. Each branch is a different concrete type in the same slot, so
-// any @State inside resets and animations restart.
-if isEditing {
-    EditorView()      // its own @State resets every time isEditing flips back
-} else {
-    SummaryView()
+    <pre class="swift"><span class="cm">// WRONG: flipping `isEditing` destroys and recreates whichever branch</span>
+<span class="cm">// appears. Each branch is a different concrete type in the same slot, so</span>
+<span class="cm">// any @State inside resets and animations restart.</span>
+<span class="kw">if</span> isEditing {
+    <span class="tp">EditorView</span>()      <span class="cm">// its own @State resets every time isEditing flips back</span>
+} <span class="kw">else</span> {
+    <span class="tp">SummaryView</span>()
 }
 
-// RIGHT, when they are the same view with different values:
-//   inline the condition instead of branching structurally.
-// RIGHT, when they are genuinely different types and you need continuity:
-//   wrap in a Group and give both the same .id().</pre>
+<span class="cm">// RIGHT, when they are the same view with different values:</span>
+<span class="cm">//   inline the condition instead of branching structurally.</span>
+<span class="cm">// RIGHT, when they are genuinely different types and you need continuity:</span>
+<span class="cm">//   wrap in a Group and give both the same .id().</span></pre>
 
     <h3>Reaching for <code>.opacity()</code> as a defensive reflex</h3>
     <p>The reason the <code>.opacity()</code>-swap pattern exists is to <strong>preserve state or an in-flight animation</strong> on the thing being conditionally shown. Applied to a stateless leaf view it solves a problem that does not exist — and it costs layout space, because the hidden view still reserves its frame.</p>
 
     <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">A stateless leaf needs no protection</span></div>
-    <pre class="swift">// WRONG: nothing inside Image(systemName:) can be lost. The checkmark's
-// frame is now permanently reserved in the HStack, for no benefit.
-Image(systemName: "checkmark")
-    .opacity(isSelected ? 1 : 0)
+    <pre class="swift"><span class="cm">// WRONG: nothing inside Image(systemName:) can be lost. The checkmark's</span>
+<span class="cm">// frame is now permanently reserved in the HStack, for no benefit.</span>
+<span class="tp">Image</span>(systemName: "checkmark")
+    .opacity(isSelected ? <span class="nm">1</span> : <span class="nm">0</span>)
 
-// RIGHT: idiomatic. Only this one child position is inserted or removed;
-// the row, HStack, Text and Spacer all keep their identity throughout.
-if isSelected {
-    Image(systemName: "checkmark")
+<span class="cm">// RIGHT: idiomatic. Only this one child position is inserted or removed;</span>
+<span class="cm">// the row, HStack, Text and Spacer all keep their identity throughout.</span>
+<span class="kw">if</span> isSelected {
+    <span class="tp">Image</span>(systemName: "checkmark")
 }</pre>
 
     <p><code>.opacity()</code> <em>is</em> the right call in four cases:</p>
@@ -235,20 +235,20 @@ if isSelected {
     <p>This is the shape that <em>does</em> destroy row identity — worth contrasting against the harmless nested version in §7.</p>
 
     <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Two types competing for one slot</span></div>
-    <pre class="swift">// WRONG: two different concrete types occupying the position List
-// assigned to this element. The row's identity dies on every toggle.
-List(paymentTypes) { paymentType in
-    if isSelected(paymentType) {
-        SelectedRow(paymentType)     // type A
-    } else {
-        UnselectedRow(paymentType)   // type B
+    <pre class="swift"><span class="cm">// WRONG: two different concrete types occupying the position List</span>
+<span class="cm">// assigned to this element. The row's identity dies on every toggle.</span>
+<span class="tp">List</span>(paymentTypes) { paymentType <span class="kw">in</span>
+    <span class="kw">if</span> isSelected(paymentType) {
+        <span class="tp">SelectedRow</span>(paymentType)     <span class="cm">// type A</span>
+    } <span class="kw">else</span> {
+        <span class="tp">UnselectedRow</span>(paymentType)   <span class="cm">// type B</span>
     }
 }
 
-// RIGHT: one row type. The conditional lives one level down, scoped to a
-// single child slot inside an already-stable container.
-List(paymentTypes) { paymentType in
-    PaymentRow(paymentType: paymentType, isSelected: isSelected(paymentType))
+<span class="cm">// RIGHT: one row type. The conditional lives one level down, scoped to a</span>
+<span class="cm">// single child slot inside an already-stable container.</span>
+<span class="tp">List</span>(paymentTypes) { paymentType <span class="kw">in</span>
+    <span class="tp">PaymentRow</span>(paymentType: paymentType, isSelected: isSelected(paymentType))
 }</pre>
   </section>
 
@@ -260,19 +260,19 @@ List(paymentTypes) { paymentType in
     <p>The question this topic tends to surface from: inside a <code>List</code> row whose identity is already stable via <code>Identifiable</code>, does an <code>if</code> destroy the row's identity every time the selection changes?</p>
 
     <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The code in question</span></div>
-    <pre class="swift">private func paymentRow(for paymentType: PaymentType) -&gt; some View {
-    HStack {
-        Text(paymentType.name)
-        Spacer()
-        if isPaymentTypeSelected(paymentType) {
-            Image(systemName: "checkmark")
+    <pre class="swift"><span class="kw">private</span> <span class="kw">func</span> paymentRow(<span class="kw">for</span> paymentType: <span class="tp">PaymentType</span>) -&gt; <span class="kw">some</span> <span class="tp">View</span> {
+    <span class="tp">HStack</span> {
+        <span class="tp">Text</span>(paymentType.name)
+        <span class="tp">Spacer</span>()
+        <span class="kw">if</span> isPaymentTypeSelected(paymentType) {
+            <span class="tp">Image</span>(systemName: "checkmark")
         }
     }
     .onTapGesture { selectedPaymentType = paymentType }
 }
 
-List(searchResultsPaymentTypes) { paymentType in
-    paymentRow(for: paymentType)
+<span class="tp">List</span>(searchResultsPaymentTypes) { paymentType <span class="kw">in</span>
+    paymentRow(<span class="kw">for</span>: paymentType)
 }</pre>
 
     <p><strong>Answer: no.</strong> Three things are true at once, and the argument depends on keeping them distinct:</p>
