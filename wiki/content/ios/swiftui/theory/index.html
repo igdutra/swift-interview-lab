@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SwiftUI Theory · Study Wiki</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "SwiftUI Theory",
+  "nav": "SwiftUI Theory",
+  "topics": [
+    "SwiftUI",
+    "Identity",
+    "State",
+    "Navigation",
+    "Layout"
+  ],
+  "blurb": "The SwiftUI landing page — how the framework thinks, who owns state and how it moves, and the screen-level toolkit. Three sections, read in order."
+}
+</script>
+<link rel="stylesheet" href="../../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="hub">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+  <main class="content content-centered">
+
+    <h1 class="page-title">SwiftUI Theory</h1>
+    <div class="page-meta">
+      <span>iOS</span>
+      <span>·</span>
+      <span>Framework reference</span>
+      <span>·</span>
+      <span>Fundamentals · State &amp; Data Flow · Building Screens</span>
+    </div>
+
+    <div class="lead">
+      <p>SwiftUI is declarative: you describe what the UI <em>is</em> for a given state, and the framework decides what to change on screen. That inversion is what makes it productive, and it is also why its failure modes are unfamiliar — the bugs are rarely rendering bugs. They are <strong>identity</strong> bugs (the framework thought two views were the same, or thought they were different) and <strong>ownership</strong> bugs (state lives in the wrong place, so it resets at the wrong moment or fails to propagate).</p>
+      <p>These pages are organized by how the knowledge is used rather than by API surface. Read <strong>Fundamentals</strong> once — it establishes the vocabulary the other two sections lean on constantly.</p>
+    </div>
+
+    <div class="co co-when u-measure">
+      <strong>Where to start:</strong> <a href="fundamentals/view_identity_master.html">View Identity</a>. Most SwiftUI questions that begin "why did my state reset" or "why won't this animate" resolve to it, and the structural-versus-explicit vocabulary it introduces is used on nearly every other page here.
+    </div>
+
+    <div class="hub-section-title">The three sections</div>
+    <div class="ref-grid">
+      <a class="xref-card" href="fundamentals/index.html">
+        <span class="ref-title">Fundamentals</span>
+        <span class="ref-meta"><span class="ref-topics">Identity · Construction · Layout</span></span>
+        <span class="ref-desc">How SwiftUI itself thinks. How it decides two views are the same view, what a <code>@ViewBuilder</code> actually produces, and how sizes are negotiated between parent and child. Read once, applies everywhere.</span>
+      </a>
+      <a class="xref-card" href="state/index.html">
+        <span class="ref-title">State &amp; Data Flow</span>
+        <span class="ref-meta"><span class="ref-topics">Ownership · Bindings · Environment</span></span>
+        <span class="ref-desc">Who owns a value, and how it reaches the view that needs it. View model ownership and injection, the four directions data can travel, and modelling view state as an enum so invalid states cannot be represented.</span>
+      </a>
+      <a class="xref-card" href="screens/index.html">
+        <span class="ref-title">Building Screens</span>
+        <span class="ref-meta"><span class="ref-topics">Navigation · Lists · Modals · Lifecycle</span></span>
+        <span class="ref-desc">The applied layer: navigation stacks and the root-versus-path split, lists and their identity-driven diffing, sheets and alerts, search and debouncing, lifecycle hooks, and text and image formatting.</span>
+      </a>
+    </div>
+
+    <div class="page-footer">
+      Study Wiki · SwiftUI Theory · iOS
+    </div>
+
+  </main>
+</div>
+
+<script src="../../../static/generated/manifest.js"></script>
+<script src="../../../static/generated/nav.js"></script>
+<script src="../../../static/generated/toc.js"></script>
+</body>
+</html>

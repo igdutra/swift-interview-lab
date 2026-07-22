@@ -72,10 +72,12 @@ export function rewritePageLinks(
       return fullMatch;
     }
 
-    // "index.html" is positional, not an identity: it always means the
-    // hub sitting beside this page. Every folder has one, so it is
-    // deliberately exempt from identity resolution.
-    if (target === "index.html") {
+    // "index.html" is positional, not an identity: every folder has one,
+    // so a bare "index.html" means the hub beside this page and a
+    // "../index.html" means the one above it. Both are already correct
+    // relative paths, and neither can be suffix-matched to a single page —
+    // so they are resolved by POSITION and left exactly as written.
+    if (/^(\.\.\/)*index\.html$/.test(target)) {
       return fullMatch;
     }
 

@@ -107,6 +107,11 @@ export function deriveLocation(configuration: WikiConfiguration, relativePath: s
   }
 
   if (category.layout === "sections") {
+    // A category-level index.html is the category's own landing page —
+    // the top of its breadcrumb, above the individual section hubs.
+    if (innerSegments.length === 0 && fileName === "index.html") {
+      return { domain: domain.identifier, category: category.identifier, section: null, role: "hub", problemNumber: null, depth };
+    }
     if (innerSegments.length !== 1) {
       throw new Error(`pages in "${folderSegments.join("/")}/" must live inside a section folder (${relativePath})`);
     }

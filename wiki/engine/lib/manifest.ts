@@ -218,11 +218,16 @@ export function buildManifest(configuration: WikiConfiguration, records: PageRec
               .map((record) => record.path),
           };
         });
+        // A category-level index.html (section === null) is the category's
+        // own landing page; the nav uses it as the dropdown's click target.
+        const categoryHubRecord = categoryRecords.find(
+          (record) => record.role === "hub" && record.section === null,
+        );
         return {
           identifier: categoryConfiguration.identifier,
           label: categoryLabel,
           layout: "sections",
-          hubPath: null,
+          hubPath: categoryHubRecord?.path ?? null,
           sections,
           pagePaths: [],
         };

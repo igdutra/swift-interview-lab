@@ -156,14 +156,15 @@ const WIKI_MANIFEST = {
           "identifier": "swiftui-theory",
           "label": "SwiftUI · Theory",
           "layout": "sections",
-          "hubPath": null,
+          "hubPath": "ios/swiftui/theory/index.html",
           "sections": [
             {
               "identifier": "fundamentals",
               "label": "Fundamentals",
               "hubPath": "ios/swiftui/theory/fundamentals/index.html",
               "pagePaths": [
-                "ios/swiftui/theory/fundamentals/view_identity_master.html"
+                "ios/swiftui/theory/fundamentals/view_identity_master.html",
+                "ios/swiftui/theory/fundamentals/view_construction_master.html"
               ]
             },
             {
@@ -222,6 +223,22 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
+    "ios/swiftui/theory/fundamentals/view_construction_master.html": {
+      "path": "ios/swiftui/theory/fundamentals/view_construction_master.html",
+      "domain": "ios",
+      "category": "swiftui-theory",
+      "section": "fundamentals",
+      "role": "deep-dive",
+      "title": "TODO Title",
+      "nav": "TODO",
+      "topics": [
+        "TODO"
+      ],
+      "blurb": "TODO — one line for the hub card.",
+      "difficulty": null,
+      "problemNumber": null,
+      "order": null
+    },
     "ios/swiftui/theory/fundamentals/view_identity_master.html": {
       "path": "ios/swiftui/theory/fundamentals/view_identity_master.html",
       "domain": "ios",
@@ -240,6 +257,26 @@ const WIKI_MANIFEST = {
       "difficulty": null,
       "problemNumber": null,
       "order": 1
+    },
+    "ios/swiftui/theory/index.html": {
+      "path": "ios/swiftui/theory/index.html",
+      "domain": "ios",
+      "category": "swiftui-theory",
+      "section": null,
+      "role": "hub",
+      "title": "SwiftUI Theory",
+      "nav": "SwiftUI Theory",
+      "topics": [
+        "SwiftUI",
+        "Identity",
+        "State",
+        "Navigation",
+        "Layout"
+      ],
+      "blurb": "The SwiftUI landing page — how the framework thinks, who owns state and how it moves, and the screen-level toolkit. Three sections, read in order.",
+      "difficulty": null,
+      "problemNumber": null,
+      "order": null
     },
     "ios/swiftui/theory/screens/index.html": {
       "path": "ios/swiftui/theory/screens/index.html",
