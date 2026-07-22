@@ -80,17 +80,22 @@ Deliberate: submenus contain only links, never another submenu, so the
 cap is structural. `.nav-menu-scroll` is applied to submenus only; the
 parent menu must never scroll or it would clip the fly-outs.
 
-## 4. NEXT — the root index is bloated
+## 4. DONE — the root index no longer lists everything
 
-`content/index.html` renders a card grid for *every* category in every
-domain, so it grows without bound as domains are added. Same root cause
-as the old nav problem. Likely fix: per-domain landing pages
-(`content/leetcode/index.html`, `content/ios/index.html`) with the root
-page linking to those instead of listing everything. That would also
-give the domain triggers in the nav somewhere to point — they are
-currently hover-only `<span>`s because no domain landing page exists.
+The home page rendered a card for every page in every flat category —
+52 cards, 37 of them individual walkthroughs. It now shows **one card
+per category**, grouped by domain, with a `7 sections · 19 pages`
+subtitle: 4 cards total.
 
-## 5. Then — import the SwiftUI content
+Nothing was lost; the walkthrough cards moved to a new
+`leetcode/walkthroughs/index.html` hub, which previously did not exist
+(its category card had nowhere to point).
+
+Still open: domain triggers in the nav are hover-only `<span>`s because
+there is no per-domain landing page (`content/leetcode/index.html`). Add
+them if the domains ever need their own overview prose.
+
+## 5. NEXT — import the SwiftUI content
 
 Sources are gitignored in `private-notes/DOCS-TO-ADD-TO-WIKI/`.
 `SwiftUI-Reference.md` is 2,453 lines and must split into roughly seven
