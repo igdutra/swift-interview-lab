@@ -1,6 +1,6 @@
 # Theory masterfile format
 
-`theory/{section}/{topic}_master.html` · `<body data-category="theory">` · `<title>{title} · Theory Masterfile</title>`.
+`leetcode/theory/{section}/{topic}_master.html` · `<body data-category="theory">` · `<title>{title} · Theory Masterfile</title>`.
 A theory page is a **timeless, Wikipedia-style reference** for one technique. No session framing (no "Monday", no time budgets, no version suffixes). No embedded full walkthrough solutions — link to walkthroughs instead.
 
 ## The 14 sections, in order
@@ -28,4 +28,4 @@ Canonical section ids/labels live in `wiki/wiki.config.ts` (the `theory` entry i
 
 `*_overview_master.html` files (a hub's decision layer + Swift toolbox) may reorder/merge these sections — a unified decision diagram can replace §2+§4+§8, real-Swift skeletons can replace §5–§7, a closing cheat sheet can absorb §9+§10. Everything else (class vocabulary, no inline styles, one `co-idea`, cross-links) still holds.
 
-Model file: `theory/arrays/sliding_window_master.html`.
+Model file: `content/leetcode/theory/arrays/sliding_window_master.html`.

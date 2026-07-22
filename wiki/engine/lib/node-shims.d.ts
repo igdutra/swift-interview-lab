@@ -20,6 +20,7 @@ declare module "node:fs" {
   export function writeFileSync(path: string, contents: string): void;
   export function readdirSync(path: string, options: { withFileTypes: true }): DirectoryEntry[];
   export function existsSync(path: string): boolean;
+  export function mkdirSync(path: string, options: { recursive: true }): string | undefined;
   export function statSync(path: string): { isDirectory(): boolean; isFile(): boolean };
   export function unlinkSync(path: string): void;
 }

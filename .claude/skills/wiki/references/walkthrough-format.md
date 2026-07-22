@@ -1,11 +1,11 @@
 # Walkthrough masterfile format
 
-`walkthroughs/LC{number}_master.html` · `<body data-category="walkthrough">` · `<title>{title} · Walkthrough Masterfile</title>` · meta must declare `difficulty`.
+`leetcode/walkthroughs/LC{number}_master.html` · `<body data-category="walkthrough">` · `<title>{title} · Walkthrough Masterfile</title>` · meta must declare `difficulty`.
 A walkthrough instantiates a theory on one problem. It must let a reader navigate theory → walkthrough → theory without the nav bar (the **pairing rule** with theory §13).
 
 ## The 15 sections, in order
 
-Canonical ids/labels: `wiki/wiki.config.ts` (the `walkthrough` entry in `pageTypes[]`). Model file: `content/walkthroughs/LC76_master.html` (fullest) or `LC209_master.html` (cleanest).
+Canonical ids/labels: `wiki/wiki.config.ts` (the `walkthrough` entry in `pageTypes[]`). Model file: `content/leetcode/walkthroughs/LC76_master.html` (fullest) or `LC209_master.html` (cleanest).
 
 | # | id | Section | What belongs there |
 |---|----|---------|--------------------|

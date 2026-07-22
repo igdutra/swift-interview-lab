@@ -12,21 +12,26 @@
 // and the sections, then run build.ts + check.ts.
 // ============================================================
 
-import { existsSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 import { wikiConfiguration } from "../../wiki.config.ts";
-import { rootPrefixForDepth } from "../lib/derive.ts";
+import { listCategories, rootPrefixForDepth } from "../lib/derive.ts";
 import { renderArticleBody, renderFlatBody, renderPageShell } from "../lib/templates.ts";
 import { CONTENT_ROOT } from "../lib/paths.ts";
 import type { PageMeta } from "../lib/types.ts";
 
 const commandArguments = process.argv.slice(2);
 
+// Walk the config tree so nested sub-categories are scaffoldable too, and
+// so the folder path comes from the walk rather than a single `folder`.
+const scaffoldableCategories = listCategories(wikiConfiguration).filter(
+  ({ category: candidate }) => (candidate.children ?? []).length === 0,
+);
+
 /** Usage lines built from the live config, one per category. */
 function usageLines(): string {
-  return wikiConfiguration.domains
-    .flatMap((domain) => domain.categories)
-    .map((eachCategory) =>
+  return scaffoldableCategories
+    .map(({ category: eachCategory }) =>
       eachCategory.layout === "sections"
         ? `  npm run new ${eachCategory.identifier} <section> <filename>`
         : `  npm run new ${eachCategory.identifier} <filename>`,
@@ -41,11 +46,17 @@ function fail(message: string): never {
 }
 
 const categoryIdentifier = commandArguments[0];
-const allCategories = wikiConfiguration.domains.flatMap((domain) => domain.categories);
-const category = allCategories.find((candidate) => candidate.identifier === categoryIdentifier);
-if (category === undefined) {
-  fail(`unknown category "${categoryIdentifier ?? ""}" — expected one of: ${allCategories.map((candidate) => candidate.identifier).join(", ")}`);
+const resolvedCategory = scaffoldableCategories.find(
+  ({ category: candidate }) => candidate.identifier === categoryIdentifier,
+);
+if (resolvedCategory === undefined) {
+  fail(
+    `unknown category "${categoryIdentifier ?? ""}" — expected one of: ` +
+      scaffoldableCategories.map(({ category: candidate }) => candidate.identifier).join(", "),
+  );
 }
+const category = resolvedCategory.category;
+const categoryFolderPath = resolvedCategory.folderSegments.join("/");
 
 let relativePath: string;
 let fileName: string;
@@ -59,7 +70,7 @@ if (category.layout === "sections") {
   if (fileName === undefined || !fileName.endsWith("_master.html")) {
     fail(`theory filenames must end in _master.html (got "${fileName ?? ""}")`);
   }
-  relativePath = `${category.folder}/${section.identifier}/${fileName}`;
+  relativePath = `${categoryFolderPath}/${section.identifier}/${fileName}`;
 } else {
   fileName = commandArguments[1];
   if (fileName === undefined || !fileName.endsWith(".html")) {
@@ -68,7 +79,7 @@ if (category.layout === "sections") {
   if (category.filenamePattern !== undefined && !new RegExp(category.filenamePattern).test(fileName)) {
     fail(`filename "${fileName}" does not match the ${category.identifier} pattern ${category.filenamePattern}`);
   }
-  relativePath = `${category.folder}/${fileName}`;
+  relativePath = `${categoryFolderPath}/${fileName}`;
 }
 
 const absolutePath = join(CONTENT_ROOT, relativePath);
@@ -115,6 +126,9 @@ const pageHtml = renderPageShell({
   bodyContent,
 });
 
+// New sections start as empty folders, so create the target directory
+// rather than failing with a bare ENOENT from writeFileSync.
+mkdirSync(dirname(absolutePath), { recursive: true });
 writeFileSync(absolutePath, pageHtml);
 console.log(`created ${relativePath}`);
 console.log("\nnext steps:");
