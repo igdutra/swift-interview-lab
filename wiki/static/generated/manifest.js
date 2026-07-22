@@ -163,8 +163,20 @@ const WIKI_MANIFEST = {
               "label": "Fundamentals",
               "hubPath": "ios/swiftui/theory/fundamentals/index.html",
               "pagePaths": [
-                "ios/swiftui/theory/fundamentals/swiftui_dummy_master.html"
+                "ios/swiftui/theory/fundamentals/view_identity_master.html"
               ]
+            },
+            {
+              "identifier": "state",
+              "label": "State & Data Flow",
+              "hubPath": "ios/swiftui/theory/state/index.html",
+              "pagePaths": []
+            },
+            {
+              "identifier": "screens",
+              "label": "Building Screens",
+              "hubPath": "ios/swiftui/theory/screens/index.html",
+              "pagePaths": []
             }
           ],
           "pagePaths": []
@@ -210,19 +222,60 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "ios/swiftui/theory/fundamentals/swiftui_dummy_master.html": {
-      "path": "ios/swiftui/theory/fundamentals/swiftui_dummy_master.html",
+    "ios/swiftui/theory/fundamentals/view_identity_master.html": {
+      "path": "ios/swiftui/theory/fundamentals/view_identity_master.html",
       "domain": "ios",
       "category": "swiftui-theory",
       "section": "fundamentals",
       "role": "deep-dive",
-      "title": "Page Type Demo",
-      "nav": "Page Type Demo",
+      "title": "View Identity",
+      "nav": "View Identity",
       "topics": [
-        "Scaffold",
-        "Placeholder"
+        "SwiftUI",
+        "Identity",
+        "State",
+        "Transitions"
       ],
-      "blurb": "Placeholder page demonstrating the ios-topic section skeleton. Replace with real SwiftUI content.",
+      "blurb": "Structural vs explicit identity, why branching resets state, what .id() actually does in both directions, and when .opacity() is a real win rather than a defensive reflex.",
+      "difficulty": null,
+      "problemNumber": null,
+      "order": 1
+    },
+    "ios/swiftui/theory/screens/index.html": {
+      "path": "ios/swiftui/theory/screens/index.html",
+      "domain": "ios",
+      "category": "swiftui-theory",
+      "section": "screens",
+      "role": "hub",
+      "title": "Building Screens",
+      "nav": "Building Screens",
+      "topics": [
+        "SwiftUI",
+        "Navigation",
+        "Lists",
+        "Modals",
+        "Lifecycle"
+      ],
+      "blurb": "The screen-level toolkit: navigation stacks and paths, lists, sheets and alerts, search, the app lifecycle, and text and image formatting.",
+      "difficulty": null,
+      "problemNumber": null,
+      "order": null
+    },
+    "ios/swiftui/theory/state/index.html": {
+      "path": "ios/swiftui/theory/state/index.html",
+      "domain": "ios",
+      "category": "swiftui-theory",
+      "section": "state",
+      "role": "hub",
+      "title": "State & Data Flow",
+      "nav": "State & Data Flow",
+      "topics": [
+        "SwiftUI",
+        "State",
+        "Bindings",
+        "Environment"
+      ],
+      "blurb": "Who owns a piece of state, and how it moves between views — ownership, the four directions of data flow, and modelling view state as an enum.",
       "difficulty": null,
       "problemNumber": null,
       "order": null

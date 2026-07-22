@@ -179,7 +179,11 @@ export const wikiConfiguration: WikiConfiguration = {
               pageType: "ios-topic",
               pageBodyCategory: "ios-topic",
               requiresDifficulty: false,
-              sections: [{ identifier: "fundamentals", label: "Fundamentals" }],
+              sections: [
+                { identifier: "fundamentals", label: "Fundamentals" },
+                { identifier: "state", label: "State & Data Flow" },
+                { identifier: "screens", label: "Building Screens" },
+              ],
             },
           ],
         },

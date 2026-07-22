@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>View Identity · iOS Topic</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "View Identity",
+  "nav": "View Identity",
+  "topics": [
+    "SwiftUI",
+    "Identity",
+    "State",
+    "Transitions"
+  ],
+  "blurb": "Structural vs explicit identity, why branching resets state, what .id() actually does in both directions, and when .opacity() is a real win rather than a defensive reflex.",
+  "order": 1
+}
+</script>
+<link rel="stylesheet" href="../../../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="ios-topic">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<main class="content">
+
+  <h1 class="page-title">View Identity</h1>
+  <div class="page-meta">
+    <span>iOS Topic</span><span>·</span>
+    <span>SwiftUI</span><span>·</span>
+    <span>How SwiftUI decides two views are "the same view"</span>
+  </div>
+
+  <section id="lead" data-toc-label="Definition">
+    <div class="lead">
+      <p><strong>View identity</strong> is how SwiftUI decides whether a view on screen is the <em>same</em> view it drew last time or a <em>different</em> one. That single decision drives everything a reader cares about: whether <code>@State</code> survives, whether an animation continues or restarts, and whether a transition fires at all. SwiftUI never asks "did the content change?" — it asks "is this the same view?", and answers using the view's <strong>type and position in the tree</strong>, not its values.</p>
+      <p>Most SwiftUI bugs reported as "my state keeps resetting" or "my animation won't play" are identity bugs. The framework is behaving exactly as documented; the view tree is simply saying something different from what the author meant.</p>
+    </div>
+
+    <div class="co co-idea">
+      <span class="co-idea-title">THE ONE IDEA</span>
+      Identity is a <strong>path</strong>, not a flag. Every position in the view tree gets its own identity, computed independently as <em>(type, position-within-parent)</em>. A conditional at one position tears down only <em>that</em> position — it cannot reach sideways to a sibling or upward to its parent.
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="mental-model" data-toc-label="Mental Model">
+    <h2><span class="sec-num">2</span> Mental Model — how to think about it</h2>
+
+    <p>Think of the view tree as a filing cabinet where every slot has an address. The address is not the view's contents — it is <em>which drawer, which folder, which position</em>. SwiftUI stores your <code>@State</code> against that address.</p>
+
+    <p>Redraw the UI and SwiftUI walks the same addresses. Same address, same type, and it is the same view, so the state in that slot is handed back. A different type at that address means a different view, so the old slot and its state are thrown away and a new one is created.</p>
+
+    <pre class="ascii">HStack                          identity: (HStack, root)
+├── [0] Text(name)              identity: (Text, position 0)      &lt;- stable
+├── [1] Spacer()                identity: (Spacer, position 1)    &lt;- stable
+└── [2] if selected { Image }   identity: (Image, position 2)     &lt;- conditional
+                                          ^^^^^^^^^^^^^^^^^^^
+                       only THIS address is torn down when `selected` flips</pre>
+    <div class="ascii-caption">Each position is diffed on its own. Position 2 changing cannot invalidate positions 0 and 1, nor the enclosing <code>HStack</code>.</div>
+
+    <p>Two vocabulary terms, from Apple's WWDC21 session <em>Demystify SwiftUI</em> — worth knowing by name, because the documentation uses them precisely:</p>
+
+    <table class="t-decoder">
+      <thead><tr><th>Term</th><th>What determines it</th><th>In practice</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Structural identity</strong></td><td>The view's type and its position in the tree</td><td>The default. You get it for free and never think about it — until a branch changes the type at some position.</td></tr>
+        <tr><td><strong>Explicit identity</strong></td><td><code>Identifiable</code> conformance, or an <code>.id(_:)</code> modifier</td><td>What <code>ForEach</code> and <code>List</code> use to track rows, and what <code>.id()</code> lets you set by hand.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="signals" data-toc-label="When It Applies">
+    <h2><span class="sec-num">3</span> When It Applies</h2>
+
+    <p>Identity is worth thinking about the moment any of these show up:</p>
+
+    <table class="t-clue">
+      <thead><tr><th>When you see…</th><th>The identity question to ask</th></tr></thead>
+      <tbody>
+        <tr><td>"My <code>@State</code> resets whenever I toggle something"</td><td>Does toggling it change the <em>type</em> at that position? An <code>if/else</code> between two different views does exactly that.</td></tr>
+        <tr><td>"My <code>.transition</code> never animates"</td><td>Is the view actually being inserted or removed? A transition on a view whose identity never changes can never fire.</td></tr>
+        <tr><td>"The form keeps the previous record's edits"</td><td>The opposite problem — identity is <em>too</em> stable. Reach for <code>.id(record.id)</code> to force a fresh view.</td></tr>
+        <tr><td>An <code>if</code> inside a <code>List</code> row</td><td>Usually a non-problem. Check whether the branch sits at the row's top level or nested inside an already-stable container.</td></tr>
+        <tr><td>A reflexive <code>.opacity(flag ? 1 : 0)</code></td><td>Is there actually state or an animation to preserve? On a stateless leaf this costs layout space and buys nothing.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="api" data-toc-label="The API">
+    <h2><span class="sec-num">4</span> The API — types, modifiers, signatures</h2>
+
+    <p>The surface is small; the subtlety is entirely in what it means.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Explicit identity</span></div>
+    <pre class="swift">// Attach an explicit identity to a view. Changing `value` makes SwiftUI
+// treat this as an entirely different view.
+func id&lt;IdentifierValue&gt;(_ value: IdentifierValue) -&gt; some View
+    where IdentifierValue: Hashable
+
+// The protocol List and ForEach use to track elements across updates.
+protocol Identifiable {
+    associatedtype ID: Hashable
+    var id: ID { get }
+}</pre>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">What a branch compiles to</span></div>
+    <pre class="swift">// An if/else inside a ViewBuilder does NOT produce "one view that changes".
+// It produces a generic wrapper whose type differs per branch:
+_ConditionalContent&lt;TrueContent, FalseContent&gt;
+
+// Which is why flipping the condition swaps the concrete type occupying
+// that slot -- and a new type means a new identity.</pre>
+
+    <div class="co co-note">
+      <strong>Why this matters:</strong> <code>_ConditionalContent</code> is the whole mechanism. Once you know an <code>if/else</code> is a <em>type-level</em> choice rather than a value-level one, the state-reset behaviour stops being surprising and becomes predictable.
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="patterns" data-toc-label="Patterns">
+    <h2><span class="sec-num">5</span> Patterns That Work</h2>
+
+    <h3>Push the condition into a value, not the structure</h3>
+    <p>When both outcomes are the same view with different values, do not branch. Same type, same position, same identity — no teardown, and the change animates for free.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The default choice</span></div>
+    <pre class="swift">// One Text, one identity, only the value varies.
+Text("Hi").foregroundStyle(isHighlighted ? .red : .blue)</pre>
+
+    <h3><code>.id()</code> to force a deliberate reset</h3>
+    <p>The common, intended use. A new <code>.id()</code> value tells SwiftUI "this is a different view now", discarding state on purpose — exactly right when moving between records.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Reset a form when the record changes</span></div>
+    <pre class="swift">EditorView(record: selectedRecord)
+    .id(selectedRecord.id)   // new record -> fresh EditorView state</pre>
+
+    <h3><code>.id()</code> to unify identity across branches</h3>
+    <p>The rarer direction. Putting the <em>same</em> <code>.id()</code> on both sides overrides per-branch structural identity, so state can survive the flip. This is a targeted workaround for when the branches are genuinely different view types and continuity still matters — not the first tool to reach for.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Both branches share one identity</span></div>
+    <pre class="swift">Group {
+    if isEditing {
+        EditorView()
+    } else {
+        SummaryView()
+    }
+}
+.id("record-detail")   // one continuous identity; less state churn</pre>
+
+    <h3>Branch when you <em>want</em> the insert and remove</h3>
+    <p>Everything above treats teardown as a cost. <code>.transition(_:)</code> turns it into the feature: it describes how a view animates as it is inserted into or removed from the tree, which only happens when identity changes.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The transition describes it; the animation drives it</span></div>
+    <pre class="swift">if isExpanded {
+    DetailPanel()
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+}
+
+// The state change must be animated, or the transition never runs:
+Button("Toggle") {
+    withAnimation(.snappy) { isExpanded.toggle() }
+}</pre>
+
+    <p>Pair <code>.id()</code> with <code>.transition()</code> to animate a <em>replacement</em> rather than an insertion — same slot, new identity, so SwiftUI treats it as remove-then-insert:</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">New value = new identity = transition fires</span></div>
+    <pre class="swift">Text(currentQuote)
+    .id(currentQuote)
+    .transition(.opacity)</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="antipatterns" data-toc-label="Anti-Patterns">
+    <h2><span class="sec-num">6</span> Anti-Patterns — and the fix</h2>
+
+    <h3>Treating <code>.id()</code> as "preserve my state through branching"</h3>
+    <p>The most common misreading. <code>.id()</code> is not a switch that makes SwiftUI hold on to identity through conditional code — by default it is the opposite primitive, used to <em>discard</em> identity deliberately. That it also happens to work in the unifying direction is what makes the confusion durable.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The branch that quietly resets state</span></div>
+    <pre class="swift">// WRONG: flipping `isEditing` destroys and recreates whichever branch
+// appears. Each branch is a different concrete type in the same slot, so
+// any @State inside resets and animations restart.
+if isEditing {
+    EditorView()      // its own @State resets every time isEditing flips back
+} else {
+    SummaryView()
+}
+
+// RIGHT, when they are the same view with different values:
+//   inline the condition instead of branching structurally.
+// RIGHT, when they are genuinely different types and you need continuity:
+//   wrap in a Group and give both the same .id().</pre>
+
+    <h3>Reaching for <code>.opacity()</code> as a defensive reflex</h3>
+    <p>The reason the <code>.opacity()</code>-swap pattern exists is to <strong>preserve state or an in-flight animation</strong> on the thing being conditionally shown. Applied to a stateless leaf view it solves a problem that does not exist — and it costs layout space, because the hidden view still reserves its frame.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">A stateless leaf needs no protection</span></div>
+    <pre class="swift">// WRONG: nothing inside Image(systemName:) can be lost. The checkmark's
+// frame is now permanently reserved in the HStack, for no benefit.
+Image(systemName: "checkmark")
+    .opacity(isSelected ? 1 : 0)
+
+// RIGHT: idiomatic. Only this one child position is inserted or removed;
+// the row, HStack, Text and Spacer all keep their identity throughout.
+if isSelected {
+    Image(systemName: "checkmark")
+}</pre>
+
+    <p><code>.opacity()</code> <em>is</em> the right call in four cases:</p>
+
+    <table class="t-versus">
+      <thead><tr><th>Case</th><th>Why keeping the view alive wins</th></tr></thead>
+      <tbody>
+        <tr><td>The branched view owns <code>@State</code> or <code>@StateObject</code></td><td>Recreating it resets that state visibly — a scroll offset jumping back to the top, for example.</td></tr>
+        <tr><td>An animation or gesture is in flight</td><td>A hard remove and insert interrupts it. Continuity across the toggle is the entire point for a spinner or a <code>matchedGeometryEffect</code> participant.</td></tr>
+        <tr><td>You want a cross-fade, not an insert and remove</td><td>A manual opacity toggle gives direct control over timing, instead of letting SwiftUI choose an implicit insert/remove animation.</td></tr>
+        <tr><td>The view is expensive to construct</td><td>Real work in <code>init</code>, or a large subtree, toggled rapidly — hiding beats repeated construction and teardown.</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Promoting a branch to the row's top level</h3>
+    <p>This is the shape that <em>does</em> destroy row identity — worth contrasting against the harmless nested version in §7.</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Two types competing for one slot</span></div>
+    <pre class="swift">// WRONG: two different concrete types occupying the position List
+// assigned to this element. The row's identity dies on every toggle.
+List(paymentTypes) { paymentType in
+    if isSelected(paymentType) {
+        SelectedRow(paymentType)     // type A
+    } else {
+        UnselectedRow(paymentType)   // type B
+    }
+}
+
+// RIGHT: one row type. The conditional lives one level down, scoped to a
+// single child slot inside an already-stable container.
+List(paymentTypes) { paymentType in
+    PaymentRow(paymentType: paymentType, isSelected: isSelected(paymentType))
+}</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="worked-example" data-toc-label="Worked Example">
+    <h2><span class="sec-num">7</span> Worked Example — a conditional inside a list row</h2>
+
+    <p>The question this topic tends to surface from: inside a <code>List</code> row whose identity is already stable via <code>Identifiable</code>, does an <code>if</code> destroy the row's identity every time the selection changes?</p>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">The code in question</span></div>
+    <pre class="swift">private func paymentRow(for paymentType: PaymentType) -&gt; some View {
+    HStack {
+        Text(paymentType.name)
+        Spacer()
+        if isPaymentTypeSelected(paymentType) {
+            Image(systemName: "checkmark")
+        }
+    }
+    .onTapGesture { selectedPaymentType = paymentType }
+}
+
+List(searchResultsPaymentTypes) { paymentType in
+    paymentRow(for: paymentType)
+}</pre>
+
+    <p><strong>Answer: no.</strong> Three things are true at once, and the argument depends on keeping them distinct:</p>
+
+    <ol>
+      <li><strong>The row's identity comes from <code>paymentType.id</code></strong>, via <code>List</code>'s <code>Identifiable</code>-based diffing. That is explicit identity — a separate mechanism from <code>@State</code> storage, keyed off the data element itself.</li>
+      <li><strong><code>paymentType</code> is not state the view holds.</strong> It is a plain captured parameter, handed in fresh on every invocation. But it plays an equivalent <em>role</em>: it both defines the row's identity key and drives what the row renders. Because the branch condition and the identity key derive from the <em>same</em> underlying value, the row cannot get confused about which row it is.</li>
+      <li><strong>Identity is computed per position.</strong> The <code>HStack</code>'s three children occupy three independent slots, and only slot 2 is conditional.</li>
+    </ol>
+
+    <p>So flipping the <code>if</code> inserts or removes the <code>Image</code> at position 2 and touches nothing else — not positions 0 or 1, not the <code>HStack</code>, not the row. A sibling's branch cannot reach backward and invalidate a parent's or a sibling's identity, because each position is diffed on its own.</p>
+
+    <div class="co co-insight">
+      <strong>The generalization:</strong> branching is not inherently destructive — it is destructive <em>only at the exact position it occupies</em>. Nesting a conditional one level inside an already-stable container scopes the teardown to that one child slot. This is why the fix for an identity problem is usually to move the branch <em>down</em> the tree, not to reach for <code>.opacity()</code>.
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="pitfalls" data-toc-label="Pitfalls">
+    <h2><span class="sec-num">8</span> Pitfalls &amp; Gotchas</h2>
+
+    <div class="co co-pitfall">
+      <div class="co-pitfall-title">Transitions that silently do nothing</div>
+      <div class="pitfall">
+        <div class="pitfall-bullet"><strong>No animation, no transition.</strong> <code>.transition</code> alone is inert. The state change must happen inside <code>withAnimation { }</code>, or an <code>.animation(_:value:)</code> modifier must be observing the driving value.</div>
+        <div class="pitfall-bullet"><strong>The view must genuinely be inserted or removed.</strong> A <code>.transition</code> on a view whose identity never changes will never fire. This is the one place the usual advice inverts: if you want the animation, the <code>if</code> is correct and <code>.opacity()</code> would defeat it.</div>
+      </div>
+    </div>
+
+    <ul>
+      <li><strong>Reach for branch-level <code>.id()</code> unification sparingly.</strong> Only when the branches are legitimately different view types. If they are the same view with different values, inlining into a modifier is strictly simpler and avoids the question entirely.</li>
+      <li><strong><code>.id()</code> is also an animation knob.</strong> Changing or removing an <code>.id()</code> is how you deliberately trigger or suppress a transition on replacement — not only a state-reset switch.</li>
+      <li><strong>State resets are documented behaviour, not a bug.</strong> When a branch flips, the framework is doing exactly what the type system told it to.</li>
+    </ul>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="related" data-toc-label="Related Topics">
+    <h2><span class="sec-num">9</span> Related Topics</h2>
+
+    <div class="ref-grid">
+      <span class="xref-card xref-coming">
+        <span class="ref-title">State Ownership</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · State</span></span>
+        <span class="ref-desc">Where a view model should live, and why injecting it avoids the double-init bug. The counterpart to this page: identity decides whether state survives, ownership decides where it lives.</span>
+      </span>
+      <span class="xref-card xref-coming">
+        <span class="ref-title">Lists</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · Collections</span></span>
+        <span class="ref-desc">Where explicit identity does its heaviest lifting: <code>Identifiable</code> diffing, stable backgrounds across empty and loaded states, and the empty-flash problem.</span>
+      </span>
+      <span class="xref-card xref-coming">
+        <span class="ref-title">The Layout System</span>
+        <span class="ref-meta"><span class="ref-topics">SwiftUI · Layout</span></span>
+        <span class="ref-desc">Why a hidden-but-present view still reserves its frame — the layout cost referenced in the opacity discussion above.</span>
+      </span>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="sources" data-toc-label="Sources">
+    <h2><span class="sec-num">10</span> Sources</h2>
+
+    <div class="co co-note">
+      <strong>Sourcing status, stated honestly:</strong> Apple's SwiftUI and WWDC documentation pages are JavaScript-rendered, and the research behind this page could not retrieve their body text — only page titles. <strong>No verbatim Apple quote backs any claim here.</strong> Every claim is reasoning from mechanism, corroborated by third-party write-ups. The vocabulary (<em>structural</em> versus <em>explicit</em> identity) is Apple's, from WWDC21 <em>Demystify SwiftUI</em>.
+    </div>
+
+    <ul>
+      <li><a href="https://tanaschita.com/swiftui-structural-identity/">tanaschita.com — Understanding structural identity in SwiftUI</a>. The strongest third-party source.</li>
+      <li><a href="https://www.objc.io/blog/2021/08/24/conditional-view-modifiers/">objc.io — Why Conditional View Modifiers are a Bad Idea</a>. Confirms the <code>_ConditionalContent</code> mechanism and, importantly, scopes it to <em>the position the <code>if</code> occupies</em> rather than the enclosing container.</li>
+      <li>Community write-ups on SwiftUI identity describe exactly the §7 case: an <code>HStack</code> with a stable-position child at path <code>"0"</code> beside a conditional at <code>"1.ifBranch"</code> / <code>"1.elseBranch"</code>, where the sibling's path does not change when the branch does.</li>
+    </ul>
+  </section>
+
+  <div class="page-footer">
+    Study Wiki · View Identity · SwiftUI Theory
+  </div>
+
+</main>
+</div>
+
+<script src="../../../../static/generated/manifest.js"></script>
+<script src="../../../../static/generated/nav.js"></script>
+<script src="../../../../static/generated/toc.js"></script>
+</body>
+</html>
