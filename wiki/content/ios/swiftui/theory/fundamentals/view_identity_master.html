@@ -37,6 +37,18 @@
   </div>
 
   <section id="lead" data-toc-label="Definition">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Section</div><div class="infobox-v"><a href="index.html">SwiftUI Fundamentals</a></div></div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Framework model — how SwiftUI tracks views across updates</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v">Identity is a path: <em>(type, position)</em> computed independently per slot in the view tree</div></div>
+      <div class="infobox-row"><div class="infobox-k">Two kinds</div><div class="infobox-v">Structural (type + position) · Explicit (<code>Identifiable</code> / <code>.id()</code>)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Decides</div><div class="infobox-v">Whether <code>@State</code> survives, whether animations restart, whether transitions fire</div></div>
+      <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"state keeps resetting", "transition never animates", "form keeps old edits"</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key APIs</div><div class="infobox-v mono">.id(_:) · Identifiable · .transition(_:)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Related</div><div class="infobox-v">State Ownership · Lists · The Layout System</div></div>
+    </div>
+
     <div class="lead">
       <p><strong>View identity</strong> is how SwiftUI decides whether a view on screen is the <em>same</em> view it drew last time or a <em>different</em> one. That single decision drives everything a reader cares about: whether <code>@State</code> survives, whether an animation continues or restarts, and whether a transition fires at all. SwiftUI never asks "did the content change?" — it asks "is this the same view?", and answers using the view's <strong>type and position in the tree</strong>, not its values.</p>
       <p>Most SwiftUI bugs reported as "my state keeps resetting" or "my animation won't play" are identity bugs. The framework is behaving exactly as documented; the view tree is simply saying something different from what the author meant.</p>
