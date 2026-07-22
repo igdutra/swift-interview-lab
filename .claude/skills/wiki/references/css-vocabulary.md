@@ -23,3 +23,49 @@ Wikimedia-style: serif (`Linux Libertine O`) for h1/h2 + lead only; Source Sans 
 - **Hub**: `hub-section-title hub-blurb hub-prose hub-pattern-title hub-pattern-note`
 - **Figures**: `fig` `fig-img` `fig-img-plain`
 - **Utilities (§11 — legacy absorbers; prefer semantic classes, don't grow this set)**: `u-measure u-m-0 u-mt-0/6/8/12/16/20/24/28/32 u-mb-4/16 u-my-16-12/10-6/6-6/6-0/8-0/32-0/24-8/20-16 u-pad-16-20/16-20-0/20-24 u-info-text u-note-text u-note-gap u-tip-inline u-muted-inline u-caption u-plain u-aside u-panel u-bg-caution`
+
+## Syntax highlighting is MANUAL
+
+Nothing highlights a code block for you. Wrap every token by hand inside
+`<pre class="swift">`, using the Xcode Classic Light mapping:
+
+| Class | For | Colour |
+|---|---|---|
+| `kw` | keywords — `func let var if else in return some actor await async` | purple |
+| `tp` | types — `String`, `View`, `Task`, `Item` | green |
+| `fn` | function names at their declaration | blue |
+| `st` | string literals (already HTML-escaped as `&quot;`) | red |
+| `nm` | numeric literals | blue |
+| `cm` | comments — the whole `// …` run, including the slashes | grey italic |
+
+```html
+<pre class="swift"><span class="cm">// Attach an explicit identity.</span>
+<span class="kw">func</span> <span class="fn">id</span>&lt;V&gt;(_ value: V) -&gt; <span class="kw">some</span> <span class="tp">View</span></pre>
+```
+
+Plain text renders as one flat colour and looks broken. Escape `<`, `>`, and
+`&` inside code blocks (`&lt;`, `&gt;`, `&amp;`).
+
+## `.pitfall` is a flex ROW, not a container
+
+`.pitfall` is `display: flex`. It holds **one** short `.pitfall-bullet`
+marker plus the text in a sibling `<span>`. Nesting full-width `<div
+class="pitfall-bullet">` blocks inside one `.pitfall` makes them share the
+width and the text overflows the callout.
+
+```html
+<div class="co co-pitfall">
+  <div class="co-pitfall-title">Transitions that silently do nothing</div>
+  <div class="pitfall">
+    <span class="pitfall-bullet">1.</span>
+    <span><strong>No animation, no transition.</strong> …</span>
+  </div>
+  <div class="pitfall">
+    <span class="pitfall-bullet">2.</span>
+    <span><strong>The view must be inserted or removed.</strong> …</span>
+  </div>
+</div>
+```
+
+One `.pitfall` per point. For a single short pitfall, `<div
+class="co-pitfall">…</div>` with no inner structure is also fine.

@@ -15,7 +15,7 @@ wiki/
   content/          the actual pages — the web root, nested by domain:
                       index.html
                       leetcode/{theory,walkthroughs,reference}/
-                      ios/swiftui/theory/
+                      ios/{swiftui,concurrency}/theory/
   static/           everything a page loads: wiki.css (authored) + generated/{manifest,nav,toc}.js
   engine/           the black box — copy it verbatim to reuse; never edit to add content
     commands/       build.ts  check.ts  serve.ts  new-page.ts   (the 4 commands you run)
@@ -81,7 +81,7 @@ Category and section come from the folder; role from the filename (`index.html` 
 
 Three rules the build enforces:
 
-- **Filenames are globally unique.** If two pages share one, the build fails and prints the shortest qualifying suffix to use instead (`codingInterview/state_management.html`). Qualify with the *minimum* extra path, never the full one.
+- **Filenames are globally unique.** If two pages share one, the build fails and prints the shortest qualifying suffix to use instead. Qualify with the *minimum* extra path, never the full one. This bites most on hub links once a second domain exists: `theory/index.html` and `fundamentals/index.html` are ambiguous across `swiftui/` and `concurrency/`, so write `concurrency/theory/index.html`. The build then resolves it to the correct relative path (`../index.html`), and leaves an already-correct relative path alone on later runs.
 - **`index.html` is exempt** — it is positional ("the hub beside this page"), not an identity. Leave it bare.
 - Resolution is idempotent: re-running the build on already-resolved HTML is a no-op.
 
@@ -146,7 +146,8 @@ Wiki-wide:
 
 ```
 leetcode/  theory (7 sections) · walkthroughs (flat) · reference (flat)
-ios/       swiftui/theory (sections)
+ios/       swiftui/theory      (fundamentals · state · screens)
+           concurrency/theory  (fundamentals · isolation · patterns)
 ```
 
 ### Navigation model
