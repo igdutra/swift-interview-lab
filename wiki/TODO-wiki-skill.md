@@ -55,32 +55,42 @@ Delete this file when the list is empty.
   `tocTitle` field on each page type in `wiki.config.ts` next time the
   config schema changes. Marked with a TODO in the source.
 
-## 3. NEXT UP — top-bar density
+## 3. DONE — top-bar density
 
-Deferred deliberately; this is the next task.
-
-The nav bar renders one dropdown per *section* for sections-layout
-categories, so LeetCode Theory alone contributes seven groups:
+The bar now renders **one dropdown per domain**, so its width depends on
+how many domains exist, not how much content they hold:
 
 ```
-[Home]  LEETCODE: [Arrays & Hashing][Intervals][Strings & Simulation]
-        [Stacks & Queues][Object & System Design][Trees][Graphs]
-        [Walkthroughs][Review & Reference]
-        IOS: [Fundamentals]
+[Home]  [LeetCode ▾]  [iOS ▾]
 ```
 
-Two problems:
+Depth is revealed on hover, **capped at two menu levels**:
 
-1. It will not fit on a laptop once the remaining iOS categories and a
-   System Design domain land (roughly 16+ groups).
-2. The iOS group is labelled **Fundamentals** — the section name — so
-   the `SwiftUI · Theory` category label never reaches the bar.
+```
+[LeetCode ▾] → Theory      ▸ → Arrays & Hashing   (section hub)
+               Walkthroughs ▸ → LC 3, LC 11, …    (scrolls past 12)
+               Review & Ref ▸ → Cheat Sheet, …
+```
 
-Sketch: make the *category* the dropdown trigger and nest its sections
-inside, so each category contributes exactly one group
-(`[Theory ▾][Walkthroughs ▾][Reference ▾]  [SwiftUI · Theory ▾]`).
+A sections-layout category lists its section **hubs**, not every page —
+that is what keeps the cascade at two levels instead of four. The hub
+page is the third level, reached by clicking rather than hovering.
 
-## 4. Then — import the SwiftUI content
+Deliberate: submenus contain only links, never another submenu, so the
+cap is structural. `.nav-menu-scroll` is applied to submenus only; the
+parent menu must never scroll or it would clip the fly-outs.
+
+## 4. NEXT — the root index is bloated
+
+`content/index.html` renders a card grid for *every* category in every
+domain, so it grows without bound as domains are added. Same root cause
+as the old nav problem. Likely fix: per-domain landing pages
+(`content/leetcode/index.html`, `content/ios/index.html`) with the root
+page linking to those instead of listing everything. That would also
+give the domain triggers in the nav somewhere to point — they are
+currently hover-only `<span>`s because no domain landing page exists.
+
+## 5. Then — import the SwiftUI content
 
 Sources are gitignored in `private-notes/DOCS-TO-ADD-TO-WIKI/`.
 `SwiftUI-Reference.md` is 2,453 lines and must split into roughly seven
