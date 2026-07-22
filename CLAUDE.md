@@ -60,3 +60,17 @@ Tutor mode is **on by default** during problem-solving sessions.
 ## Study wiki (wiki/)
 
 `wiki/` is the static Wikipedia-style study wiki (theory pages + LeetCode walkthroughs), built by a zero-dependency TypeScript engine in `wiki/engine/` — `node wiki/engine/commands/build.ts` regenerates `wiki/static/generated/manifest.js` from per-page metadata, `node wiki/engine/commands/check.ts` validates (must be green before committing wiki changes), `node wiki/engine/commands/serve.ts` serves http://localhost:5050. The pages live in `wiki/content/`, the wiki's shape (page types, domains, categories) in `wiki/wiki.config.ts`. **Before creating or editing any file under `wiki/`, load the `wiki` skill** (`.claude/skills/wiki/`) — it holds the architecture, page formats, class vocabulary, and add-a-page workflow.
+
+## Long-running processes
+
+Start the wiki server (or any watcher / long-running command) with the Bash tool's **`run_in_background: true`** parameter. Never detach with a subshell and `&`:
+
+```bash
+# ✅ tracked by the harness — visible, has an ID, notifies on exit
+run_in_background: true   →  node wiki/engine/commands/serve.ts
+
+# ❌ reparents to launchd (PPID 1) — invisible, holds the port, nobody can find it
+(node wiki/engine/commands/serve.ts > /tmp/log 2>&1 &)
+```
+
+Always tell the user the port and how to stop it. To track down an orphan holding a port: `lsof -nP -iTCP:5050 -sTCP:LISTEN`, then `kill <pid>`.
