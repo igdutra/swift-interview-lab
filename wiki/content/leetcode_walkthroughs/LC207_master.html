@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LC 207 — Course Schedule · Walkthrough Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "LC 207 — Course Schedule",
+  "nav": "LC 207",
+  "topics": [
+    "Topological Sort",
+    "Graphs",
+    "BFS"
+  ],
+  "blurb": "Topological sort via Kahn's algorithm (Variant 8.1). Model prerequisites as a directed graph, peel in-degree-0 courses, and read the cycle off the processed count — can finish iff the graph is acyclic. Full Swift + DFS three-color contrast + dry run.",
+  "difficulty": "M"
+}
+</script>
+<link rel="stylesheet" href="../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="walkthrough">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">LC 207 — Course Schedule</h1>
+  <div class="page-meta">
+    <span>Walkthrough Masterfile</span><span>·</span>
+    <span>Language: Swift</span><span>·</span>
+    <span>Medium · Topological Sort · Kahn's algorithm</span>
+  </div>
+
+  <!-- 1. Restatement -->
+  <section id="lead" data-toc-label="The Problem">
+    <div class="infobox">
+      <div class="infobox-title">Problem at a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Difficulty</div><div class="infobox-v"><span class="tag tag-M">Medium</span></div></div>
+      <div class="infobox-row"><div class="infobox-k">Pattern</div><div class="infobox-v">Topological sort — Kahn's algorithm as a cycle check (Variant 8.1)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Tools</div><div class="infobox-v">Adjacency list · in-degree array · queue (head index) · processed count</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key insight</div><div class="infobox-v">You can finish all courses iff the prerequisite graph is acyclic — and Kahn's processed count detects a cycle for free</div></div>
+      <div class="infobox-row"><div class="infobox-k">Time / Space</div><div class="infobox-v">O(V + E) / O(V + E)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Theory</div><div class="infobox-v mono"><a href="../leetcode_theory/graphs/topological_sort_deep_dive_master.html">topological_sort_deep_dive_master.html</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p>There are <code>numCourses</code> courses labeled <code>0 … numCourses−1</code>. You're given <code>prerequisites</code>, where each pair <code>[a, b]</code> means "<strong>you must take course <code>b</code> before course <code>a</code></strong>". Return <code>true</code> if it's possible to finish <em>all</em> courses, <code>false</code> otherwise. In graph terms: can you find an order that respects every prerequisite?</p>
+
+      <table class="t-example">
+        <thead><tr><th>Input</th><th>Output</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td>numCourses=2, prerequisites=[[1,0]]</td><td><code>true</code></td><td>Take 0, then 1 — one valid order exists</td></tr>
+          <tr><td>numCourses=2, prerequisites=[[1,0],[0,1]]</td><td><code>false</code></td><td>0 needs 1 and 1 needs 0 — a cycle, no valid order</td></tr>
+          <tr><td>numCourses=3, prerequisites=[]</td><td><code>true</code></td><td>No prerequisites — any order works</td></tr>
+        </tbody>
+      </table>
+
+      <p>The twist is recognizing that "can I finish all courses?" is exactly "<strong>is the prerequisite graph acyclic?</strong>" Each pair is a directed edge; a cycle is a group of courses that all depend on each other, with no valid starting point. So the whole problem reduces to cycle detection on a directed graph — and topological sort (Kahn's algorithm) detects a cycle as a side effect of trying to order the courses, in one O(V+E) pass.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Reading the problem -->
+  <section id="reading" data-toc-label="Reading the Problem">
+    <h2>2 &nbsp; Reading the Problem — insights from the constraints</h2>
+
+    <div class="co-insight"><strong>"[a, b] means take b before a":</strong> this is a directed edge <code>b → a</code> — the prerequisite points to the course that needs it. Pin this concretely before coding, because reversing it gives a wrong-but-plausible answer. It is <code>a</code>'s in-degree (its count of unmet prerequisites) that increases.</div>
+
+    <div class="co-insight"><strong>"Finish all courses" → acyclic:</strong> a valid completion order exists if and only if the prerequisite graph is a DAG. If courses form a dependency loop, none of them can ever be the "first" one taken, so you can't finish them. The question is therefore pure cycle detection.</div>
+
+    <div class="co-insight"><strong>Only a yes/no is asked:</strong> you don't need to produce the order — just whether one exists. Kahn's algorithm answers that by counting how many courses it manages to place: if it places all of them, the graph was acyclic. The order itself can be discarded (that's the LC210 variant).</div>
+
+    <div class="co-insight"><strong>Courses may have no prerequisites:</strong> a course that appears in no pair (or only as a prerequisite) has in-degree 0 and is immediately takeable. Such courses must be seeded into the queue at the start and counted — forgetting isolated vertices undercounts and falsely reports a cycle.</div>
+
+    <div class="co-insight"><strong>Bounds (numCourses ≤ 2000, prerequisites ≤ 5000):</strong> an O(V+E) Kahn's pass is trivially fast. Build an adjacency list, not a matrix — the graph is sparse, and a 2000×2000 matrix would waste memory and make the peel O(V²).</div>
+
+    <table class="t-clue">
+      <thead><tr><th>Phrase / constraint</th><th>What it forces</th></tr></thead>
+      <tbody>
+        <tr><td>"[a, b] = take b before a"</td><td>Directed edge b → a; a's in-degree += 1</td></tr>
+        <tr><td>"finish all courses"</td><td>Graph must be acyclic (a DAG)</td></tr>
+        <tr><td>"return true/false"</td><td>Cycle check only — count placed vs total, no order needed</td></tr>
+        <tr><td>"courses may have no prereqs"</td><td>Seed all in-degree-0 courses; count isolated ones</td></tr>
+        <tr><td>"≤ 2000 courses, ≤ 5000 pairs"</td><td>Adjacency list + O(V+E) Kahn's</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Edge cases -->
+  <section id="edge-cases" data-toc-label="Edge Case Inventory">
+    <h2>3 &nbsp; Edge Case Inventory</h2>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected</th><th>Handled by</th></tr></thead>
+      <tbody>
+        <tr><td>No prerequisites at all</td><td><code>true</code></td><td>Every course in-degree 0 → all seeded, all processed.</td></tr>
+        <tr><td>Single course, no prereqs</td><td><code>true</code></td><td>In-degree 0; placed immediately, count == 1.</td></tr>
+        <tr><td>Two-course cycle [[1,0],[0,1]]</td><td><code>false</code></td><td>Both in-degree 1, queue starts empty, processed 0 &lt; 2.</td></tr>
+        <tr><td>Self-loop [[0,0]]</td><td><code>false</code></td><td>Course 0's in-degree never reaches 0.</td></tr>
+        <tr><td>Linear chain [[1,0],[2,1]]</td><td><code>true</code></td><td>Queue holds one course at a time; all 3 placed.</td></tr>
+        <tr><td>Isolated course among others</td><td><code>true</code> if rest acyclic</td><td>Isolated course seeded at start and counted.</td></tr>
+        <tr><td>Duplicate pair [[1,0],[1,0]]</td><td><code>true</code></td><td>In-degree of 1 over-counts to 2, but two decrements bring it to 0 — still consistent.</td></tr>
+        <tr><td>GOTCHA: edge reversed</td><td>wrong answer</td><td>Restate "b before a" → edge b→a; a's in-degree increments.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="co-insight"><strong>The cycle and the isolated-vertex cases are the load-bearing ones.</strong> A cycle is detected only because its vertices never reach in-degree 0 and so never get counted — that's the whole correctness argument. Isolated courses must be seeded and counted, or the processed total falls short and you falsely report a cycle. Both hinge on getting the initial queue and the final count exactly right.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Hints -->
+  <section id="hints" data-toc-label="Try It Yourself First">
+    <h2>4 &nbsp; Try It Yourself First</h2>
+    <p>Aim for Kahn's algorithm — it gives the cycle check for free. Open hints one at a time.</p>
+    <details class="hint"><summary>Hint 1 — reframe the question</summary><p>"Can I finish all courses?" is the same as "does the prerequisite graph have no cycle?" Each pair <code>[a,b]</code> is a directed edge (b before a). A dependency loop = impossible. So this is cycle detection on a directed graph.</p></details>
+    <details class="hint"><summary>Hint 2 — the pattern</summary><p>Topological sort. Track each course's <em>in-degree</em> (number of remaining prerequisites). Repeatedly take a course with in-degree 0 (nothing left blocking it), "complete" it, and decrement its dependents' in-degrees. That's Kahn's algorithm.</p></details>
+    <details class="hint"><summary>Hint 3 — the cycle test</summary><p>Count how many courses you manage to complete. If it equals <code>numCourses</code>, the graph was acyclic → return true. If some courses never reach in-degree 0 (they're stuck in a cycle), the count falls short → return false. Build the edge as <code>b → a</code> and increment <code>a</code>'s in-degree. Use a head-index queue, not <code>removeFirst()</code>.</p></details>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Interview simulation -->
+  <section id="simulation" data-toc-label="Interview Simulation">
+    <h2>5 &nbsp; Interview Simulation</h2>
+    <p>The interviewer has stated the problem. The script starts with your first words — practice it out loud.</p>
+
+    <div class="sim-block" id="sim-questions" data-toc-label="5.1 Clarifying questions">
+      <div class="sim-header">Step 1 — Clarifying questions</div>
+      <div class="sim-body">
+        <div class="sim-q">Q: "In a pair <code>[a, b]</code>, which course is the prerequisite?"</div>
+        <div class="sim-a">A: <code>b</code> must be taken before <code>a</code>. <strong>→ The edge is b → a, and a's in-degree increases. I'll restate this so I don't reverse it.</strong></div>
+
+        <div class="sim-q">Q: "Do I need to return the actual order, or just whether it's possible?"</div>
+        <div class="sim-a">A: Just true/false — is it possible to finish all. <strong>→ I can count placed courses instead of recording the order.</strong></div>
+
+        <div class="sim-q">Q: "Can a course appear with no prerequisites, or not at all in the list?"</div>
+        <div class="sim-a">A: Yes. <strong>→ Those have in-degree 0; I seed all of them and make sure they're counted.</strong></div>
+
+        <div class="sim-q">Q: "Any bound on the number of courses and pairs?"</div>
+        <div class="sim-a">A: Up to ~2000 courses, ~5000 pairs. <strong>→ Sparse graph; adjacency list + O(V+E) Kahn's, head-index queue.</strong></div>
+      </div>
+    </div>
+
+    <div class="sim-block" id="sim-plan" data-toc-label="5.2 The plan, spoken">
+      <div class="sim-header">Step 2 — The plan, before any code</div>
+      <div class="sim-body">
+        <div class="speech">
+          <div class="speech-kicker">The plan, spoken</div>
+          <p>"This is a topological sort — Variant 8.1 of the Graphs / Topological Sort block. The signal is 'prerequisites' and 'finish all courses,' which I'll reframe as: can I order the courses so every prerequisite comes first? That's possible exactly when the prerequisite graph is acyclic, so the problem is cycle detection, and Kahn's algorithm gives me that for free."</p>
+          <p>"Let me pin the conditions before the structures. I model each pair <code>[a,b]</code> as a directed edge <code>b → a</code> — b is the prerequisite — and that increments a's in-degree, its count of unmet prerequisites. The validity condition for placing a course: its in-degree is 0, meaning nothing is left blocking it. The invariant: the queue holds exactly the currently-takeable courses; when I complete one and decrement a dependent to 0, that dependent becomes takeable and joins the queue. The stop/answer condition: I count how many courses I place — if that equals <code>numCourses</code>, every course was placeable, so the graph is acyclic and I return true; if it falls short, the unplaced courses are stuck in a cycle, so I return false."</p>
+          <p>"On structures: an adjacency list <code>[[Int]]</code> mapping each course to the courses it unblocks; an in-degree array <code>[Int]</code>; a queue of in-degree-0 courses with a head index so dequeues are O(1); and a processed counter — which I can read straight off the head index."</p>
+          <p>"The walk: build the adjacency list and in-degrees from the pairs. Seed the queue with every in-degree-0 course. Peel: dequeue a course, decrement each neighbor's in-degree, enqueue any that hit 0. At the end, compare the processed count to numCourses. Time and space O(V+E)."</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. Approach rationale -->
+  <section id="approach" data-toc-label="Why This Approach">
+    <h2>6 &nbsp; Why This Approach — and not the others</h2>
+    <table class="t-versus">
+      <thead><tr><th>Candidate</th><th>Cost</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>Try every course ordering, check validity</td><td>O(V!)</td><td><strong>Hopeless.</strong> Factorial permutations — only works for a handful of courses. The structure (a DAG) makes brute force unnecessary.</td></tr>
+        <tr><td>DFS with three-color cycle detection</td><td>O(V+E)</td><td>Correct and equally optimal — White/Gray/Black marking, a Gray neighbor is a back-edge → cycle. Recursive; needs explicit on-path tracking and risks stack depth on a long chain. A great alternate (§9b).</td></tr>
+        <tr><td>Union-Find</td><td>~O(E·α)</td><td><strong>Wrong tool.</strong> Union-Find detects cycles in <em>undirected</em> graphs; prerequisites are directed, where it can't distinguish a back-edge from a cross-edge. Doesn't apply here.</td></tr>
+        <tr><td><strong>Kahn's algorithm (BFS topo sort)</strong></td><td>O(V+E)</td><td><strong>Chosen.</strong> Iterative, no recursion-depth risk, and the processed-count comparison <em>is</em> the cycle test — cleanest correct solution for a yes/no question.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-when"><strong>The deciding signal:</strong> "prerequisites / finish all" = ordering under dependencies = topological sort. Between the two topo algorithms, Kahn's wins here because it's iterative (no stack-depth worry on a 2000-long chain) and its cycle detection is a free byproduct of the count — no extra bookkeeping. DFS post-order is the equally-valid recursive alternative.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Data structures -->
+  <section id="structures" data-toc-label="Data Structures">
+    <h2>7 &nbsp; Data Structures — choice and justification</h2>
+    <table class="t-decoder">
+      <thead><tr><th>Structure</th><th>Holds</th><th>Why this and not weaker/stronger</th></tr></thead>
+      <tbody>
+        <tr><td><code>adjacency: [[Int]]</code></td><td>For each course, the courses it unblocks (its out-neighbors)</td><td>Sparse graph → list, not a 2000×2000 matrix (wasteful and makes the peel O(V²)). Lets the decrement step touch only real edges.</td></tr>
+        <tr><td><code>inDegree: [Int]</code></td><td>Each course's count of remaining prerequisites</td><td>The peel's driver — a course is takeable exactly when this hits 0. An array indexed by course id is O(1) to read and decrement.</td></tr>
+        <tr><td><code>queue: [Int]</code> + <code>head</code></td><td>The currently-takeable (in-degree-0) courses</td><td>FIFO peel order; head index makes dequeue O(1). <code>removeFirst()</code> would make the peel O(V²).</td></tr>
+        <tr><td>processed counter (= <code>head</code>)</td><td>How many courses have been placed</td><td>The cycle test: compare to numCourses. Reading it off the head index avoids a separate variable.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-insight"><strong>Why in-degree, not a visited set.</strong> Plain graph traversal uses a visited set, but topo sort needs to know <em>when a course becomes takeable</em> — which is only after <em>all</em> its prerequisites are done, not after any one neighbor is seen. The in-degree counter captures exactly that "how many prerequisites are still pending" condition; a boolean visited flag can't express "almost ready, one prerequisite to go."</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 8. Pseudocode dry run -->
+  <section id="dryrun" data-toc-label="Pseudocode Dry Run">
+    <h2>8 &nbsp; Pseudocode Dry Run</h2>
+
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">Kahn's — peel in-degree-0 courses, count them</span></div>
+<pre class="pseudo">build adjacency and inDegree from pairs   <span class="pc">[a,b] → edge b→a, inDegree[a]++</span>
+queue ← all courses with inDegree == 0
+processed ← 0
+
+<span class="pk">WHILE</span> queue not empty:
+    course ← dequeue(queue)
+    processed ← processed + 1
+    <span class="pk">FOR</span> next <span class="pk">IN</span> adjacency[course]:
+        inDegree[next] ← inDegree[next] - 1
+        <span class="pk">IF</span> inDegree[next] == 0: enqueue(queue, next)
+
+<span class="pk">RETURN</span> processed == numCourses           <span class="pc">all placed → acyclic</span></pre>
+
+    <p>Trace: numCourses=4, prerequisites=[[1,0],[2,0],[3,1],[3,2]] — expected <code>true</code>. (Edges: 0→1, 0→2, 1→3, 2→3.)</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">peel order and processed count</span></div>
+<pre class="dry"><span class="tr-var">edges: 0→1, 0→2, 1→3, 2→3
+inDegree: [0:0, 1:1, 2:1, 3:2]</span>
+
+queue ← [0]  (only course 0 has in-degree 0)
+pop 0 → processed=1 ; decrement 1→0(enqueue), 2→0(enqueue) ; queue=[1,2]
+pop 1 → processed=2 ; decrement 3→1                          ; queue=[2]
+pop 2 → processed=3 ; decrement 3→0(enqueue)                ; queue=[3]
+pop 3 → processed=4 ;                                         ; queue=[]
+
+processed(4) == numCourses(4) → <span class="tr-ok">RETURN true</span></pre>
+
+    <p>And the cycle case: numCourses=2, prerequisites=[[1,0],[0,1]] — expected <code>false</code>:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">cycle leaves the queue empty</span></div>
+<pre class="dry"><span class="tr-var">edges: 0→1, 1→0   inDegree: [0:1, 1:1]</span>
+queue ← []   (no course has in-degree 0)
+loop never runs → processed = 0
+processed(0) == numCourses(2)? <span class="tr-bad">NO → RETURN false</span></pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 9. Swift solution -->
+  <section id="swift" data-toc-label="Swift Solution">
+    <h2>9 &nbsp; Swift Solution — iterative</h2>
+
+    <p>Kahn's algorithm. The processed count (read off the head index) is the cycle test. The recursive DFS three-color form follows as a contrast in §9b.</p>
+
+    <div class="solution-block">
+      <div class="block-header">
+        <span class="block-badge">A.1</span>
+        <span class="block-name">Kahn's algorithm — in-degree peel</span>
+        <div class="block-pills"><span class="pill pill-t">O(V+E)</span><span class="pill pill-s">O(V+E)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="approach-box">
+          <div class="approach-title">Plan</div>
+          Build an adjacency list and in-degree array (edge b → a per pair [a, b]). Seed a queue with every in-degree-0 course. Peel: dequeue a course, decrement each neighbor's in-degree, enqueue any that hit 0. The number dequeued equals the number of courses that could be ordered — if it's all of them, the graph is acyclic, so return true.
+        </div>
+
+        <pre class="swift"><span class="kw">func</span> <span class="fn">canFinish</span>(<span class="kw">_</span> numCourses: <span class="tp">Int</span>, <span class="kw">_</span> prerequisites: [[<span class="tp">Int</span>]]) -&gt; <span class="tp">Bool</span> {
+    <span class="cm">// 1. Build adjacency (prereq → course) and in-degree (unmet prereqs per course).</span>
+    <span class="kw">var</span> adjacency = [[<span class="tp">Int</span>]](repeating: [], count: numCourses)
+    <span class="kw">var</span> inDegree  = [<span class="tp">Int</span>](repeating: <span class="nm">0</span>, count: numCourses)
+    <span class="kw">for</span> pair <span class="kw">in</span> prerequisites {
+        <span class="kw">let</span> course = pair[<span class="nm">0</span>], prereq = pair[<span class="nm">1</span>]   <span class="cm">// take prereq before course</span>
+        adjacency[prereq].append(course)              <span class="cm">// edge prereq → course</span>
+        inDegree[course] += <span class="nm">1</span>
+    }
+
+    <span class="cm">// 2. Seed the queue with every course that has no prerequisites.</span>
+    <span class="kw">var</span> queue: [<span class="tp">Int</span>] = []
+    <span class="kw">for</span> course <span class="kw">in</span> <span class="nm">0</span>..&lt;numCourses <span class="kw">where</span> inDegree[course] == <span class="nm">0</span> {
+        queue.append(course)
+    }
+
+    <span class="cm">// 3. Peel in-degree-0 courses; head index doubles as the processed count.</span>
+    <span class="kw">var</span> head = <span class="nm">0</span>
+    <span class="kw">while</span> head &lt; queue.count {
+        <span class="kw">let</span> course = queue[head]; head += <span class="nm">1</span>        <span class="cm">// O(1) dequeue</span>
+        <span class="kw">for</span> next <span class="kw">in</span> adjacency[course] {
+            inDegree[next] -= <span class="nm">1</span>                       <span class="cm">// one prerequisite of next satisfied</span>
+            <span class="kw">if</span> inDegree[next] == <span class="nm">0</span> { queue.append(next) }   <span class="cm">// next is now takeable</span>
+        }
+    }
+
+    <span class="cm">// 4. All courses placed ⇔ acyclic ⇔ you can finish them all.</span>
+    <span class="kw">return</span> head == numCourses
+}</pre>
+        <div class="co-note"><strong>Note:</strong> <code>head</code> serves double duty — it's the dequeue cursor <em>and</em> the count of processed courses, since every dequeued course advances it exactly once. The head-index queue keeps each dequeue O(1); <code>removeFirst()</code> would make the peel O(V²). Edge direction is the one thing to get right: <code>[course, prereq]</code> → edge <code>prereq → course</code>, incrementing the <em>course</em>'s in-degree.</div>
+      </div>
+    </div>
+
+    <h3 id="swift-b">9b &nbsp; DFS three-color form — for contrast</h3>
+    <p>The recursive alternative: a cycle exists iff DFS reaches a vertex still on the current path (Gray). 0 = unvisited, 1 = on current path, 2 = fully done.</p>
+    <pre class="swift"><span class="kw">func</span> <span class="fn">canFinish</span>(<span class="kw">_</span> numCourses: <span class="tp">Int</span>, <span class="kw">_</span> prerequisites: [[<span class="tp">Int</span>]]) -&gt; <span class="tp">Bool</span> {
+    <span class="kw">var</span> adjacency = [[<span class="tp">Int</span>]](repeating: [], count: numCourses)
+    <span class="kw">for</span> pair <span class="kw">in</span> prerequisites { adjacency[pair[<span class="nm">1</span>]].append(pair[<span class="nm">0</span>]) }
+    <span class="kw">var</span> color = [<span class="tp">Int</span>](repeating: <span class="nm">0</span>, count: numCourses)   <span class="cm">// 0=white 1=gray 2=black</span>
+
+    <span class="kw">func</span> <span class="fn">hasCycle</span>(<span class="kw">_</span> node: <span class="tp">Int</span>) -&gt; <span class="tp">Bool</span> {
+        <span class="kw">if</span> color[node] == <span class="nm">1</span> { <span class="kw">return</span> <span class="kw">true</span> }            <span class="cm">// back-edge to current path → cycle</span>
+        <span class="kw">if</span> color[node] == <span class="nm">2</span> { <span class="kw">return</span> <span class="kw">false</span> }           <span class="cm">// already proven safe</span>
+        color[node] = <span class="nm">1</span>                              <span class="cm">// mark on current path</span>
+        <span class="kw">for</span> next <span class="kw">in</span> adjacency[node] <span class="kw">where</span> <span class="fn">hasCycle</span>(next) { <span class="kw">return</span> <span class="kw">true</span> }
+        color[node] = <span class="nm">2</span>                              <span class="cm">// done; off the path</span>
+        <span class="kw">return</span> <span class="kw">false</span>
+    }
+
+    <span class="kw">for</span> course <span class="kw">in</span> <span class="nm">0</span>..&lt;numCourses <span class="kw">where</span> <span class="fn">hasCycle</span>(course) { <span class="kw">return</span> <span class="kw">false</span> }
+    <span class="kw">return</span> <span class="kw">true</span>
+}</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 10. Code dry run -->
+  <section id="code-dry-run" data-toc-label="Code Dry Run">
+    <h2>10 &nbsp; Code Dry Run — the Swift solution, traced</h2>
+    <p>Full debugger-style trace of solution A.1 on numCourses=2, prerequisites=[[1,0]] → expected <code>true</code>.</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">full execution trace — /code-dry-run format</span></div>
+<pre class="dry">────────────────────────────────
+/code-dry-run
+Problem: LC 207 — Course Schedule
+Input:   numCourses = 2 ; prerequisites = [[1,0]]   ([1,0] = take 0 before 1)
+────────────────────────────────
+
+canFinish
+  BUILD GRAPH
+    adjacency = [ [], [] ] ; inDegree = [0, 0]
+    pair [1,0]: course=1, prereq=0
+      adjacency[0].append(1) → adjacency = [ [1], [] ]
+      inDegree[1] += 1       → inDegree  = [0, 1]
+
+  SEED QUEUE
+    course 0: inDegree[0]==0 → queue.append(0)
+    course 1: inDegree[1]==1 → skip
+    queue = [0] ; head = 0
+
+────────────────────────────────
+PEEL ITERATION 1
+────────────────────────────────
+  head(0) < queue.count(1) → enter
+  course = queue[0] = 0 ; head → 1
+  adjacency[0] = [1]:
+    next = 1: inDegree[1] -= 1 → 0
+      inDegree[1]==0? YES → queue.append(1)
+  State: queue=[0,1] head=1 inDegree=[0,0]
+
+────────────────────────────────
+PEEL ITERATION 2
+────────────────────────────────
+  head(1) < queue.count(2) → enter
+  course = queue[1] = 1 ; head → 2
+  adjacency[1] = []  → no neighbors
+  State: queue=[0,1] head=2
+
+  head(2) < queue.count(2)? NO → loop ends
+
+────────────────────────────────
+RESULT
+────────────────────────────────
+  return head(2) == numCourses(2) → true</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 11. Q→Code map -->
+  <section id="qmap" data-toc-label="Question → Code Map">
+    <h2>11 &nbsp; Question → Code Map</h2>
+    <table class="t-qmap">
+      <thead><tr><th>What you asked / planned</th><th>What it became</th></tr></thead>
+      <tbody>
+        <tr><td>"[a,b] = take b before a → edge b→a"</td><td><code>adjacency[prereq].append(course); inDegree[course] += 1</code></td></tr>
+        <tr><td>"Seed all in-degree-0 courses"</td><td><code>for course in 0..&lt;numCourses where inDegree[course] == 0</code></td></tr>
+        <tr><td>"Takeable when in-degree hits 0"</td><td><code>if inDegree[next] == 0 { queue.append(next) }</code></td></tr>
+        <tr><td>"Complete a course → free its dependents"</td><td><code>inDegree[next] -= 1</code> for each neighbor</td></tr>
+        <tr><td>"Count placed courses"</td><td><code>head</code> (advances once per dequeue)</td></tr>
+        <tr><td>"All placed ⇔ acyclic ⇔ can finish"</td><td><code>return head == numCourses</code></td></tr>
+        <tr><td>"Keep dequeue O(1)"</td><td><code>head</code> index instead of <code>removeFirst()</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 12. Complexity -->
+  <section id="complexity" data-toc-label="Complexity">
+    <h2>12 &nbsp; Complexity</h2>
+    <table class="t-cmx">
+      <thead><tr><th>Phase</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Build adjacency + in-degrees</td><td class="tc">O(V+E)</td><td class="sc">O(V+E)</td><td>One pass over E pairs; the adjacency list and in-degree array are O(V+E) and O(V).</td></tr>
+        <tr><td>Peel (Kahn's loop)</td><td class="tc">O(V+E)</td><td class="sc">O(V)</td><td>Each course dequeued once (V); each edge triggers one decrement (E). Queue holds up to V courses.</td></tr>
+        <tr><td>DFS three-color (§9b)</td><td class="tc">O(V+E)</td><td class="sc">O(V)</td><td>Each vertex/edge visited once; space is the color array + recursion stack (depth ≤ V).</td></tr>
+        <tr class="bottleneck"><td>Total</td><td class="tc">O(V+E)</td><td class="sc">O(V+E)</td><td>You must read every course and every prerequisite at least once, so O(V+E) is a lower bound — both algorithms hit it. The adjacency list dominates space.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-insight"><strong>Why the cycle check is free.</strong> The processed-count comparison costs nothing beyond the peel you'd do anyway — there's no separate cycle-finding pass. That's why this yes/no problem (LC207) and the order-producing one (LC210) have <em>identical</em> O(V+E) complexity: detecting feasibility and producing the order are the same traversal.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13. Follow-ups -->
+  <section id="followups" data-toc-label="Follow-Up Bank">
+    <h2>13 &nbsp; Follow-Up Bank — the interviewer's second act</h2>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Before you push this to production — can you see any improvements you'd make?"</div>
+      <div class="followup-a">It's already O(V+E), which is optimal — you must read every edge. The main robustness note is the queue: I used a head index so dequeues stay O(1); a naive <code>removeFirst()</code> would silently make it O(V²). If memory were tight on a huge sparse graph I'd confirm the adjacency list (not a matrix) is used. Otherwise I'd ship it as is.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Now return a valid order, not just whether one exists."</div>
+      <div class="followup-a">That's LC 210 — Course Schedule II: record each course into an <code>order</code> array as I dequeue it, instead of only counting. At the end, if <code>order.count == numCourses</code> return <code>order</code>; otherwise a cycle truncated it, so return <code>[]</code>. The dequeue sequence is a valid topological order by construction — same algorithm, one line added.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "What if the prerequisites came as sorted words in an unknown alphabet?"</div>
+      <div class="followup-a">That's LC 269 — Alien Dictionary: I'd first <em>derive</em> the edges by comparing each adjacent word pair (the first differing character gives one precedence edge), guard the prefix-invalid case, then run this exact Kahn's. The topo sort is unchanged; the new skill is building the graph from the data.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Could you solve it recursively instead?"</div>
+      <div class="followup-a">Yes — DFS with three-color marking (§9b): a cycle exists iff DFS reaches a vertex still on the current path (Gray). It's also O(V+E). I lead with Kahn's because it's iterative — no stack-depth risk on a 2000-long prerequisite chain — and its cycle detection is a free count rather than explicit on-path bookkeeping. Both are interview-acceptable.</div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 14. Theory decoder -->
+  <section id="decoder" data-toc-label="Theory Decoder">
+    <h2>14 &nbsp; Theory Decoder — the theory as used here</h2>
+    <table class="t-decoder">
+      <thead><tr><th>General concept</th><th>Instantiated in this solution as</th><th>General form</th></tr></thead>
+      <tbody>
+        <tr><td>Topological sort (order a DAG)</td><td>The dequeue order of courses respects every prerequisite.</td><td><a href="../leetcode_theory/graphs/topological_sort_deep_dive_master.html#mental-model">theory §4</a></td></tr>
+        <tr><td>Kahn's algorithm (in-degree peel)</td><td>Seed in-degree-0 courses, decrement dependents, enqueue freed ones.</td><td><a href="../leetcode_theory/graphs/topological_sort_deep_dive_master.html#v-kahn">theory §8.1</a></td></tr>
+        <tr><td>Cycle ⇔ can't order</td><td>processed count &lt; numCourses ⇒ a cycle ⇒ return false.</td><td><a href="../leetcode_theory/graphs/topological_sort_deep_dive_master.html#pseudocode">theory §5</a></td></tr>
+        <tr><td>In-degree as "unmet prerequisites"</td><td><code>inDegree[course]</code>; takeable when it hits 0.</td><td><a href="../leetcode_theory/graphs/topological_sort_deep_dive_master.html#terminology">theory §3</a></td></tr>
+        <tr><td>Edge direction (b before a → b→a)</td><td><code>adjacency[prereq].append(course)</code>; a's in-degree++.</td><td><a href="../leetcode_theory/graphs/topological_sort_deep_dive_master.html#pitfalls">theory §10</a></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 15. Back-reference -->
+  <section id="parent" data-toc-label="Parent Theory">
+    <h2>15 &nbsp; Parent Theory</h2>
+    <p>This walkthrough instantiates Variant 8.1 of a larger pattern. The parent page is not free-form — it follows the theory masterfile standard, so here is exactly what you land on:</p>
+    <div class="ref-grid">
+      <a class="backref-card" href="../leetcode_theory/graphs/topological_sort_deep_dive_master.html">
+        <span class="ref-file">leetcode_theory/graphs/topological_sort_deep_dive_master.html</span>
+        <span class="ref-title">Topological Sort — Deep Dive Theory Masterfile</span>
+        <span class="ref-desc">The canonical reference for the topo-sort family: the peel-the-in-degree-0-layers mental model with this exact processed-count cycle trace (§4), Kahn's pseudocode primer (§5), the Kahn-vs-DFS trade-off (§6), the edge-direction and isolated-vertex Swift foundations (§7), the four-variant catalog with Variant 8.1 Kahn's-cycle-check this problem instantiates (§8.1), the O(V+E) complexity argument (§9), and the pitfalls and cheat sheet (§10, §12). Its cross-reference section (§13) links back to this walkthrough, and it sits under the Graphs hub.</span>
+      </a>
+    </div>
+      <p class="u-note-gap">See also: <a href="../leetcode_theory/stacks_queues/queue_master.html">queue_master.html</a> — the FIFO queue driving Kahn's in-degree peel.</p>
+
+  </section>
+
+  <div class="page-footer">
+    LC 207 — Course Schedule · Walkthrough Masterfile · Parent theory:
+    <a href="../leetcode_theory/graphs/topological_sort_deep_dive_master.html">Topological Sort</a> ·
+    Structure per <code>.claude/skills/wiki/references/walkthrough-format.md</code>
+  </div>
+
+</main>
+</div>
+
+<script src="../static/generated/manifest.js"></script>
+<script src="../static/generated/nav.js"></script>
+<script src="../static/generated/toc.js"></script>
+</body>
+</html>

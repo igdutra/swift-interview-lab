@@ -168,6 +168,7 @@ hr.wiki-hr { border: none; border-top: 1px solid var(--border-xlt); margin: 48px
 }
 .toc-cat-theory      { color: var(--insight); }
 .toc-cat-walkthrough { color: var(--info); }
+.toc-cat-ios-topic   { color: var(--tip); }
 .toc-link { display: block; padding: 2px 0; color: var(--link); text-decoration: none; font-weight: 600; }
 .toc-link:hover { text-decoration: underline; }
 .toc-sub { padding-left: 12px; }

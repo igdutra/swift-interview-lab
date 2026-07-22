@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prefix &amp; Suffix Precomputation · Theory Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Prefix & Suffix Precomputation",
+  "nav": "Prefix & Suffix Precomputation",
+  "topics": [
+    "Arrays",
+    "Range Query",
+    "Precomputation"
+  ],
+  "blurb": "Two linear passes store an accumulated value at every position — O(n) build + O(1) per query. Covers range sum, product-except-self, physical simulation (max arrays), and boolean coverage. Payload can be any monoid."
+}
+</script>
+<link rel="stylesheet" href="../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="theory">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">Prefix &amp; Suffix Precomputation</h1>
+  <div class="page-meta">
+    <span>Theory Masterfile</span><span>·</span>
+    <span>Language: Swift</span><span>·</span>
+    <span>Range Sum · Product · Physical Sim · Coverage</span>
+  </div>
+
+  <!-- 1. Definition -->
+  <section id="lead" data-toc-label="Definition">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Array precomputation technique</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v">Two linear passes store an accumulated value at each position; combine both arrays in O(1) per query</div></div>
+      <div class="infobox-row"><div class="infobox-k">Time</div><div class="infobox-v">O(n) build + O(1) per query</div></div>
+      <div class="infobox-row"><div class="infobox-k">Space</div><div class="infobox-v">O(n) — two arrays of length n + 1 (or n)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"range query", "product except self", "water trapped", "coverage check"</div></div>
+      <div class="infobox-row"><div class="infobox-k">Payload type</div><div class="infobox-v">Any monoid — sum, product, max, boolean OR, set union</div></div>
+      <div class="infobox-row"><div class="infobox-k">Walkthroughs</div><div class="infobox-v mono"><a href="../../leetcode_walkthroughs/LC303_master.html">LC303_master.html</a> · <a href="../../leetcode_walkthroughs/LC560_master.html">LC560_master.html</a> · <a href="../../leetcode_walkthroughs/LC238_master.html">LC238_master.html</a> · <a href="../../leetcode_walkthroughs/LC42_master.html">LC42_master.html</a> · CUSTOM1 (coming)</div></div>
+    </div>
+
+    <div class="lead">
+      <p><strong>Prefix and suffix precomputation</strong> is a technique that eliminates repeated linear work by storing, at each index <em>pos</em>, the accumulated result of every element to its left (the prefix) and every element to its right (the suffix). A single left-to-right pass builds the prefix array; a single right-to-left pass builds the suffix array. Any query that asks "what is the aggregate of some range, or of everything except position pos" then combines <code>prefix[pos]</code> and <code>suffix[pos]</code> in one step — O(1) per query regardless of range length.</p>
+      <p>The "payload" stored at each position varies by problem — a running sum, a running product, a running maximum, a boolean flag, even a set of day indices — but the two-pass shape is always the same. This uniformity is the technique's power: recognizing any of these payload types as "something a left pass accumulates" immediately hands you an O(n) algorithm where the naive alternative scans the array again for every query, costing O(n²) in total.</p>
+
+    <div class="co-insight">
+      <strong>Where prefix/suffix meets Dynamic Programming — and where it doesn't.</strong>
+
+      <p class="u-my-10-6">Think of it as a Venn diagram. DP is the <em>paradigm</em>: break a problem into subproblems, store the answers, reuse them instead of recomputing. Prefix/suffix is a <em>technique</em>: two passes over an array that store an accumulated value at each index. They are not the same thing — but they overlap.</p>
+
+      <p class="u-my-6-6"><strong>In the intersection (prefix/suffix AND DP):</strong> any variant where each cell is built from the previous cell using a recurrence. <code>leftMaxAt[pos] = max(height[pos], leftMaxAt[pos−1])</code> in LC 42 is a recurrence — you're computing cell <code>pos</code> from the stored answer at cell <code>pos−1</code> instead of rescanning. <code>prefix[pos+1] = prefix[pos] + nums[pos]</code> in range-sum is identical. These are DP: overlapping subproblems, stored answers, reuse. <strong>Variants 8.1, 8.2, and 8.3 all qualify.</strong></p>
+
+      <p class="u-my-6-0"><strong>Outside the intersection (prefix/suffix shape, but NOT DP):</strong> Variant 8.4 — Boolean Coverage — sweeps the array and records "has this day been covered so far?" Each cell doesn't depend on the previous cell via a recurrence; it just accumulates a set. The two-pass <em>shape</em> is the same, but there are no overlapping subproblems being memoized. It's a sweep, not DP.</p>
+
+      <p class="u-aside">The clean rule: if building the array requires a recurrence (<code>cell[pos]</code> defined in terms of <code>cell[pos−1]</code>), it's DP. If the array just records running state without that dependency, it's not. When a dedicated DP theory page exists on this wiki, Variants 8.1–8.3 will be cross-referenced there.</p>
+    </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Recognition signals -->
+  <section id="signals" data-toc-label="Recognition Signals">
+    <h2>2 &nbsp; Recognition Signals — when to reach for it</h2>
+    <p>The problem rarely says "prefix array." It says one of these:</p>
+    <table class="t-clue">
+      <thead><tr><th>When the problem says…</th><th>It maps to…</th></tr></thead>
+      <tbody>
+        <tr><td>"range sum query" / "sum of elements from left to right"</td><td>Variant 8.1 — prefix sum; answer is <code>prefix[right+1] − prefix[left]</code></td></tr>
+        <tr><td>"product of all elements except self" / "no division"</td><td>Variant 8.2 — prefix product × suffix product at each index</td></tr>
+        <tr><td>"water trapped" / "amount each bar can hold"</td><td>Variant 8.3 — prefix max and suffix max; water at <em>pos</em> = <code>min(leftMax[pos], rightMax[pos]) − height[pos]</code></td></tr>
+        <tr><td>"contiguous coverage" / "do segments cover every day"</td><td>Variant 8.4 — prefix boolean OR; check that every position is covered from the left by some predecessor and from the right by some successor</td></tr>
+        <tr><td>"repeated range aggregates" / "multiple queries on one array"</td><td>Any variant — build once O(n), answer each query O(1)</td></tr>
+        <tr><td>product / sum / max "without" a specific element</td><td>Prefix × suffix combine; the excluded element falls exactly at the join point</td></tr>
+      </tbody>
+    </table>
+    <div class="co-when"><strong>The disqualifier:</strong> if the array mutates between queries, a static prefix array is invalidated on every update. Reach for a Fenwick tree or segment tree instead — they support point updates in O(log n).</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Terminology decoder -->
+  <section id="terminology" data-toc-label="Terminology Decoder">
+    <h2>3 &nbsp; Terminology Decoder</h2>
+    <table class="t-decoder">
+      <thead><tr><th>Term</th><th>Plain meaning</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td>Prefix array</td><td>An array where position <em>pos</em> holds the accumulated result of all elements from index 0 up to (but not including) <em>pos</em></td><td><code>prefix[3]</code> = sum of <code>nums[0..2]</code></td></tr>
+        <tr><td>Suffix array</td><td>An array where position <em>pos</em> holds the accumulated result of all elements from index <em>pos</em> to the end (exclusive of <em>pos</em> itself, in the "except self" convention)</td><td><code>suffix[2]</code> = product of <code>nums[3..n-1]</code></td></tr>
+        <tr><td>Sentinel value</td><td>The identity element of the accumulation operation placed at the boundary position so that the first real element combines cleanly with "nothing accumulated yet"</td><td><code>prefix[0] = 0</code> (sum), <code>prefix[0] = 1</code> (product), <code>prefix[0] = false</code> (boolean OR)</td></tr>
+        <tr><td>Range query</td><td>A question of the form "aggregate of <code>nums[left..right]</code>" answered in O(1) using a prebuilt prefix array</td><td><code>rangeSum(2, 5) = prefix[6] − prefix[2]</code></td></tr>
+        <tr><td>Monoid</td><td>Any operation that is associative and has an identity element — the mathematical name for "the kind of thing a prefix array can accumulate." Sums, products, max, boolean OR, and set union are all monoids; division is not (no identity that works universally)</td><td>sum: identity 0; product: identity 1; max: identity −∞; OR: identity false</td></tr>
+        <tr><td>Combine at each index</td><td>The O(1) per-element step that merges <code>prefix[pos]</code> and <code>suffix[pos]</code> to answer the query for position <em>pos</em> — the payoff of the two-pass build</td><td><code>result[pos] = prefix[pos] * suffix[pos]</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Mental model -->
+  <section id="mental-model" data-toc-label="Mental Model">
+    <h2>4 &nbsp; Mental Model — two spotlights meeting in the middle</h2>
+
+    <div class="co-idea">
+      <div class="co-idea-title">The one idea</div>
+      Imagine two spotlights: one starts at the left and sweeps right, recording what it has seen so far at every step; the other starts at the right and sweeps left, doing the same. After both passes, every position holds two receipts — "everything to my left" and "everything to my right" — and the answer for that position is simply combining those two receipts in one operation. The expensive part (accumulation) is done once; every subsequent query spends nothing.
+    </div>
+
+    <p>Trace the prefix-sum variant on <code>[2, 3, 1, 4]</code>. The sentinel <code>prefix[0] = 0</code> expresses "nothing has been accumulated before the first element." Each subsequent cell adds the next element:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">left-to-right pass building prefix sum (length n+1)</span></div>
+    <pre class="dry"><span class="tr-var">index</span>   nums:   [  2,   3,   1,   4  ]
+<span class="tr-var">prefix</span>  build:  [  0,   2,   5,   6,  10  ]
+                  ↑
+                  sentinel (sum of zero elements)</pre>
+    <p class="ascii-caption"><code>prefix[pos+1] = prefix[pos] + nums[pos]</code>. The sentinel at index 0 means every range query uses the same formula: <code>sum(left, right) = prefix[right+1] − prefix[left]</code>, with no special-casing for left = 0.</p>
+
+    <p>Now verify two range queries against the table: <code>sum(1, 2)</code> (indices 1 and 2, values 3 and 1) = <code>prefix[3] − prefix[1]</code> = 6 − 2 = 4. Correct. <code>sum(0, 3)</code> = <code>prefix[4] − prefix[0]</code> = 10 − 0 = 10. Correct. Both answers read from two table cells — no loop.</p>
+
+    <p>For the "combine at index" variants (product except self, trapped water), the mental model is the same two sweeps, but the combine step uses both arrays simultaneously:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">product-except-self on [1, 2, 3, 4] — left and right passes, then combine</span></div>
+    <pre class="dry"><span class="tr-var">index</span>      0    1    2    3
+nums:      1    2    3    4
+
+<span class="tr-var">left pass</span>  (prefix product, sentinel = 1)
+prefix:    1    1    2    6       <span class="tr-ok">prefix[pos] = product of nums[0..pos-1]</span>
+
+<span class="tr-var">right pass</span> (suffix product, sentinel = 1)
+suffix:    24   12   4    1       <span class="tr-ok">suffix[pos] = product of nums[pos+1..n-1]</span>
+
+<span class="tr-var">combine</span>    prefix[pos] * suffix[pos]
+result:    24   12   8    6       <span class="tr-aha">each cell = product of everything EXCEPT nums[pos]</span></pre>
+    <p class="ascii-caption">Division is never needed. The "gap" at position <em>pos</em> is bridged by placing the left product in <code>prefix[pos]</code> and the right product in <code>suffix[pos]</code>, then multiplying — neither array knows about position <em>pos</em> itself.</p>
+
+    <h3 id="precompute-question" data-toc-label="4.1 The one question to ask">4.1 &nbsp; The one question to ask</h3>
+
+    <div class="co-idea">
+      <div class="co-idea-title">The single interview question</div>
+      "Am I computing the same thing from scratch for every position or pair?"
+      If yes — you have repeated work, and precomputation eliminates it.
+    </div>
+
+    <p>Every prefix/suffix problem is the same diagnosis in a different costume. The brute force always contains a nested loop where the inner loop restarts from the beginning or the end for each outer element. That restart is the signal. Below is every problem on this page, reduced to that single question:</p>
+
+    <table class="t-clue">
+      <thead>
+        <tr>
+          <th>Problem</th>
+          <th>What you'd recompute naively (the repeated work)</th>
+          <th>What you precompute instead</th>
+          <th>Where to store it</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td><strong>LC 42</strong> — Trapping Rain Water</td>
+          <td>For each bar: scan left for tallest wall, scan right for tallest wall → O(n) per bar</td>
+          <td>One left pass → <code>leftMax[]</code>; one right pass → <code>rightMax[]</code>; combine in O(1)</td>
+          <td>Array indexed by position</td>
+        </tr>
+        <tr>
+          <td><strong>LC 238</strong> — Product Except Self</td>
+          <td>For each index: multiply all other elements → O(n) per index</td>
+          <td>Left products pass + right products pass; combine at each index</td>
+          <td>Array indexed by position</td>
+        </tr>
+        <tr>
+          <td><strong>CUSTOM 1</strong> — Relay Handoff Coverage</td>
+          <td>For each team pair: recheck whether coverage ranges connect → O(teams²)</td>
+          <td>Left pass: furthest day each team reaches forward; right pass: earliest day reachable backward; combine at each split</td>
+          <td>Map indexed by team / day</td>
+        </tr>
+        <tr>
+          <td><strong>LC 336</strong> — Palindrome Pairs</td>
+          <td>For each word: check every other word as a partner → O(w²·L)</td>
+          <td>For each word at every split point: precompute the complement string that would complete a palindrome; store it so lookups are O(1)</td>
+          <td>Hashmap indexed by the complement string</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="co-insight"><strong>Why the storage shape differs:</strong> if retrieval is by <em>position in the array</em> ("what is the max to my left at index 3?"), an array is the right structure — O(1) access by index. If retrieval is by <em>the value or content</em> of what you're looking for ("does the reverse of this string exist as a word?"), a hashmap is the right structure — O(1) lookup by key. The precomputation logic is the same; only the index changes.</div>
+
+    <div class="co-when"><strong>The follow-up question:</strong> once you've confirmed "yes, repeated work," ask "what am I indexing by when I retrieve the precomputed answer?" Position → array. Value/content → hashmap.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Pseudocode primer -->
+  <section id="pseudocode" data-toc-label="Pseudocode Primer">
+    <h2>5 &nbsp; Pseudocode Primer</h2>
+    <p>The two-pass shape is identical across all variants. Only the accumulation operation and the combine step change.</p>
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">canonical two-pass prefix/suffix build + combine</span></div>
+    <pre class="pseudo"><span class="pk">FUNCTION</span> prefixSuffixSolve(nums):
+    n ← length(nums)
+
+    <span class="pc">① LEFT PASS — build prefix array of length n+1 (sentinel at index 0)</span>
+    prefix ← array of size n + 1
+    prefix[0] ← IDENTITY              <span class="pc">e.g. 0 for sum, 1 for product, false for OR</span>
+    <span class="pk">FOR</span> pos <span class="pk">FROM</span> 0 <span class="pk">TO</span> n − 1:
+        prefix[pos + 1] ← ACCUMULATE(prefix[pos], nums[pos])
+
+    <span class="pc">② RIGHT PASS — build suffix array of length n+1 (sentinel at index n)</span>
+    suffix ← array of size n + 1
+    suffix[n] ← IDENTITY
+    <span class="pk">FOR</span> pos <span class="pk">FROM</span> n − 1 <span class="pk">DOWNTO</span> 0:
+        suffix[pos] ← ACCUMULATE(suffix[pos + 1], nums[pos])
+
+    <span class="pc">③ COMBINE — answer each query in O(1)</span>
+    result ← array of size n
+    <span class="pk">FOR</span> pos <span class="pk">FROM</span> 0 <span class="pk">TO</span> n − 1:
+        result[pos] ← COMBINE(prefix[pos], suffix[pos + 1])
+
+    <span class="pk">RETURN</span> result</pre>
+    <div class="co-insight"><strong>Why it works:</strong> <code>prefix[pos]</code> holds the aggregate of <code>nums[0..pos-1]</code> (nothing from position <em>pos</em> itself), and <code>suffix[pos+1]</code> holds the aggregate of <code>nums[pos+1..n-1]</code> (nothing from position <em>pos</em> itself). Combining them yields "everything except position <em>pos</em>" — the gap is the element at <em>pos</em>, and neither array filled it.</div>
+
+    <p>For range queries (<strong>not</strong> "combine at index") the query formula instead of combine loop is:</p>
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">range-sum query using the prefix array</span></div>
+    <pre class="pseudo"><span class="pk">FUNCTION</span> query(prefix, left, right):
+    <span class="pk">RETURN</span> prefix[right + 1] − prefix[left]
+    <span class="pc"># left and right are inclusive 0-based indices into the original array</span></pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. Iterative-only pattern -->
+  <section id="iterative" data-toc-label="Iterative-Only Pattern">
+    <h2>6 &nbsp; Iterative-Only Pattern — no recursion, ever</h2>
+    <p>Prefix/suffix precomputation is inherently iterative: each pass is a single <code>for</code> loop over a flat array, accumulating one scalar. There is no recursive formulation — a recursive aggregate over a range is exactly the O(n) per-query work the precomputed array exists to eliminate.</p>
+    <ul>
+      <li><strong>No call stack</strong> — state is two arrays of length n+1 and two loop counters. Nothing to overflow at n = 10⁵.</li>
+      <li><strong>No divide-and-conquer needed</strong> — segment trees and Fenwick trees exist for the mutable-array case; for static arrays, two flat passes dominate them on constant factors.</li>
+      <li><strong>Direction is deliberate</strong> — the left pass always runs 0 → n−1 and the right pass always runs n−1 → 0. A reversed right pass is a bug, not a style choice.</li>
+    </ul>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Swift translation -->
+  <section id="swift" data-toc-label="Swift Translation">
+    <h2>7 &nbsp; Swift Translation</h2>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">annotated prefix-sum template — compilable starting point</span></div>
+    <pre class="swift"><span class="kw">func</span> <span class="fn">buildPrefixSum</span>(<span class="kw">_</span> nums: [<span class="tp">Int</span>]) -&gt; [<span class="tp">Int</span>] {
+    <span class="kw">let</span> count = nums.count
+    <span class="kw">var</span> prefix = [<span class="tp">Int</span>](repeating: <span class="nm">0</span>, count: count + <span class="nm">1</span>)  <span class="cm">// length n+1</span>
+    <span class="cm">// prefix[0] = 0 is the sentinel — sum of zero elements</span>
+    <span class="kw">for</span> index <span class="kw">in</span> <span class="nm">0</span> ..&lt; count {
+        prefix[index + <span class="nm">1</span>] = prefix[index] + nums[index]
+    }
+    <span class="kw">return</span> prefix
+}
+
+<span class="kw">func</span> <span class="fn">rangeSum</span>(<span class="kw">_</span> prefix: [<span class="tp">Int</span>], left: <span class="tp">Int</span>, right: <span class="tp">Int</span>) -&gt; <span class="tp">Int</span> {
+    <span class="cm">// Both left and right are inclusive 0-based indices.</span>
+    prefix[right + <span class="nm">1</span>] - prefix[left]
+}</pre>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">product-except-self template</span></div>
+    <pre class="swift"><span class="kw">func</span> <span class="fn">productExceptSelf</span>(<span class="kw">_</span> nums: [<span class="tp">Int</span>]) -&gt; [<span class="tp">Int</span>] {
+    <span class="kw">let</span> count = nums.count
+    <span class="kw">var</span> prefixProduct = [<span class="tp">Int</span>](repeating: <span class="nm">1</span>, count: count + <span class="nm">1</span>)
+    <span class="kw">var</span> suffixProduct = [<span class="tp">Int</span>](repeating: <span class="nm">1</span>, count: count + <span class="nm">1</span>)
+
+    <span class="kw">for</span> index <span class="kw">in</span> <span class="nm">0</span> ..&lt; count {
+        prefixProduct[index + <span class="nm">1</span>] = prefixProduct[index] * nums[index]
+    }
+    <span class="kw">for</span> index <span class="kw">in</span> stride(<span class="kw">from</span>: count - <span class="nm">1</span>, through: <span class="nm">0</span>, by: -<span class="nm">1</span>) {
+        suffixProduct[index] = suffixProduct[index + <span class="nm">1</span>] * nums[index]
+    }
+
+    <span class="kw">return</span> (<span class="nm">0</span> ..&lt; count).map { index <span class="kw">in</span>
+        prefixProduct[index] * suffixProduct[index + <span class="nm">1</span>]
+    }
+}</pre>
+    <div class="co-note"><strong>Swift-specific cost to say out loud:</strong> <code>[Int](repeating:count:)</code> is O(n) and allocates a contiguous block — far cheaper than appending in a loop. <code>stride(from:through:by:)</code> is the idiomatic descending range in Swift; <code>for index in (0..&lt;count).reversed()</code> is equally valid and more readable to some reviewers.</div>
+
+    <hr class="wiki-hr u-my-32-0">
+    <h3 id="split-enumeration" data-toc-label="7.1 Split-point enumeration">Enumerating all splits with <code>prefix(_:)</code> / <code>suffix(_:)</code></h3>
+
+    <div class="co-idea">
+      <div class="co-idea-title">The one idea — split enumeration vs. sentinel</div>
+      Looping <code>0...word.count</code> is <strong>not</strong> a sentinel pattern. It is an enumeration of <em>split points</em>. An n-character word has exactly <strong>n+1</strong> ways to split into a left part and a right part: before the first character, between every adjacent pair, and after the last character. The loop visits all of them. The empty string on either side is not a degenerate edge case — it is the valid "take nothing from this side" split, and Swift's <code>prefix(_:)</code> / <code>suffix(_:)</code> produce it for free at <code>splitPoint = 0</code> and <code>splitPoint = count</code> respectively.
+    </div>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">split-point enumeration — all n+1 splits of a word</span></div>
+<pre class="swift"><span class="kw">let</span> word = <span class="tp">Array</span>(<span class="st">"lls"</span>)   <span class="cm">// count = 3 → 4 split points: 0, 1, 2, 3</span>
+
+<span class="kw">for</span> splitPoint <span class="kw">in</span> <span class="nm">0</span>...word.count {
+    <span class="kw">let</span> leftPart  = <span class="tp">String</span>(word.<span class="fn">prefix</span>(splitPoint))            <span class="cm">// "" | "l" | "ll" | "lls"</span>
+    <span class="kw">let</span> rightPart = <span class="tp">String</span>(word.<span class="fn">suffix</span>(word.count - splitPoint)) <span class="cm">// "lls" | "ls" | "s" | ""</span>
+}</pre>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">all four split points for word = "lls"</span></div>
+    <pre class="dry"><span class="tr-var">splitPoint</span>   leftPart   rightPart
+──────────────────────────────────
+    0            ""        "lls"     ← splitPoint=0  → prefix(0)=""   suffix(3)="lls"
+    1            "l"       "ls"      ← splitPoint=1  → prefix(1)="l"  suffix(2)="ls"
+    2            "ll"      "s"       ← splitPoint=2  → prefix(2)="ll" suffix(1)="s"
+    3            "lls"     ""        ← splitPoint=3  → prefix(3)="lls" suffix(0)=""</pre>
+
+    <div class="co-insight">
+      <strong>Why <code>prefix(_:)</code> / <code>suffix(_:)</code> — not subscript ranges.</strong>
+      <p class="u-my-8-0">Subscript ranges (<code>array[...(-1)]</code>, <code>array[index-1...]</code>) require the index to be valid. At the boundary split points (0 and count), the math produces out-of-bounds indices — behavior becomes undefined. <code>prefix(_:)</code> and <code>suffix(_:)</code> <strong>clamp silently</strong>: <code>prefix(0)</code> returns an empty slice, <code>prefix(999)</code> on a 3-element array returns all 3 elements. Safe by design. Always prefer them for split enumeration.</p>
+    </div>
+
+    <div class="co-pitfall">
+      <div class="co-pitfall-title">The subscript trap — why it "works" until it doesn't</div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong><code>array[...(-1)]</code> compiling does NOT mean it is safe.</strong> Negative indices land in undefined behavior territory in Swift's Array subscript. It may return an empty slice, it may crash, or it may return garbage — the outcome depends on the runtime's internal bounds-check path, which is not a contract. <code>array[...(-6)]</code> hitting a different path and crashing while <code>array[...(-1)]</code> silently "works" is a perfect illustration: you got lucky, not correct. Use <code>prefix(splitPoint)</code> and this edge case disappears entirely.</span></div>
+    </div>
+
+    <div class="co-note">
+      <strong>Naming the pattern:</strong> this loop is called <em>split-point enumeration</em> or <em>split-position scan</em> in interview settings — not "sentinel" and not "prefix array." The sentinels on this page (<code>prefix[0] = 0</code>, <code>prefix[0] = 1</code>) are a different concept: they are the identity element placed at index 0 of a <em>precomputed accumulation array</em>. A split-point loop and a prefix-sum array both use the word "prefix," but they are different tools. LC 336 (Palindrome Pairs) is where you will see the split-point loop most commonly — every word is split at each of its n+1 positions, and each half is checked against a dictionary.
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 8. Variant catalog -->
+  <section id="variants" data-toc-label="Variant Catalog">
+    <h2>8 &nbsp; Variant Catalog</h2>
+
+    <div class="pattern-block" id="v-range-sum" data-toc-label="8.1 Range sum (LC 303)">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.1</span>
+        <span class="block-name">Prefix Sum — range query (LC 303)</span>
+        <div class="block-pills"><span class="pill pill-t">O(n) build</span><span class="pill pill-s">O(n) space</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> the problem issues multiple "sum of range [left, right]" queries against a static array. Build once, answer each query in O(1). The sentinel at <code>prefix[0] = 0</code> is not optional — it is what makes the query formula <code>prefix[right+1] − prefix[left]</code> work for all ranges including left = 0.</div>
+        <p><strong>Payload:</strong> integer sum. <strong>Identity:</strong> 0. <strong>Combine:</strong> subtraction (prefix[right+1] − prefix[left]).</p>
+        <p>Demonstrated in: LC 303 — Range Sum Query - Immutable (coming); LC 560 — Subarray Sum Equals K (solo problem below).</p>
+      </div>
+    </div>
+
+    <div class="pattern-block" id="v-product" data-toc-label="8.2 Product except self (LC 238)">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.2</span>
+        <span class="block-name">Prefix × Suffix Product — product except self (LC 238)</span>
+        <div class="block-pills"><span class="pill pill-t">O(n) build</span><span class="pill pill-s">O(n) space</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> "return an array where each element is the product of all other elements, without using division." Division would be O(n) and fails on zeros. The two-pass approach bypasses division entirely: for index <em>pos</em>, <code>prefix[pos]</code> accumulates nums[0..pos-1] and <code>suffix[pos+1]</code> accumulates nums[pos+1..n-1]; multiplying them leaves exactly nums[pos] excluded.</div>
+        <p><strong>Payload:</strong> integer product. <strong>Identity:</strong> 1. <strong>Combine:</strong> multiplication (prefix[pos] × suffix[pos+1]).</p>
+        <div class="co-insight"><strong>Why no division:</strong> the "gap" at position <em>pos</em> is structural — neither the left pass nor the right pass includes nums[pos]. The element is excluded by construction, not by inverting the total.</div>
+        <p>Demonstrated in: LC 238 — Product of Array Except Self (coming).</p>
+      </div>
+    </div>
+
+    <div class="pattern-block" id="v-physical" data-toc-label="8.3 Physical simulation (LC 42)">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.3</span>
+        <span class="block-name">Prefix Max + Suffix Max — physical simulation (LC 42, two-array solution)</span>
+        <div class="block-pills"><span class="pill pill-t">O(n) build</span><span class="pill pill-s">O(n) space</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> problems where each position's answer depends on the largest (or smallest) value to its left <em>and</em> the largest (or smallest) value to its right — most commonly physical simulations. Trapping Rain Water is the canonical example: the water at position <em>pos</em> is <code>min(leftMax[pos], rightMax[pos]) − height[pos]</code>, clamped to 0.</div>
+        <p><strong>Payload:</strong> running maximum. <strong>Identity:</strong> 0 (or −∞). <strong>Combine:</strong> <code>min(prefixMax[pos], suffixMax[pos]) − height[pos]</code> per position.</p>
+        <div class="co-note"><strong>Relation to the two-pointer solution (LC 42):</strong> the two-pointer approach is the O(1)-space compression of this two-array solution — it avoids materializing both arrays by observing that the bottleneck side is always determined by <code>min(leftMax, rightMax)</code>. If you understand this variant first, the two-pointer version follows immediately. The walkthrough at <a href="../../leetcode_walkthroughs/LC42_master.html">LC42_master.html</a> covers both.</div>
+        <p>Demonstrated in: <a href="../../leetcode_walkthroughs/LC42_master.html">LC 42 — Trapping Rain Water</a> (the alternate two-array solution is discussed in that walkthrough's §9 follow-up section).</p>
+      </div>
+    </div>
+
+    <div class="pattern-block" id="v-boolean" data-toc-label="8.4 Boolean coverage">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.4</span>
+        <span class="block-name">Prefix/Suffix Boolean Coverage</span>
+        <div class="block-pills"><span class="pill pill-t">O(t·d) build</span><span class="pill pill-s">O(t·d) space</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> given a set of segments (e.g. athletes covering day-ranges), determine whether a valid handoff split point exists — i.e. a position where one group covers everything to its left and another group covers everything to its right. The "payload" is a set of covered days rather than a scalar, and the identity is the empty set.</div>
+        <p><strong>Payload:</strong> set of covered indices (or a boolean flag per day). <strong>Identity:</strong> empty set / all-false. <strong>Combine:</strong> check that the prefix set and the suffix set together cover all required days exactly, with the handoff condition (≤ vs ==) enforced correctly.</p>
+        <div class="co-insight"><strong>Why not brute force:</strong> checking all O(t²) split pairs would cost O(t²·d) where t = team count and d = number of days. Building prefix and suffix coverage arrays reduces this to O(t·d) build + O(t) to scan split points, because each candidate split reads two precomputed sets in O(d) rather than reconstructing them.</div>
+        <p>Demonstrated in: CUSTOM 1 — Relay Handoff Coverage (coming walkthrough).</p>
+      </div>
+    </div>
+
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 9. Complexity analysis -->
+  <section id="complexity" data-toc-label="Complexity Analysis">
+    <h2>9 &nbsp; Complexity Analysis</h2>
+
+    <p><strong>(a) Building both arrays is O(n) time and O(n) space — nothing more.</strong> The left pass visits each element exactly once; the right pass visits each element exactly once. Two flat loops, no nesting, no recursion. The prefix and suffix arrays each require n+1 slots, so total space is 2n+2 — linear. There is no hidden work: each accumulation step is a single arithmetic or logical operation.</p>
+
+    <p><strong>(b) Why this beats brute force per query.</strong> The naive approach re-scans the range for every query: k queries on a length-n array costs O(k·n). After O(n) preprocessing, each query costs O(1) — look up two table entries and combine them. For k queries the total cost becomes O(n + k). When k is even 2, precomputation wins. When k = n (a common pattern), the improvement is O(n²) → O(n).</p>
+
+    <table class="t-cmx">
+      <thead><tr><th>Variant</th><th>Build time</th><th>Build space</th><th>Per query</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>8.1 Range sum</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td class="tc">O(1)</td><td>One subtraction: <code>prefix[right+1] − prefix[left]</code></td></tr>
+        <tr><td>8.2 Product except self</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td class="tc">O(1)</td><td>One multiplication per index in the combine pass</td></tr>
+        <tr><td>8.3 Max simulation</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td class="tc">O(1)</td><td>One min + one subtraction per index</td></tr>
+        <tr><td>8.4 Boolean coverage</td><td class="tc">O(t·d)</td><td class="sc">O(t·d)</td><td class="tc">O(d)</td><td>Set union per step; coverage check per split point reads two sets</td></tr>
+        <tr class="bottleneck"><td>Brute force baseline</td><td class="tc">O(1)</td><td class="sc">O(1)</td><td class="tc">O(n)</td><td>k queries total = O(k·n); for k = n that is O(n²)</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 10. Pitfalls -->
+  <section id="pitfalls" data-toc-label="Common Pitfalls">
+    <h2>10 &nbsp; Common Pitfalls</h2>
+    <div class="co-pitfall">
+      <div class="co-pitfall-title">Pitfalls — bugs this pattern invites</div>
+
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Off-by-one on the sentinel — forgetting <code>prefix[0] = 0</code> and why it exists.</strong> The sentinel is not a convenience; it is what makes the formula <code>prefix[right+1] − prefix[left]</code> work uniformly when <code>left = 0</code>. Without it, querying the range [0, right] requires a special case (<code>prefix[right]</code> with no subtraction) — a guaranteed source of bugs. Always allocate the prefix array at length <code>n+1</code>, not <code>n</code>, and initialize index 0 to the identity.</span></div>
+
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Wrong index formula: <code>prefix[right] − prefix[left]</code> instead of <code>prefix[right+1] − prefix[left]</code>.</strong> When the prefix array has length n+1 with a sentinel, <code>prefix[k]</code> stores the aggregate of <code>nums[0..k-1]</code>. So "sum of nums[left..right] inclusive" is <code>prefix[right+1] − prefix[left]</code>. Using <code>prefix[right]</code> silently drops <code>nums[right]</code> from every range result. Derive the formula from the invariant, not from memory.</span></div>
+
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Assuming the pattern requires numeric data.</strong> The payload can be any monoid — booleans (OR), sets (union), strings (concatenation), even sorted lists. The two-pass shape does not care what "accumulate" means, only that it is associative and has an identity. A boolean prefix-OR array is as valid as a numeric prefix-sum array. When a coverage or membership problem feels quadratic, ask: "can I express the left-side aggregate as an accumulation?"</span></div>
+
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Materializing both arrays when one can be eliminated (space optimization).</strong> For the "combine at each index" variants (8.2, 8.3), the suffix array can be computed on a second pass while applying the combine immediately — no need to store it separately. This halves the allocation without changing time complexity. Only matters if the problem constrains space; don't premature-optimize the code's clarity before the algorithm is correct.</span></div>
+
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Using the pattern on a mutable array.</strong> Any update to <code>nums[pos]</code> invalidates every prefix cell from index <code>pos+1</code> onward — an O(n) repair. For arrays that change between queries, a prefix array is wrong; use a Fenwick tree (O(log n) update and query) instead.</span></div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 11. Edge cases -->
+  <section id="edge-cases" data-toc-label="Edge Cases">
+    <h2>11 &nbsp; Edge Cases to Verbalize</h2>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected behavior</th><th>What it exercises</th></tr></thead>
+      <tbody>
+        <tr><td>Empty array <code>[]</code></td><td>Prefix array is <code>[0]</code> (just the sentinel); no combine step runs</td><td>Sentinel-only state; loop body never executes</td></tr>
+        <tr><td>Single element <code>[x]</code></td><td>Range sum of [0,0] = x; product-except-self = [1]</td><td>Prefix[1] − prefix[0] = x; both passes produce one real cell</td></tr>
+        <tr><td>All zeros (product variant)</td><td>Product except self is all-zeros (each cell = 0 × 0 … × 0)</td><td>Does not break the formula — no division involved</td></tr>
+        <tr><td>One zero in array (product variant)</td><td>All result cells are 0 except the zero's own position, which is the product of all non-zeros</td><td>Prefix product will be 0 after the zero; suffix product will be 0 before it</td></tr>
+        <tr><td>Flat terrain (trapped water)</td><td>Zero water everywhere — <code>min(leftMax, rightMax) − height</code> = 0 at every bar</td><td>Clamping: result must be <code>max(0, ...)</code> or the formula never goes negative here anyway</td></tr>
+        <tr><td>Range query where left = right</td><td>Sum of a single element: <code>prefix[left+1] − prefix[left] = nums[left]</code></td><td>Formula is uniform — no special case needed</td></tr>
+        <tr><td>Coverage with no valid split (boolean variant)</td><td>Return −1 or nil; all split points must be checked and none qualifies</td><td>Sentinel sets are empty; the scan loop finds no valid index</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 12. Cheat sheet -->
+  <section id="cheatsheet" data-toc-label="Cheat Sheet">
+    <h2>12 &nbsp; Cheat Sheet</h2>
+    <table class="t-versus">
+      <thead><tr><th>You see</th><th>Variant</th><th>Payload</th><th>Identity</th><th>Combine step</th></tr></thead>
+      <tbody>
+        <tr><td>"range sum" / "multiple queries"</td><td>8.1</td><td>sum</td><td>0</td><td><code>prefix[right+1] − prefix[left]</code></td></tr>
+        <tr><td>"product except self" / "no division"</td><td>8.2</td><td>product</td><td>1</td><td><code>prefix[pos] × suffix[pos+1]</code></td></tr>
+        <tr><td>"water trapped" / "per-bar capacity"</td><td>8.3</td><td>max</td><td>0</td><td><code>min(prefix[pos], suffix[pos]) − height[pos]</code></td></tr>
+        <tr><td>"coverage split" / "handoff valid"</td><td>8.4</td><td>set / bool</td><td>∅ / false</td><td>union covers all days AND split condition holds</td></tr>
+        <tr><td>"split a word at every position" / palindrome pair halves</td><td>Split-point loop (§7.1)</td><td>—</td><td>—</td><td><code>prefix(k)</code> + <code>suffix(n−k)</code> for k in 0...n; clamp-safe, no subscript math</td></tr>
+        <tr><td>array mutates between queries</td><td>Not this pattern</td><td>—</td><td>—</td><td>Use Fenwick tree (O(log n) update)</td></tr>
+      </tbody>
+    </table>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">copy-paste skeleton — two-pass build and combine</span></div>
+    <pre class="swift"><span class="kw">let</span> count = nums.count
+<span class="kw">var</span> prefixArray = [<span class="tp">Int</span>](repeating: IDENTITY, count: count + <span class="nm">1</span>)
+<span class="kw">var</span> suffixArray = [<span class="tp">Int</span>](repeating: IDENTITY, count: count + <span class="nm">1</span>)
+
+<span class="kw">for</span> index <span class="kw">in</span> <span class="nm">0</span> ..&lt; count {
+    prefixArray[index + <span class="nm">1</span>] = accumulate(prefixArray[index], nums[index])
+}
+<span class="kw">for</span> index <span class="kw">in</span> stride(<span class="kw">from</span>: count - <span class="nm">1</span>, through: <span class="nm">0</span>, by: -<span class="nm">1</span>) {
+    suffixArray[index] = accumulate(suffixArray[index + <span class="nm">1</span>], nums[index])
+}
+
+<span class="kw">var</span> result = [<span class="tp">Int</span>](repeating: <span class="nm">0</span>, count: count)
+<span class="kw">for</span> index <span class="kw">in</span> <span class="nm">0</span> ..&lt; count {
+    result[index] = combine(prefixArray[index], suffixArray[index + <span class="nm">1</span>])
+}</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13. Cross-reference / demonstrated in practice -->
+  <section id="practice" data-toc-label="Demonstrated in Practice">
+    <h2>13 &nbsp; Demonstrated in Practice</h2>
+    <p>The walkthroughs below apply this theory to concrete problems. Each follows the walkthrough masterfile standard — constraint analysis, mental model, dry run, iterative Swift, interview simulation, and a Theory Decoder that maps each solution line back to the numbered sections above.</p>
+    <div class="ref-grid">
+      <a class="xref-card" href="../../leetcode_walkthroughs/LC303_master.html">
+        <span class="ref-file">leetcode_walkthroughs/LC303_master.html</span>
+        <span class="ref-title">LC 303 — Range Sum Query - Immutable (Easy)</span>
+        <span class="ref-desc">Primary walkthrough for Variant 8.1 (range sum). Shows the sentinel at prefix[0]=0, the query formula prefix[right+1]−prefix[left], and the pay-once-reuse-forever design. Theory Decoder maps each line back to §8.1 and §10.</span>
+      </a>
+      <a class="xref-card" href="../../leetcode_walkthroughs/LC560_master.html">
+        <span class="ref-file">leetcode_walkthroughs/LC560_master.html</span>
+        <span class="ref-title">LC 560 — Subarray Sum Equals K (Medium)</span>
+        <span class="ref-desc">Extension of Variant 8.1: adds a frequency map to the prefix sum. The algebraic flip — prefix[left] = currentPrefix − k — converts pair-counting into a single O(1) complement lookup per step. Theory Decoder explains the sentinel, lookup-before-update order, and why a Set is wrong here.</span>
+      </a>
+      <a class="xref-card" href="../../leetcode_walkthroughs/LC238_master.html">
+        <span class="ref-file">leetcode_walkthroughs/LC238_master.html</span>
+        <span class="ref-title">LC 238 — Product of Array Except Self (Medium)</span>
+        <span class="ref-desc">Primary walkthrough for Variant 8.2 (prefix × suffix product). Demonstrates why division is disqualified, how the multiplicative identity sentinel (1) handles the endpoints, and the O(1) space optimization using a rolling suffix variable. Theory Decoder maps the structural exclusion of position pos back to §8.2.</span>
+      </a>
+      <a class="xref-card" href="../../leetcode_walkthroughs/LC42_master.html">
+        <span class="ref-file">leetcode_walkthroughs/LC42_master.html</span>
+        <span class="ref-title">LC 42 — Trapping Rain Water (Hard)</span>
+        <span class="ref-desc">Primary walkthrough for Variant 8.3 (prefix/suffix max). Covers both the two-pointer O(1)-space solution and explains how it compresses this page's two-array formulation. Its follow-up section discusses when to prefer the explicit arrays.</span>
+      </a>
+      <a class="xref-card" href="../../leetcode_walkthroughs/CUSTOM1_Relay_Handoff_Coverage_master.html">
+        <span class="ref-file">leetcode_walkthroughs/CUSTOM1_Relay_Handoff_Coverage_master.html</span>
+        <span class="ref-title">CUSTOM 1 — Relay Handoff Coverage (Medium)</span>
+        <span class="ref-desc">Demonstrates Variant 8.4 (boolean/set coverage). The Theory Decoder maps the prefix-coverage and suffix-coverage arrays directly to §8.4 and §10 (the ≤ vs == handoff condition pitfall).</span>
+      </a>
+    </div>
+      <p class="u-note-gap">See also: <a href="arrays_hashing_overview_master.html">arrays_hashing_overview_master.html</a> — the hub decision layer that routes between prefix/suffix and its sibling patterns.</p>
+
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 14. Solo problem -->
+  <section id="solo" data-toc-label="Solo Problem">
+    <h2>14 &nbsp; Solo Problem — no solution on this page</h2>
+    <div class="solo-box">
+      <div class="solo-banner">Solo problem — walkthrough available at <a href="../../leetcode_walkthroughs/LC560_master.html">LC560_master.html</a></div>
+      <p><strong>LC 560 — Subarray Sum Equals K (Medium).</strong> Given an array of integers and an integer <code>k</code>, return the total number of subarrays whose sum equals <code>k</code>. The array may contain negative numbers. This problem combines Variant 8.1 (prefix sum) with a hash map to count prefix-sum occurrences — the natural next step after LC 303. Build the prefix sum mentally first, then ask: "what does <code>prefix[right] − prefix[left] = k</code> tell me about what to store in the map?"</p>
+      <ul class="checklist">
+        <li>Can you express "subarray sum from left to right" as a difference of two prefix values?</li>
+        <li>What does the hash map store, and what does each lookup mean?</li>
+        <li>Why is the sentinel <code>prefix[0] = 0</code> (count 1 in the map) essential for subarrays starting at index 0?</li>
+        <li>Why does the approach still work when the array contains negative numbers, unlike a sliding window?</li>
+        <li>State the time and space complexity before coding. Is it the same as a plain prefix-sum build?</li>
+      </ul>
+      <details class="hint">
+        <summary>Hint 1 — constraint</summary>
+        <p>Negative values mean a sliding window can't decide when to shrink. Prefix sums don't have this problem — the difference formula works regardless of sign.</p>
+      </details>
+      <details class="hint">
+        <summary>Hint 2 — pattern</summary>
+        <p>You want to count pairs (left, right) where <code>prefix[right] − prefix[left] = k</code>. Rearranging: you want <code>prefix[left] = prefix[right] − k</code>. As you build the prefix sum left to right, keep a frequency map of prefix values seen so far.</p>
+      </details>
+      <details class="hint">
+        <summary>Hint 3 — sentinel</summary>
+        <p>Initialize the map with <code>{ 0: 1 }</code> before the loop. This represents the virtual position before index 0 — without it, subarrays starting from index 0 whose sum equals k are never counted.</p>
+      </details>
+    </div>
+  </section>
+
+  <div class="page-footer">
+    Prefix &amp; Suffix Precomputation · Theory Masterfile ·
+    Demonstrated in practice: <a href="../../leetcode_walkthroughs/LC303_master.html">LC 303 — Range Sum Query</a> ·
+    <a href="../../leetcode_walkthroughs/LC560_master.html">LC 560 — Subarray Sum Equals K</a> ·
+    <a href="../../leetcode_walkthroughs/LC238_master.html">LC 238 — Product Except Self</a> ·
+    <a href="../../leetcode_walkthroughs/LC42_master.html">LC 42 — Trapping Rain Water</a> ·
+    <a href="../../leetcode_walkthroughs/CUSTOM1_Relay_Handoff_Coverage_master.html">CUSTOM 1 — Relay Handoff Coverage</a> ·
+    Structure per <code>.claude/skills/wiki/references/theory-format.md</code>
+  </div>
+
+</main>
+</div>
+
+<script src="../../static/generated/manifest.js"></script>
+<script src="../../static/generated/nav.js"></script>
+<script src="../../static/generated/toc.js"></script>
+</body>
+</html>

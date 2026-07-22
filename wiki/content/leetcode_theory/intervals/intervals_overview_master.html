@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intervals Overview · Theory Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Intervals Overview",
+  "nav": "Intervals Overview",
+  "topics": [
+    "Arrays",
+    "Sorting",
+    "Sweep"
+  ],
+  "blurb": "Sort-then-sweep interval technique — merge, overlap, insert, gap-find, and split/handoff coverage variants."
+}
+</script>
+<link rel="stylesheet" href="../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="theory">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">Intervals</h1>
+  <div class="page-meta">
+    <span>Theory Masterfile</span><span>·</span>
+    <span>Language: Swift</span><span>·</span>
+    <span>Merge · Overlap · Insert · Gaps · Split/Handoff</span>
+  </div>
+
+  <!-- 1. Definition -->
+  <section id="lead" data-toc-label="Definition">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Array traversal technique on sorted ranges</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v">Sort by start once; sweep linearly — merge, split, or gap-find in one pass with no backtracking</div></div>
+      <div class="infobox-row"><div class="infobox-k">Time</div><div class="infobox-v">O(n log n) — sort dominates; sweep is O(n)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Space</div><div class="infobox-v">O(n) for the output list; O(1) extra state during the sweep</div></div>
+      <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"overlapping", "merge", "free time", "gaps", "cover a range", "insert interval"</div></div>
+      <div class="infobox-row"><div class="infobox-k">Requires sorted?</div><div class="infobox-v">Yes — always sort by start before sweeping</div></div>
+      <div class="infobox-row"><div class="infobox-k">Walkthroughs</div><div class="infobox-v mono"><a href="../../leetcode_walkthroughs/LC56_master.html">LC56</a> · <a href="../../leetcode_walkthroughs/LC57_master.html">LC57</a> · <a href="../../leetcode_walkthroughs/LC759_master.html">LC759</a> · <a href="../../leetcode_walkthroughs/LC986_master.html">LC986</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p><strong>Interval problems</strong> operate on ranges defined by a start and an end, and ask you to combine, compare, or query them. The canonical technique is to sort intervals by their start value once, then sweep through them linearly — keeping only the last merged interval in hand — so the entire sweep is a single O(n) pass with no backtracking and no nested loops.</p>
+      <p>Sorting unlocks a key invariant: after sorting by start, an incoming interval can only overlap the <em>most recently merged</em> interval, never an earlier one. This reduces what would otherwise be an O(n²) pairwise comparison to a single comparison per interval. The same sort-then-sweep backbone powers all four core variants — merge, overlap walk, insert, and gap-find — and a fifth, more advanced shape (split/handoff coverage) reduces a coverage problem to prefix and suffix precomputation.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Recognition signals -->
+  <section id="signals" data-toc-label="Recognition Signals">
+    <h2>2 &nbsp; Recognition Signals — when to reach for it</h2>
+    <p>Interval problems rarely announce themselves by name. They say one of these:</p>
+    <table class="t-clue">
+      <thead><tr><th>When the problem says…</th><th>It means…</th></tr></thead>
+      <tbody>
+        <tr><td>"merge all overlapping intervals"</td><td>Variant 8.1 — sort by start, sweep and fold overlapping intervals into the last merged one</td></tr>
+        <tr><td>"intersection of two interval lists"</td><td>Variant 8.2 — two-pointer walk; advance whichever pointer has the smaller end</td></tr>
+        <tr><td>"insert this interval into a sorted list"</td><td>Variant 8.3 — three-region split: before the new interval / overlapping / after</td></tr>
+        <tr><td>"find the free time" / "find gaps between schedules"</td><td>Variant 8.4 — flatten all intervals, merge (8.1), then return the gaps between merged intervals</td></tr>
+        <tr><td>"can two teams / segments cover the full window?"</td><td>Variant 8.5 — precompute how far each team covers from the left (prefixEnd) and from the right (suffixStart); check pairs in O(1)</td></tr>
+        <tr><td>"does point X lie in any interval?"</td><td>Not an interval sweep — a hash set or binary search on sorted endpoints is enough</td></tr>
+      </tbody>
+    </table>
+    <div class="co-when"><strong>The disqualifier:</strong> if the problem asks about isolated point membership with no notion of ranges overlapping or covering each other, the interval machinery is overkill. Reach for a hash set or a sort + binary search instead.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2.5 Sort key as signal -->
+  <section id="sort-key" data-toc-label="2.5 Sort Key as Signal">
+    <h2>2.5 &nbsp; Sort Key as Signal — sweep vs. greedy</h2>
+    <p>The sort key the problem forces on you is one of the earliest hints about which algorithm shape you need. Two interval problems side by side make this concrete:</p>
+
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">LC56 Merge Intervals (sweep + accumulate) vs LC435 Non-overlapping Intervals (greedy)</span></div>
+<pre class="pseudo"><span class="pc">LC56 — Merge Intervals · sort by START · sweep + accumulate</span>
+sort by start
+for each interval:
+    if overlaps last result → MERGE (extend end)     <span class="pc">← no rejection, just transform</span>
+    else → APPEND as new entry                       <span class="pc">← still included, just separate</span>
+
+<span class="pc">LC435 — Non-overlapping Intervals · sort by END · greedy keep/reject</span>
+sort by END                                          <span class="pc">← different sort key is a hint</span>
+for each interval:
+    if start ≥ last kept end → KEEP IT               <span class="pc">← active accept</span>
+    else → REJECT IT (remove/skip)                   <span class="pc">← active reject ← this is the greedy choice</span></pre>
+
+    <div class="co-insight"><strong>The pattern:</strong> in a sweep problem every interval ends up in the output — it either gets merged into the previous one or appended as its own entry. In a greedy problem some intervals are actively rejected; the greedy choice (keep the interval that ends earliest) is what makes that rejection optimal.</div>
+
+    <p>The sort key reinforces this split:</p>
+    <ul>
+      <li><strong>Sort by start</strong> → usually sweep (you care about where things begin, so you can detect and fold overlaps left to right)</li>
+      <li><strong>Sort by end</strong> → usually greedy (you're making keep/reject decisions optimised around finishing early, maximising room for future intervals)</li>
+    </ul>
+
+    <div class="co-note"><strong>Quick self-check:</strong> after you sort, ask "will every interval contribute to my output?" If yes → sweep. If some might be thrown away → greedy. The sort key and this question together almost always resolve the ambiguity before you write a single line of code.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Terminology decoder -->
+  <section id="terminology" data-toc-label="Terminology Decoder">
+    <h2>3 &nbsp; Terminology Decoder</h2>
+    <table class="t-decoder">
+      <thead><tr><th>Term</th><th>Plain meaning</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td>Interval</td><td>A range [start, end] where start ≤ end; both ends are typically inclusive</td><td>[2, 6] covers days 2, 3, 4, 5, 6</td></tr>
+        <tr><td>Overlap condition</td><td>Two sorted intervals [a, b] and [c, d] overlap if c ≤ b — the next interval starts before or on the current end</td><td>[1,3] and [3,5]: c=3 ≤ b=3 → overlap (adjacent counts)</td></tr>
+        <tr><td>Merge</td><td>Collapse two overlapping intervals into one: [a, max(b, d)]</td><td>[1,3] + [2,6] → [1,6]</td></tr>
+        <tr><td>Gap</td><td>A range between the end of one merged interval and the start of the next; this range has no coverage</td><td>After merging [1,6] and [8,10]: gap = [7,7]</td></tr>
+        <tr><td>Sweep</td><td>A single left-to-right pass through sorted intervals, carrying only one piece of state (the last merged interval)</td><td>The O(n) pass after the O(n log n) sort</td></tr>
+        <tr><td>Three-region split</td><td>When inserting a new interval, the existing list splits into: intervals entirely before the new one, intervals that overlap it, intervals entirely after it</td><td>Insert [3,5] into [[1,2],[4,7],[8,9]]: before=[1,2], overlap=[4,7], after=[8,9]</td></tr>
+        <tr><td>prefixEnd</td><td>For a team (or segment), the last day it can cover <em>contiguously starting from startDay</em> — the rightmost boundary of an unbroken left-anchored segment</td><td>Team covers [1,2,3,5]: prefixEnd = 3 (gap at 4 breaks the chain)</td></tr>
+        <tr><td>suffixStart</td><td>For a team, the first day it can cover <em>contiguously ending at endDay</em> — the leftmost boundary of an unbroken right-anchored segment</td><td>Team covers [1,4,5,6] and endDay=6: suffixStart = 4</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Mental model -->
+  <section id="mental-model" data-toc-label="Mental Model">
+    <h2>4 &nbsp; Mental Model — sort once, never look back</h2>
+
+    <div class="co-idea">
+      <div class="co-idea-title">The one idea</div>
+      Sort by start. Then sweep left to right, holding only the last merged interval in hand. Each incoming interval either extends that last interval (overlap → merge) or starts a new one (no overlap → append). You never need to look backward — sorting guarantees that.
+    </div>
+
+    <p>Watch the sweep merge <code>[[1,3],[2,6],[8,10],[15,18]]</code> into its minimal form:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">sorted by start; hold last merged interval at each step</span></div>
+    <pre class="dry"><span class="tr-var">start: result = []</span>
+
+<span class="tr-var">interval [1,3]</span>  result is empty → append
+             result = [[1,3]]
+
+<span class="tr-var">interval [2,6]</span>  last=[1,3], incoming start 2 ≤ last end 3 → <span class="tr-ok">overlap</span>
+             merge: last end = max(3,6) = 6
+             result = [[1,6]]
+
+<span class="tr-var">interval [8,10]</span> last=[1,6], incoming start 8 &gt; last end 6 → <span class="tr-bad">no overlap</span>
+             append new interval
+             result = [[1,6],[8,10]]
+
+<span class="tr-var">interval [15,18]</span> last=[8,10], incoming start 15 &gt; last end 10 → <span class="tr-bad">no overlap</span>
+             append new interval
+             result = [[1,6],[8,10],[15,18]]  <span class="tr-aha">done — 4 intervals, 3 comparisons, 1 pass</span></pre>
+    <p class="ascii-caption">Each interval is examined exactly once. The sort is the only expensive step; the sweep is O(n).</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Pseudocode primer -->
+  <section id="pseudocode" data-toc-label="Pseudocode Primer">
+    <h2>5 &nbsp; Pseudocode Primer</h2>
+    <p>Every sort-then-sweep interval solution is this loop. Variants differ in what they do with overlaps and gaps.</p>
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">canonical sort + sweep merge</span></div>
+    <pre class="pseudo"><span class="pk">FUNCTION</span> mergeIntervals(intervals):
+    <span class="pk">IF</span> intervals is empty: <span class="pk">RETURN</span> []
+
+    sorted ← sort intervals by start
+    result ← [sorted[0]]              <span class="pc">seed with the first interval</span>
+
+    <span class="pk">FOR</span> each interval <span class="pk">IN</span> sorted[1..]:
+        last ← result[last index]
+
+        <span class="pk">IF</span> interval.start ≤ last.end:   <span class="pc">overlap — extend</span>
+            last.end ← max(last.end, interval.end)
+        <span class="pk">ELSE</span>:                            <span class="pc">gap — start fresh</span>
+            result.append(interval)
+
+    <span class="pk">RETURN</span> result</pre>
+    <div class="co-insight"><strong>Why it works:</strong> after sorting, any interval that overlaps the current last merged interval must start ≤ last.end. An interval starting after last.end cannot overlap anything already in result — so appending is always safe. This is the invariant the sort buys.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. Iterative-only pattern -->
+  <section id="iterative" data-toc-label="Iterative-Only Pattern">
+    <h2>6 &nbsp; Iterative-Only Pattern — no recursion needed</h2>
+    <p>Interval sweeps are inherently iterative. The algorithm is one sort followed by one <code>for</code> loop with a single comparison per step. There is no recursive formulation worth writing:</p>
+    <ul>
+      <li><strong>Recursion adds nothing.</strong> A recursive merge would require passing the sorted array and an index through call frames — identical logic with call-stack overhead and a risk of stack overflow at n = 10⁵.</li>
+      <li><strong>The invariant is visible.</strong> "result.last always holds a valid merged interval" is a one-line comment in iterative code; in recursion it disappears into return values.</li>
+      <li><strong>Variants compose cleanly.</strong> The flatten-then-merge shape (8.4) just prepends a collect step before the same loop. Recursion would require restructuring the entire call graph for each variant.</li>
+    </ul>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Swift translation -->
+  <section id="swift" data-toc-label="Swift Translation">
+    <h2>7 &nbsp; Swift Translation</h2>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">annotated merge-intervals template — compilable starting point</span></div>
+    <pre class="swift"><span class="kw">func</span> <span class="fn">merge</span>(<span class="kw">_</span> intervals: [[<span class="tp">Int</span>]]) -&gt; [[<span class="tp">Int</span>]] {
+    <span class="kw">guard</span> !intervals.isEmpty <span class="kw">else</span> { <span class="kw">return</span> [] }
+
+    <span class="cm">// Sort by start value — the single most important line.</span>
+    <span class="kw">let</span> sorted = intervals.sorted { $<span class="nm">0</span>[<span class="nm">0</span>] &lt; $<span class="nm">1</span>[<span class="nm">0</span>] }
+    <span class="kw">var</span> result = [sorted[<span class="nm">0</span>]]
+
+    <span class="kw">for</span> interval <span class="kw">in</span> sorted.dropFirst() {
+        <span class="cm">// result is never empty here — we seeded it above.</span>
+        <span class="kw">let</span> lastEnd = result[result.count - <span class="nm">1</span>][<span class="nm">1</span>]
+
+        <span class="kw">if</span> interval[<span class="nm">0</span>] &lt;= lastEnd {
+            <span class="cm">// Overlap: extend the last interval's end if needed.</span>
+            result[result.count - <span class="nm">1</span>][<span class="nm">1</span>] = <span class="fn">max</span>(lastEnd, interval[<span class="nm">1</span>])
+        } <span class="kw">else</span> {
+            <span class="cm">// Gap: the new interval starts fresh.</span>
+            result.append(interval)
+        }
+    }
+    <span class="kw">return</span> result
+}</pre>
+    <div class="co-note"><strong>Swift-specific costs to say out loud:</strong> <code>sorted { $0[0] &lt; $1[0] }</code> allocates a new array — if the input is guaranteed sorted, skip it. Mutating <code>result[result.count - 1][1]</code> in place is O(1); never <code>removeLast()</code> and re-append, which is two allocations. <code>dropFirst()</code> is a lazy slice — O(1), not O(n).</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 8. Variant catalog -->
+  <section id="variants" data-toc-label="Variant Catalog">
+    <h2>8 &nbsp; Variant Catalog</h2>
+
+    <!-- 8.1 Sort + sweep merge -->
+    <div class="pattern-block" id="v-merge" data-toc-label="8.1 Sort + sweep merge">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.1</span>
+        <span class="block-name">Sort + sweep merge</span>
+        <div class="block-pills"><span class="pill pill-t">O(n log n)</span><span class="pill pill-s">O(n)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> "merge all overlapping intervals." The input is unsorted; you own the sort step. After sorting by start, maintain one running last interval and fold each incoming interval into it if it overlaps, or append it if it doesn't.</div>
+        <pre class="pseudo">sorted ← sort by start
+result ← [sorted[0]]
+<span class="pk">FOR</span> each interval:
+    <span class="pk">IF</span> interval.start ≤ result.last.end:
+        result.last.end ← max(result.last.end, interval.end)
+    <span class="pk">ELSE</span>:
+        result.append(interval)</pre>
+        <p>Canonical problem: LC 56 — Merge Intervals.</p>
+      </div>
+    </div>
+
+    <!-- 8.2 Two-pointer overlap -->
+    <div class="pattern-block" id="v-overlap" data-toc-label="8.2 Two-pointer overlap">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.2</span>
+        <span class="block-name">Two-pointer interval overlap</span>
+        <div class="block-pills"><span class="pill pill-t">O(n log n)</span><span class="pill pill-s">O(n)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> "find the intersection of two interval lists." You have two independently sorted lists A and B. Walk them with two pointers; record the overlap if one exists; advance whichever pointer has the smaller end (that interval is exhausted and can't overlap anything later in the other list).</div>
+        <pre class="pseudo">i ← 0, j ← 0
+<span class="pk">WHILE</span> i &lt; A.length <span class="pk">AND</span> j &lt; B.length:
+    overlapStart ← max(A[i].start, B[j].start)
+    overlapEnd   ← min(A[i].end,   B[j].end)
+    <span class="pk">IF</span> overlapStart ≤ overlapEnd:
+        result.append([overlapStart, overlapEnd])
+    <span class="pk">IF</span> A[i].end &lt; B[j].end: i += 1
+    <span class="pk">ELSE</span>:                    j += 1</pre>
+        <div class="co-insight"><strong>Why advance the smaller end?</strong> The interval with the smaller end is fully covered by the current window. Any future interval in either list starts at or after the current position — so this interval cannot contribute another overlap. Advancing it is the only safe move.</div>
+        <p>Canonical problem: LC 986 — Interval List Intersections.</p>
+      </div>
+    </div>
+
+    <!-- 8.3 Insert into sorted -->
+    <div class="pattern-block" id="v-insert" data-toc-label="8.3 Insert into sorted">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.3</span>
+        <span class="block-name">Insert interval into sorted list</span>
+        <div class="block-pills"><span class="pill pill-t">O(n)</span><span class="pill pill-s">O(n)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> "insert a new interval into an already-sorted list and merge any overlaps." The list is pre-sorted, so no re-sort is needed — O(n). The key insight is that the existing intervals split cleanly into three non-overlapping regions relative to the new interval.</div>
+        <pre class="pseudo">result ← []
+i ← 0
+
+<span class="pc">Region 1 — entirely before new interval (end &lt; newStart)</span>
+<span class="pk">WHILE</span> i &lt; n <span class="pk">AND</span> intervals[i].end &lt; newInterval.start:
+    result.append(intervals[i]); i += 1
+
+<span class="pc">Region 2 — overlapping (start ≤ newEnd): merge them all into newInterval</span>
+<span class="pk">WHILE</span> i &lt; n <span class="pk">AND</span> intervals[i].start ≤ newInterval.end:
+    newInterval.start ← min(newInterval.start, intervals[i].start)
+    newInterval.end   ← max(newInterval.end,   intervals[i].end)
+    i += 1
+result.append(newInterval)
+
+<span class="pc">Region 3 — entirely after (start &gt; newEnd)</span>
+<span class="pk">WHILE</span> i &lt; n:
+    result.append(intervals[i]); i += 1</pre>
+        <div class="co-pitfall u-mt-12"><strong>Don't forget Region 3.</strong> The tail of the list (intervals entirely after the new one) must be appended — it's the most frequently dropped piece in a rushed implementation.</div>
+        <p>Canonical problem: LC 57 — Insert Interval.</p>
+      </div>
+    </div>
+
+    <!-- 8.4 Flatten + find gaps -->
+    <div class="pattern-block" id="v-gaps" data-toc-label="8.4 Flatten + find gaps">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.4</span>
+        <span class="block-name">Flatten + merge + find gaps</span>
+        <div class="block-pills"><span class="pill pill-t">O(n log n)</span><span class="pill pill-s">O(n)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> "given several schedules (each a list of intervals), find all time slots where nobody is working." The input is nested — multiple lists of intervals. Flatten all of them into one list, apply the 8.1 merge, then walk the merged result and collect the gaps between consecutive intervals.</div>
+        <pre class="pseudo">all ← flatten all interval lists into one array
+merged ← mergeIntervals(all)          <span class="pc">← Variant 8.1</span>
+
+gaps ← []
+<span class="pk">FOR</span> i <span class="pk">FROM</span> 1 <span class="pk">TO</span> merged.length − 1:
+    gapStart ← merged[i−1].end + 1
+    gapEnd   ← merged[i].start − 1
+    <span class="pk">IF</span> gapStart ≤ gapEnd:
+        gaps.append([gapStart, gapEnd])</pre>
+        <div class="co-insight"><strong>The insight:</strong> "free time" is just the complement of the merged union. Once you have the merged union, finding the gaps is a single additional pass — no new algorithmic work.</div>
+        <p>Canonical problem: LC 759 — Employee Free Time.</p>
+      </div>
+    </div>
+
+    <!-- 8.5 Split/handoff coverage -->
+    <div class="pattern-block" id="v-handoff" data-toc-label="8.5 Split/handoff coverage">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.5</span>
+        <span class="block-name">Split/handoff coverage — prefix-suffix precompute</span>
+        <div class="block-pills"><span class="pill pill-t">O(t·d)</span><span class="pill pill-s">O(t)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> "can exactly two teams (or segments) together cover the full window [startDay, endDay] with no gap?" The teams don't provide interval objects — they provide raw day sets. A naïve O(t²·d) brute-force tries every split point for every pair. Precomputing prefix and suffix coverage reduces pair-checking to O(1) per pair.</div>
+
+        <p><strong>Two precomputed values per team:</strong></p>
+        <ul>
+          <li><strong>prefixEnd[team]</strong> — the last day the team covers <em>contiguously starting from startDay</em>. Walk the team's sorted days; stop the moment a gap appears. If the team doesn't cover startDay at all, prefixEnd is undefined (skip this team as a first segment).</li>
+          <li><strong>suffixStart[team]</strong> — the first day the team covers <em>contiguously ending at endDay</em>. Walk backward from endDay; stop the moment a gap appears. If the team doesn't cover endDay, suffixStart is undefined (skip as a second segment).</li>
+        </ul>
+
+        <p><strong>Valid pair condition:</strong> pair (A, B) is valid if and only if:</p>
+        <pre class="pseudo">suffixStart[B] &lt;= prefixEnd[A] + 1</pre>
+        <p>B's contiguous-to-endDay reach starts at or before the handoff point — meaning B already covers day <code>prefixEnd[A] + 1</code> and everything through <code>endDay</code> contiguously. Note: the condition is <code>&lt;=</code>, not <code>==</code>. A team may cover a wider suffix than strictly needed (e.g. B covers days 3–8, so it can serve as the second team for any A that hands off on day 3, 4, 5, 6, or 7).</p>
+
+        <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">prefix-suffix precompute + pair lookup</span></div>
+        <pre class="pseudo"><span class="pc">Step 1 — precompute for each team</span>
+<span class="pk">FOR</span> each team:
+    prefixEnd[team]   ← walk startDay→endDay; stop at first gap; nil if startDay not covered
+    suffixStart[team] ← walk endDay→startDay; stop at first gap; nil if endDay not covered
+
+<span class="pc">Step 2 — build lookup: suffixStart value → list of team names</span>
+suffixMap ← Dictionary(suffixStart value → [team names])
+
+<span class="pc">Step 3 — for each valid first team, collect matching second teams</span>
+<span class="pk">FOR</span> each team A where prefixEnd[A] is defined:
+    handoffPoint ← prefixEnd[A] + 1
+    candidates ← all teams B where suffixStart[B] ≤ handoffPoint
+    <span class="pc">↑ B's suffix covers from suffixStart[B] to endDay — if suffixStart[B] ≤ handoffPoint,</span>
+    <span class="pc">  B covers [handoffPoint…endDay] contiguously</span>
+    <span class="pk">FOR</span> each B <span class="pk">IN</span> candidates where B ≠ A:
+        result.append((A, B))</pre>
+
+        <div class="co-insight"><strong>Why prefix + suffix, not just sweep?</strong> The sweep variants (8.1–8.4) work on interval <em>objects</em> with explicit start/end fields. Here the teams provide raw day sets, and the "interval" — the contiguous segment each team can anchor — must be derived. The prefix/suffix precompute is that derivation: it extracts the only interval that matters for each team's role (left anchor or right anchor) before any pair comparison happens.</div>
+
+        <p>Motivating problem: Relay Handoff Coverage (custom) — given teams with availability day sets, find all ordered pairs (A, B) that together cover [startDay, endDay] contiguously. See <a href="../../leetcode_walkthroughs/CUSTOM1_Relay_Handoff_Coverage_master.html">CUSTOM1_Relay_Handoff_Coverage_master.html</a> for the brute-force and optimal Swift implementations.</p>
+      </div>
+    </div>
+
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 9. Complexity -->
+  <section id="complexity" data-toc-label="Complexity Analysis">
+    <h2>9 &nbsp; Complexity Analysis</h2>
+    <p><strong>Why the sort is the irreducible bottleneck.</strong> The sweep itself is O(n) — each interval is examined exactly once and either merged or appended. But before the sweep can run, the input must be sorted, which costs O(n log n) by comparison sort. No interval sweep algorithm can avoid this: without sorted order, the "only check the last merged interval" invariant breaks and you'd need O(n) comparisons per step.</p>
+    <table class="t-cmx">
+      <thead><tr><th>Variant</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>8.1 Sort + sweep merge</td><td class="tc">O(n log n)</td><td class="sc">O(n)</td><td>Sort dominates; one comparison per interval in the sweep; output holds up to n intervals.</td></tr>
+        <tr><td>8.2 Two-pointer overlap</td><td class="tc">O(n log n)</td><td class="sc">O(n)</td><td>Sort each list independently; two-pointer walk is O(n+m); output is at most min(n,m) intersections.</td></tr>
+        <tr><td>8.3 Insert into sorted</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td>Input is pre-sorted — no sort step. Single pass through three regions. This is the one variant that beats O(n log n).</td></tr>
+        <tr><td>8.4 Flatten + find gaps</td><td class="tc">O(n log n)</td><td class="sc">O(n)</td><td>Flattening is O(n); merge is O(n log n); gap pass is O(n). Sort dominates.</td></tr>
+        <tr><td>8.5 Split/handoff</td><td class="tc">O(t·d)</td><td class="sc">O(t)</td><td>t = number of teams, d = window length. Precompute is O(t·d); pair check with suffixMap is O(t). No sort needed — day sets are walked linearly from the anchored end.</td></tr>
+        <tr class="bottleneck"><td>Bottleneck</td><td class="tc">O(n²)</td><td class="sc">—</td><td>Any O(n) operation inside the sweep loop (e.g. checking all past intervals for overlap instead of just the last one) destroys the O(n) sweep guarantee and returns you to brute force.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 10. Pitfalls -->
+  <section id="pitfalls" data-toc-label="Common Pitfalls">
+    <h2>10 &nbsp; Common Pitfalls</h2>
+    <div class="co-pitfall">
+      <div class="co-pitfall-title">Pitfalls — bugs this pattern invites</div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Forgetting to sort before sweeping.</strong> If the input is unsorted and you skip the sort, an out-of-order interval can fail the overlap check against the last merged interval even though it overlaps an earlier one. The output silently has too many intervals, not an obvious crash.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Wrong overlap condition: <code>&lt;</code> instead of <code>&lt;=</code>.</strong> Adjacent intervals like [1,3] and [3,5] share the point 3 — they should be merged. Using <code>interval.start &lt; lastEnd</code> instead of <code>&lt;= lastEnd</code> leaves adjacent intervals unmerged and produces wrong output on any test with touching endpoints.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Dropping the tail in the insert variant (8.3).</strong> After merging the overlapping region, the loop exits — but the remaining intervals (Region 3, entirely after the new interval) still need to be appended. Forgetting this tail truncates the output list.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Mutating while iterating.</strong> In the merge sweep, never remove the last element and re-append a merged version — that is two allocations. Mutate in place: <code>result[result.count - 1][1] = max(...)</code>.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Split/handoff direction confusion.</strong> The pair (A, B) means A covers the <em>left</em> segment and B covers the <em>right</em> — order matters. <code>prefixEnd[A] + 1 == suffixStart[B]</code> is not symmetric: swapping A and B tests a different (and usually wrong) split point.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Split/handoff: not guarding startDay == endDay.</strong> A single-day mission window cannot be split between two teams by definition — both teams would need to cover the same single day, but the problem requires a contiguous handoff. Guard this case explicitly and return empty.</span></div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 11. Edge cases -->
+  <section id="edge-cases" data-toc-label="Edge Cases">
+    <h2>11 &nbsp; Edge Cases to Verbalize</h2>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected behavior</th><th>What it exercises</th></tr></thead>
+      <tbody>
+        <tr><td>Empty input <code>[]</code></td><td>Return <code>[]</code> — guard at the top before sorting</td><td>Guard clause; seeding result with first element</td></tr>
+        <tr><td>Single interval <code>[[2,5]]</code></td><td>Return it unchanged — loop body never runs</td><td>Loop that starts from index 1 / dropFirst()</td></tr>
+        <tr><td>All intervals overlap</td><td>One merged interval spanning the full range</td><td>Every step hits the merge branch; final result is length 1</td></tr>
+        <tr><td>No intervals overlap (all disjoint)</td><td>Return the sorted input unchanged</td><td>Every step hits the append branch</td></tr>
+        <tr><td>Adjacent intervals <code>[1,3],[3,5]</code></td><td>Merge into <code>[1,5]</code> — touching endpoints overlap</td><td>The <code>&lt;=</code> in the overlap condition (not <code>&lt;</code>)</td></tr>
+        <tr><td>Already sorted input</td><td>Correct output — sort is a no-op but still required in the general case</td><td>Sort correctness; don't skip it just because it looks sorted</td></tr>
+        <tr><td>Insert: new interval before all existing</td><td>New interval is Region 1 (before loop never runs), Region 2 merges nothing, tail is all existing</td><td>Region 1 being empty; tail append</td></tr>
+        <tr><td>Insert: new interval after all existing</td><td>Entire list is Region 1; Region 2 loop never runs; new interval is appended alone</td><td>Region 2 being empty</td></tr>
+        <tr><td>Split/handoff: startDay == endDay</td><td>Return <code>[]</code> — a single-day window can't be split</td><td>Explicit guard; both prefixEnd and suffixStart would equal the same day</td></tr>
+        <tr><td>Split/handoff: team doesn't cover startDay or endDay</td><td>That team has no valid prefixEnd / suffixStart — skip it for that role</td><td>Precompute returning nil/sentinel; team excluded from the relevant lookup</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 12. Cheat sheet -->
+  <section id="cheatsheet" data-toc-label="Cheat Sheet">
+    <h2>12 &nbsp; Cheat Sheet</h2>
+    <table class="t-versus">
+      <thead><tr><th>You see…</th><th>You use</th><th>Key decision</th></tr></thead>
+      <tbody>
+        <tr><td>"merge overlapping intervals"</td><td>8.1 sort + sweep</td><td>overlap: <code>start &lt;= lastEnd</code>; merge: <code>max(lastEnd, end)</code></td></tr>
+        <tr><td>"intersection of two lists"</td><td>8.2 two-pointer</td><td>advance the pointer with the smaller end</td></tr>
+        <tr><td>"insert interval into sorted list"</td><td>8.3 three-region split</td><td>before / overlap / after — don't drop the tail</td></tr>
+        <tr><td>"free time" / "gaps between schedules"</td><td>8.4 flatten + 8.1 + gap pass</td><td>gap = [merged[i−1].end+1, merged[i].start−1]</td></tr>
+        <tr><td>"two teams cover full window"</td><td>8.5 prefix/suffix precompute</td><td>prefixEnd[A]+1 == suffixStart[B]; order matters</td></tr>
+      </tbody>
+    </table>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">copy-paste sort + sweep skeleton</span></div>
+    <pre class="swift"><span class="kw">let</span> sorted = intervals.sorted { $<span class="nm">0</span>[<span class="nm">0</span>] &lt; $<span class="nm">1</span>[<span class="nm">0</span>] }
+<span class="kw">var</span> result = [sorted[<span class="nm">0</span>]]
+<span class="kw">for</span> interval <span class="kw">in</span> sorted.dropFirst() {
+    <span class="kw">if</span> interval[<span class="nm">0</span>] &lt;= result[result.count - <span class="nm">1</span>][<span class="nm">1</span>] {
+        result[result.count - <span class="nm">1</span>][<span class="nm">1</span>] = <span class="fn">max</span>(result[result.count - <span class="nm">1</span>][<span class="nm">1</span>], interval[<span class="nm">1</span>])
+    } <span class="kw">else</span> {
+        result.append(interval)
+    }
+}</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13. Cross-reference -->
+  <section id="practice" data-toc-label="Demonstrated in Practice">
+    <h2>13 &nbsp; Demonstrated in Practice</h2>
+    <p>The walkthroughs below apply the variants above to concrete problems — each follows the walkthrough masterfile standard: constraint insights, edge-case inventory, interview simulation, pseudocode dry run, iterative Swift, and complexity table.</p>
+    <div class="ref-grid">
+      <a class="xref-card" href="../../leetcode_walkthroughs/LC56_master.html">
+        <span class="ref-file">leetcode_walkthroughs/LC56_master.html</span>
+        <span class="ref-title">LC 56 — Merge Intervals (Medium)</span>
+        <span class="ref-desc">Variant 8.1 in its purest form. Covers the sort-then-sweep loop, the in-place end-extension pattern, and the adjacent-interval edge case. The warm-up for the entire block.</span>
+      </a>
+      <a class="xref-card" href="../../leetcode_walkthroughs/LC986_master.html">
+        <span class="ref-file">leetcode_walkthroughs/LC986_master.html</span>
+        <span class="ref-title">LC 986 — Interval List Intersections (Medium)</span>
+        <span class="ref-desc">Variant 8.2 — two sorted lists, two pointers. Shows why advancing the smaller-end pointer is the only correct move, with a full dry run and interview simulation.</span>
+      </a>
+      <a class="xref-card" href="../../leetcode_walkthroughs/LC57_master.html">
+        <span class="ref-file">leetcode_walkthroughs/LC57_master.html</span>
+        <span class="ref-title">LC 57 — Insert Interval (Medium)</span>
+        <span class="ref-desc">Variant 8.3 — three-region split. Shows the Region 1 / Region 2 / Region 3 structure with worked examples on before-only, overlap-only, and after-only cases. Walkthrough coming.</span>
+      </a>
+      <a class="xref-card" href="../../leetcode_walkthroughs/LC759_master.html">
+        <span class="ref-file">leetcode_walkthroughs/LC759_master.html</span>
+        <span class="ref-title">LC 759 — Employee Free Time (Hard)</span>
+        <span class="ref-desc">Variant 8.4 — flatten nested schedules, merge (8.1), then return the gaps. Shows how nested input structure maps to a flatten step, and why the gap formula is merged[i−1].end+1 to merged[i].start−1. Walkthrough coming.</span>
+      </a>
+      <a class="xref-card" href="../../leetcode_walkthroughs/CUSTOM1_Relay_Handoff_Coverage_master.html">
+        <span class="ref-file">leetcode_walkthroughs/CUSTOM1_Relay_Handoff_Coverage_master.html</span>
+        <span class="ref-title">CUSTOM 1 — Relay Handoff Coverage (Medium)</span>
+        <span class="ref-desc">Variant 8.5 — split/handoff coverage with raw day sets. Prefix-suffix precompute derives one number per team per role; the ≤ vs == valid-pair condition is the key gotcha. Full brute-force and optimal Swift solutions with traces.</span>
+      </a>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 14. Solo problem -->
+  <section id="solo" data-toc-label="Solo Problem">
+    <h2>14 &nbsp; Solo Problem — no solution on this page</h2>
+    <div class="solo-box">
+      <div class="solo-banner">Solo problem — no solution on this page</div>
+      <p><strong>LC 57 — Insert Interval (Medium).</strong> You are given a list of non-overlapping intervals sorted by start, and a new interval to insert. Return the list after inserting and merging the new interval. Rebuild it cold from the three-region insight before opening anything.</p>
+      <ul class="checklist">
+        <li>What are the three regions, and what is the condition that separates each one?</li>
+        <li>What is the overlap condition for Region 2 — and does it use <code>&lt;</code> or <code>&lt;=</code>?</li>
+        <li>How do you merge all overlapping intervals in Region 2 into one?</li>
+        <li>What happens to Region 3 — and what is the most common mistake with it?</li>
+        <li>State the complexity: why is this O(n) while the other variants are O(n log n)?</li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="page-footer">
+    Intervals · Theory Masterfile · Demonstrated in practice:
+    <a href="../../leetcode_walkthroughs/LC56_master.html">LC 56 — Merge Intervals</a> ·
+    <a href="../../leetcode_walkthroughs/LC986_master.html">LC 986 — Interval List Intersections</a> ·
+    <a href="../../leetcode_walkthroughs/LC57_master.html">LC 57 — Insert Interval</a> ·
+    <a href="../../leetcode_walkthroughs/LC759_master.html">LC 759 — Employee Free Time</a> ·
+    <a href="../../leetcode_walkthroughs/CUSTOM1_Relay_Handoff_Coverage_master.html">CUSTOM 1 — Relay Handoff Coverage</a> ·
+    Structure per <code>.claude/skills/wiki/references/theory-format.md</code>
+  </div>
+
+</main>
+</div>
+
+<script src="../../static/generated/manifest.js"></script>
+<script src="../../static/generated/nav.js"></script>
+<script src="../../static/generated/toc.js"></script>
+</body>
+</html>

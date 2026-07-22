@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Iterator Design Deep Dive · Theory Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Iterator Design Deep Dive",
+  "nav": "Iterator Design Deep Dive",
+  "topics": [
+    "Stack",
+    "Lazy Cursor",
+    "hasNext / next"
+  ],
+  "blurb": "Stack fundamentals, lazy stack-based flattening, lookahead (peek) wrappers, and two-level cursors over jagged structures — advance just in time, keep hasNext/next consistent. Directed at LC20, LC341, LC284, LC251."
+}
+</script>
+<link rel="stylesheet" href="../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="theory">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">Iterator Design</h1>
+  <div class="page-meta">
+    <span>Theory Masterfile · Deep Dive</span><span>·</span>
+    <span>Language: Swift</span><span>·</span>
+    <span>hasNext · next · advance lazily</span>
+  </div>
+
+  <!-- 1. Definition -->
+  <section id="lead" data-toc-label="Definition">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Implement a class exposing <code>hasNext()</code> / <code>next()</code> over a structure, advancing a cursor on demand</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v">Keep just enough cursor state to return the next element lazily; never materialize the whole traversal up front</div></div>
+      <div class="infobox-row"><div class="infobox-k">Time</div><div class="infobox-v">Amortized O(1) per <code>next</code> / <code>hasNext</code> — total work across all calls is O(total elements)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Space</div><div class="infobox-v">O(depth) for a stack-based flatten; O(1) cursor for a flat or two-level structure</div></div>
+      <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"design an iterator", "hasNext / next", "flatten", "peek", "traverse in order", "lazily"</div></div>
+      <div class="infobox-row"><div class="infobox-k">The fork</div><div class="infobox-v">Advance a cursor over a fixed structure, OR carry a stack/buffer that prepares the next element on demand</div></div>
+      <div class="infobox-row"><div class="infobox-k">Walkthroughs</div><div class="infobox-v mono"><a href="../../leetcode_walkthroughs/LC20_master.html">LC20</a> · <a href="../../leetcode_walkthroughs/LC341_master.html">LC341</a> · LC284 (coming) · LC251 (coming)</div></div>
+    </div>
+
+    <div class="lead">
+      <p><strong>Iterator design problems</strong> ask you to implement a class that exposes a traversal: a <code>next()</code> that returns the following element and a <code>hasNext()</code> that reports whether one remains. Unlike a stateful system, there is no rich set of mutators — there is a <em>contract</em>, and your object must honor it across any interleaving of <code>hasNext</code> and <code>next</code> calls. The whole game is keeping a cursor — a position, a stack, or a small buffer — that always knows where the next element is without re-walking what you have already produced.</p>
+      <p>Every problem in this family turns on one decision: <strong>how much do you advance eagerly versus lazily?</strong> The discipline is to do the minimum work per call and to keep <code>hasNext</code> and <code>next</code> consistent — <code>hasNext</code> must never claim an element that <code>next</code> can't deliver, and calling <code>hasNext</code> repeatedly must not consume anything. That balance — advance just in time, peek without consuming — is the axis this page is built around. This deep dive lives under the <a href="index.html">Object &amp; System Design hub</a>, alongside stateful system design; both are "design a class with a clean API," and iterators all lean on the stack mechanics the warm-up establishes.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Recognition signals -->
+  <section id="signals" data-toc-label="Recognition Signals">
+    <h2>2 &nbsp; Recognition Signals — what variant is this?</h2>
+    <p>The structure being traversed tells you which variant you are in. Read what <code>next</code> must return, then jump to the named section.</p>
+    <table class="t-clue">
+      <thead><tr><th>When the problem says…</th><th>It means…</th></tr></thead>
+      <tbody>
+        <tr><td>"valid parentheses / match brackets with a stack"</td><td>Stack fundamentals — push openers, pop-and-match on closers. §8.1 (LC20)</td></tr>
+        <tr><td>"flatten a nested list; <code>next</code>/<code>hasNext</code> over the integers"</td><td>Lazy stack flatten — descend into nesting on demand. §8.2 (LC341)</td></tr>
+        <tr><td>"add a <code>peek()</code> that returns the next without consuming it"</td><td>Lookahead wrapper — cache one element ahead. §8.3 (LC284)</td></tr>
+        <tr><td>"iterate a 2D / jagged structure as one flat sequence"</td><td>Two-level cursor — outer + inner index, skip empties. §8.4 (LC251)</td></tr>
+        <tr><td>"mutate-and-query a file system / scoreboard / bank"</td><td>Not this page — that is the <a href="stateful_system_design_deep_dive_master.html">Stateful System Design deep dive</a>, the sibling family under the <a href="index.html">Design hub</a>.</td></tr>
+        <tr><td>"merge k sorted streams in order on demand"</td><td>A heap-backed iterator — same lazy-next discipline with a priority queue as the cursor. Beyond this block's four targets.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-when"><strong>The tell:</strong> the prompt asks for <code>hasNext</code> and <code>next</code> — a <em>pull</em> interface where the caller drives the pace. The moment you see that contract, ask: what is the smallest cursor that always points at (or can produce) the next element, and how do I keep <code>hasNext</code> truthful without consuming? That picks your variant.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Terminology decoder -->
+  <section id="terminology" data-toc-label="Terminology Decoder">
+    <h2>3 &nbsp; Terminology Decoder</h2>
+    <table class="t-decoder">
+      <thead><tr><th>Term</th><th>Plain meaning</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td>Iterator</td><td>An object that produces a sequence one element at a time, on request, without exposing the whole collection</td><td><code>while it.hasNext() { use(it.next()) }</code></td></tr>
+        <tr><td><code>hasNext()</code></td><td>A query: is there at least one more element? Must not consume anything, and must be callable repeatedly</td><td>Returns the same answer until <code>next</code> is called</td></tr>
+        <tr><td><code>next()</code></td><td>Return the following element and advance past it</td><td>Each call yields the next integer in order</td></tr>
+        <tr><td>Lazy / on-demand</td><td>Do the work to find the next element only when asked — not all up front</td><td>Descend into a sub-list only when <code>next</code> reaches it</td></tr>
+        <tr><td>Cursor</td><td>The minimal state marking your position in the traversal</td><td>An index, a stack of frames, or (outer, inner) indices</td></tr>
+        <tr><td>Lookahead / peek</td><td>Reading the next element without consuming it, usually by caching it</td><td><code>peek()</code> returns what the next <code>next()</code> will</td></tr>
+        <tr><td>Amortized O(1)</td><td>Average cost per call is constant even if one call occasionally does more (e.g. unwinding several stack frames)</td><td>Each element is pushed and popped exactly once across all calls</td></tr>
+        <tr><td>Stack frame</td><td>One saved position on an explicit stack, standing in for a recursive call</td><td>An iterator/index into a sub-list, paused mid-traversal</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Mental model -->
+  <section id="mental-model" data-toc-label="Mental Model">
+    <h2>4 &nbsp; Mental Model — advance just in time</h2>
+
+    <div class="co-idea">
+      <div class="co-idea-title">The one idea</div>
+      An iterator is a paused traversal. Keep exactly the state needed to resume — a cursor — and on each <code>next()</code> do the smallest amount of work to produce one element and re-pause. The eternal trap is <code>hasNext</code>/<code>next</code> consistency: make one of them do the advancing and the other merely report, so calling <code>hasNext</code> ten times never skips an element and <code>next</code> never returns something <code>hasNext</code> denied.
+    </div>
+
+    <p>The family's centerpiece is flattening nested data lazily. Picture <code>[[1,1],2,[1,3]]</code> exposed as the stream <code>1,1,2,1,3</code>. The clean design pushes the top-level list onto a stack in <em>reverse</em> so the front element is on top, and defers descending into sub-lists until <code>hasNext</code> needs to. Watch <code>hasNext</code> do the unwinding — popping a sub-list and pushing its reversed contents — until an integer sits on top:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">lazy flatten: hasNext unwinds lists until an integer is on top</span></div>
+<pre class="dry"><span class="tr-var">input [[1,1],2,[1,3]]   stack (top → right): [ [1,3], 2, [1,1] ]   (pushed reversed)</span>
+
+next() → hasNext: top is list [1,1] → pop, push reversed → [ [1,3], 2, 1, 1 ]
+                  top is int 1 → <span class="tr-ok">return 1</span>, pop → [ [1,3], 2, 1 ]
+next() → hasNext: top is int 1 → <span class="tr-ok">return 1</span>, pop → [ [1,3], 2 ]
+next() → hasNext: top is int 2 → <span class="tr-ok">return 2</span>, pop → [ [1,3] ]
+next() → hasNext: top is list [1,3] → pop, push reversed → [ 3, 1 ]
+                  top is int 1 → <span class="tr-ok">return 1</span>, pop → [ 3 ]
+next() → hasNext: top is int 3 → <span class="tr-ok">return 3</span>, pop → [ ]
+hasNext: stack empty → <span class="tr-bad">false</span></pre>
+    <p class="ascii-caption">No descent happens until it is needed. <code>hasNext</code> guarantees an integer is on top; <code>next</code> simply pops it. Each element is pushed and popped once → amortized O(1).</p>
+
+    <p>The simpler members are pure cursors. A two-level (jagged) structure like <code>[[1,2],[],[3]]</code> needs only an (outer, inner) pair that knows to skip empty inner lists:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">two-level cursor: advance inner, roll over outer, skip empties</span></div>
+<pre class="dry"><span class="tr-var">rows=[[1,2],[],[3]]   outer=0  inner=0   (positioned at first valid element)</span>
+
+next() → return rows[0][0]=1 ; inner→1
+next() → return rows[0][1]=2 ; inner→2 → past row 0 end → outer→1,inner→0
+         row 1 is empty → skip → outer→2,inner→0
+hasNext → outer(2) &lt; 3 and rows[2] has element → true
+next() → return rows[2][0]=3 ; inner→1 → past end → outer→3
+hasNext → outer(3) == 3 → <span class="tr-bad">false</span></pre>
+    <p class="ascii-caption">The only subtlety is the "skip empty rows" advance — folded into one helper both methods call before they trust the cursor.</p>
+
+    <p>Recognizing whether your next element is one cursor-step away or buried under nesting is what picks between a plain index and an explicit stack.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Pseudocode primer -->
+  <section id="pseudocode" data-toc-label="Pseudocode Primer">
+    <h2>5 &nbsp; Pseudocode Primer</h2>
+    <p>Every iterator is this shape: a constructor that sets up the cursor positioned at the first element, a <code>hasNext</code> that reports (and, in the lazy variants, prepares) the next element, and a <code>next</code> that returns it and advances. The <code>ADVANCE</code> line is the only part that varies.</p>
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">the universal iterator shape</span></div>
+<pre class="pseudo"><span class="pk">CLASS</span> Iterator:
+    <span class="pk">INIT</span>(source):
+        cursor ← state positioned at / before the first element
+        (stack, indices, or a cached lookahead)
+
+    <span class="pk">METHOD</span> hasNext() -&gt; Bool:
+        PREPARE: advance the cursor past anything empty/nested
+                 until it points at a real element (lazy variants)
+        <span class="pk">RETURN</span> cursor still has an element
+
+    <span class="pk">METHOD</span> next() -&gt; Element:
+        <span class="pk">IF</span> not hasNext(): error / undefined
+        element ← element at cursor
+        ADVANCE cursor past it
+        <span class="pk">RETURN</span> element</pre>
+    <div class="co-insight"><strong>Why one method owns the advancing:</strong> the single most common iterator bug is <code>hasNext</code> and <code>next</code> disagreeing. The fix is to make the "skip to the next real element" logic live in one place — usually called from <code>hasNext</code> (which is idempotent) and relied on by <code>next</code>. Then repeated <code>hasNext</code> calls converge to the same state, and <code>next</code> can trust that an element is ready.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. Iterative-only pattern -->
+  <section id="iterative" data-toc-label="Iterative-Only Pattern">
+    <h2>6 &nbsp; Iterative-Only Pattern — explicit stack, never recursion</h2>
+    <p>Iterators are fundamentally incompatible with recursion, and that is the lesson:</p>
+    <ul>
+      <li><strong>A recursive traversal runs to completion; an iterator must pause.</strong> You cannot suspend a recursive descent halfway and return control to the caller between two elements. So the recursion must be turned inside out into an <em>explicit stack of frames</em> that you can stop and resume across <code>next</code> calls. The stack <em>is</em> the paused call stack, made into data you own.</li>
+      <li><strong>Prepare lazily, in <code>hasNext</code>.</strong> Do not flatten the entire structure in the constructor — that defeats the point and costs O(total) up front. Push only the top level, and unwind nesting one layer at a time when a call actually needs the next element. This keeps the constructor O(1)–O(top-level) and the work spread across the calls that consume it.</li>
+    </ul>
+    <div class="co-note"><strong>Why this matters here specifically:</strong> the bugs in this family are consistency and laziness bugs — eagerly flattening (wrong complexity, and breaks if the structure is huge or infinite), or advancing in both methods (skips elements). An explicit stack prepared on demand in a single place makes both impossible by construction.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Swift foundations -->
+  <section id="swift" data-toc-label="Swift Foundations">
+    <h2>7 &nbsp; Swift Foundations</h2>
+    <p>Four Swift facts underlie nearly every iterator in this family. Say them out loud before coding.</p>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">the four iterator-handling rules for this block</span></div>
+<pre class="swift"><span class="cm">// 1. An array used as a stack: append / removeLast are O(1) amortized.</span>
+<span class="kw">var</span> stack: [<span class="tp">Int</span>] = []
+stack.append(<span class="nm">1</span>)                  <span class="cm">// push</span>
+<span class="kw">let</span> top = stack.removeLast()    <span class="cm">// pop (precondition: not empty)</span>
+
+<span class="cm">// 2. Push children REVERSED so the front element ends up on top.</span>
+<span class="kw">for</span> element <span class="kw">in</span> list.reversed() { stack.append(element) }
+
+<span class="cm">// 3. Peek without popping — read .last, don't remove.</span>
+<span class="kw">if</span> <span class="kw">let</span> top = stack.last { <span class="cm">/* inspect, decide */</span> }
+
+<span class="cm">// 4. Cache one element ahead for peek()/lookahead wrappers.</span>
+<span class="kw">private</span> <span class="kw">var</span> cached: <span class="tp">Int</span>?       <span class="cm">// the next element, fetched eagerly once</span>
+<span class="kw">func</span> <span class="fn">peek</span>() -&gt; <span class="tp">Int</span> { cached! }   <span class="cm">// return without consuming</span></pre>
+    <div class="co-pitfall u-mt-12"><strong>The removeFirst trap.</strong> Using an array as a queue with <code>removeFirst()</code> is O(n) per call — it shifts every remaining element. For LIFO traversal (the natural fit for nested descent) use <code>removeLast()</code>, which is O(1). If you genuinely need FIFO, reverse once and pop from the back, or keep a head index — never <code>removeFirst</code> in a loop.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 8. The four variants -->
+  <section id="variants" data-toc-label="The Four Variants">
+    <h2>8 &nbsp; The Four Variants</h2>
+    <p>Ordered by increasing design difficulty. The first two are taught in full walkthroughs; the last two are solve-it-yourself problems — frame and pitfalls here, no solution.</p>
+
+    <!-- 8.1 Stack fundamentals -->
+    <div class="pattern-block" id="v-stack" data-toc-label="8.1 Stack fundamentals">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.1</span>
+        <span class="block-name">Stack fundamentals</span>
+        <div class="block-pills"><span class="pill pill-t">O(n)</span><span class="pill pill-s">O(n)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> the warm-up that builds the stack mechanics every iterator leans on — push on one signal, pop-and-check on another, and the structure is valid iff the stack ends empty. Full Swift in the walkthrough (LC20).</div>
+        <p><strong>The frame (LC 20 — Valid Parentheses):</strong> scan the string; push each opening bracket; on a closing bracket, the top of the stack must be its matching opener — pop it, or fail. The string is valid iff every closer matched and the stack is empty at the end (no unclosed openers).</p>
+        <div class="co-insight"><strong>The design decision:</strong> a stack is the right structure because the <em>most recently opened</em> bracket must close first — last-in-first-out is exactly nesting. This LIFO discipline is the same one the flatten iterator uses to descend and resume, which is why this is the family's warm-up.</div>
+        <p>Canonical problem: LC 20 — Valid Parentheses (warm-up). <em>Full walkthrough.</em></p>
+      </div>
+    </div>
+
+    <!-- 8.2 Lazy stack flatten -->
+    <div class="pattern-block" id="v-flatten" data-toc-label="8.2 Lazy stack flatten">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.2</span>
+        <span class="block-name">Lazy flattening with a stack</span>
+        <div class="block-pills"><span class="pill pill-t">amortized O(1)/call</span><span class="pill pill-s">O(depth)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> expose the integers of a nested list as one flat stream via <code>hasNext</code>/<code>next</code>, descending into sub-lists only when asked. Full Swift in the walkthrough (LC341).</div>
+        <p><strong>The frame (LC 341 — Flatten Nested List Iterator):</strong> push the top-level list onto a stack in reverse (front element on top). In <code>hasNext</code>, while the top is a list, pop it and push its contents reversed; stop when the top is an integer (or the stack empties). <code>next</code> calls <code>hasNext</code> to ensure an integer is on top, then pops and returns it.</p>
+        <div class="co-insight"><strong>The design decision:</strong> push reversed so popping yields front-to-back order, and put the descent logic in <code>hasNext</code> so it is idempotent — calling it repeatedly leaves an integer on top without consuming. Each element is pushed and popped exactly once across the whole traversal, so per-call cost is amortized O(1).</div>
+        <p>Canonical problem: LC 341 — Flatten Nested List Iterator (walkthrough). <em>Full walkthrough.</em></p>
+      </div>
+    </div>
+
+    <!-- 8.3 Lookahead wrapper — FRAME ONLY -->
+    <div class="pattern-block" id="v-peek" data-toc-label="8.3 Lookahead wrapper">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.3</span>
+        <span class="block-name">Lookahead wrapper (peek)</span>
+        <div class="block-pills"><span class="pill pill-t">O(1)/call</span><span class="pill pill-s">O(1)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-note"><strong>Solve-it-yourself variant.</strong> This is an <em>attempt</em> problem — the frame and the caching rule are below, but no solution. Build it cold.</div>
+        <div class="co-when"><strong>When to use:</strong> you are given an existing iterator and must add <code>peek()</code> — return the next element without consuming it — while keeping <code>next</code> and <code>hasNext</code> correct.</div>
+        <p><strong>The frame (LC 284 — Peeking Iterator):</strong> wrap the underlying iterator and keep a one-element cache:</p>
+        <ul>
+          <li><strong>peek()</strong> — if nothing is cached, pull one from the underlying iterator and store it; return the cached element without clearing it.</li>
+          <li><strong>next()</strong> — if something is cached, return and clear it; otherwise delegate to the underlying <code>next()</code>.</li>
+          <li><strong>hasNext()</strong> — true if something is cached OR the underlying iterator has more.</li>
+        </ul>
+        <div class="co-insight"><strong>The frame:</strong> the cache is a single optional holding "the element already pulled but not yet consumed." Every method consults it first. The whole difficulty is keeping the three methods consistent around that one cached slot. See pitfalls §10.</div>
+        <p>Canonical problem: LC 284 — Peeking Iterator (attempt). Graduated hints in the walkthrough.</p>
+      </div>
+    </div>
+
+    <!-- 8.4 Two-level cursor — FRAME ONLY -->
+    <div class="pattern-block" id="v-cursor" data-toc-label="8.4 Two-level cursor">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.4</span>
+        <span class="block-name">Two-level cursor (flatten 2D)</span>
+        <div class="block-pills"><span class="pill pill-t">amortized O(1)/call</span><span class="pill pill-s">O(1)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-note"><strong>Solve-it-yourself variant.</strong> This is a <em>target</em> problem — the model and the skip rule are below, but no code. This is the canonical Airbnb iterator design.</div>
+        <div class="co-when"><strong>When to use:</strong> iterate a jagged 2D structure (a list of lists) as one flat sequence, where some inner lists may be empty. The cursor is two indices; the art is skipping empties cleanly.</div>
+        <p><strong>The model (LC 251 — Flatten 2D Vector):</strong> keep an <code>outer</code> index over the rows and an <code>inner</code> index within the current row. A shared "advance to the next valid position" step moves <code>inner</code> forward, rolls <code>outer</code> over at a row's end, and <em>skips any empty rows</em>. Both <code>hasNext</code> and <code>next</code> run that step first so the cursor always points at a real element or past the end.</p>
+        <div class="co-insight"><strong>The frame:</strong> the only subtlety is the skip-empty-rows loop — it must be a <code>while</code>, not an <code>if</code>, because several empty rows can sit in a row. Centralize it in one helper both methods call; do not duplicate the advance logic. See pitfalls §10 and edge cases §11.</div>
+        <p>Canonical problem: LC 251 — Flatten 2D Vector (target). Graduated hints in the walkthrough.</p>
+      </div>
+    </div>
+
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 9. Complexity -->
+  <section id="complexity" data-toc-label="Complexity Analysis">
+    <h2>9 &nbsp; Complexity Analysis</h2>
+    <p><strong>The metric is amortized cost per call, and total work across the traversal.</strong> A good iterator touches each element a constant number of times over its whole lifetime, so even if one <code>next</code> unwinds several stack frames, the average per call is O(1). The goal is never to do O(total) work in the constructor or in any single call.</p>
+    <table class="t-cmx">
+      <thead><tr><th>Variant</th><th>Time / call</th><th>Space</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Stack fundamentals (8.1)</td><td class="tc">O(1)</td><td class="sc">O(n)</td><td>One scan, push/pop per character; stack holds at most all open brackets.</td></tr>
+        <tr><td>Lazy stack flatten (8.2)</td><td class="tc">amortized O(1)</td><td class="sc">O(depth + width)</td><td>Each element pushed and popped once; one occasional call unwinds several frames but the average is constant.</td></tr>
+        <tr><td>Lookahead wrapper (8.3)</td><td class="tc">O(1)</td><td class="sc">O(1)</td><td>One cached element; each method does constant work around it.</td></tr>
+        <tr><td>Two-level cursor (8.4)</td><td class="tc">amortized O(1)</td><td class="sc">O(1)</td><td>Two indices; skipping empty rows is amortized over the elements eventually returned.</td></tr>
+        <tr class="bottleneck"><td>Bottleneck</td><td class="tc">O(total) up front</td><td class="sc">—</td><td>Eagerly flattening the whole structure in the constructor — the exact anti-pattern the lazy design exists to avoid; it wastes work if the caller stops early and breaks on very large or infinite sources.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 10. Pitfalls -->
+  <section id="pitfalls" data-toc-label="Common Pitfalls">
+    <h2>10 &nbsp; Common Pitfalls</h2>
+    <div class="co-pitfall">
+      <div class="co-pitfall-title">Pitfalls — bugs this block invites</div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>hasNext / next disagreeing (all variants).</strong> If both advance, <code>hasNext</code> can consume an element <code>next</code> then misses. Put the advance in one place — usually <code>hasNext</code> — and have <code>next</code> rely on it.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Eager flattening (8.2).</strong> Walking the whole nested structure in the constructor is O(total) up front and defeats laziness. Push only the top level; descend on demand.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Pushing children in forward order (8.2).</strong> The stack is LIFO, so pushing a list front-to-back yields it back-to-front. Push <em>reversed</em> so the front element pops first.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Skipping empties with <code>if</code> not <code>while</code> (8.4).</strong> Several empty inner lists can be adjacent; a single <code>if</code> skips only one and leaves the cursor on an empty row. Loop until a non-empty position or the end.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>peek() consuming (8.3).</strong> If <code>peek</code> calls the underlying <code>next</code> without caching the result, the element is lost. Cache it; <code>peek</code> returns the cache, <code>next</code> clears it.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Calling <code>removeLast</code>/<code>next</code> without checking emptiness.</strong> A crash on an exhausted iterator. Gate every consume behind <code>hasNext</code>, and never <code>removeFirst()</code> in a loop (O(n) each).</span></div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 11. Edge cases -->
+  <section id="edge-cases" data-toc-label="Edge Cases">
+    <h2>11 &nbsp; Edge Cases to Verbalize</h2>
+    <p>Name these before coding. The empty and consistency cases are the specification for the two attempt/target variants.</p>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected behavior</th><th>What it exercises</th></tr></thead>
+      <tbody>
+        <tr><td>Parentheses: <code>""</code> (empty)</td><td><code>true</code> — vacuously valid, stack ends empty</td><td>Loop tolerating zero iterations</td></tr>
+        <tr><td>Parentheses: <code>"]"</code> — closer with empty stack</td><td><code>false</code></td><td>Pop-on-empty guard before matching</td></tr>
+        <tr><td>Parentheses: <code>"("</code> — unclosed opener</td><td><code>false</code> — stack non-empty at end</td><td>The final "stack empty?" check</td></tr>
+        <tr><td>Flatten: <code>[]</code> (empty list)</td><td><code>hasNext()</code> is <code>false</code> immediately</td><td>Constructor on an empty source</td></tr>
+        <tr><td>Flatten: <code>[[],[ ]]</code> — only empty sub-lists</td><td><code>hasNext()</code> is <code>false</code> — all unwound to nothing</td><td><code>hasNext</code> draining lists that yield no integers</td></tr>
+        <tr><td>Flatten: deeply nested <code>[[[[5]]]]</code></td><td><code>next()</code> returns 5 after unwinding all layers</td><td>Multi-frame unwind in one call</td></tr>
+        <tr><td>2D: empty rows between data <code>[[1],[],[2]]</code></td><td>yields 1 then 2; empty row skipped</td><td>The <code>while</code> skip-empty loop</td></tr>
+        <tr><td>2D: all rows empty <code>[[],[]]</code></td><td><code>hasNext()</code> is <code>false</code></td><td>Skip-loop reaching the end</td></tr>
+        <tr><td>Peek: <code>peek()</code> then <code>next()</code></td><td>both return the same element; only <code>next</code> advances</td><td>The cache: peek reads, next consumes</td></tr>
+        <tr><td>Peek: repeated <code>peek()</code></td><td>returns the same element every time</td><td>Idempotent peek; cache not re-pulled</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 12. Cheat sheet -->
+  <section id="cheatsheet" data-toc-label="Cheat Sheet">
+    <h2>12 &nbsp; Cheat Sheet</h2>
+    <table class="t-versus">
+      <thead><tr><th>You see…</th><th>You use</th><th>Variant</th></tr></thead>
+      <tbody>
+        <tr><td>"match / validate brackets"</td><td>a stack: push openers, pop-match closers, end empty</td><td>§8.1 Stack fundamentals</td></tr>
+        <tr><td>"flatten nested list, next/hasNext"</td><td>stack pushed reversed; descend lazily in hasNext</td><td>§8.2 Lazy stack flatten</td></tr>
+        <tr><td>"add peek() to an iterator"</td><td>a one-element cache consulted by all methods</td><td>§8.3 Lookahead wrapper</td></tr>
+        <tr><td>"flatten a 2D / jagged vector"</td><td>(outer, inner) cursor + while-skip empties</td><td>§8.4 Two-level cursor</td></tr>
+        <tr><td>"mutate-and-query a system"</td><td>store-vs-derive — see the Stateful deep dive</td><td>Sibling family</td></tr>
+      </tbody>
+    </table>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">copy-paste iterator skeleton (lazy, advance in hasNext)</span></div>
+<pre class="swift"><span class="kw">class</span> <span class="tp">MyIterator</span> {
+    <span class="kw">private</span> <span class="kw">var</span> stack: [<span class="tp">Element</span>] = []   <span class="cm">// or indices / a cache</span>
+
+    <span class="kw">init</span>(<span class="kw">_</span> source: [<span class="tp">Element</span>]) {
+        <span class="kw">for</span> element <span class="kw">in</span> source.reversed() { stack.append(element) }  <span class="cm">// front on top</span>
+    }
+
+    <span class="kw">func</span> <span class="fn">hasNext</span>() -&gt; <span class="tp">Bool</span> {
+        <span class="cm">// PREPARE: advance/unwind until top is a real element</span>
+        <span class="kw">return</span> !stack.isEmpty
+    }
+
+    <span class="kw">func</span> <span class="fn">next</span>() -&gt; <span class="tp">Element</span> {
+        <span class="cm">// precondition: hasNext() == true</span>
+        <span class="kw">return</span> stack.removeLast()
+    }
+}</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13. Cross-reference -->
+  <section id="practice" data-toc-label="Demonstrated in Practice">
+    <h2>13 &nbsp; Demonstrated in Practice</h2>
+    <p>Each problem in this block is taught in its own walkthrough — constraint insights, edge-case inventory, interview simulation, and (for the warm-up and walkthrough) a full dry run and iterative Swift solution.</p>
+    <div class="ref-grid">
+      <a class="xref-card" href="../../leetcode_walkthroughs/LC20_master.html">
+        <span class="ref-file">leetcode_walkthroughs/LC20_master.html</span>
+        <span class="ref-title">LC 20 — Valid Parentheses (Easy · warm-up)</span>
+        <span class="ref-desc">The stack fundamentals every iterator leans on — push openers, pop-and-match closers, valid iff the stack ends empty. Full dry run and Swift. The orientation problem for the family.</span>
+      </a>
+      <a class="xref-card" href="../../leetcode_walkthroughs/LC341_master.html">
+        <span class="ref-file">leetcode_walkthroughs/LC341_master.html</span>
+        <span class="ref-title">LC 341 — Flatten Nested List Iterator (Medium · walkthrough)</span>
+        <span class="ref-desc">Lazy flatten: push the list reversed, unwind nested lists in <code>hasNext</code> until an integer is on top, pop in <code>next</code>. Amortized O(1) per call. Full dry run and Swift.</span>
+      </a>
+      <span class="xref-card xref-coming">
+        <span class="ref-file">leetcode_walkthroughs/LC284_master.html</span>
+        <span class="ref-title">LC 284 — Peeking Iterator (Medium · attempt)</span>
+        <span class="ref-desc">Lookahead wrapper you solve cold — the one-element cache, keeping peek/next/hasNext consistent, and graduated hints. No solution shown.</span>
+      </span>
+      <span class="xref-card xref-coming">
+        <span class="ref-file">leetcode_walkthroughs/LC251_master.html</span>
+        <span class="ref-title">LC 251 — Flatten 2D Vector (Medium · target)</span>
+        <span class="ref-desc">Two-level cursor — (outer, inner) indices, the while-skip-empties advance, and hasNext/next consistency. Frame and hints only; no solution shown.</span>
+      </span>
+    </div>
+    <div class="co-note u-mt-12"><strong>Note:</strong> the LC284 and LC251 walkthroughs are the solve-it-yourself targets of this family; their pages are coaches (problem, edge cases, signals, hints) with no solution, per the study-plan spoiler rule.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 14. Solo problem -->
+  <section id="solo" data-toc-label="Solo Problem">
+    <h2>14 &nbsp; Solo Problem — no solution on this page</h2>
+    <div class="solo-box">
+      <div class="solo-banner">Solo problem — no solution on this page</div>
+      <p><strong>LC 251 — Flatten 2D Vector (Medium).</strong> Implement an iterator over a 2D vector (a list of lists) exposing <code>next()</code> and <code>hasNext()</code> that yields every element in row-major order, correctly skipping empty inner lists. Decide your cursor and your skip rule before writing any method.</p>
+      <ul class="checklist">
+        <li>What is the cursor — and why two indices rather than one flattened copy?</li>
+        <li>Where does the "skip empty rows" logic live, and why must it be a <code>while</code>, not an <code>if</code>?</li>
+        <li>Which method owns the advancing so <code>hasNext</code> and <code>next</code> never disagree?</li>
+        <li>What does <code>hasNext</code> return when all remaining rows are empty?</li>
+        <li>Why is each <code>next</code> amortized O(1) even though one call may skip several empty rows?</li>
+      </ul>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 15. Appendix -->
+  <section id="appendix" data-toc-label="Appendix — Open Questions">
+    <h2>15 &nbsp; Appendix — open questions to deep-dive later</h2>
+    <p>Two short notes that connect this family to neighboring ideas. Each is a thread worth pulling on its own; here we only sketch the answer.</p>
+
+    <div class="co-insight"><strong>Flatten 2D — pointers <em>or</em> a stack?</strong> Both work, and the choice is about depth. A jagged 2D vector is nesting of depth exactly one (a list of lists), so a two-index cursor — <code>(outer, inner)</code> — is enough and is O(1) extra space; there is nothing to "descend" into beyond one level, so a stack would be overkill. The moment nesting becomes <em>arbitrary</em> (lists inside lists inside lists, as in LC 341), a fixed number of indices can no longer name your position — you need a stack to remember every level you paused at. Rule of thumb: <strong>bounded depth → cursor/pointers; unbounded depth → stack.</strong> Flatten 2D could absolutely be solved with the LC 341 stack approach (treat each row as a sub-list), but the pointer version is simpler precisely because the depth is capped at one.</div>
+
+    <div class="co-insight"><strong>Is the stack iterator the same design as graph DFS?</strong> Essentially yes — and this is the deeper point. The lazy-flatten iterator is an iterative depth-first traversal: <code>stack.append</code> to descend, <code>stack.removeLast</code> (pop the top) to visit, push children to go deeper. That is byte-for-byte the iterative DFS skeleton from the graphs material — the nested list <em>is</em> a tree, the sub-lists are edges, the integers are leaves. The only thing the iterator adds is <em>pausing</em>: graph DFS runs the whole traversal in one loop, while the iterator suspends between visits so the caller can pull one element at a time. So "iterator over nested structure" and "iterative DFS that yields lazily" are the same algorithm wearing two interfaces. The one caveat: trees have no cycles, so the iterator needs no visited-set; a general graph DFS does. We can deep-dive the full correspondence — visited-sets, BFS-vs-DFS iterators, and why <code>removeLast</code> gives DFS while a queue gives BFS — later.</div>
+  </section>
+
+  <div class="page-footer">
+    Iterator Design · Theory Masterfile (Deep Dive) · Hub:
+    <a href="index.html">Object &amp; System Design</a> ·
+    Structure per <code>.claude/skills/wiki/references/theory-format.md</code>
+  </div>
+
+</main>
+</div>
+
+<script src="../../static/generated/manifest.js"></script>
+<script src="../../static/generated/nav.js"></script>
+<script src="../../static/generated/toc.js"></script>
+</body>
+</html>

@@ -73,9 +73,35 @@ export const wikiConfiguration: WikiConfiguration = {
         { id: "topic-2", tocLabel: "Second Topic", heading: "TODO Second Topic" },
       ],
     },
+    {
+      // Framework/platform knowledge, as opposed to the algorithm-shaped
+      // "theory" type: no complexity analysis, no solo problem. Built around
+      // the wrong-then-right shape the source references already use.
+      identifier: "ios-topic",
+      layout: "sections",
+      metaLabel: "iOS Topic",
+      sections: [
+        { id: "lead", tocLabel: "Definition", heading: null },
+        { id: "mental-model", tocLabel: "Mental Model", heading: "Mental Model — how to think about it" },
+        { id: "signals", tocLabel: "When It Applies", heading: "When It Applies" },
+        { id: "api", tocLabel: "The API", heading: "The API — types, modifiers, signatures" },
+        { id: "patterns", tocLabel: "Patterns", heading: "Patterns That Work" },
+        { id: "antipatterns", tocLabel: "Anti-Patterns", heading: "Anti-Patterns — and the fix" },
+        { id: "pitfalls", tocLabel: "Pitfalls", heading: "Pitfalls & Gotchas" },
+        { id: "related", tocLabel: "Related Topics", heading: "Related Topics" },
+        { id: "sources", tocLabel: "Sources", heading: "Sources" },
+      ],
+    },
   ],
 
   // ---- domains: the knowledge trees ----
+  //
+  // NOTE ON FOLDER NAMES: `folder` is a GLOBAL namespace — derive.ts matches
+  // the first path segment against it across every domain, and the path
+  // grammar is exactly two levels deep (folder/section/page.html). So a
+  // domain cannot own a nested `leetcode/theory/` folder; the domain prefix
+  // is carried in the folder NAME instead, and the domain grouping lives
+  // here in config, which is where nav.ts reads it from anyway.
   domains: [
     {
       identifier: "leetcode",
@@ -84,7 +110,7 @@ export const wikiConfiguration: WikiConfiguration = {
         {
           identifier: "theory",
           label: "Theory",
-          folder: "theory",
+          folder: "leetcode_theory",
           layout: "sections",
           pageType: "theory",
           pageBodyCategory: "theory",
@@ -102,7 +128,7 @@ export const wikiConfiguration: WikiConfiguration = {
         {
           identifier: "walkthroughs",
           label: "Walkthroughs",
-          folder: "walkthroughs",
+          folder: "leetcode_walkthroughs",
           layout: "flat",
           pageType: "walkthrough",
           pageBodyCategory: "walkthrough",
@@ -113,12 +139,28 @@ export const wikiConfiguration: WikiConfiguration = {
         {
           identifier: "reference",
           label: "Review & Reference",
-          folder: "reference",
+          folder: "leetcode_reference",
           layout: "flat",
           pageType: "reference",
           pageBodyCategory: "reference",
           requiresDifficulty: false,
           flatSort: "declaredOrder",
+        },
+      ],
+    },
+    {
+      identifier: "ios",
+      label: "iOS",
+      categories: [
+        {
+          identifier: "swiftui",
+          label: "SwiftUI",
+          folder: "ios_swiftui",
+          layout: "sections",
+          pageType: "ios-topic",
+          pageBodyCategory: "ios-topic",
+          requiresDifficulty: false,
+          sections: [{ identifier: "fundamentals", label: "Fundamentals" }],
         },
       ],
     },

@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Two Pointers Deep Dive · Theory Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Two Pointers Deep Dive",
+  "nav": "Two Pointers Deep Dive",
+  "topics": [
+    "Two Pointers",
+    "Arrays",
+    "Sorting"
+  ],
+  "blurb": "Converging pointers on sorted arrays, the 3Sum anchor, palindrome check, and the left/right-max accumulator. Directed at LC125, LC11, LC15, LC42."
+}
+</script>
+<link rel="stylesheet" href="../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="theory">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">Two Pointers — Deep Dive</h1>
+  <div class="page-meta">
+    <span>Theory Masterfile</span><span>·</span>
+    <span>Language: Swift</span><span>·</span>
+    <span>Converging sum · 3Sum anchor · Palindrome · Left/right-max</span>
+  </div>
+
+  <!-- 1. Definition -->
+  <section id="lead" data-toc-label="Definition">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Array traversal with two indices converging from opposite ends</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v">Sorted order lets you steer left or right — eliminating the O(n²) pair search</div></div>
+      <div class="infobox-row"><div class="infobox-k">Time</div><div class="infobox-v">O(n log n) if sort required · O(n) for the pointer walk itself</div></div>
+      <div class="infobox-row"><div class="infobox-k">Space</div><div class="infobox-v">O(1) — no auxiliary structure; only two index variables</div></div>
+      <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"sorted array", "pair/triple sums to", "palindrome", "max area", "trap water"</div></div>
+      <div class="infobox-row"><div class="infobox-k">Requires sorted?</div><div class="infobox-v">Yes for sum variants · No for palindrome / rain water shapes</div></div>
+      <div class="infobox-row"><div class="infobox-k">Walkthroughs</div><div class="infobox-v mono"><a href="../../leetcode_walkthroughs/LC125_master.html">LC125_master.html</a> · <a href="../../leetcode_walkthroughs/LC11_master.html">LC11_master.html</a> · <a href="../../leetcode_walkthroughs/LC15_master.html">LC15_master.html</a> · <a href="../../leetcode_walkthroughs/LC42_master.html">LC42_master.html</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p><strong>Two pointers</strong> is a traversal technique that places one index at each end of a sorted array and moves them toward each other, making a greedy steering decision at every step. Because the array is sorted, an element that is too large can only be reduced by moving the right pointer left, and an element that is too small can only be increased by moving the left pointer right. This replaces the O(n²) "check all pairs" brute force with a single O(n) convergence walk.</p>
+      <p>Four distinct interview shapes use this idea: converging toward a target sum, fixing one element as an anchor and converging an inner window (3Sum), comparing from both ends to check symmetry (palindrome), and accumulating the running maximum from each side to compute a bounded quantity (trapping rain water). All four share the same invariant: <em>the answer, if it exists, always lies within the range [left, right]</em>.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Recognition signals -->
+  <section id="signals" data-toc-label="Recognition Signals">
+    <h2>2 &nbsp; Recognition Signals — when to reach for it</h2>
+    <table class="t-clue">
+      <thead><tr><th>When the problem says…</th><th>It means…</th><th>Problem</th></tr></thead>
+      <tbody>
+        <tr><td>"two numbers that sum to target" + array is sorted</td><td>Variant 8.1 — converge, steer by comparing sum to target</td><td>LC11 shape</td></tr>
+        <tr><td>"three numbers that sum to zero" / k-sum</td><td>Variant 8.2 — fix anchor, apply 8.1 to the remaining subarray</td><td>LC15</td></tr>
+        <tr><td>"is it a palindrome?" / "compare two ends"</td><td>Variant 8.3 — converge, compare characters at l and r</td><td>LC125</td></tr>
+        <tr><td>"maximize area between two walls"</td><td>Variant 8.1 with min-side steering — move the shorter wall inward</td><td>LC11</td></tr>
+        <tr><td>"how much water can be trapped between bars?"</td><td>Variant 8.4 — left-max and right-max accumulators, water = min(lmax, rmax) − height</td><td>LC42</td></tr>
+        <tr><td>"does this sequence cycle?" / "detect a loop"</td><td>Variant 8.5 — Floyd's cycle detection: slow takes one step, fast takes two; they meet iff there is a cycle</td><td>LC202</td></tr>
+      </tbody>
+    </table>
+    <div class="co-when"><strong>When NOT to use two pointers:</strong> if the array cannot be sorted without destroying the answer (e.g., when indices must be preserved, as in Two Sum LC1 unsorted), use a hash map instead. Two pointers require sorted order to make the steering decision meaningful.</div>
+    <div class="co-when"><strong>Two pointers vs sliding window:</strong> two pointers converge (l moves right, r moves left). Sliding window expands (both l and r only move right). If both pointers must move rightward, it's a window — not two pointers.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Terminology decoder -->
+  <section id="terminology" data-toc-label="Terminology Decoder">
+    <h2>3 &nbsp; Terminology Decoder</h2>
+    <table class="t-decoder">
+      <thead><tr><th>Term</th><th>Plain meaning</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td>Left pointer (<code>l</code>)</td><td>Index starting at the leftmost element; moves right when the current answer is too small</td><td><code>var l = 0</code></td></tr>
+        <tr><td>Right pointer (<code>r</code>)</td><td>Index starting at the rightmost element; moves left when the current answer is too large</td><td><code>var r = nums.count − 1</code></td></tr>
+        <tr><td>Convergence</td><td>The process of l and r moving toward each other until they meet or cross; the loop exits at <code>while l &lt; r</code></td><td>l=0, r=5 → l=1, r=5 → l=1, r=4 → … → l=r</td></tr>
+        <tr><td>Invariant</td><td>A condition guaranteed true before and after every iteration; proves correctness. For two pointers: "if an answer exists, it is in [l, r]"</td><td>proven by showing each pointer move eliminates no valid pair</td></tr>
+        <tr><td>Anchor</td><td>In 3Sum (Variant 8.2), the fixed element chosen by the outer loop; the inner two-pointer walk finds the complementary pair</td><td><code>for k in 0..&lt;n−2 { l=k+1, r=n−1 … }</code></td></tr>
+        <tr><td>Min-side rule</td><td>In LC11, move whichever pointer points to the shorter wall — moving the taller one can only decrease area; the shorter one might find something better</td><td>height[l] &lt; height[r] → l += 1</td></tr>
+        <tr><td>Left-max / right-max</td><td>In LC42, the maximum bar height seen so far from the left (or right) — water at position i is bounded by <code>min(leftMax, rightMax) − height[i]</code></td><td><code>leftMax = max(leftMax, height[l])</code></td></tr>
+        <tr><td>Duplicate skipping</td><td>In 3Sum, after moving a pointer, skip over elements equal to the previous value to avoid producing the same triplet twice</td><td><code>while l &lt; r &amp;&amp; nums[l] == nums[l−1] { l += 1 }</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Mental model -->
+  <section id="mental-model" data-toc-label="Mental Model">
+    <h2>4 &nbsp; Mental Model — two people walking toward each other</h2>
+
+    <div class="co-idea">
+      <div class="co-idea-title">The one idea</div>
+      Imagine two people standing at opposite ends of a sorted hallway of numbered doors. They shout their door number to each other and compare their sum to a target. If the sum is too big, the person on the right takes one step inward (to a smaller number). If too small, the person on the left takes a step inward. They stop when they either find the target or meet. This works because the hallway is sorted — stepping inward is always the right direction.
+    </div>
+
+    <p>Watch the converging sum find a pair in <code>[-4, -1, 0, 3, 5, 8]</code> with target <code>4</code>:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">converging two pointers — steer by comparing sum to target</span></div>
+    <pre class="dry">array:  [-4, -1,  0,  3,  5,  8]
+         l=0              r=5
+
+<span class="tr-var">l=0 r=5</span>  sum = −4 + 8 = <span class="tr-bad">4 ✓</span>  <span class="tr-ok">→ found! return [−4, 8]</span>
+
+(if target were 5:)
+<span class="tr-var">l=0 r=5</span>  sum = −4 + 8 = <span class="tr-bad">4 &lt; 5</span>  → move l right (sum too small)
+<span class="tr-var">l=1 r=5</span>  sum = −1 + 8 = <span class="tr-bad">7 &gt; 5</span>  → move r left (sum too big)
+<span class="tr-var">l=1 r=4</span>  sum = −1 + 5 = <span class="tr-ok">4 &lt; 5</span>  → move l right
+<span class="tr-var">l=2 r=4</span>  sum =  0 + 5 = <span class="tr-ok">5 ✓</span>  → found! return [0, 5]</pre>
+    <p class="ascii-caption">Each step eliminates one element as a candidate. Moving l right eliminates nums[l] from all future pairs (no right partner can be small enough). Moving r left eliminates nums[r]. At most n − 1 steps total.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Pseudocode primer -->
+  <section id="pseudocode" data-toc-label="Pseudocode Primer">
+    <h2>5 &nbsp; Pseudocode Primer</h2>
+    <p>Two canonical templates cover all four variants.</p>
+
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">template A — converging sum / min-side steering (LC11 · LC15 inner window shape)</span></div>
+    <pre class="pseudo"><span class="pk">FUNCTION</span> twoPointers(input):
+    sort(input)                      <span class="pc">// O(n log n) — required for steering</span>
+    l ← 0,  r ← length(input) − 1
+    best ← initial_sentinel
+
+    <span class="pk">WHILE</span> l &lt; r:
+        candidate ← evaluate(input[l], input[r])
+        best ← update(best, candidate)
+        <span class="pk">IF</span> sum_too_small: l ← l + 1     <span class="pc">// left element is too small — move right</span>
+        <span class="pk">ELSE</span>:             r ← r − 1     <span class="pc">// right element is too large — move left</span>
+
+    <span class="pk">RETURN</span> best</pre>
+
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">template B — left/right-max accumulator (LC42 shape)</span></div>
+    <pre class="pseudo"><span class="pk">FUNCTION</span> leftRightMax(heights):
+    l ← 0,  r ← length(heights) − 1
+    leftMax ← 0,  rightMax ← 0,  total ← 0
+
+    <span class="pk">WHILE</span> l &lt; r:
+        <span class="pk">IF</span> heights[l] ≤ heights[r]:
+            leftMax ← max(leftMax, heights[l])
+            total ← total + (leftMax − heights[l])   <span class="pc">// water bounded by the left</span>
+            l ← l + 1
+        <span class="pk">ELSE</span>:
+            rightMax ← max(rightMax, heights[r])
+            total ← total + (rightMax − heights[r])  <span class="pc">// water bounded by the right</span>
+            r ← r − 1
+
+    <span class="pk">RETURN</span> total</pre>
+
+    <div class="co-insight"><strong>Why the left/right-max works:</strong> water at any position is bounded by <code>min(leftMax, rightMax) − height[i]</code>. When <code>heights[l] ≤ heights[r]</code>, we know the left side is the binding constraint — the rightMax is at least as tall — so we can safely compute and accumulate water for position <code>l</code> without knowing the final rightMax.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. Iterative-only -->
+  <section id="iterative" data-toc-label="Iterative-Only Pattern">
+    <h2>6 &nbsp; Iterative-Only Pattern</h2>
+    <p>Two pointers is inherently iterative: a single <code>while l &lt; r</code> loop. There is no recursive structure to consider:</p>
+    <ul>
+      <li><strong>No divide-and-conquer:</strong> you are not splitting the array and combining results. You are eliminating candidates one at a time from each end.</li>
+      <li><strong>No backtracking:</strong> once a pointer moves, it never moves back. The invariant guarantees that the discarded elements contain no valid answers.</li>
+      <li><strong>The anchor pattern (3Sum):</strong> the outer <code>for</code> loop is not recursion — it is simply applying the inner two-pointer sweep to each successive subarray. It is still O(n²) total: n anchors × O(n) inner sweep each.</li>
+    </ul>
+    <div class="co-insight"><strong>Why pointers can't move backward:</strong> the correctness argument rests on the invariant "the answer lies in [l, r]." If a pointer could move backward, it would re-examine eliminated candidates, destroying the invariant and the O(n) bound.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Swift translation -->
+  <section id="swift" data-toc-label="Swift Translation">
+    <h2>7 &nbsp; Swift Translation</h2>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">LC11 — Container With Most Water, fully annotated</span></div>
+    <pre class="swift"><span class="kw">func</span> <span class="fn">maxArea</span>(<span class="kw">_</span> height: [<span class="tp">Int</span>]) -&gt; <span class="tp">Int</span> {
+    <span class="kw">var</span> l = <span class="nm">0</span>, r = height.count - <span class="nm">1</span>
+    <span class="kw">var</span> best = <span class="nm">0</span>
+
+    <span class="kw">while</span> l &lt; r {
+        <span class="cm">// area = width × min height</span>
+        <span class="kw">let</span> area = (r - l) * <span class="fn">min</span>(height[l], height[r])
+        best = <span class="fn">max</span>(best, area)
+
+        <span class="cm">// min-side rule: moving the taller side inward can only shrink area</span>
+        <span class="kw">if</span> height[l] &lt; height[r] {
+            l += <span class="nm">1</span>
+        } <span class="kw">else</span> {
+            r -= <span class="nm">1</span>
+        }
+    }
+    <span class="kw">return</span> best
+}</pre>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">LC42 — Trapping Rain Water, left/right-max accumulator</span></div>
+    <pre class="swift"><span class="kw">func</span> <span class="fn">trap</span>(<span class="kw">_</span> height: [<span class="tp">Int</span>]) -&gt; <span class="tp">Int</span> {
+    <span class="kw">var</span> l = <span class="nm">0</span>, r = height.count - <span class="nm">1</span>
+    <span class="kw">var</span> leftMax = <span class="nm">0</span>, rightMax = <span class="nm">0</span>
+    <span class="kw">var</span> total = <span class="nm">0</span>
+
+    <span class="kw">while</span> l &lt; r {
+        <span class="kw">if</span> height[l] &lt;= height[r] {
+            leftMax = <span class="fn">max</span>(leftMax, height[l])
+            total += leftMax - height[l]   <span class="cm">// left side is the binding constraint</span>
+            l += <span class="nm">1</span>
+        } <span class="kw">else</span> {
+            rightMax = <span class="fn">max</span>(rightMax, height[r])
+            total += rightMax - height[r]  <span class="cm">// right side is the binding constraint</span>
+            r -= <span class="nm">1</span>
+        }
+    }
+    <span class="kw">return</span> total
+}</pre>
+
+    <div class="co-note"><strong>Swift-specific notes:</strong> <code>nums.sorted()</code> returns a new array (O(n log n), O(n) space); <code>nums.sort()</code> sorts in-place. For in-place pointer problems (LC125 on a character array), use <code>var chars = Array(s)</code> first — Swift strings are not subscriptable with integers. <code>while l &lt; r</code> (strict) handles the single-element and two-element cases correctly.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 8. Variant catalog -->
+  <section id="variants" data-toc-label="Variant Catalog">
+    <h2>8 &nbsp; Variant Catalog</h2>
+
+    <div class="pattern-block" id="v-converge" data-toc-label="8.1 Converging sum">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.1</span>
+        <span class="block-name">Converging Sum / Min-Side Steering</span>
+        <div class="block-pills"><span class="pill pill-t">O(n)</span><span class="pill pill-s">O(1)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> sorted array + "find a pair with a property" (sum, area, distance). The array's sorted order means: if the current pair is too small, you can only make it larger by moving the left pointer right; if too large, only by moving the right pointer left.</div>
+        <p><strong>Steering rule (LC11 — Container With Most Water):</strong> area = width × min(height[l], height[r]). Moving the taller side inward reduces width while the min height stays the same or gets smaller — guaranteed worse. Always move the shorter side.</p>
+        <pre class="pseudo"><span class="pk">WHILE</span> l &lt; r:
+    evaluate(arr[l], arr[r])
+    <span class="pk">IF</span> arr[l] &lt; arr[r]: l += 1   <span class="pc">// left is the weak side</span>
+    <span class="pk">ELSE</span>:               r -= 1   <span class="pc">// right is the weak side</span></pre>
+        <p><strong>Problems:</strong> LC11 — Container With Most Water.</p>
+      </div>
+    </div>
+
+    <div class="pattern-block" id="v-anchor" data-toc-label="8.2 Fixed anchor (3Sum)">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.2</span>
+        <span class="block-name">Fixed Anchor + Inner Converging Window (3Sum)</span>
+        <div class="block-pills"><span class="pill pill-t">O(n²)</span><span class="pill pill-s">O(1)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> "find three (or k) numbers that sum to a target." Sort first, then fix each element as the anchor with an outer loop and run Variant 8.1 on the remaining subarray. O(n²) total — O(n) anchors × O(n) inner sweep.</div>
+        <p><strong>Critical — duplicate skipping:</strong> the outer loop must skip duplicate anchors; the inner pointers must skip duplicates after a valid triplet is found. Without these skips, the result contains duplicate triplets.</p>
+        <pre class="pseudo"><span class="pk">SORT</span> array
+<span class="pk">FOR</span> k <span class="pk">FROM</span> 0 <span class="pk">TO</span> n − 3:
+    <span class="pk">IF</span> k &gt; 0 <span class="pk">AND</span> array[k] == array[k−1]: <span class="pk">CONTINUE</span>   <span class="pc">// skip duplicate anchor</span>
+    l ← k + 1,  r ← n − 1
+    <span class="pk">WHILE</span> l &lt; r:
+        sum ← array[k] + array[l] + array[r]
+        <span class="pk">IF</span> sum == 0:
+            record triplet
+            <span class="pk">WHILE</span> l &lt; r <span class="pk">AND</span> array[l] == array[l+1]: l += 1   <span class="pc">// skip dup</span>
+            <span class="pk">WHILE</span> l &lt; r <span class="pk">AND</span> array[r] == array[r−1]: r -= 1   <span class="pc">// skip dup</span>
+            l += 1; r -= 1
+        <span class="pk">ELSE IF</span> sum &lt; 0: l += 1
+        <span class="pk">ELSE</span>:            r -= 1</pre>
+        <p><strong>Problems:</strong> LC15 — 3Sum.</p>
+      </div>
+    </div>
+
+    <div class="pattern-block" id="v-palindrome" data-toc-label="8.3 Palindrome check">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.3</span>
+        <span class="block-name">Palindrome Check (Converging Compare)</span>
+        <div class="block-pills"><span class="pill pill-t">O(n)</span><span class="pill pill-s">O(1)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> "is this string a palindrome?" — or any problem where you compare elements symmetrically from both ends. The array does not need to be sorted; the convergence is driven by the structure of the problem (left must equal right).</div>
+        <p><strong>LC125 twist:</strong> the problem defines a palindrome over only alphanumeric characters, ignoring case. Skip non-alphanumeric characters at each pointer before comparing.</p>
+        <pre class="pseudo"><span class="pk">WHILE</span> l &lt; r:
+    <span class="pk">WHILE</span> l &lt; r <span class="pk">AND</span> NOT alphanumeric(s[l]): l += 1   <span class="pc">// skip junk</span>
+    <span class="pk">WHILE</span> l &lt; r <span class="pk">AND</span> NOT alphanumeric(s[r]): r -= 1   <span class="pc">// skip junk</span>
+    <span class="pk">IF</span> lowercase(s[l]) ≠ lowercase(s[r]): <span class="pk">RETURN</span> false
+    l += 1; r -= 1
+<span class="pk">RETURN</span> true</pre>
+        <p><strong>Problems:</strong> LC125 — Valid Palindrome (warm-up for the Two Pointers block).</p>
+      </div>
+    </div>
+
+    <div class="pattern-block" id="v-maxheight" data-toc-label="8.4 Left/right-max accumulator">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.4</span>
+        <span class="block-name">Left/Right-Max Accumulator (Trapping Rain Water)</span>
+        <div class="block-pills"><span class="pill pill-t">O(n)</span><span class="pill pill-s">O(1)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> "how much water / space is bounded between a left wall and a right wall at each position?" Water at position <code>i</code> equals <code>min(maxHeightToLeft, maxHeightToRight) − height[i]</code>. The two-pointer version computes this in O(n) time and O(1) space by maintaining running maxima.</div>
+        <p><strong>Key insight:</strong> when <code>height[l] ≤ height[r]</code>, the left side is the binding constraint regardless of what lies between l and r. We can safely accumulate <code>leftMax − height[l]</code> for position l without knowing the final rightMax — because rightMax is already ≥ leftMax.</p>
+        <pre class="pseudo"><span class="pk">WHILE</span> l &lt; r:
+    <span class="pk">IF</span> height[l] ≤ height[r]:
+        leftMax ← max(leftMax, height[l])
+        total += leftMax − height[l]
+        l += 1
+    <span class="pk">ELSE</span>:
+        rightMax ← max(rightMax, height[r])
+        total += rightMax − height[r]
+        r -= 1</pre>
+        <p><strong>Problems:</strong> LC42 — Trapping Rain Water.</p>
+        <div class="co-note"><strong>O(n) space alternative:</strong> precompute <code>leftMax[]</code> and <code>rightMax[]</code> arrays, then iterate once. Easier to reason about but uses O(n) space. Mention it first in an interview, then optimize to the two-pointer O(1) version.</div>
+      </div>
+    </div>
+
+    <div class="pattern-block" id="v-floyd" data-toc-label="8.5 Floyd's cycle detection">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.5</span>
+        <span class="block-name">Floyd's Cycle Detection (Slow &amp; Fast Pointers)</span>
+        <div class="block-pills"><span class="pill pill-t">O(log n)</span><span class="pill pill-s">O(1)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> "does this process eventually repeat a state?" — the algorithm generates a sequence of values one at a time, and you need to detect whether it cycles without storing every value seen. Slow moves one step; fast moves two. If there is a cycle, fast laps slow and they meet. If there is no cycle, fast reaches the terminal value first.</div>
+        <p><strong>Key difference from Seen-State Tracking (hash set):</strong> the set approach is O(n) space — it stores every visited state. Floyd's uses O(1) space by exploiting the fact that a cycle guarantees the two pointers will eventually land on the same value. The trade-off: Floyd's is slightly harder to explain; mention it as a follow-up optimization in interviews.</p>
+        <pre class="pseudo"><span class="pk">FUNCTION</span> floydCycle(start):
+    slow ← next(start)
+    fast ← next(next(start))
+
+    <span class="pk">WHILE</span> fast ≠ terminal <span class="pk">AND</span> slow ≠ fast:
+        slow ← next(slow)
+        fast ← next(next(fast))
+
+    <span class="pk">RETURN</span> fast == terminal   <span class="pc">// true → no cycle; false → cycle detected</span></pre>
+        <div class="co-insight"><strong>Why they must meet:</strong> in a cycle of length k, fast gains one step on slow per iteration. After at most k iterations, fast has lapped slow — they land on the same node. The cycle is guaranteed to be entered because the sequence is deterministic and the state space is finite.</div>
+        <div class="co-note"><strong>Happy Number (LC202) application:</strong> the "next state" function is the sum of squared digits. The sequence either reaches 1 (happy) or falls into the cycle 4 → 16 → 37 → 58 → 89 → 145 → 42 → 20 → 4. Floyd's detects the cycle in O(log n) time and O(1) space.</div>
+        <pre class="swift"><span class="kw">func</span> <span class="fn">isHappyNumber</span>(<span class="kw">_</span> number: <span class="tp">Int</span>) -&gt; <span class="tp">Bool</span> {
+    <span class="kw">func</span> <span class="fn">nextSquaresSum</span>(<span class="kw">_</span> current: <span class="tp">Int</span>) -&gt; <span class="tp">Int</span> {
+        <span class="kw">var</span> remaining = current, sum = <span class="nm">0</span>
+        <span class="kw">while</span> remaining &gt; <span class="nm">0</span> {
+            <span class="kw">let</span> digit = remaining % <span class="nm">10</span>
+            sum += digit * digit
+            remaining /= <span class="nm">10</span>
+        }
+        <span class="kw">return</span> sum
+    }
+
+    <span class="kw">var</span> slow = number
+    <span class="kw">var</span> fast = <span class="fn">nextSquaresSum</span>(number)
+
+    <span class="kw">while</span> fast != <span class="nm">1</span> &amp;&amp; slow != fast {
+        slow = <span class="fn">nextSquaresSum</span>(slow)
+        fast = <span class="fn">nextSquaresSum</span>(<span class="fn">nextSquaresSum</span>(fast))
+    }
+    <span class="kw">return</span> fast == <span class="nm">1</span>
+}</pre>
+        <p><strong>Problems:</strong> LC202 — Happy Number.</p>
+      </div>
+    </div>
+
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 9. Complexity -->
+  <section id="complexity" data-toc-label="Complexity Analysis">
+    <h2>9 &nbsp; Complexity Analysis</h2>
+    <p><strong>Why the pointer walk is O(n).</strong> At each step of the <code>while l &lt; r</code> loop, exactly one pointer moves — either l increases by 1 or r decreases by 1. The two pointers start n − 1 steps apart and converge to the same index. Total steps: at most n − 1. One element is permanently eliminated per step — the invariant holds because the eliminated element is proven to contain no valid answer given the sorted order.</p>
+    <p><strong>Why sort dominates.</strong> The pointer walk is O(n) but sorting is O(n log n). For problems that require sorting (pair/triple sum), the total is O(n log n). For problems that don't require sorting (palindrome, rain water), the total is O(n).</p>
+    <table class="t-cmx">
+      <thead><tr><th>Variant</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Converging sum (8.1)</td><td class="tc">O(n log n)</td><td class="sc">O(1)</td><td>Sort O(n log n) + walk O(n). No auxiliary structure.</td></tr>
+        <tr><td>3Sum anchor (8.2)</td><td class="tc">O(n²)</td><td class="sc">O(1)</td><td>Sort O(n log n) + n anchors × O(n) inner sweep. Result storage O(k) for k triplets.</td></tr>
+        <tr><td>Palindrome (8.3)</td><td class="tc">O(n)</td><td class="sc">O(1)</td><td>No sort needed. At most n/2 comparisons. Converting String to Array is O(n).</td></tr>
+        <tr><td>Left/right-max (8.4)</td><td class="tc">O(n)</td><td class="sc">O(1)</td><td>No sort needed. Single pass with two running maxima.</td></tr>
+        <tr><td>Floyd's cycle (8.5)</td><td class="tc">O(log n)</td><td class="sc">O(1)</td><td>Outer loop bounded by a constant; inner digit extraction is O(log n). No auxiliary set needed.</td></tr>
+        <tr class="bottleneck"><td>Hidden O(n²) trap</td><td class="tc">O(n²)</td><td class="sc">—</td><td>Any nested loop "for each left, scan all rights" — exactly what convergence eliminates. Also: moving both pointers simultaneously on equality causes missed valid pairs.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 10. Pitfalls -->
+  <section id="pitfalls" data-toc-label="Common Pitfalls">
+    <h2>10 &nbsp; Common Pitfalls</h2>
+    <div class="co-pitfall">
+      <div class="co-pitfall-title">Pitfalls — bugs this pattern invites</div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Forgetting to sort first (sum variants).</strong> Without sorted order, moving l right or r left has no predictable effect on the sum. The algorithm will produce wrong or incomplete answers silently. Always sort before the <code>while l &lt; r</code> loop for sum problems.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Moving both pointers on equality.</strong> On finding a valid pair, moving only one pointer is correct — the other might still form additional valid pairs with new elements. Skipping both loses valid results. In 3Sum, after recording a triplet, skip duplicates and then move both.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Missing duplicate skips in 3Sum.</strong> Without skipping duplicate anchors and duplicate inner pairs, the result list contains identical triplets. The skip loops — <code>while nums[l] == nums[l+1] { l += 1 }</code> — must run after recording a triplet, not before the next iteration.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Using <code>while l &lt;= r</code> instead of <code>while l &lt; r</code>.</strong> When l equals r, both pointers are at the same element — no valid pair can exist. The <code>&lt;=</code> variant processes a single element as a "pair with itself," producing off-by-one errors in palindrome checks and incorrect area calculations in LC11.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Subscripting a Swift String with integers.</strong> <code>s[i]</code> is not valid on Swift strings. Convert with <code>let chars = Array(s)</code> first. This is O(n) once and buys O(1) indexing for the rest of the algorithm.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Confusing two pointers with sliding window.</strong> If you catch yourself moving both l and r in the same direction (both right), you're writing a sliding window, not a converging two-pointer. Two pointers always converge — l moves right OR r moves left at each step, never both in the same direction.</span></div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 11. Edge cases -->
+  <section id="edge-cases" data-toc-label="Edge Cases">
+    <h2>11 &nbsp; Edge Cases to Verbalize</h2>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected behavior</th><th>What it exercises</th></tr></thead>
+      <tbody>
+        <tr><td>empty array</td><td>return sentinel — loop body never executes</td><td>initialization of best / total</td></tr>
+        <tr><td>single element</td><td>no pair; <code>while l &lt; r</code> exits immediately</td><td>the strict &lt; condition</td></tr>
+        <tr><td>two elements</td><td>exactly one pair — the only loop iteration</td><td>the base case</td></tr>
+        <tr><td>all equal elements</td><td>3Sum: produces at most one triplet [x, x, x]; duplicate skips exit immediately</td><td>duplicate skipping termination</td></tr>
+        <tr><td>all positive (3Sum target 0)</td><td>no triplet sums to 0 — return empty</td><td>no-match case with early termination (anchor &gt; 0 → break)</td></tr>
+        <tr><td>LC125: "  " (spaces only)</td><td>true — all non-alphanumeric chars are skipped; l and r never compare</td><td>skip-while loops consuming the entire string</td></tr>
+        <tr><td>LC42: monotone increasing heights</td><td>0 water — leftMax always equals height[l]; no surplus</td><td>accumulator stays at 0; leftMax always tracks current height</td></tr>
+        <tr><td>LC42: single bar</td><td>0 water — loop never executes</td><td>empty/single initialization</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 12. Cheat sheet -->
+  <section id="cheatsheet" data-toc-label="Cheat Sheet">
+    <h2>12 &nbsp; Cheat Sheet</h2>
+    <table class="t-versus">
+      <thead><tr><th>You see…</th><th>Variant</th><th>Sort first?</th><th>Steering rule</th></tr></thead>
+      <tbody>
+        <tr><td>"pair sums to target" (sorted)</td><td>8.1 converging</td><td>Yes</td><td>sum &lt; target → l++; sum &gt; target → r−−</td></tr>
+        <tr><td>"max area between walls"</td><td>8.1 min-side</td><td>No</td><td>move the shorter wall inward</td></tr>
+        <tr><td>"three numbers sum to 0"</td><td>8.2 anchor + 8.1</td><td>Yes</td><td>outer loop fixes anchor; inner is 8.1</td></tr>
+        <tr><td>"is it a palindrome?"</td><td>8.3 compare ends</td><td>No</td><td>mismatch → return false; match → both move inward</td></tr>
+        <tr><td>"trapped rain water"</td><td>8.4 l/r max</td><td>No</td><td>move the side with the shorter current bar</td></tr>
+        <tr><td>"does this sequence cycle?"</td><td>8.5 Floyd's</td><td>No</td><td>slow one step, fast two steps; meet = cycle</td></tr>
+      </tbody>
+    </table>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">copy-paste skeletons</span></div>
+    <pre class="swift"><span class="cm">// 8.1 Converging sum</span>
+<span class="kw">var</span> l = <span class="nm">0</span>, r = nums.count - <span class="nm">1</span>
+<span class="kw">while</span> l &lt; r {
+    <span class="kw">let</span> s = nums[l] + nums[r]
+    <span class="kw">if</span> s == target { <span class="cm">/* found */</span> }
+    <span class="kw">else if</span> s &lt; target { l += <span class="nm">1</span> } <span class="kw">else</span> { r -= <span class="nm">1</span> }
+}
+
+<span class="cm">// 8.3 Palindrome check</span>
+<span class="kw">let</span> chars = <span class="tp">Array</span>(s)
+<span class="kw">var</span> l = <span class="nm">0</span>, r = chars.count - <span class="nm">1</span>
+<span class="kw">while</span> l &lt; r {
+    <span class="kw">while</span> l &lt; r &amp;&amp; !chars[l].isLetter &amp;&amp; !chars[l].isNumber { l += <span class="nm">1</span> }
+    <span class="kw">while</span> l &lt; r &amp;&amp; !chars[r].isLetter &amp;&amp; !chars[r].isNumber { r -= <span class="nm">1</span> }
+    <span class="kw">if</span> chars[l].lowercased() != chars[r].lowercased() { <span class="kw">return false</span> }
+    l += <span class="nm">1</span>; r -= <span class="nm">1</span>
+}
+
+<span class="cm">// 8.4 Left/right-max accumulator</span>
+<span class="kw">var</span> l = <span class="nm">0</span>, r = h.count - <span class="nm">1</span>, lMax = <span class="nm">0</span>, rMax = <span class="nm">0</span>, total = <span class="nm">0</span>
+<span class="kw">while</span> l &lt; r {
+    <span class="kw">if</span> h[l] &lt;= h[r] { lMax = <span class="fn">max</span>(lMax, h[l]); total += lMax - h[l]; l += <span class="nm">1</span> }
+    <span class="kw">else</span>             { rMax = <span class="fn">max</span>(rMax, h[r]); total += rMax - h[r]; r -= <span class="nm">1</span> }
+}</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13. Cross-reference -->
+  <section id="practice" data-toc-label="Demonstrated in Practice">
+    <h2>13 &nbsp; Demonstrated in Practice</h2>
+    <p>The walkthroughs below apply each variant directly to the study-plan problems in progression order: warm-up → walkthrough → attempt → hardest.</p>
+    <div class="ref-grid">
+      <a class="xref-card" href="../../leetcode_walkthroughs/LC125_master.html">
+        <span class="ref-file">leetcode_walkthroughs/LC125_master.html</span>
+        <span class="ref-title">LC 125 — Valid Palindrome (Easy)</span>
+        <span class="ref-desc">Variant 8.3 (palindrome converge) — the warm-up. Shows the skip-while-non-alphanumeric pattern and the Swift <code>isLetter</code> / <code>isNumber</code> / <code>lowercased()</code> idioms.</span>
+      </a>
+      <a class="xref-card" href="../../leetcode_walkthroughs/LC11_master.html">
+        <span class="ref-file">leetcode_walkthroughs/LC11_master.html</span>
+        <span class="ref-title">LC 11 — Container With Most Water (Medium)</span>
+        <span class="ref-desc">Variant 8.1 with min-side steering — the walkthrough. Full proof of why moving the taller wall is provably suboptimal, with a complete dry run and interview simulation.</span>
+      </a>
+      <a class="xref-card" href="../../leetcode_walkthroughs/LC15_master.html">
+        <span class="ref-file">leetcode_walkthroughs/LC15_master.html</span>
+        <span class="ref-title">LC 15 — 3Sum (Medium)</span>
+        <span class="ref-desc">Variant 8.2 (anchor + inner converge) — the attempt. Covers the sort-first requirement, duplicate-skipping at both the anchor and inner levels, and the no-result edge cases.</span>
+      </a>
+      <a class="xref-card" href="../../leetcode_walkthroughs/LC42_master.html">
+        <span class="ref-file">leetcode_walkthroughs/LC42_master.html</span>
+        <span class="ref-title">LC 42 — Trapping Rain Water (Hard)</span>
+        <span class="ref-desc">Variant 8.4 (left/right-max accumulator). Shows the O(n) space precompute approach first, then the two-pointer O(1) optimization, with the min-side invariant explained step by step.</span>
+      </a>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 14. Solo problem -->
+  <section id="solo" data-toc-label="Solo Problem">
+    <h2>14 &nbsp; Solo Problem — no solution on this page</h2>
+    <div class="solo-box">
+      <div class="solo-banner">Solo problem — no solution on this page</div>
+      <p><strong>LC 11 — Container With Most Water (Medium).</strong> Given an array of heights representing vertical lines, find two lines that together with the x-axis form a container that holds the most water. This is Variant 8.1 with the min-side steering rule — rebuild it cold before opening anything.</p>
+      <ul class="checklist">
+        <li>Does this array need to be sorted first? Why or why not?</li>
+        <li>What is the formula for the area of the container given positions l and r?</li>
+        <li>Which pointer do you move, and why? (Prove that moving the taller side can never increase the area.)</li>
+        <li>What is the time complexity and space complexity?</li>
+        <li>What does the algorithm return on an array of length 2? Of length 1?</li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="page-footer">
+    Two Pointers Deep Dive · Theory Masterfile ·
+    <a href="arrays_hashing_overview_master.html">Arrays &amp; Hashing Overview</a> ·
+    <a href="hash_map_deep_dive_master.html">Hash Map Deep Dive</a> ·
+    Structure per <code>.claude/skills/wiki/references/theory-format.md</code>
+  </div>
+
+</main>
+</div>
+
+<script src="../../static/generated/manifest.js"></script>
+<script src="../../static/generated/nav.js"></script>
+<script src="../../static/generated/toc.js"></script>
+</body>
+</html>

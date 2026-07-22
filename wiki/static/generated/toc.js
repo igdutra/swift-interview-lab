@@ -82,13 +82,18 @@
             .replace(/>/g, "&gt;")
             .replace(/"/g, "&quot;");
     }
+    // TODO: these labels are content names living in the engine, which breaks
+    // the "engine knows no content names" rule. Move to wiki.config.ts
+    // (a `tocTitle` on each page type) when the config schema next changes.
     const categoryTitles = {
         theory: "Theory · Contents",
         walkthrough: "Walkthrough · Contents",
         reference: "Reference · Contents",
+        "ios-topic": "iOS Topic · Contents",
     };
     const tocTitle = (_e = categoryTitles[bodyCategory]) !== null && _e !== void 0 ? _e : "Contents";
-    const tocTitleClass = bodyCategory === "theory" || bodyCategory === "walkthrough" ? ` toc-cat-${bodyCategory}` : "";
+    const coloredTocCategories = ["theory", "walkthrough", "ios-topic"];
+    const tocTitleClass = coloredTocCategories.includes(bodyCategory) ? ` toc-cat-${bodyCategory}` : "";
     const linkParts = [];
     entries.forEach((entry, entryIndex) => {
         linkParts.push(`<a href="#${entry.anchorId}" class="toc-link"><span class="toc-num">${entryIndex + 1}</span> ${escapeHtml(entry.label)}</a>`);

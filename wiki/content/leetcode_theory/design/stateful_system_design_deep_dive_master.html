@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stateful System Design Deep Dive · Theory Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Stateful System Design Deep Dive",
+  "nav": "Stateful System Design Deep Dive",
+  "topics": [
+    "Hash Map",
+    "Invariants",
+    "Derived State"
+  ],
+  "blurb": "Map-backed state with a clean API, incremental aggregate state derived across mutations, validated stateful operations, and dependency-graph recompute. Directed at LC1166, LC348, LC2043, LC631."
+}
+</script>
+<link rel="stylesheet" href="../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="theory">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">Stateful System Design</h1>
+  <div class="page-meta">
+    <span>Theory Masterfile · Deep Dive</span><span>·</span>
+    <span>Language: Swift</span><span>·</span>
+    <span>Mutate · Query · Keep consistent</span>
+  </div>
+
+  <!-- 1. Definition -->
+  <section id="lead" data-toc-label="Definition">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Implement a class whose methods mutate and query internal state across a sequence of calls</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v">Choose the internal representation so every method is correct and cheap; decide what to store vs. what to derive</div></div>
+      <div class="infobox-row"><div class="infobox-k">Time</div><div class="infobox-v">Usually O(1) or O(log n) per method — the design goal is making each call cheap, not a one-shot pass</div></div>
+      <div class="infobox-row"><div class="infobox-k">Space</div><div class="infobox-v">O(size of state) — the data you keep to answer queries without rescanning history</div></div>
+      <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"design", "implement a class", "supports the following operations", "create / move / get", "after each call"</div></div>
+      <div class="infobox-row"><div class="infobox-k">The fork</div><div class="infobox-v">Store raw and recompute on query, OR maintain a derived aggregate incrementally on each mutation</div></div>
+      <div class="infobox-row"><div class="infobox-k">Walkthroughs</div><div class="infobox-v mono"><a href="../../leetcode_walkthroughs/LC933_master.html">LC933</a> · <a href="../../leetcode_walkthroughs/LC362_master.html">LC362</a> · <a href="../../leetcode_walkthroughs/LC1166_master.html">LC1166</a> · <a href="../../leetcode_walkthroughs/LC348_master.html">LC348</a> · LC2043 (coming) · LC631 (coming)</div></div>
+    </div>
+
+    <div class="lead">
+      <p><strong>Stateful system design problems</strong> ask you to implement a class — a constructor plus a set of methods — that is driven by an unknown sequence of calls, where each method reads or changes internal state. Unlike a single-function problem, there is no one input to transform; there is a <em>lifetime</em> of operations, and your object must answer every query correctly no matter the order. The algorithmic content is light. The real work is design: pick the data structure that makes each operation correct and fast, and keep an <em>invariant</em> — a property that is always true between calls — so you never have to reconstruct the past.</p>
+      <p>Every problem in this family turns on a single decision: <strong>what do you store, and what do you derive?</strong> You can keep the raw history and compute the answer on each query, or maintain a small derived summary that you update incrementally on each mutation so queries are trivial. That choice — recompute-on-read versus maintain-on-write — is the axis this page is built around, and it is what an interviewer is really probing when they ask you to "design" something. This deep dive lives under the <a href="index.html">Object &amp; System Design hub</a>, alongside iterator design.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Recognition signals -->
+  <section id="signals" data-toc-label="Recognition Signals">
+    <h2>2 &nbsp; Recognition Signals — what variant is this?</h2>
+    <p>The method list tells you which variant you are in. Read the operations, then jump to the named section.</p>
+    <table class="t-clue">
+      <thead><tr><th>When the problem says…</th><th>It means…</th></tr></thead>
+      <tbody>
+        <tr><td>"create path / set value / get value by key"</td><td>Map-backed state — a dictionary keyed by the identifier. §8.1 (LC1166)</td></tr>
+        <tr><td>"after each move, has anyone won?" / "report the aggregate now"</td><td>Incremental aggregate — maintain running sums/counts on each mutation. §8.2 (LC348)</td></tr>
+        <tr><td>"how many requests / hits in the last T seconds?" / "implement <code>ping</code> or <code>hit</code> as a class method"</td><td>Streaming window state — the queue IS the state; enqueue on each call, evict stale from front. §8.3 (LC933, LC362)</td></tr>
+        <tr><td>"transfer / withdraw / deposit, but reject invalid operations"</td><td>Validated operations — guard every method against its preconditions. §8.4 (LC2043)</td></tr>
+        <tr><td>"set a cell to a formula; getting it recomputes from its inputs"</td><td>Dependency recompute — a graph of cells, cascade updates. §8.4 (LC631)</td></tr>
+        <tr><td>"design an iterator / hasNext / next over this structure"</td><td>Not this page — that is the Iterator Design deep dive (coming), the sibling family under the <a href="index.html">Design hub</a>.</td></tr>
+        <tr><td>"least-recently-used / evict on capacity"</td><td>A specialized stateful design (LRU) — same store-vs-derive thinking, with a hash map + doubly-linked list. Beyond this block's four targets.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-when"><strong>The tell:</strong> the prompt lists <em>methods</em>, not a single return. The moment you see "implement a class that supports the following operations," you are designing state. Ask immediately: which method is called most often, and can I make <em>that</em> one O(1) by paying a little on the others? That trade picks your variant.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Terminology decoder -->
+  <section id="terminology" data-toc-label="Terminology Decoder">
+    <h2>3 &nbsp; Terminology Decoder</h2>
+    <table class="t-decoder">
+      <thead><tr><th>Term</th><th>Plain meaning</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td>State</td><td>The data your object keeps between method calls — everything it must remember</td><td>The map of paths→values in a file system</td></tr>
+        <tr><td>Invariant</td><td>A property that is always true between calls; you maintain it on every mutation so queries can trust it</td><td>"<code>rowSum[r]</code> always equals the signed count of marks in row r"</td></tr>
+        <tr><td>Derived / aggregate state</td><td>A summary computed from the raw state, kept up to date so a query is O(1) instead of a rescan</td><td>Running row/column/diagonal totals in tic-tac-toe</td></tr>
+        <tr><td>Recompute-on-read</td><td>Store only raw facts; compute the answer when a query asks for it</td><td>Re-evaluate a spreadsheet formula each time it is read</td></tr>
+        <tr><td>Maintain-on-write</td><td>Update a derived summary on every mutation so reads are trivial</td><td>Add ±1 to a row total the instant a mark is placed</td></tr>
+        <tr><td>Precondition / validation</td><td>A check a method must pass before it changes state; failing it returns an error and leaves state untouched</td><td>"the source account must hold enough balance to transfer"</td></tr>
+        <tr><td>Dependency graph</td><td>Nodes that depend on other nodes' values; changing one cascades to its dependents</td><td>Spreadsheet cell C = A + B depends on A and B</td></tr>
+        <tr><td>Amortized O(1)</td><td>Average cost per call is constant even if one call occasionally does more work</td><td>Dictionary insert/lookup over many calls</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Mental model -->
+  <section id="mental-model" data-toc-label="Mental Model">
+    <h2>4 &nbsp; Mental Model — store vs. derive</h2>
+
+    <div class="co-idea">
+      <div class="co-idea-title">The one idea</div>
+      Before writing a single method, ask: "what is the minimum I must store so that every query is answerable, and is there a derived summary I can keep up to date on each mutation to make the hot query O(1)?" Designing state is choosing what to remember. Everything you don't store, you must recompute — and everything you derive, you must keep consistent on every write.
+    </div>
+
+    <p>The whole family is the tension between two strategies. Take tic-tac-toe: a <code>move(row, col, player)</code> is called repeatedly and after each you must answer "did this move win?" Strategy one, <strong>recompute-on-read</strong>: store the whole board, and on each move scan that move's row, column, and the two diagonals — O(n) per move. Strategy two, <strong>maintain-on-write</strong>: store only running totals per row, per column, and per diagonal; player 1 adds +1, player 2 adds −1; a total hitting ±n is a win — O(1) per move. Watch the second strategy run on a 3×3 board, player 1 marking a diagonal:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">maintain-on-write: ±1 totals, win when |total| == n</span></div>
+<pre class="dry"><span class="tr-var">n=3  rows=[0,0,0]  cols=[0,0,0]  diag=0  anti=0   (player 1 = +1)</span>
+
+move(0,0,P1)  rows[0]=1  cols[0]=1  diag+=1 → 1     |any|==3? no
+move(1,1,P1)  rows[1]=1  cols[1]=1  diag+=1 → 2     anti (r+c==2) += 1 → 1
+              |any|==3? no
+move(2,2,P1)  rows[2]=1  cols[2]=1  <span class="tr-aha">diag+=1 → 3</span>          |diag|==3? <span class="tr-ok">YES → P1 wins</span></pre>
+    <p class="ascii-caption">No board scan ever happens. The diagonal total reaching 3 <em>is</em> the win — the derived aggregate answers the query in O(1).</p>
+
+    <p>Now the other side — a file system's <code>get(path)</code>. Here there is nothing to aggregate; the answer <em>is</em> the stored value. The design is purely "what is the key?" A path string maps directly to its value, so the store is a dictionary and the query is one lookup:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">map-backed: the path IS the key, no derivation</span></div>
+<pre class="dry"><span class="tr-var">store = [:]   (path → value)</span>
+
+createPath("/a", 1)    parent "/" exists (root) → store["/a"]=1 → true
+createPath("/a/b", 2)  parent "/a" in store?  yes → store["/a/b"]=2 → true
+createPath("/c/d", 3)  parent "/c" in store?  <span class="tr-bad">no → false</span>  (state unchanged)
+get("/a/b")            → store["/a/b"] = <span class="tr-ok">2</span></pre>
+    <p class="ascii-caption">The only design decision is the validity rule: a path is creatable only if its parent already exists. The map does the rest.</p>
+
+    <p>Recognizing which side you are on — is the answer <em>stored</em> or <em>derived</em>? — is what lets you pick the data structure before you write any method.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Pseudocode primer -->
+  <section id="pseudocode" data-toc-label="Pseudocode Primer">
+    <h2>5 &nbsp; Pseudocode Primer</h2>
+    <p>Every stateful design is this shape: a constructor that sets up the store, mutators that change it (validating first), and queries that read it (recomputing or returning a derived value). The <code>VALIDATE</code> and <code>UPDATE DERIVED</code> lines are the only parts that vary.</p>
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">the universal stateful-object shape</span></div>
+<pre class="pseudo"><span class="pk">CLASS</span> System:
+    <span class="pk">INIT</span>(config):
+        store   ← empty map / array / graph     <span class="pc">the raw state</span>
+        derived ← initial aggregates (sums, counts)  <span class="pc">optional summary</span>
+
+    <span class="pk">METHOD</span> mutate(key, value):
+        <span class="pk">IF</span> not VALIDATE(key, value):       <span class="pc">preconditions first</span>
+            <span class="pk">RETURN</span> failure                  <span class="pc">leave state untouched</span>
+        store[key] ← value
+        UPDATE DERIVED for this change      <span class="pc">maintain the invariant</span>
+        <span class="pk">RETURN</span> success
+
+    <span class="pk">METHOD</span> query(key):
+        <span class="pk">RETURN</span> derived[...]  OR  recompute from store[key]</pre>
+    <div class="co-insight"><strong>Why validate before mutating:</strong> a method that fails its precondition must leave the object exactly as it was — partial mutations corrupt the state for every later call. Check all preconditions first, then commit the change atomically. This is the difference between a design that survives an adversarial call sequence and one that drifts into an impossible state.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. Iterative-only pattern -->
+  <section id="iterative" data-toc-label="Iterative-Only Pattern">
+    <h2>6 &nbsp; Iterative-Only Pattern — methods, not recursion</h2>
+    <p>Stateful designs are inherently call-driven rather than recursive, but two rules keep them clean:</p>
+    <ul>
+      <li><strong>Maintain the invariant on every write, never lazily.</strong> If a derived total is supposed to always be correct, update it inside the same method that mutates the underlying state — not "later" or "on next read." The invariant is only useful if it actually holds between <em>every</em> pair of calls. The moment you defer the update, a query in between sees stale data.</li>
+      <li><strong>When a mutation cascades, drive the cascade with an explicit queue, not recursion.</strong> In the dependency-recompute variant, setting one cell can force re-evaluating its dependents, and theirs in turn. A breadth-first sweep with an explicit queue (or a topological order) is safer than recursion: it cannot overflow the call stack on a deep chain, and you can detect cycles by tracking visited nodes.</li>
+    </ul>
+    <div class="co-note"><strong>Why this matters here specifically:</strong> the bugs in this family are almost never algorithmic — they are consistency bugs. State that is updated in one place but read in another, or a cascade that recurses into a cycle and never returns. Keeping the invariant update co-located with the mutation, and making cascades explicit, is what makes those bugs impossible rather than merely unlikely.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Swift foundations -->
+  <section id="swift" data-toc-label="Swift Foundations">
+    <h2>7 &nbsp; Swift Foundations</h2>
+    <p>Four Swift facts underlie nearly every design problem in this family. Say them out loud before coding.</p>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">the four state-handling rules for this block</span></div>
+<pre class="swift"><span class="cm">// 1. Dictionary is your default store. O(1) average insert / lookup / update.</span>
+<span class="kw">var</span> store: [<span class="tp">String</span>: <span class="tp">Int</span>] = [:]
+store[<span class="st">"/a"</span>] = <span class="nm">1</span>                 <span class="cm">// insert or overwrite</span>
+<span class="kw">if</span> <span class="kw">let</span> value = store[<span class="st">"/a"</span>] { }    <span class="cm">// presence test + read in one step</span>
+
+<span class="cm">// 2. A class gives reference semantics — needed when nodes share/point to state.</span>
+<span class="kw">class</span> <span class="tp">Cell</span> { <span class="kw">var</span> value = <span class="nm">0</span>; <span class="kw">var</span> dependents: [<span class="tp">Cell</span>] = [] }
+<span class="cm">// Two references to the same Cell see each other's mutations — unlike a struct.</span>
+
+<span class="cm">// 3. Derived aggregates are plain arrays sized once in init.</span>
+<span class="kw">var</span> rowSum  = [<span class="tp">Int</span>](repeating: <span class="nm">0</span>, count: n)
+<span class="kw">var</span> colSum  = [<span class="tp">Int</span>](repeating: <span class="nm">0</span>, count: n)
+<span class="kw">var</span> diagonal = <span class="nm">0</span>, antiDiagonal = <span class="nm">0</span>
+
+<span class="cm">// 4. Validate, then mutate. Guard preconditions and return early on failure.</span>
+<span class="kw">func</span> <span class="fn">transfer</span>(<span class="kw">_</span> from: <span class="tp">Int</span>, <span class="kw">_</span> to: <span class="tp">Int</span>, <span class="kw">_</span> amount: <span class="tp">Int</span>) -&gt; <span class="tp">Bool</span> {
+    <span class="kw">guard</span> isValid(from), isValid(to), balance[from] &gt;= amount <span class="kw">else</span> { <span class="kw">return</span> <span class="kw">false</span> }
+    balance[from] -= amount; balance[to] += amount        <span class="cm">// commit only after all checks</span>
+    <span class="kw">return</span> <span class="kw">true</span>
+}</pre>
+    <div class="co-pitfall u-mt-12"><strong>The struct-vs-class trap.</strong> Use a <code>struct</code> for value-type state (totals, balances) and a <code>class</code> when nodes must point to and mutate each other (a dependency graph, a linked structure). Copying a struct when you needed shared references — or sharing a class when you wanted an independent copy — is the most common modeling bug in this block.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 8. The four variants -->
+  <section id="variants" data-toc-label="The Five Variants">
+    <h2>8 &nbsp; The Five Variants</h2>
+    <p>Ordered by increasing design difficulty. The first three are taught in full walkthroughs; the last two are solve-it-yourself targets — frame and pitfalls here, no solution.</p>
+
+    <!-- 8.1 Map-backed -->
+    <div class="pattern-block" id="v-map" data-toc-label="8.1 Map-backed state">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.1</span>
+        <span class="block-name">Map-backed state</span>
+        <div class="block-pills"><span class="pill pill-t">O(1) / op</span><span class="pill pill-s">O(keys)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> the answer to a query <em>is</em> a stored value — there is nothing to aggregate. The design is "what is the key?" A dictionary keyed by the identifier (a path, an id, a name) gives O(1) create/set/get. The only subtlety is the validity rule on creation. Full Swift in §7; full walkthrough is LC1166.</div>
+        <p><strong>The frame (LC 1166 — Design File System):</strong> a single <code>[String: Int]</code> maps each path to its value. <code>createPath(path, value)</code> succeeds only if the path is absent and its <em>parent</em> path already exists (the root <code>/</code> is the implicit base); <code>get(path)</code> returns the stored value or −1. Deriving the parent is pure string work: drop the last <code>/</code>-component.</p>
+        <div class="co-insight"><strong>The design decision:</strong> store full paths as keys rather than building an actual tree of folders. A tree would let you walk children, but no operation here needs that — every operation is keyed by a full path, so the flat map is simpler and O(1). Choosing the representation to fit the <em>operations</em>, not the real-world metaphor, is the lesson.</p></div>
+        <p>Canonical problem: LC 1166 — Design File System (warm-up). <em>Full walkthrough.</em></p>
+      </div>
+    </div>
+
+    <!-- 8.2 Incremental aggregate -->
+    <div class="pattern-block" id="v-derived" data-toc-label="8.2 Incremental aggregate">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.2</span>
+        <span class="block-name">Incremental aggregate state</span>
+        <div class="block-pills"><span class="pill pill-t">O(1) / op</span><span class="pill pill-s">O(n)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> a query asks for an aggregate ("has anyone won?", "what's the current max?") after each mutation. Instead of rescanning, keep a running summary and update it by a delta on every write, so the query is O(1). Full Swift in the walkthrough (LC348).</div>
+        <p><strong>The frame (LC 348 — Design Tic-Tac-Toe):</strong> keep <code>rowSum[i]</code>, <code>colSum[j]</code>, a single <code>diagonal</code>, and a single <code>antiDiagonal</code>. Player 1 contributes +1, player 2 contributes −1. On <code>move(r, c, player)</code>, add the player's delta to <code>rowSum[r]</code>, <code>colSum[c]</code>, and (if <code>r==c</code>) the diagonal, and (if <code>r+c==n−1</code>) the anti-diagonal. A total whose absolute value reaches <code>n</code> means that line is full of one player — a win.</p>
+        <div class="co-insight"><strong>The design decision:</strong> the ±1 encoding collapses "all same player" into a single arithmetic test. Two players, one number per line, one comparison — no board scan, no per-cell inspection. Picking an encoding that turns the query into arithmetic is the move.</p></div>
+        <p>Canonical problem: LC 348 — Design Tic-Tac-Toe (walkthrough). <em>Full walkthrough.</em></p>
+      </div>
+    </div>
+
+    <!-- 8.3 Streaming window state -->
+    <div class="pattern-block" id="v-window" data-toc-label="8.3 Streaming window state">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.3</span>
+        <span class="block-name">Streaming window state (queue as state)</span>
+        <div class="block-pills"><span class="pill pill-t">O(1) amortized / call</span><span class="pill pill-s">O(w)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> you are implementing a class whose method is called repeatedly over time, and the answer to each call depends on a <em>window</em> of past calls that must be remembered across invocations. The object's state <em>is</em> the queue — it persists between calls, growing and shrinking as items enter and leave the window. Full walkthroughs at <a href="../../leetcode_walkthroughs/LC933_master.html">LC933</a> and <a href="../../leetcode_walkthroughs/LC362_master.html">LC362</a>.</div>
+
+        <div class="co-idea">
+          <div class="co-idea-title">This is the key distinction from a one-shot function</div>
+          If this were a single function over a static array, two pointers or a prefix sum would apply — the array is fixed and both ends are addressable. But here you are implementing a <strong>class whose state survives between calls</strong>. Each call adds one item and asks "how many items are in the window right now?" That streaming, call-by-call nature forces a data structure that <em>remembers</em> — specifically a queue that holds the live window and evicts the stale front on each call.
+        </div>
+
+        <p><strong>The frame (LC 933 — Number of Recent Calls):</strong> a <code>RecentCounter</code> class with a single <code>ping(t)</code> method. Each call enqueues <code>t</code> at the back, evicts any front items older than <code>t − 3000</code>, then returns the queue count. The queue is the <em>entire state of the class</em> — there is no other field needed.</p>
+
+        <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">Variant 8.3 skeleton — the queue IS the object's state</span></div>
+<pre class="swift"><span class="kw">class</span> <span class="tp">RecentCounter</span> {
+    <span class="kw">private</span> <span class="kw">var</span> window: [<span class="tp">Int</span>] = []   <span class="cm">// this IS the state — it persists across calls</span>
+
+    <span class="kw">func</span> <span class="fn">ping</span>(_ timestamp: <span class="tp">Int</span>) -&gt; <span class="tp">Int</span> {
+        window.<span class="fn">append</span>(timestamp)                     <span class="cm">// enqueue — O(1) amortized</span>
+        <span class="kw">while</span> <span class="kw">let</span> oldest = window.first,
+              oldest &lt; timestamp - <span class="nm">3000</span> {
+            window.<span class="fn">removeFirst</span>()                    <span class="cm">// evict stale — amortized O(1)</span>
+        }
+        <span class="kw">return</span> window.count
+    }
+}
+<span class="cm">// Each timestamp enqueued once, dequeued at most once → O(n) total, O(1) amortized per call.</span>
+<span class="cm">// Compare: a one-shot function over a static array would use two pointers — no queue, no class.</span></pre>
+
+        <div class="co-insight"><strong>What "state persists between calls" actually means.</strong> After <code>ping(1)</code> returns, the window still holds <code>[1]</code>. After <code>ping(100)</code>, it holds <code>[1, 100]</code>. After <code>ping(3001)</code>, the eviction loop removes 1 (since <code>1 &lt; 3001 − 3000 = 1</code> is false — it stays), and after <code>ping(3002)</code> it finally evicts 1. The queue bridges calls; without the class wrapper the queue would vanish between calls. <em>That</em> is the design problem: not what algorithm to run, but what to store so the next call can pick up exactly where the last one left off.</div>
+
+        <table class="t-versus">
+          <thead><tr><th></th><th>One-shot function</th><th>Stateful class (this variant)</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Input</strong></td><td>A static array passed in</td><td>Items arrive call-by-call, not all at once</td></tr>
+            <tr><td><strong>State lives…</strong></td><td>In local variables, discarded after return</td><td>In instance properties, survives between calls</td></tr>
+            <tr><td><strong>Tool</strong></td><td>Two pointers or prefix sums on the fixed array</td><td>A queue held in the class — enqueue back, evict front</td></tr>
+            <tr><td><strong>Prototype</strong></td><td>LC3, LC76 — static input, two-pointer shrink</td><td>LC933, LC362 — streaming input, class holds the window</td></tr>
+          </tbody>
+        </table>
+
+        <p>Canonical problems: LC 933 — Number of Recent Calls (full walkthrough) · LC 362 — Design Hit Counter (full walkthrough).</p>
+      </div>
+    </div>
+
+    <!-- 8.4 Validated operations — FRAME ONLY -->
+    <div class="pattern-block" id="v-validated" data-toc-label="8.4 Validated operations">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.4</span>
+        <span class="block-name">Validated stateful operations</span>
+        <div class="block-pills"><span class="pill pill-t">O(1) / op</span><span class="pill pill-s">O(accounts)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-note"><strong>Solve-it-yourself variant.</strong> This is an <em>attempt</em> problem — the frame and the validation rules are below, but no solution. Build it cold.</div>
+        <div class="co-when"><strong>When to use:</strong> every method must reject invalid calls and leave state untouched on failure. The state is simple; the discipline is checking every precondition before committing any mutation.</div>
+        <p><strong>The frame (LC 2043 — Simple Bank System):</strong> an array <code>balance[1...n]</code> of account balances. Three operations, each returning whether it succeeded:</p>
+        <ul>
+          <li><strong>transfer(from, to, money)</strong> — valid only if both accounts exist (1-indexed, in range) and <code>balance[from] &gt;= money</code>.</li>
+          <li><strong>deposit(account, money)</strong> — valid only if the account exists.</li>
+          <li><strong>withdraw(account, money)</strong> — valid only if the account exists and <code>balance[account] &gt;= money</code>.</li>
+        </ul>
+        <div class="co-insight"><strong>The frame:</strong> a single <code>isValid(account)</code> helper checks the 1-indexed range; each operation guards its preconditions with it (plus the balance check where needed) and returns <code>false</code> without mutating on any failure. The whole difficulty is the off-by-one of 1-indexed accounts and never committing a partial transfer. See pitfalls §10 and edge cases §11.</div>
+        <p>Canonical problem: LC 2043 — Simple Bank System (attempt). Graduated hints in the walkthrough.</p>
+      </div>
+    </div>
+
+    <!-- 8.5 Dependency recompute — FRAME ONLY -->
+    <div class="pattern-block" id="v-depgraph" data-toc-label="8.5 Dependency recompute">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.5</span>
+        <span class="block-name">Dependency graph + recompute</span>
+        <div class="block-pills"><span class="pill pill-t">O(cells) / set</span><span class="pill pill-s">O(cells + edges)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-note"><strong>Solve-it-yourself variant.</strong> This is a <em>target</em> problem — the model and the cascade rule are below, but no code. This is the hardest design in the block.</div>
+        <div class="co-when"><strong>When to use:</strong> a value can be defined in terms of other values, and changing one must cascade to everything that depends on it. The state is a graph; a mutation triggers a recompute of all dependents.</div>
+        <p><strong>The model (LC 631 — Design Excel Sum Formula):</strong> a grid of cells. <code>set(cell, value)</code> makes a cell a literal; <code>sum(cell, ranges)</code> makes it a formula summing a list of cells/ranges, and returns the computed value; <code>get(cell)</code> returns the current value. Setting or summing a cell must make every formula that (transitively) depends on it reflect the new value.</p>
+        <div class="co-insight"><strong>The frame:</strong> each cell stores either a literal or a formula (its list of input cells/ranges). Two viable designs — (a) <em>recompute-on-read</em>: <code>get</code> evaluates the formula by recursively reading its inputs, naturally cascading; (b) <em>maintain-on-write</em>: store dependents and, on a <code>set</code>, do a BFS over dependents recomputing each. The recompute-on-read design is simpler and sufficient at this scale; the graph and cascade are the whole challenge. See pitfalls §10.</div>
+        <p>Canonical problem: LC 631 — Design Excel Sum Formula (target). Graduated hints in the walkthrough.</p>
+      </div>
+    </div>
+
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 9. Complexity -->
+  <section id="complexity" data-toc-label="Complexity Analysis">
+    <h2>9 &nbsp; Complexity Analysis</h2>
+    <p><strong>The metric is cost per operation, not a one-shot pass.</strong> A design is good when the hot method is O(1) or O(log n) and the others are not much worse. The recurring win is replacing a per-query rescan (O(n) or O(n²)) with a derived aggregate updated in O(1) per write — trading a little work on every mutation for cheap, constant-time queries.</p>
+    <table class="t-cmx">
+      <thead><tr><th>Variant</th><th>Time / op</th><th>Space</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Map-backed (8.1)</td><td class="tc">O(1)</td><td class="sc">O(keys)</td><td>Dictionary insert/lookup is O(1) average; deriving a parent path is O(path length).</td></tr>
+        <tr><td>Incremental aggregate (8.2)</td><td class="tc">O(1)</td><td class="sc">O(n)</td><td>Each move updates a constant number of running totals; the win check is one comparison.</td></tr>
+        <tr><td>Streaming window state (8.3)</td><td class="tc">O(1) amortized</td><td class="sc">O(w)</td><td>Each item enqueued once and dequeued at most once. Window holds at most w in-range items.</td></tr>
+        <tr><td>Validated operations (8.4)</td><td class="tc">O(1)</td><td class="sc">O(accounts)</td><td>Each op is a few range/balance checks plus a constant-time mutation.</td></tr>
+        <tr><td>Dependency recompute (8.5)</td><td class="tc">O(cells + edges)</td><td class="sc">O(cells + edges)</td><td>A set cascades to all transitive dependents; recompute touches each affected cell once.</td></tr>
+        <tr class="bottleneck"><td>Bottleneck</td><td class="tc">O(n) per query</td><td class="sc">—</td><td>Rescanning the full state on every query instead of maintaining a derived aggregate — the exact mistake the incremental variant exists to avoid.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 10. Pitfalls -->
+  <section id="pitfalls" data-toc-label="Common Pitfalls">
+    <h2>10 &nbsp; Common Pitfalls</h2>
+    <div class="co-pitfall">
+      <div class="co-pitfall-title">Pitfalls — bugs this block invites</div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Mutating before validating (8.3).</strong> Deducting from the source account and <em>then</em> discovering the balance was insufficient corrupts state. Check every precondition first; commit only after all pass.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Stale derived state (8.2).</strong> Updating the row total but forgetting the diagonal on a diagonal move means a winning line is missed. Every mutation must update <em>all</em> aggregates it touches, in the same method.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>1-indexed off-by-one (8.3).</strong> Bank accounts are numbered 1…n but arrays are 0-indexed. Size the array <code>n+1</code> and index directly, or subtract 1 consistently — mixing the two is the classic bug.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Forgetting the parent-exists rule (8.1).</strong> Creating <code>/a/b/c</code> when <code>/a/b</code> was never created must fail. The validity check is "parent present," not just "this path absent."</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Recompute cascade into a cycle (8.4).</strong> If cell A's formula references B and B's references A, a naive recompute recurses forever. Either forbid cycles by the problem's guarantee or track visited cells during the cascade.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Overwrite vs. accumulate (8.2/8.4).</strong> When a cell changes from one value to another, the derived total must be adjusted by the <em>delta</em> (subtract the old, add the new), not just add the new — or repeated sets double-count.</span></div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 11. Edge cases -->
+  <section id="edge-cases" data-toc-label="Edge Cases">
+    <h2>11 &nbsp; Edge Cases to Verbalize</h2>
+    <p>Name these before coding. The validation and cascade cases are the specification for the two attempt/target variants.</p>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected behavior</th><th>What it exercises</th></tr></thead>
+      <tbody>
+        <tr><td>File: create a path that already exists</td><td>Return <code>false</code>; do not overwrite</td><td>The "absent" half of the creation validity rule</td></tr>
+        <tr><td>File: create <code>/a/b</code> when <code>/a</code> is missing</td><td>Return <code>false</code></td><td>The "parent exists" half of the rule</td></tr>
+        <tr><td>File: <code>get</code> a path never created</td><td>Return −1 (the sentinel), not a crash</td><td>Missing-key handling on the query side</td></tr>
+        <tr><td>Tic-tac-toe: winning move on a diagonal</td><td>Detected via the diagonal total, not only row/col</td><td>Updating all four aggregate kinds per move</td></tr>
+        <tr><td>Tic-tac-toe: the very first move</td><td>No win possible on a board larger than 1×1</td><td>The win check tolerating early calls</td></tr>
+        <tr><td>Bank: transfer to/from an out-of-range account</td><td>Return <code>false</code>; state untouched</td><td>The 1-indexed range guard</td></tr>
+        <tr><td>Bank: withdraw more than the balance</td><td>Return <code>false</code>; no partial withdrawal</td><td>Balance precondition + atomic commit</td></tr>
+        <tr><td>Bank: transfer the full balance (exact)</td><td>Succeeds — the check is <code>&gt;=</code>, not <code>&gt;</code></td><td>The boundary of the balance condition</td></tr>
+        <tr><td>Excel: set a cell that feeds a formula</td><td>The dependent formula reflects the new value</td><td>The recompute cascade</td></tr>
+        <tr><td>Excel: a formula referencing an empty cell</td><td>Treat the empty cell as 0</td><td>Default value for uninitialized inputs</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 12. Cheat sheet -->
+  <section id="cheatsheet" data-toc-label="Cheat Sheet">
+    <h2>12 &nbsp; Cheat Sheet</h2>
+    <table class="t-versus">
+      <thead><tr><th>You see…</th><th>You use</th><th>Variant</th></tr></thead>
+      <tbody>
+        <tr><td>"create / set / get by identifier"</td><td>a dictionary keyed by the identifier</td><td>§8.1 Map-backed</td></tr>
+        <tr><td>"aggregate / has-won after each move"</td><td>running totals updated by a delta per write</td><td>§8.2 Incremental aggregate</td></tr>
+        <tr><td>"how many X in the last T seconds?" / class with <code>ping</code> or <code>hit</code></td><td>a queue held as instance state — enqueue each call, evict stale front, return count</td><td>§8.3 Streaming window</td></tr>
+        <tr><td>"reject invalid operations"</td><td>validate all preconditions, then commit atomically</td><td>§8.4 Validated ops</td></tr>
+        <tr><td>"formula depends on other cells"</td><td>a dependency graph + recompute (read or BFS)</td><td>§8.5 Dependency recompute</td></tr>
+        <tr><td>"hasNext / next over a structure"</td><td>lazy cursor — see the Iterator deep dive (coming)</td><td>Sibling family</td></tr>
+      </tbody>
+    </table>
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">copy-paste stateful-class skeleton</span></div>
+<pre class="swift"><span class="kw">class</span> <span class="tp">System</span> {
+    <span class="kw">private</span> <span class="kw">var</span> store: [<span class="tp">String</span>: <span class="tp">Int</span>] = [:]   <span class="cm">// raw state</span>
+    <span class="kw">private</span> <span class="kw">var</span> derived = <span class="nm">0</span>                  <span class="cm">// optional aggregate</span>
+
+    <span class="kw">init</span>(<span class="cm">/* config */</span>) { }
+
+    <span class="kw">func</span> <span class="fn">mutate</span>(<span class="kw">_</span> key: <span class="tp">String</span>, <span class="kw">_</span> value: <span class="tp">Int</span>) -&gt; <span class="tp">Bool</span> {
+        <span class="kw">guard</span> <span class="cm">/* preconditions */</span> <span class="kw">true</span> <span class="kw">else</span> { <span class="kw">return</span> <span class="kw">false</span> }
+        store[key] = value
+        <span class="cm">// update derived by the delta here — keep the invariant</span>
+        <span class="kw">return</span> <span class="kw">true</span>
+    }
+
+    <span class="kw">func</span> <span class="fn">query</span>(<span class="kw">_</span> key: <span class="tp">String</span>) -&gt; <span class="tp">Int</span> { store[key] ?? -<span class="nm">1</span> }
+}</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13. Cross-reference -->
+  <section id="practice" data-toc-label="Demonstrated in Practice">
+    <h2>13 &nbsp; Demonstrated in Practice</h2>
+    <p>Each problem in this block is taught in its own walkthrough — constraint insights, edge-case inventory, interview simulation, and (for the warm-up and walkthrough) a full dry run and iterative Swift solution.</p>
+    <div class="ref-grid">
+      <a class="xref-card" href="../../leetcode_walkthroughs/LC933_master.html">
+        <span class="ref-file">leetcode_walkthroughs/LC933_master.html</span>
+        <span class="ref-title">LC 933 — Number of Recent Calls (Easy · warm-up)</span>
+        <span class="ref-desc">Streaming window state in its simplest form — a single queue as the entire class state, enqueue on each <code>ping</code>, evict-while-stale from the front, return count. Demonstrates why "implement a class" forces a data structure that persists between calls.</span>
+      </a>
+      <a class="xref-card" href="../../leetcode_walkthroughs/LC362_master.html">
+        <span class="ref-file">leetcode_walkthroughs/LC362_master.html</span>
+        <span class="ref-title">LC 362 — Design Hit Counter (Medium)</span>
+        <span class="ref-desc">Streaming window state one step up — two-method API (<code>hit</code> + <code>getHits</code>), 300-second window, head-index O(1) dequeue pattern, and the circular-buffer O(1)-space follow-up. Full walkthrough.</span>
+      </a>
+      <a class="xref-card" href="../../leetcode_walkthroughs/LC1166_master.html">
+        <span class="ref-file">leetcode_walkthroughs/LC1166_master.html</span>
+        <span class="ref-title">LC 1166 — Design File System (Medium · warm-up)</span>
+        <span class="ref-desc">Map-backed state in its purest form — a flat <code>[String:Int]</code>, the parent-exists creation rule, and the −1 sentinel on get. Full dry run and Swift. The orientation problem for the family.</span>
+      </a>
+      <a class="xref-card" href="../../leetcode_walkthroughs/LC348_master.html">
+        <span class="ref-file">leetcode_walkthroughs/LC348_master.html</span>
+        <span class="ref-title">LC 348 — Design Tic-Tac-Toe (Medium · walkthrough)</span>
+        <span class="ref-desc">Incremental aggregate: ±1 row/column/diagonal totals updated per move, win when a total hits ±n — O(1) per move, no board scan. Full dry run and Swift.</span>
+      </a>
+      <span class="xref-card xref-coming">
+        <span class="ref-file">leetcode_walkthroughs/LC2043_master.html</span>
+        <span class="ref-title">LC 2043 — Simple Bank System (Medium · attempt)</span>
+        <span class="ref-desc">Validated operations you solve cold — the 1-indexed range guard, the balance precondition, atomic transfer, and graduated hints. No solution shown.</span>
+      </span>
+      <span class="xref-card xref-coming">
+        <span class="ref-file">leetcode_walkthroughs/LC631_master.html</span>
+        <span class="ref-title">LC 631 — Design Excel Sum Formula (Hard · target)</span>
+        <span class="ref-desc">Dependency-graph recompute — the cell model, the cascade rule, recompute-on-read vs. maintain-on-write, and hints. Frame only; no solution shown.</span>
+      </span>
+    </div>
+    <div class="co-note u-mt-12"><strong>Note:</strong> the LC2043 and LC631 walkthroughs are the solve-it-yourself targets of this family; their pages are coaches (problem, edge cases, signals, hints) with no solution, per the study-plan spoiler rule.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 14. Solo problem -->
+  <section id="solo" data-toc-label="Solo Problem">
+    <h2>14 &nbsp; Solo Problem — no solution on this page</h2>
+    <div class="solo-box">
+      <div class="solo-banner">Solo problem — no solution on this page</div>
+      <p><strong>LC 2043 — Simple Bank System (Medium).</strong> Implement a bank with <code>n</code> accounts (1-indexed) supporting <code>transfer</code>, <code>deposit</code>, and <code>withdraw</code>, each returning whether it succeeded. An operation fails — and changes nothing — if an account is out of range or a balance is insufficient. Decide your state and your validation rules before writing any method.</p>
+      <ul class="checklist">
+        <li>What is the state — and why size it <code>n+1</code> or subtract 1 consistently for the 1-indexing?</li>
+        <li>What are the exact preconditions for each of the three operations?</li>
+        <li>Why must you validate <em>all</em> conditions before mutating any balance?</li>
+        <li>Is the balance check <code>&gt;=</code> or <code>&gt;</code> — what happens on an exact-balance transfer?</li>
+        <li>Which operations share a validity helper, and what does it check?</li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="page-footer">
+    Stateful System Design · Theory Masterfile (Deep Dive) · Hub:
+    <a href="index.html">Object &amp; System Design</a> ·
+    Walkthroughs: <a href="../../leetcode_walkthroughs/LC933_master.html">LC933</a> · <a href="../../leetcode_walkthroughs/LC362_master.html">LC362</a> · <a href="../../leetcode_walkthroughs/LC1166_master.html">LC1166</a> · <a href="../../leetcode_walkthroughs/LC348_master.html">LC348</a> ·
+    Structure per <code>.claude/skills/wiki/references/theory-format.md</code>
+  </div>
+
+</main>
+</div>
+
+<script src="../../static/generated/manifest.js"></script>
+<script src="../../static/generated/nav.js"></script>
+<script src="../../static/generated/toc.js"></script>
+</body>
+</html>

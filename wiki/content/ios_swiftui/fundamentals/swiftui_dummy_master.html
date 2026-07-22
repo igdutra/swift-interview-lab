@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Page Type Demo · iOS Topic</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Page Type Demo",
+  "nav": "Page Type Demo",
+  "topics": [
+    "Scaffold",
+    "Placeholder"
+  ],
+  "blurb": "Placeholder page demonstrating the ios-topic section skeleton. Replace with real SwiftUI content."
+}
+</script>
+<link rel="stylesheet" href="../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="ios-topic">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<main class="content">
+
+  <h1 class="page-title">Page Type Demo</h1>
+  <div class="page-meta">
+    <span>iOS Topic</span><span>·</span>
+    <span>Skeleton demonstration — not real content</span>
+  </div>
+
+  <section id="lead" data-toc-label="Definition">
+    <div class="lead">
+      <p>This page exists to demonstrate the <code>ios-topic</code> page type end to end: its section skeleton, its place in the generated table of contents, its hub card, and its position in the two-domain top navigation. Every section below states <em>what belongs there</em> rather than containing real material.</p>
+    </div>
+
+    <div class="co co-idea">
+      <strong>THE ONE IDEA:</strong> the <code>ios-topic</code> type differs from the LeetCode <code>theory</code> type in three ways — it has an <strong>API</strong> section (framework knowledge is signature-shaped), it splits <strong>Anti-Patterns</strong> out from Pitfalls (the source references are organized around wrong-then-right), and it drops <code>complexity</code> / <code>solo</code>, which are algorithm-only concerns.
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="mental-model" data-toc-label="Mental Model">
+    <h2>2 &nbsp; Mental Model — how to think about it</h2>
+    <p>The one-paragraph intuition a reader should carry away even if they forget every API name. For a real page this is where the framework's underlying rule gets stated plainly — for example, <em>parent proposes a size, child chooses its own, parent positions it</em>.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="signals" data-toc-label="When It Applies">
+    <h2>3 &nbsp; When It Applies</h2>
+    <p>The recognition layer: the situations in which a reader should reach for this topic. Mirrors the role that "Recognition Signals" plays in the LeetCode theory pages, but keyed on product situations rather than problem statements.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="api" data-toc-label="The API">
+    <h2>4 &nbsp; The API — types, modifiers, signatures</h2>
+    <p>The concrete surface: types, initializers, and modifiers with their real signatures. This section has no equivalent in the algorithm-shaped theory pages, and it is the main reason <code>ios-topic</code> exists as its own type.</p>
+    <pre><code>// Real pages carry actual signatures here, e.g.
+func sheet&lt;Item, Content&gt;(
+    item: Binding&lt;Item?&gt;,
+    onDismiss: (() -&gt; Void)? = nil,
+    @ViewBuilder content: @escaping (Item) -&gt; Content
+) -&gt; some View where Item: Identifiable</code></pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="patterns" data-toc-label="Patterns">
+    <h2>5 &nbsp; Patterns That Work</h2>
+    <p>The recommended shapes, each with a short rationale. Positive guidance only — the corrections live in the next section so a reader can scan for "what should I do" without wading through "what breaks".</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="antipatterns" data-toc-label="Anti-Patterns">
+    <h2>6 &nbsp; Anti-Patterns — and the fix</h2>
+    <p>The wrong-then-right pairs. Each entry shows the broken version, explains <em>why</em> the framework behaves that way, then gives the corrected version. The source reference documents are already written in this shape, which is why it earns a dedicated section.</p>
+    <pre><code>// ❌ the shape that looks reasonable and misbehaves
+// ✅ the corrected shape, with the reason stated</code></pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="pitfalls" data-toc-label="Pitfalls">
+    <h2>7 &nbsp; Pitfalls &amp; Gotchas</h2>
+    <p>Sharp edges that are not full anti-patterns: version differences, silent no-ops, behaviour that differs between simulator and device, and facts worth memorizing.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="related" data-toc-label="Related Topics">
+    <h2>8 &nbsp; Related Topics</h2>
+    <p>Cross-links to adjacent pages. Because the source material cross-references heavily — capture lists span language and memory, <code>@MainActor</code> spans concurrency and architecture — this section keeps those connections navigable rather than implicit.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <section id="sources" data-toc-label="Sources">
+    <h2>9 &nbsp; Sources</h2>
+    <p>Provenance. Every source reference document ends with one, and keeping it preserves the ability to re-verify a claim later or judge how load-bearing a given citation is.</p>
+  </section>
+
+  <div class="page-footer">
+    Study Wiki · Page Type Demo · iOS Topic
+  </div>
+
+</main>
+</div>
+
+<script src="../../static/generated/manifest.js"></script>
+<script src="../../static/generated/nav.js"></script>
+<script src="../../static/generated/toc.js"></script>
+</body>
+</html>
