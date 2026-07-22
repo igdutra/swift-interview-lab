@@ -97,6 +97,24 @@ Three rules the build enforces:
 
 **Filename → role**, invisible in config and easy to trip over: within a sections-layout category, `*_overview_master.html` becomes role `overview` and everything else `deep-dive`. Hub grids group by that role, so a page only lands under an "Overview" heading if it is named accordingly.
 
+### Hub breadcrumbs (enforced)
+
+Every hub that has a page directly above it **must link up to it**, so a reader can climb the tree without the browser back button. Put the crumb first in the `page-meta` line:
+
+```html
+<div class="page-meta">
+  <span><a href="../index.html">&larr; SwiftUI Theory</a></span>
+  <span>·</span>
+  <span>iOS Topic Hub</span>
+</div>
+```
+
+`check.ts` **errors** when the crumb is missing — but only when the parent folder actually contains an `index.html`. A hub at the top of its domain (nothing above it but the wiki root, reached via the nav) needs no crumb and is not flagged.
+
+A sections-layout category may hold its own `index.html` landing page directly in the category folder, above the section hubs — that is what creates the level worth linking back to.
+
+**`index.html` is positional, never resolved.** `index.html` means "the hub beside this page" and `../index.html` means "the one above it". Both are left exactly as authored; do not try to qualify them with a folder name.
+
 ## Rules digest
 
 Wiki-wide:

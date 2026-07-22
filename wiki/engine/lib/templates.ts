@@ -143,13 +143,27 @@ ${headingMarkup}
 </main>`;
 }
 
-export function renderHubBody(pageTitle: string, metaLine: string): string {
+/**
+ * @param breadcrumbLabel Title of the page directly above this hub, or null
+ *   when nothing sits above it. check.ts requires the crumb whenever the
+ *   parent folder has its own index.html, so it is scaffolded in rather
+ *   than left for an author to remember.
+ */
+export function renderHubBody(
+  pageTitle: string,
+  metaLine: string,
+  breadcrumbLabel: string | null = null,
+): string {
+  const breadcrumb =
+    breadcrumbLabel === null
+      ? ""
+      : `<span><a href="../index.html">&larr; ${escapeHtml(breadcrumbLabel)}</a></span>\n    <span>·</span>\n    `;
   return `
 <main class="content content-centered">
 
   <h1 class="page-title">${escapeHtml(pageTitle)}</h1>
   <div class="page-meta">
-    ${metaLine}
+    ${breadcrumb}${metaLine}
   </div>
 
   <div class="lead">

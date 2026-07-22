@@ -154,6 +154,26 @@ for (const [pagePath, scannedPage] of scannedPages) {
     }
   }
 
+  // Breadcrumb: a hub that sits below another page must link back up to it,
+  // so every level is reachable without the browser's back button. Section
+  // hubs point at their category landing page; that landing page points at
+  // the wiki root. Enforced rather than documented — a hand-written hub
+  // that forgets the crumb is a dead end, and nothing else would catch it.
+  if (record !== undefined && record.role === "hub") {
+    // Only require a crumb when a real page sits directly above: the
+    // parent folder must itself contain an index.html. A hub whose parent
+    // has no landing page (the top of a domain) is reached via the nav.
+    const pathSegments = pagePath.split("/");
+    const parentIndexPath = [...pathSegments.slice(0, -2), "index.html"].join("/");
+    const parentExists = pathSegments.length > 2 && scannedPages.has(parentIndexPath);
+    if (parentExists && !scannedPage.relativeHrefs.includes("../index.html")) {
+      reportError(
+        pagePath,
+        `hub is missing its breadcrumb link up to ${parentIndexPath} — add <a href="../index.html"> to the page-meta line`,
+      );
+    }
+  }
+
   // Duplicate element ids break fragments and the TOC.
   const seenIds = new Set<string>();
   for (const elementId of scannedPage.elementIds) {
