@@ -46,59 +46,55 @@
     function pageUrl(pagePath) {
         return wikiRootUrl + pagePath;
     }
-    function difficultyChip(record) {
-        return record.difficulty !== null
-            ? `<span class="tag tag-${record.difficulty}">${record.difficulty}</span> `
-            : "";
+    function renderSubmenuEntry(entry) {
+        if (entry.path === null) {
+            return `<span class="nav-item nav-item-empty">${escapeHtml(entry.label)}</span>`;
+        }
+        const currentClass = entry.path === currentPath ? " current" : "";
+        const chip = entry.difficulty !== null ? `<span class="tag tag-${entry.difficulty}">${entry.difficulty}</span> ` : "";
+        return `<a class="nav-item${currentClass}" href="${pageUrl(entry.path)}">${chip}${escapeHtml(entry.label)}</a>`;
     }
-    function menuItem(pagePath) {
-        const record = WIKI_MANIFEST.pages[pagePath];
-        const currentClass = pagePath === currentPath ? " current" : "";
-        return `<a class="nav-item${currentClass}" href="${pageUrl(pagePath)}">${difficultyChip(record)}${escapeHtml(record.title)}</a>`;
+    /** A category row inside a domain menu, with its own fly-out submenu. */
+    function renderCategoryRow(category) {
+        const entries = category.layout === "sections"
+            ? category.sections.map((section) => ({
+                label: section.label,
+                path: section.hubPath,
+                difficulty: null,
+            }))
+            : category.pagePaths.map((pagePath) => ({
+                label: WIKI_MANIFEST.pages[pagePath].title,
+                path: pagePath,
+                difficulty: WIKI_MANIFEST.pages[pagePath].difficulty,
+            }));
+        if (entries.length === 0) {
+            return "";
+        }
+        const descendantPaths = category.layout === "sections"
+            ? category.sections.flatMap((section) => section.hubPath !== null ? [section.hubPath, ...section.pagePaths] : section.pagePaths)
+            : category.pagePaths;
+        const containsCurrent = descendantPaths.some((pagePath) => pagePath === currentPath) || category.hubPath === currentPath;
+        const rowClass = `nav-item nav-subtrigger${containsCurrent ? " current" : ""}`;
+        const label = `${escapeHtml(category.label)} <span class="nav-caret">▸</span>`;
+        const row = category.hubPath !== null
+            ? `<a class="${rowClass}" href="${pageUrl(category.hubPath)}">${label}</a>`
+            : `<span class="${rowClass}" tabindex="0">${label}</span>`;
+        const submenuClass = `nav-submenu${entries.length > 12 ? " nav-menu-scroll" : ""}`;
+        return `<div class="nav-subgroup">${row}<div class="${submenuClass}">${entries.map(renderSubmenuEntry).join("")}</div></div>`;
     }
-    function renderNavGroup(group) {
-        const containsCurrent = group.itemPaths.some((itemPath) => itemPath === currentPath);
-        const triggerClass = `nav-trigger${containsCurrent ? " current" : ""}`;
-        const triggerLabel = `${escapeHtml(group.label)} <span class="nav-caret">▾</span>`;
-        const trigger = group.triggerPath !== null
-            ? `<a class="${triggerClass}" href="${pageUrl(group.triggerPath)}">${triggerLabel}</a>`
-            : `<span class="${triggerClass}" tabindex="0">${triggerLabel}</span>`;
-        const menuClass = `nav-menu${group.scrollable ? " nav-menu-scroll" : ""}`;
-        const menuItems = group.itemPaths.map(menuItem).join("");
-        return `<div class="nav-group">${trigger}<div class="${menuClass}">${menuItems}</div></div>`;
-    }
-    // --- top nav bar -------------------------------------------------------
     const topNav = document.getElementById("topnav");
     if (topNav !== null) {
-        const showDomainLabels = WIKI_MANIFEST.domains.length > 1;
         const homeCurrentClass = currentRecord !== null && currentRecord.role === "home" ? ' class="current"' : "";
         const navParts = [`<a href="${wikiRootUrl}"${homeCurrentClass}>Home</a>`];
         for (const domain of WIKI_MANIFEST.domains) {
-            if (showDomainLabels) {
-                navParts.push(`<span class="nav-cat">${escapeHtml(domain.label)}</span>`);
+            const rows = domain.categories.map(renderCategoryRow).join("");
+            if (rows === "") {
+                continue;
             }
-            for (const category of domain.categories) {
-                if (category.layout === "sections") {
-                    for (const section of category.sections) {
-                        const itemPaths = section.hubPath !== null ? [section.hubPath, ...section.pagePaths] : section.pagePaths;
-                        navParts.push(renderNavGroup({
-                            label: section.label,
-                            triggerPath: section.hubPath,
-                            itemPaths,
-                            scrollable: false,
-                        }));
-                    }
-                }
-                else {
-                    const itemPaths = category.hubPath !== null ? [category.hubPath, ...category.pagePaths] : category.pagePaths;
-                    navParts.push(renderNavGroup({
-                        label: category.label,
-                        triggerPath: category.hubPath,
-                        itemPaths,
-                        scrollable: category.pagePaths.length > 12,
-                    }));
-                }
-            }
+            const isCurrentDomain = currentRecord !== null && currentRecord.domain === domain.identifier;
+            const triggerClass = `nav-trigger${isCurrentDomain ? " current" : ""}`;
+            const trigger = `<span class="${triggerClass}" tabindex="0">${escapeHtml(domain.label)} <span class="nav-caret">▾</span></span>`;
+            navParts.push(`<div class="nav-group">${trigger}<div class="nav-menu">${rows}</div></div>`);
         }
         topNav.innerHTML = navParts.join("");
     }
