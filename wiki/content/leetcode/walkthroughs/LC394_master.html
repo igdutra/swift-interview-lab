@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LC 394 — Decode String · Walkthrough Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "LC 394 — Decode String",
+  "nav": "LC 394",
+  "topics": [
+    "Stack",
+    "Strings",
+    "Parsing"
+  ],
+  "blurb": "Stack Skeleton 2 — push (count, string) context on [, pop-repeat-attach on ]. The canonical nested-structure decode: pause the outer level, build the inner, fold back. Full Swift + dry run.",
+  "difficulty": "M"
+}
+</script>
+<link rel="stylesheet" href="../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="walkthrough">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">LC 394 — Decode String</h1>
+  <div class="page-meta">
+    <span>Walkthrough Masterfile</span><span>·</span>
+    <span>Language: Swift</span><span>·</span>
+    <span>Medium · Stack skeleton 2 · Push containers, pop-and-attach</span>
+  </div>
+
+  <!-- 1. Restatement -->
+  <section id="lead" data-toc-label="The Problem">
+    <div class="infobox">
+      <div class="infobox-title">Problem at a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Difficulty</div><div class="infobox-v"><span class="tag tag-M">Medium</span></div></div>
+      <div class="infobox-row"><div class="infobox-k">Pattern</div><div class="infobox-v">Stack — push containers, pop-and-attach (Skeleton 2)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Tools</div><div class="infobox-v">A stack of (repeatCount, builtString) pairs · a digit accumulator · a letter accumulator</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key insight</div><div class="infobox-v">On <code>[</code> save the current context onto the stack and start fresh; on <code>]</code> pop the saved context, repeat the just-built string, and append it back</div></div>
+      <div class="infobox-row"><div class="infobox-k">Time / Space</div><div class="infobox-v">O(n · k_max) / O(n)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Theory</div><div class="infobox-v mono"><a href="../theory/stacks_queues/stack_master.html">stack_overview_master.html</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p>You are given an encoded string like <code>"3[a2[c]]"</code>. The encoding rule is: <code>k[encodedString]</code> means the <code>encodedString</code> inside the brackets should be repeated exactly <code>k</code> times. Brackets can be nested. Decode the string and return it.</p>
+
+      <table class="t-example">
+        <thead><tr><th>Input</th><th>Output</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><code>"3[a]2[bc]"</code></td><td><code>"aaabcbc"</code></td><td>Two separate groups: "a" repeated 3 times, then "bc" repeated 2 times</td></tr>
+          <tr><td><code>"3[a2[c]]"</code></td><td><code>"accaccacc"</code></td><td>Inner <code>2[c]</code> → "cc"; outer <code>3[acc]</code> → "accaccacc"</td></tr>
+          <tr><td><code>"2[abc]3[cd]ef"</code></td><td><code>"abcabccdcdcdef"</code></td><td>Two encoded groups followed by a plain suffix "ef"</td></tr>
+        </tbody>
+      </table>
+
+      <p>The twist that makes this Medium: the brackets nest, which means the string you are building at one level must be paused while you descend into an inner level — then resumed when that inner level closes. That pause-and-resume is exactly what a stack is for.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Reading the problem -->
+  <section id="reading" data-toc-label="Reading the Problem">
+    <h2>2 &nbsp; Reading the Problem — insights from the constraints</h2>
+
+    <div class="co-insight"><strong>"k[encodedString]":</strong> the integer always comes before the bracket. This means digits always indicate an upcoming repetition count — never a count after the bracket. You must collect digits into a number before you push.</div>
+
+    <div class="co-insight"><strong>"Brackets can be nested":</strong> this is the phrase that rules out a simple counter or a single-pass replace. When you see <code>[</code>, you cannot yet finish building anything — you may still be inside an outer group. You need to remember the state of the outer group while you build the inner one. That memory is a stack.</div>
+
+    <div class="co-insight"><strong>"No negative k, valid input guaranteed":</strong> you don't need to handle malformed strings, negative repeats, or unmatched brackets. Every <code>[</code> has a matching <code>]</code> and every number precedes a bracket.</div>
+
+    <div class="co-insight"><strong>Plain letters outside brackets:</strong> letters that appear outside (or before) any bracket just get appended to whatever string you are currently building. They are part of the result at their nesting level.</div>
+
+    <table class="t-clue">
+      <thead><tr><th>Phrase / constraint</th><th>What it forces</th></tr></thead>
+      <tbody>
+        <tr><td>"k[encodedString]"</td><td>Accumulate digits into a number; use it as the repeat count on <code>[</code></td></tr>
+        <tr><td>"brackets can be nested"</td><td>A stack — push the current (count, built-so-far) context on <code>[</code>, restore it on <code>]</code></td></tr>
+        <tr><td>digits always before <code>[</code></td><td>Digit accumulator is safe to flush on every <code>[</code>; never ambiguous</td></tr>
+        <tr><td>plain letters anywhere</td><td>Always append to the current string being built — no special case</td></tr>
+        <tr><td>valid input guaranteed</td><td>No guards for empty stack on <code>]</code> or missing numbers needed</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Edge cases -->
+  <section id="edge-cases" data-toc-label="Edge Case Inventory">
+    <h2>3 &nbsp; Edge Case Inventory</h2>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected</th><th>Handled by</th></tr></thead>
+      <tbody>
+        <tr><td><code>"abc"</code> — no brackets</td><td><code>"abc"</code></td><td>All characters are letters; they append to <code>currentString</code>. Stack is never pushed. Return <code>currentString</code> directly.</td></tr>
+        <tr><td><code>"3[a]"</code> — single flat group</td><td><code>"aaa"</code></td><td>Stack push on <code>[</code>, pop and repeat on <code>]</code>. The outer level's <code>currentString</code> was empty; result is the repetition only.</td></tr>
+        <tr><td><code>"3[a2[c]]"</code> — nested groups</td><td><code>"accaccacc"</code></td><td>Inner <code>[</code> saves ("a", 3); inner <code>]</code> restores it, appends "cc" repeated 2 times to "a" → "acc"; outer <code>]</code> repeats "acc" three times.</td></tr>
+        <tr><td><code>"2[abc]3[cd]ef"</code> — plain suffix</td><td><code>"abcabccdcdcdef"</code></td><td>Plain letters after all brackets just stay in <code>currentString</code>; returned as-is after the loop.</td></tr>
+        <tr><td><code>"10[a]"</code> — multi-digit repeat count</td><td><code>"aaaaaaaaaa"</code></td><td>Digit accumulator builds <code>currentNumber</code> character by character: <code>currentNumber = currentNumber * 10 + digit</code>. Multi-digit numbers work naturally.</td></tr>
+        <tr><td>GOTCHA: <code>currentNumber</code> not reset after <code>[</code></td><td>wrong repeat counts on siblings</td><td>Must reset <code>currentNumber = 0</code> after pushing it onto the stack — or the next group inherits the previous group's count.</td></tr>
+        <tr><td>GOTCHA: string concatenation in a loop</td><td>O(n²) time</td><td>Build with a <code>[Character]</code> array (or <code>String</code> in Swift which uses value semantics efficiently), but be aware that <code>+=</code> on strings in Swift is O(n) per call in a tight loop on large inputs. Prefer appending to a buffer.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Hints -->
+  <section id="hints" data-toc-label="Try It Yourself First">
+    <h2>4 &nbsp; Try It Yourself First</h2>
+    <p>This is the canonical Skeleton 2 problem — the one that makes the push-containers/pop-and-attach mechanic click. Try it cold before reading the plan.</p>
+    <details class="hint"><summary>Hint 1 — the constraint</summary><p>Brackets can nest. When you see <code>[</code>, you are not done with the current level — you need to pause it and start building an inner level. What data structure stores "the state I want to come back to"?</p></details>
+    <details class="hint"><summary>Hint 2 — what to push</summary><p>When you see <code>[</code>, push two things onto the stack: the repeat count you just finished reading, and the string you have built so far at this level. Then reset both to zero and empty string — you are starting fresh inside the inner group.</p></details>
+    <details class="hint"><summary>Hint 3 — what happens on <code>]</code></summary><p>Pop the saved (count, string) pair. Take the string you just built inside the brackets, repeat it by the saved count, then append that to the saved string. That combined value becomes your new current string — you are back at the outer level, with the inner group's contribution folded in.</p></details>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Interview simulation -->
+  <section id="simulation" data-toc-label="Interview Simulation">
+    <h2>5 &nbsp; Interview Simulation</h2>
+    <p>The interviewer has stated the problem. The script starts at your first words — practice it out loud.</p>
+
+    <div class="sim-block" id="sim-questions" data-toc-label="5.1 Clarifying questions">
+      <div class="sim-header">Step 1 — Clarifying questions</div>
+      <div class="sim-body">
+        <div class="sim-q">Q: "Can the repeat count k be multi-digit, like 10 or 100?"</div>
+        <div class="sim-a">A: Yes. <strong>→ I need to accumulate digits into an integer: <code>currentNumber = currentNumber * 10 + digit</code>. A single-digit assumption would break on "10[a]".</strong></div>
+
+        <div class="sim-q">Q: "Can brackets be nested? And to what depth?"</div>
+        <div class="sim-a">A: Yes, nested. Depth is not bounded in a special way. <strong>→ I need a stack to save and restore context at each nesting level. A single-pass counter won't work.</strong></div>
+
+        <div class="sim-q">Q: "Can there be plain letters outside all brackets?"</div>
+        <div class="sim-a">A: Yes. <strong>→ Plain letters just go into the string I'm currently building — no special case needed; they belong at whatever nesting level they appear.</strong></div>
+
+        <div class="sim-q">Q: "Is the input always valid — every k has a bracket, every bracket has a matching closer?"</div>
+        <div class="sim-a">A: Yes, input is always valid. <strong>→ No need to guard against empty-stack pops or missing numbers. I can trust the structure.</strong></div>
+      </div>
+    </div>
+
+    <div class="sim-block" id="sim-plan" data-toc-label="5.2 The plan, spoken">
+      <div class="sim-header">Step 2 — The plan, before any code</div>
+      <div class="sim-body">
+        <div class="speech">
+          <div class="speech-kicker">The plan, spoken</div>
+          <p>"This is a stack problem — specifically Stack Skeleton 2: push containers, pop and attach. The signal is the nesting: when I enter a bracket I need to pause what I'm building and start fresh inside; when I close a bracket I need to pick up where I left off. That pause-and-resume is exactly what a stack does."</p>
+          <p>"Let me trace the sequence before naming any variable. I scan left to right. When I see a digit, I'm accumulating a repeat count — could be multi-digit, so I multiply by 10 and add. When I see <code>[</code>, I push the repeat count I just finished reading and the string I have built so far onto the stack, then reset both to zero and empty — I'm now inside a new level. When I see a letter, I append it to whatever string I'm currently building. When I see <code>]</code>, I pop the saved (count, string) pair, take the string I just built inside these brackets, repeat it by the saved count, then append it to the saved outer string — that becomes my new current string. At the end of the loop, <code>currentString</code> is the answer."</p>
+          <p>"From that sequence, the state is: a stack of <code>(Int, String)</code> pairs — the saved repeat count and the saved partial string at each outer level; a <code>currentNumber: Int</code> accumulator for the digit being read; and a <code>currentString: String</code> for the string being built at the current level."</p>
+          <p>"The invariant: at all times, <code>currentString</code> holds the decoded output of the current nesting level so far, and the stack holds the saved contexts of every outer level. The pop on <code>]</code> restores the outer context and folds in the completed inner result."</p>
+          <p>"Walk on <code>\"3[a2[c]]\"</code>: I see '3' → currentNumber=3. I see '[' → push (3, \"\"), reset currentNumber=0, currentString=\"\". I see 'a' → currentString=\"a\". I see '2' → currentNumber=2. I see '[' → push (2, \"a\"), reset. I see 'c' → currentString=\"c\". I see ']' → pop (2, \"a\"): \"c\" repeated 2 = \"cc\", then \"a\" + \"cc\" = \"acc\" → currentString=\"acc\". I see ']' → pop (3, \"\"): \"acc\" repeated 3 = \"accaccacc\", then \"\" + \"accaccacc\" → currentString=\"accaccacc\". End of input — return \"accaccacc\". Correct."</p>
+          <p>"Time is O(n · k_max) because string repetition expands the output; space is O(n) for the stack depth proportional to nesting depth."</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. Approach rationale -->
+  <section id="approach" data-toc-label="Why This Approach">
+    <h2>6 &nbsp; Why This Approach — and not the others</h2>
+    <table class="t-versus">
+      <thead><tr><th>Candidate</th><th>Cost</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>Recursion — parse from index, return (result, nextIndex)</td><td>O(n · k_max) / O(depth)</td><td>Correct and natural — each <code>[</code> calls into a sub-parse, each <code>]</code> returns. But uses the call stack for depth, which risks overflow on deeply nested inputs. The iterative stack makes the same computation explicit and safe.</td></tr>
+        <tr><td>String replace in a loop — find innermost <code>k[s]</code>, expand, repeat</td><td>O(n² · k_max)</td><td>Works for flat cases but is O(n²) because each pass re-scans the whole string. Nesting requires multiple passes — quadratic.</td></tr>
+        <tr><td><strong>Explicit stack — push (count, string) on [, pop-and-attach on ]</strong></td><td>O(n · k_max) / O(n)</td><td><strong>Chosen.</strong> One pass, O(1) work per character except at repetition. Handles arbitrary nesting depth without call-stack risk. Clean separation of the four character cases.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-when"><strong>The deciding signal:</strong> nesting + "I need to come back to where I was." The moment you recognize you need to pause and resume a computation, a stack is the tool. Recursion is the same idea using the call stack implicitly; the explicit stack is safer on unbounded depth.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Data structures -->
+  <section id="structures" data-toc-label="Data Structures">
+    <h2>7 &nbsp; Data Structures — choice and justification</h2>
+    <table class="t-decoder">
+      <thead><tr><th>Structure</th><th>Holds</th><th>Why this and not weaker/stronger</th></tr></thead>
+      <tbody>
+        <tr><td><code>contextStack: [(Int, String)]</code></td><td>At each nesting level: the repeat count for the bracket we just entered, and the string built so far at the outer level</td><td>A tuple because two pieces of state travel together — they were produced at the same <code>[</code> and consumed at the same <code>]</code>. Separate stacks for counts and strings would work but are easier to misalign.</td></tr>
+        <tr><td><code>currentNumber: Int</code></td><td>The repeat count being accumulated digit by digit</td><td>Multi-digit counts require accumulation: <code>currentNumber = currentNumber * 10 + digitValue</code>. Reset to 0 after each <code>[</code> so it doesn't bleed into the next group.</td></tr>
+        <tr><td><code>currentString: String</code></td><td>The decoded output being built at the current nesting level</td><td>Appended to on letters, replaced with the repeated+attached result on <code>]</code>. The final value of <code>currentString</code> after the loop is the answer.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-insight"><strong>Why a (Int, String) pair and not two separate stacks.</strong> The repeat count pushed on <code>[</code> and the string it should repeat are semantically one unit of context — they're created together and consumed together. A tuple keeps them physically co-located. Two separate stacks are equivalent but create an implicit coupling that's easy to break if you accidentally push to one and forget the other.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 8. Pseudocode dry run -->
+  <section id="dryrun" data-toc-label="Pseudocode Dry Run">
+    <h2>8 &nbsp; Pseudocode Dry Run</h2>
+
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">push context on [, pop-repeat-attach on ]</span></div>
+<pre class="pseudo">contextStack ← []
+currentNumber ← 0
+currentString ← ""
+
+<span class="pk">FOR</span> each ch <span class="pk">IN</span> s:
+    <span class="pk">IF</span> ch is a digit:
+        currentNumber ← currentNumber × 10 + digit_value(ch)
+    <span class="pk">ELSE IF</span> ch == '[':
+        push (currentNumber, currentString) onto contextStack
+        currentNumber ← 0
+        currentString ← ""
+    <span class="pk">ELSE IF</span> ch == ']':
+        (savedCount, savedString) ← pop from contextStack
+        currentString ← savedString + repeat(currentString, savedCount)
+    <span class="pk">ELSE</span>:                        <span class="pc">ch is a letter</span>
+        currentString ← currentString + ch
+
+<span class="pk">RETURN</span> currentString</pre>
+
+    <p>Trace on <code>"3[a2[c]]"</code> — expected <code>"accaccacc"</code>:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">stack + currentString evolution — every character</span></div>
+<pre class="dry"><span class="tr-var">contextStack=[]  currentNumber=0  currentString=""</span>
+
+'3'  digit    → currentNumber = 0×10 + 3 = 3
+'['  open     → push (3, "")  <span class="tr-aha">contextStack=[(3,"")]</span>
+               reset: currentNumber=0, currentString=""
+'a'  letter   → currentString = "a"
+'2'  digit    → currentNumber = 0×10 + 2 = 2
+'['  open     → push (2, "a")  <span class="tr-aha">contextStack=[(3,""), (2,"a")]</span>
+               reset: currentNumber=0, currentString=""
+'c'  letter   → currentString = "c"
+']'  close    → pop (2, "a")
+               currentString = "a" + repeat("c", 2) = "a" + "cc" = <span class="tr-aha">"acc"</span>
+               contextStack=[(3,"")]
+']'  close    → pop (3, "")
+               currentString = "" + repeat("acc", 3) = <span class="tr-aha">"accaccacc"</span>
+               contextStack=[]
+
+end: <span class="tr-ok">return "accaccacc"</span></pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 9. Swift solution -->
+  <section id="swift" data-toc-label="Swift Solution">
+    <h2>9 &nbsp; Swift Solution — iterative</h2>
+
+    <div class="solution-block">
+      <div class="block-header">
+        <span class="block-badge">A.1</span>
+        <span class="block-name">Explicit stack of (count, string) context pairs</span>
+        <div class="block-pills"><span class="pill pill-t">O(n · k_max)</span><span class="pill pill-s">O(n)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="approach-box">
+          <div class="approach-title">Plan</div>
+          Scan the characters. Accumulate digits into <code>currentNumber</code>. On <code>[</code>, push <code>(currentNumber, currentString)</code> onto the stack and reset both. On a letter, append to <code>currentString</code>. On <code>]</code>, pop the saved context, repeat the just-built string by the saved count, append to the saved string — that becomes the new <code>currentString</code>. Return <code>currentString</code> after the loop.
+        </div>
+
+<pre class="swift"><span class="kw">func</span> <span class="fn">decodeString</span>(<span class="kw">_</span> s: <span class="tp">String</span>) -&gt; <span class="tp">String</span> {
+    <span class="kw">var</span> contextStack: [(<span class="tp">Int</span>, <span class="tp">String</span>)] = []
+    <span class="kw">var</span> currentNumber = <span class="nm">0</span>
+    <span class="kw">var</span> currentString = <span class="st">""</span>
+
+    <span class="kw">for</span> character <span class="kw">in</span> s {
+        <span class="kw">if</span> <span class="kw">let</span> digit = character.wholeNumberValue {
+            <span class="cm">// Accumulate multi-digit repeat counts.</span>
+            currentNumber = currentNumber * <span class="nm">10</span> + digit
+        } <span class="kw">else if</span> character == <span class="st">"["</span> {
+            <span class="cm">// Descend one nesting level: save context, start fresh.</span>
+            contextStack.append((currentNumber, currentString))
+            currentNumber = <span class="nm">0</span>
+            currentString = <span class="st">""</span>
+        } <span class="kw">else if</span> character == <span class="st">"]"</span> {
+            <span class="cm">// Ascend one level: pop context, repeat inner result, attach to outer.</span>
+            <span class="kw">let</span> (savedCount, savedString) = contextStack.removeLast()
+            currentString = savedString + <span class="tp">String</span>(repeating: currentString, count: savedCount)
+        } <span class="kw">else</span> {
+            <span class="cm">// Plain letter: belongs to the current nesting level.</span>
+            currentString.append(character)
+        }
+    }
+
+    <span class="kw">return</span> currentString
+}</pre>
+        <div class="co-note"><strong>On <code>character.wholeNumberValue</code>.</strong> This is Swift's idiomatic way to check if a Character is a decimal digit and get its integer value simultaneously — cleaner than <code>character &gt;= "0" &amp;&amp; character &lt;= "9"</code> and no ASCII arithmetic needed. Returns <code>nil</code> for non-digits, so the <code>if let</code> doubles as a type-check and an extraction in one line.</div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 10. Code dry run -->
+  <section id="code-dry-run" data-toc-label="Code Dry Run">
+    <h2>10 &nbsp; Code Dry Run — the Swift solution, traced</h2>
+    <p>Full debugger-style trace on <code>s = "2[ab3[c]]"</code> → expected <code>"abcccabccc"</code>.</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">full execution trace — /code-dry-run format</span></div>
+<pre class="dry">────────────────────────────────
+/code-dry-run
+Problem: LC 394 — Decode String
+Input:   s = "2[ab3[c]]"
+────────────────────────────────
+
+decodeString
+  contextStack  = []
+  currentNumber = 0
+  currentString = ""
+
+────────────────────────────────
+ITERATION 1  character='2'
+────────────────────────────────
+
+  '2'.wholeNumberValue → 2 (digit) → if let digit = 2
+  currentNumber = 0 × 10 + 2 = 2
+  State: currentNumber=2  currentString=""  contextStack=[]
+
+────────────────────────────────
+ITERATION 2  character='['
+────────────────────────────────
+
+  character == '[' → push context
+  contextStack.append((2, ""))
+  currentNumber = 0
+  currentString = ""
+  State: currentNumber=0  currentString=""  contextStack=[(2,"")]
+
+────────────────────────────────
+ITERATION 3  character='a'
+────────────────────────────────
+
+  'a'.wholeNumberValue → nil (not a digit)
+  character ≠ '[', ≠ ']' → else (letter)
+  currentString.append('a')
+  State: currentNumber=0  currentString="a"  contextStack=[(2,"")]
+
+────────────────────────────────
+ITERATION 4  character='b'
+────────────────────────────────
+
+  letter → currentString.append('b')
+  State: currentNumber=0  currentString="ab"  contextStack=[(2,"")]
+
+────────────────────────────────
+ITERATION 5  character='3'
+────────────────────────────────
+
+  '3'.wholeNumberValue → 3 (digit)
+  currentNumber = 0 × 10 + 3 = 3
+  State: currentNumber=3  currentString="ab"  contextStack=[(2,"")]
+
+────────────────────────────────
+ITERATION 6  character='['
+────────────────────────────────
+
+  character == '[' → push context
+  contextStack.append((3, "ab"))
+  currentNumber = 0
+  currentString = ""
+  State: currentNumber=0  currentString=""  contextStack=[(2,""), (3,"ab")]
+
+────────────────────────────────
+ITERATION 7  character='c'
+────────────────────────────────
+
+  letter → currentString.append('c')
+  State: currentNumber=0  currentString="c"  contextStack=[(2,""), (3,"ab")]
+
+────────────────────────────────
+ITERATION 8  character=']'
+────────────────────────────────
+
+  character == ']' → pop context
+  contextStack.removeLast() → (savedCount=3, savedString="ab")
+  currentString = "ab" + String(repeating: "c", count: 3)
+               = "ab" + "ccc"
+               = "abccc"
+  ↑ inner group 3[c] = "ccc" folded back into the outer "ab"
+  State: currentNumber=0  currentString="abccc"  contextStack=[(2,"")]
+
+────────────────────────────────
+ITERATION 9  character=']'
+────────────────────────────────
+
+  character == ']' → pop context
+  contextStack.removeLast() → (savedCount=2, savedString="")
+  currentString = "" + String(repeating: "abccc", count: 2)
+               = "" + "abcccabccc"
+               = "abcccabccc"
+  ↑ outer group 2[ab3[c]] = "abcccabccc"
+  State: currentNumber=0  currentString="abcccabccc"  contextStack=[]
+
+────────────────────────────────
+RESULT
+────────────────────────────────
+
+  contextStack is empty ✓
+  return currentString = "abcccabccc"
+
+────────────────────────────────</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 11. Q→Code map -->
+  <section id="qmap" data-toc-label="Question → Code Map">
+    <h2>11 &nbsp; Question → Code Map</h2>
+    <table class="t-qmap">
+      <thead><tr><th>What you asked / planned</th><th>What it became</th></tr></thead>
+      <tbody>
+        <tr><td>"k can be multi-digit"</td><td><code>currentNumber = currentNumber * 10 + digit</code></td></tr>
+        <tr><td>"On [ — save context, start fresh"</td><td><code>contextStack.append((currentNumber, currentString)); currentNumber = 0; currentString = ""</code></td></tr>
+        <tr><td>"Plain letter → append to current level"</td><td><code>currentString.append(character)</code></td></tr>
+        <tr><td>"On ] — pop, repeat, attach to outer"</td><td><code>let (savedCount, savedString) = contextStack.removeLast(); currentString = savedString + String(repeating: currentString, count: savedCount)</code></td></tr>
+        <tr><td>"The outer saved string goes BEFORE the repetition"</td><td><code>savedString + String(repeating: currentString, count: savedCount)</code> — order matters: outer content precedes the inner expansion</td></tr>
+        <tr><td>"Result is whatever's in currentString after the loop"</td><td><code>return currentString</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 12. Complexity -->
+  <section id="complexity" data-toc-label="Complexity">
+    <h2>12 &nbsp; Complexity</h2>
+    <table class="t-cmx">
+      <thead><tr><th>Phase</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Character scan</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td>Each character processed once. Stack depth ≤ nesting depth ≤ n.</td></tr>
+        <tr><td>String repetition on <code>]</code></td><td class="tc">O(|inner| · k)</td><td class="sc">—</td><td><code>String(repeating:count:)</code> expands the inner string by a factor of k. In the worst case (single deeply nested group), total work is O(n · k_max).</td></tr>
+        <tr class="bottleneck"><td>Total</td><td class="tc">O(n · k_max)</td><td class="sc">O(n)</td><td>Where k_max is the largest repeat count. O(n) if all k are treated as constants. Space is O(n) for the context stack — one frame per nesting level, at most n/2 levels deep.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-insight"><strong>The bottleneck is the output size, not the input size.</strong> The decoded string can be exponentially longer than the encoded input in theory (e.g. <code>2[2[2[a]]]</code> → "aaaaaaaa"). The time complexity tracks the output length, which is bounded by n · k_max in practice given LeetCode's constraints.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13. Follow-ups -->
+  <section id="followups" data-toc-label="Follow-Up Bank">
+    <h2>13 &nbsp; Follow-Up Bank — the interviewer's second act</h2>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Before you push this to production — can you see any improvements you'd make?"</div>
+      <div class="followup-a">Two micro-improvements: pre-reserve the result string's capacity if the final decoded length is known (avoids repeated reallocations), and avoid building intermediate strings during repetition by tracking counts lazily. Neither changes the asymptotic bound; the O(n · k_max) is irreducible because you must materialize the output.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "What if the brackets can also appear inside letter sequences — e.g. letters before the digit?"</div>
+      <div class="followup-a">The problem guarantees a digit always precedes <code>[</code>, so this doesn't arise here. If it did, the rule for what constitutes a repeat count would need redefinition — the digit accumulator and the push condition would both need updating, but the stack skeleton itself would be unchanged.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Can you solve it recursively instead?"</div>
+      <div class="followup-a">Yes — instead of an explicit stack, use a recursive helper that takes the string and a current index, parses until it sees <code>]</code> or end-of-string, and returns (result, nextIndex). Each <code>[</code> calls into a sub-parse. This is equivalent to the iterative approach but uses the call stack for depth. On deeply nested inputs (depth in the thousands), it risks a stack overflow in Swift — the explicit stack version is always safer for production.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "How does this relate to LC 385 — Mini Parser?"</div>
+      <div class="followup-a">Both are Skeleton 2: push a new container on <code>[</code>, pop and attach on <code>]</code>. LC 394 builds a decoded string; <a href="LC385_master.html">LC 385</a> builds a nested integer object. The pop-and-attach step is structurally identical — only the container type changes. Solve 394 first to internalize the push/pop rhythm, then 385 to see the same skeleton applied to a richer data structure.</div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 14. Theory decoder -->
+  <section id="decoder" data-toc-label="Theory Decoder">
+    <h2>14 &nbsp; Theory Decoder — the theory as used here</h2>
+    <table class="t-decoder">
+      <thead><tr><th>General concept</th><th>Instantiated in this solution as</th><th>General form</th></tr></thead>
+      <tbody>
+        <tr><td>Stack Skeleton 2 — push containers, pop-and-attach</td><td>Push <code>(currentNumber, currentString)</code> on <code>[</code>; pop, repeat, and prepend on <code>]</code>.</td><td><a href="../theory/stacks_queues/stack_master.html#when">stack overview §4 — Pattern 2</a></td></tr>
+        <tr><td>LIFO as pause-and-resume</td><td>The most recently pushed context is the first restored — inner groups complete before outer groups.</td><td><a href="../theory/stacks_queues/stack_master.html#lifo">stack overview §5</a></td></tr>
+        <tr><td>Context saved as a tuple</td><td><code>(Int, String)</code> pair keeps the count and the partial string co-located — they travel together because they were created together.</td><td><a href="../theory/stacks_queues/stack_master.html#skeletons">stack overview §2</a></td></tr>
+        <tr><td>Pop AND attach as one atomic step</td><td><code>currentString = savedString + String(repeating: currentString, count: savedCount)</code> — two operations on <code>]</code>: remove from stack, combine with outer.</td><td><a href="../theory/stacks_queues/stack_master.html#when">stack overview §4 pitfall</a></td></tr>
+        <tr><td>String Parsing — nested-structure variant</td><td>Digits → accumulate count; <code>[</code> → descend; letters → accumulate; <code>]</code> → expand and ascend. The four-way character dispatch is Variant 8.3 of the string parsing family.</td><td><a href="../theory/strings/string_parsing_deep_dive_master.html">string_parsing_deep_dive_master.html §8.3</a></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 15. Back-reference -->
+  <section id="parent" data-toc-label="Parent Theory">
+    <h2>15 &nbsp; Parent Theory</h2>
+    <p>This walkthrough instantiates Stack Skeleton 2 from the Stack Overview. It also demonstrates Variant 8.3 (nested-structure parse) from the String Parsing Deep Dive — the two theory pages are linked here because this problem sits at their intersection.</p>
+    <div class="ref-grid">
+      <a class="backref-card" href="../theory/stacks_queues/stack_master.html">
+        <span class="ref-file">leetcode_theory/stacks/stack_overview_master.html</span>
+        <span class="ref-title">Stack Overview — Theory Masterfile</span>
+        <span class="ref-desc">The canonical stack reference: LIFO mental model (§5), the three skeletons with routing diagram (§2–§4), Swift toolbox with append/removeLast/popLast (§3), and the cheat sheet (§10). Skeleton 2 — push containers, pop-and-attach — is the exact variant this problem instantiates.</span>
+      </a>
+      <a class="backref-card" href="../theory/strings/string_parsing_deep_dive_master.html">
+        <span class="ref-file">leetcode_theory/strings/string_parsing_deep_dive_master.html</span>
+        <span class="ref-title">String Parsing Deep Dive</span>
+        <span class="ref-desc">The four parsing variants (§8.1–§8.4): Variant 8.3 is the nested-structure stack parse — the same four-way character dispatch (digit / open / letter / close) this solution uses. The final-flush pitfall (§pitfalls) and the broader tokenize pattern also live here.</span>
+      </a>
+    </div>
+  </section>
+
+  <div class="page-footer">
+    LC 394 — Decode String · Walkthrough Masterfile · Parent theory:
+    <a href="../theory/stacks_queues/stack_master.html">Stack Overview</a> ·
+    <a href="../theory/strings/string_parsing_deep_dive_master.html">String Parsing Deep Dive</a> ·
+    Structure per <code>.claude/skills/wiki/references/walkthrough-format.md</code>
+  </div>
+
+</main>
+</div>
+
+<script src="../../static/generated/manifest.js"></script>
+<script src="../../static/generated/nav.js"></script>
+<script src="../../static/generated/toc.js"></script>
+</body>
+</html>

@@ -58,7 +58,11 @@ export interface SectionConfiguration {
 export interface CategoryConfiguration {
   identifier: string;
   label: string;
-  /** Top-level folder under wiki/, e.g. "theory". */
+  /**
+   * This category's OWN folder segment, e.g. "theory" — not a path.
+   * The full path is built by walking the config tree, so a folder name
+   * appears exactly once and renaming it is a one-word edit.
+   */
   folder: string;
   layout: CategoryLayout;
   /** Identifier of the page type its regular pages are scaffolded from. */
@@ -73,11 +77,18 @@ export interface CategoryConfiguration {
   flatSort?: FlatSortOrder;
   /** Filename rule for regular pages (regular expression source). */
   filenamePattern?: string;
+  /**
+   * Nested sub-categories, e.g. swiftui > { theory, codingInterview }.
+   * A category either holds pages (layout/sections) or children, not both.
+   */
+  children?: CategoryConfiguration[];
 }
 
 export interface DomainConfiguration {
   identifier: string;
   label: string;
+  /** This domain's own folder segment, e.g. "leetcode". */
+  folder: string;
   categories: CategoryConfiguration[];
 }
 

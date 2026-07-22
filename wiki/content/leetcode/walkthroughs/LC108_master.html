@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LC 108 — Convert Sorted Array to BST · Walkthrough Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "LC 108 — Convert Sorted Array to BST",
+  "nav": "LC 108",
+  "topics": [
+    "Tree",
+    "BST",
+    "Recursion"
+  ],
+  "blurb": "Recursive tree construction (Variant 8.1). Middle-as-root divide over index ranges builds a height-balanced BST — the recurse-and-combine reflex. Iterative frame-stack Swift + dry run.",
+  "difficulty": "E"
+}
+</script>
+<link rel="stylesheet" href="../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="walkthrough">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">LC 108 — Convert Sorted Array to BST</h1>
+  <div class="page-meta">
+    <span>Walkthrough Masterfile</span><span>·</span>
+    <span>Language: Swift</span><span>·</span>
+    <span>Easy · Recursive tree construction · Middle-as-root divide</span>
+  </div>
+
+  <!-- 1. Restatement -->
+  <section id="lead" data-toc-label="The Problem">
+    <div class="infobox">
+      <div class="infobox-title">Problem at a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Difficulty</div><div class="infobox-v"><span class="tag tag-E">Easy</span></div></div>
+      <div class="infobox-row"><div class="infobox-k">Pattern</div><div class="infobox-v">Recursive tree construction — middle-as-root divide (Variant 8.1)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Tools</div><div class="infobox-v">Index-range divide · the sorted array (no copies) · a node-building stack (iterative form)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key insight</div><div class="infobox-v">A sorted array is the in-order reading of a BST; picking the middle as root at every level keeps it balanced</div></div>
+      <div class="infobox-row"><div class="infobox-k">Time / Space</div><div class="infobox-v">O(n) / O(log n)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Theory</div><div class="infobox-v mono"><a href="../theory/trees/lca_deep_dive_master.html">lca_deep_dive_master.html</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p>Given an integer array <code>nums</code> sorted in ascending order, build a <strong>height-balanced</strong> binary search tree from it. Height-balanced means that for every node, the heights of its left and right subtrees differ by at most one. Return the root of the tree. Many valid trees exist; any height-balanced one is accepted.</p>
+
+      <table class="t-example">
+        <thead><tr><th>Input</th><th>Output (a valid tree)</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><code>[-10,-3,0,5,9]</code></td><td>root 0, left subtree {−10,−3}, right {5,9}</td><td>Middle element 0 is the root; halves recurse the same way → balanced</td></tr>
+          <tr><td><code>[1,3]</code></td><td>root 3, left child 1 (or root 1, right child 3)</td><td>Either midpoint choice is height-balanced for two elements</td></tr>
+          <tr><td><code>[]</code></td><td><code>nil</code></td><td>Empty array → empty tree</td></tr>
+        </tbody>
+      </table>
+
+      <p>The twist — and the reason this is the warm-up for the tree block — is the realization that "sorted array ↔ balanced BST" is the inverse of "in-order traversal of a BST is sorted." Pick the middle as the root and the two halves become the left and right subtrees; recurse. There is no LCA here yet, just the pure recurse-and-combine reflex every tree problem leans on.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Reading the problem -->
+  <section id="reading" data-toc-label="Reading the Problem">
+    <h2>2 &nbsp; Reading the Problem — insights from the constraints</h2>
+
+    <div class="co-insight"><strong>"Sorted in ascending order":</strong> this is the gift that makes it easy. A BST's in-order traversal is sorted, so a sorted array is already the in-order layout of some BST — you just need to pick which element is the root at each level. The sortedness means no comparisons are needed to place values; position determines BST order.</div>
+
+    <div class="co-insight"><strong>"Height-balanced":</strong> this dictates <em>which</em> element is the root — the middle. Choosing the midpoint splits the remaining elements into two halves of nearly equal size, so the left and right subtrees have heights within one of each other. Any non-middle choice risks an unbalanced tree.</div>
+
+    <div class="co-insight"><strong>"Build a tree / return the root":</strong> the output is a tree structure, built by recursion that mirrors it. <code>build(range)</code> returns the subtree for an index range; the root's left and right come from <code>build(left half)</code> and <code>build(right half)</code>. This is the recurse-and-combine skeleton.</div>
+
+    <div class="co-insight"><strong>"Many valid answers":</strong> with an even-length range there are two middles; either works. The grader checks for <em>a</em> height-balanced BST, not a specific one — so you don't need to agonize over <code>(lo+hi)/2</code> vs <code>(lo+hi+1)/2</code>, only be consistent.</div>
+
+    <div class="co-insight"><strong>Recurse on index ranges, not array slices:</strong> passing <code>(lo, hi)</code> indices into the original array avoids allocating sub-arrays at every level, which would turn O(n) space of copies into O(n log n). Slice by indices, build over the shared array.</div>
+
+    <table class="t-clue">
+      <thead><tr><th>Phrase / constraint</th><th>What it forces</th></tr></thead>
+      <tbody>
+        <tr><td>"sorted ascending"</td><td>Position gives BST order; no value comparisons needed</td></tr>
+        <tr><td>"height-balanced"</td><td>Pick the <em>middle</em> as root → equal halves</td></tr>
+        <tr><td>"return the root"</td><td>Recurse-and-combine: build returns a subtree</td></tr>
+        <tr><td>"any valid answer"</td><td>Either midpoint of an even range is fine</td></tr>
+        <tr><td>n up to ~10⁴</td><td>O(n) build over index ranges, no slice copies</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Edge cases -->
+  <section id="edge-cases" data-toc-label="Edge Case Inventory">
+    <h2>3 &nbsp; Edge Case Inventory</h2>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected</th><th>Handled by</th></tr></thead>
+      <tbody>
+        <tr><td><code>[]</code> — empty</td><td><code>nil</code></td><td>The <code>lo &gt; hi</code> base case returns nil immediately.</td></tr>
+        <tr><td><code>[7]</code> — single element</td><td>one-node tree, root 7</td><td>mid == lo == hi; both halves are empty ranges → a leaf.</td></tr>
+        <tr><td><code>[1,2]</code> — two elements</td><td>root one, other as a child</td><td>mid picks one as root; the other half is a single-element range → child.</td></tr>
+        <tr><td><code>[1,2,3]</code> — odd</td><td>root 2, children 1 and 3</td><td>Exact middle is unambiguous; perfectly balanced.</td></tr>
+        <tr><td><code>[1,2,3,4]</code> — even</td><td>balanced with either midpoint as root</td><td>Even range has two valid middles; consistent choice keeps balance.</td></tr>
+        <tr><td>All-equal values <code>[2,2,2]</code></td><td>balanced tree of 2s</td><td>Construction ignores values for placement — only positions matter.</td></tr>
+        <tr><td>Negative + zero + positive</td><td>BST property holds across signs</td><td>Sortedness already encodes order; nothing special for negatives.</td></tr>
+        <tr><td>GOTCHA: recursing on overlapping ranges</td><td>no duplicated/dropped node</td><td>Left half is <code>[lo, mid-1]</code>, right is <code>[mid+1, hi]</code> — the root index is excluded from both.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="co-insight"><strong>The half-range boundaries are the only real trap.</strong> The root sits at <code>mid</code>; its left subtree must come from <code>[lo, mid-1]</code> and its right from <code>[mid+1, hi]</code>. Off-by-one here — including <code>mid</code> in a half, or skipping <code>mid±1</code> — either duplicates the root or drops a neighbor. Excluding exactly the root index from both halves is what makes every element appear once.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Hints -->
+  <section id="hints" data-toc-label="Try It Yourself First">
+    <h2>4 &nbsp; Try It Yourself First</h2>
+    <p>This is the tree block's warm-up — build the recurse-and-combine reflex. Try it cold, then open hints one at a time.</p>
+    <details class="hint"><summary>Hint 1 — the constraint</summary><p>The array is sorted, and you need a <em>balanced</em> BST. A BST read in-order is sorted — so the array already <em>is</em> a valid in-order layout. Your only job is choosing the root at each level so the tree stays balanced. Which element splits the rest into two equal halves?</p></details>
+    <details class="hint"><summary>Hint 2 — the pattern</summary><p>Recursive construction. The <em>middle</em> element is the root; everything to its left becomes the left subtree, everything to its right the right subtree. Write a helper <code>build(lo, hi)</code> that returns the subtree for that index range: pick <code>mid</code>, make a node, set its children to <code>build(lo, mid-1)</code> and <code>build(mid+1, hi)</code>.</p></details>
+    <details class="hint"><summary>Hint 3 — boundaries and base case</summary><p>Base case: when <code>lo &gt; hi</code>, the range is empty → return nil. Recurse on <code>[lo, mid-1]</code> and <code>[mid+1, hi]</code> so the root index is excluded from both halves (no element used twice). Pass indices into the original array — don't copy sub-arrays.</p></details>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Interview simulation -->
+  <section id="simulation" data-toc-label="Interview Simulation">
+    <h2>5 &nbsp; Interview Simulation</h2>
+    <p>The interviewer has stated the problem. The script starts with your first words — practice it out loud.</p>
+
+    <div class="sim-block" id="sim-questions" data-toc-label="5.1 Clarifying questions">
+      <div class="sim-header">Step 1 — Clarifying questions</div>
+      <div class="sim-body">
+        <div class="sim-q">Q: "Is the array guaranteed sorted ascending, and can it be empty?"</div>
+        <div class="sim-a">A: Sorted ascending; can be empty. <strong>→ Position encodes BST order; the empty case returns nil via the base case.</strong></div>
+
+        <div class="sim-q">Q: "Does the tree need to be exactly balanced, or just height-balanced (subtree heights differ by ≤ 1)?"</div>
+        <div class="sim-a">A: Height-balanced. <strong>→ Picking the middle as root at every level guarantees that automatically.</strong></div>
+
+        <div class="sim-q">Q: "If the range has even length and two middles, is either acceptable?"</div>
+        <div class="sim-a">A: Yes, any valid height-balanced tree. <strong>→ I'll consistently take the lower (or upper) middle; either is fine.</strong></div>
+
+        <div class="sim-q">Q: "Can the values repeat, and do duplicates affect placement?"</div>
+        <div class="sim-a">A: They may repeat; placement is by position, not value. <strong>→ I never compare values — sortedness already fixes order.</strong></div>
+      </div>
+    </div>
+
+    <div class="sim-block" id="sim-plan" data-toc-label="5.2 The plan, spoken">
+      <div class="sim-header">Step 2 — The plan, before any code</div>
+      <div class="sim-body">
+        <div class="speech">
+          <div class="speech-kicker">The plan, spoken</div>
+          <p>"This is recursive tree construction — Variant 8.1 of the Trees / LCA block, the warm-up that builds the recurse-and-combine reflex. The signal is 'build a balanced BST from sorted data,' and the key fact is that a BST's in-order traversal is sorted, so the array is already a valid in-order layout."</p>
+          <p>"Let me pin the conditions before the structure. The invariant each call maintains is: <code>build(lo, hi)</code> returns a height-balanced BST containing exactly the elements <code>nums[lo...hi]</code>, in BST order. The governing choice that makes it balanced is picking the <em>middle</em> index as the root, because that splits the range into two halves whose sizes differ by at most one — so their subtree heights differ by at most one. The base case is the empty range, <code>lo &gt; hi</code>, returning nil. The non-overlap condition: the left subtree is built from <code>[lo, mid-1]</code> and the right from <code>[mid+1, hi]</code>, excluding the root so every element is placed exactly once."</p>
+          <p>"On structures: I work over <em>index ranges</em> into the original array, never copying slices — that keeps it O(n) space instead of O(n log n). I'll present the iterative form per our standard: an explicit stack of frames, each frame a (lo, hi) range plus where to attach the node it produces. The recursive version is identical in shape and I'll show it as a contrast."</p>
+          <p>"The walk: push the full range with a 'this is the root' attach target. Pop a frame, compute mid, create the node, attach it to its parent slot, and push frames for the two halves with attach targets pointing at the new node's left and right. Repeat until the stack empties. Time O(n) — each element becomes one node once; space O(log n) for the stack depth on a balanced tree."</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. Approach rationale -->
+  <section id="approach" data-toc-label="Why This Approach">
+    <h2>6 &nbsp; Why This Approach — and not the others</h2>
+    <table class="t-versus">
+      <thead><tr><th>Candidate</th><th>Cost</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>Insert elements one by one into a BST</td><td>O(n log n) best, O(n²) worst</td><td>Inserting sorted values naively produces a degenerate (linked-list) tree unless you balance — wrong shape and slow. Defeats the purpose.</td></tr>
+        <tr><td>Recurse but pass array <em>slices</em> (<code>Array(nums[lo...mid-1])</code>)</td><td>O(n log n) time &amp; space</td><td>Correct shape, but every slice copies — O(n) copying at each of log n levels. Index ranges avoid all of it.</td></tr>
+        <tr><td><strong>Divide on index ranges, middle-as-root (iterative stack or recursion)</strong></td><td>O(n) / O(log n)</td><td><strong>Chosen.</strong> Each element becomes one node exactly once; the middle choice guarantees balance; no slice copies.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-when"><strong>The deciding signal:</strong> "build a balanced structure from already-sorted data." Whenever sorted input must become a balanced tree (or you must binary-search-build anything), pick the middle as the pivot/root and recurse on the halves — the same divide-and-conquer that powers binary search, here producing a tree instead of finding an element.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Data structures -->
+  <section id="structures" data-toc-label="Data Structures">
+    <h2>7 &nbsp; Data Structures — choice and justification</h2>
+    <table class="t-decoder">
+      <thead><tr><th>Structure</th><th>Holds</th><th>Why this and not weaker/stronger</th></tr></thead>
+      <tbody>
+        <tr><td><code>nums: [Int]</code> (shared)</td><td>The sorted source, accessed by index range</td><td>Working over <code>(lo, hi)</code> indices into the one array avoids slice copies — O(1) extra per level instead of O(n).</td></tr>
+        <tr><td>frame stack <code>[(lo, hi, parent, isLeft)]</code></td><td>Pending index ranges and where to attach the node they'll produce</td><td>The explicit stand-in for the recursion stack. Each frame says "build this range and hang the result on that parent's left/right." LIFO order reproduces the depth-first build.</td></tr>
+        <tr><td><code>TreeNode</code> (class)</td><td>A built node: value + left/right child references</td><td>Reference type so a parent frame can hold a pointer and a later frame can fill in its child slot.</td></tr>
+        <tr><td>a dummy parent node</td><td>(setup) a holder whose <code>left</code> becomes the real root</td><td>Lets the root be attached by the same "attach to parent's slot" rule as every other node — no special case for the root.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-insight"><strong>Why a frame carries an attach target.</strong> In recursion, the return value is wired into the caller automatically. The iterative build has no call to return to, so each frame must record <em>where</em> its produced node should be hung — a reference to the parent node and which side. A dummy root holder means even the very first node attaches by the same mechanism, eliminating a special case.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 8. Pseudocode dry run -->
+  <section id="dryrun" data-toc-label="Pseudocode Dry Run">
+    <h2>8 &nbsp; Pseudocode Dry Run</h2>
+
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">iterative build with a frame stack of index ranges</span></div>
+<pre class="pseudo">dummy ← new node            <span class="pc">dummy.left will become the real root</span>
+stack ← [ (lo=0, hi=n-1, parent=dummy, isLeft=true) ]
+
+<span class="pk">WHILE</span> stack not empty:
+    (lo, hi, parent, isLeft) ← pop(stack)
+    <span class="pk">IF</span> lo &gt; hi: <span class="pk">CONTINUE</span>          <span class="pc">empty range → no node</span>
+    mid ← (lo + hi) / 2
+    node ← new node(nums[mid])
+    <span class="pk">IF</span> isLeft: parent.left ← node <span class="pk">ELSE</span> parent.right ← node
+    push (lo, mid-1, node, true)    <span class="pc">left subtree</span>
+    push (mid+1, hi, node, false)   <span class="pc">right subtree</span>
+
+<span class="pk">RETURN</span> dummy.left</pre>
+
+    <p>Trace on <code>[-10,-3,0,5,9]</code> (indices 0..4) — milestone steps:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">frame stack building the balanced BST</span></div>
+<pre class="dry"><span class="tr-var">dummy created; stack = [ (0,4,dummy,L) ]</span>
+
+pop (0,4): mid=2 → node 0 ; dummy.left = 0   (root)
+   push (0,1,node0,L)  push (3,4,node0,R)
+pop (3,4): mid=3 → node 5 ; node0.right = 5
+   push (3,2,node5,L)=empty  push (4,4,node5,R)
+pop (4,4): mid=4 → node 9 ; node5.right = 9
+   push (4,3,..)=empty  push (5,4,..)=empty
+pop empties → continue
+pop (0,1): mid=0 → node -10 ; node0.left = -10
+   push (0,-1,..)=empty  push (1,1,node(-10),R)
+pop (1,1): mid=1 → node -3 ; node(-10).right = -3
+... empties drain
+
+<span class="tr-ok">result tree (dummy.left = 0):
+        0
+       / \
+     -10   5
+        \    \
+        -3    9</span></pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 9. Swift solution -->
+  <section id="swift" data-toc-label="Swift Solution">
+    <h2>9 &nbsp; Swift Solution — iterative</h2>
+
+    <p>The tree node is the standard LeetCode <code>TreeNode</code> class. The main solution is iterative (a frame stack); the recursive form follows as a contrast in §9b.</p>
+
+    <div class="solution-block">
+      <div class="block-header">
+        <span class="block-badge">A.1</span>
+        <span class="block-name">Iterative build — frame stack of index ranges</span>
+        <div class="block-pills"><span class="pill pill-t">O(n)</span><span class="pill pill-s">O(log n)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="approach-box">
+          <div class="approach-title">Plan</div>
+          Push the full index range with an attach target on a dummy root. Pop each frame: skip empty ranges, else build a node from the middle element, hang it on its parent's slot, and push the two half-ranges pointing at this new node's left and right. When the stack empties, the dummy's left child is the balanced BST root.
+        </div>
+
+        <pre class="swift"><span class="kw">func</span> <span class="fn">sortedArrayToBST</span>(<span class="kw">_</span> nums: [<span class="tp">Int</span>]) -&gt; <span class="tp">TreeNode</span>? {
+    <span class="kw">if</span> nums.isEmpty { <span class="kw">return</span> <span class="kw">nil</span> }
+
+    <span class="kw">let</span> dummy = <span class="tp">TreeNode</span>(<span class="nm">0</span>)            <span class="cm">// dummy.left becomes the real root</span>
+    <span class="cm">// Each frame: the index range to build, its parent, and which side to attach.</span>
+    <span class="kw">var</span> stack: [(low: <span class="tp">Int</span>, high: <span class="tp">Int</span>, parent: <span class="tp">TreeNode</span>, isLeft: <span class="tp">Bool</span>)] =
+        [(<span class="nm">0</span>, nums.count - <span class="nm">1</span>, dummy, <span class="kw">true</span>)]
+
+    <span class="kw">while</span> <span class="kw">let</span> frame = stack.popLast() {
+        <span class="kw">if</span> frame.low &gt; frame.high { <span class="kw">continue</span> }   <span class="cm">// empty range → no node</span>
+        <span class="kw">let</span> mid = (frame.low + frame.high) / <span class="nm">2</span>
+        <span class="kw">let</span> node = <span class="tp">TreeNode</span>(nums[mid])
+
+        <span class="kw">if</span> frame.isLeft { frame.parent.left = node }
+        <span class="kw">else</span>           { frame.parent.right = node }
+
+        <span class="cm">// Build the two halves; the root index is excluded from both.</span>
+        stack.append((frame.low, mid - <span class="nm">1</span>, node, <span class="kw">true</span>))
+        stack.append((mid + <span class="nm">1</span>, frame.high, node, <span class="kw">false</span>))
+    }
+
+    <span class="kw">return</span> dummy.left
+}</pre>
+      </div>
+    </div>
+
+    <h3 id="swift-b">9b &nbsp; Recursive form — for contrast</h3>
+    <p>The same divide, expressed as recursion. The standard prefers the iterative version above; this clarifies the shape.</p>
+    <pre class="swift"><span class="kw">func</span> <span class="fn">sortedArrayToBST</span>(<span class="kw">_</span> nums: [<span class="tp">Int</span>]) -&gt; <span class="tp">TreeNode</span>? {
+    <span class="kw">func</span> <span class="fn">build</span>(<span class="kw">_</span> low: <span class="tp">Int</span>, <span class="kw">_</span> high: <span class="tp">Int</span>) -&gt; <span class="tp">TreeNode</span>? {
+        <span class="kw">if</span> low &gt; high { <span class="kw">return</span> <span class="kw">nil</span> }       <span class="cm">// empty range</span>
+        <span class="kw">let</span> mid = (low + high) / <span class="nm">2</span>
+        <span class="kw">let</span> node = <span class="tp">TreeNode</span>(nums[mid])
+        node.left  = <span class="fn">build</span>(low, mid - <span class="nm">1</span>)
+        node.right = <span class="fn">build</span>(mid + <span class="nm">1</span>, high)
+        <span class="kw">return</span> node
+    }
+    <span class="kw">return</span> <span class="fn">build</span>(<span class="nm">0</span>, nums.count - <span class="nm">1</span>)
+}</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 10. Code dry run -->
+  <section id="code-dry-run" data-toc-label="Code Dry Run">
+    <h2>10 &nbsp; Code Dry Run — the Swift solution, traced</h2>
+    <p>Full debugger-style trace of the iterative solution on <code>nums = [1,2,3]</code> → balanced BST with root 2.</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">full execution trace — /code-dry-run format</span></div>
+<pre class="dry">────────────────────────────────
+/code-dry-run
+Problem: LC 108 — Convert Sorted Array to BST
+Input:   nums = [1, 2, 3]
+────────────────────────────────
+
+sortedArrayToBST
+  nums.isEmpty? NO
+  dummy = TreeNode(0)
+  stack = [ (low:0, high:2, parent:dummy, isLeft:true) ]
+
+────────────────────────────────
+ITERATION 1  pop (0, 2, dummy, true)
+────────────────────────────────
+  low(0) > high(2)? NO
+  mid = (0+2)/2 = 1 ; node = TreeNode(nums[1]=2)
+  isLeft → dummy.left = node(2)        ← this is the root
+  push (0, 0, node2, true)             // left half [1]
+  push (2, 2, node2, false)            // right half [3]
+  State: stack = [ (0,0,node2,L), (2,2,node2,R) ]
+
+────────────────────────────────
+ITERATION 2  pop (2, 2, node2, false)
+────────────────────────────────
+  low(2) > high(2)? NO
+  mid = (2+2)/2 = 2 ; node = TreeNode(nums[2]=3)
+  isLeft false → node2.right = node(3)
+  push (2, 1, node3, true)  → will be empty
+  push (3, 2, node3, false) → will be empty
+  State: tree so far: 2 → right 3 ; stack has two empties + (0,0,node2,L)
+
+────────────────────────────────
+ITERATIONS 3–4  pop (3,2,...) and (2,1,...)
+────────────────────────────────
+  low > high in both → continue (no node created)
+  ↑ empty ranges are the base case; they simply drain
+  State: stack = [ (0,0,node2,L) ]
+
+────────────────────────────────
+ITERATION 5  pop (0, 0, node2, true)
+────────────────────────────────
+  low(0) > high(0)? NO
+  mid = 0 ; node = TreeNode(nums[0]=1)
+  isLeft → node2.left = node(1)
+  push (0,-1,node1,true) → empty
+  push (1,0,node1,false) → empty
+  State: tree: 2 → left 1, right 3
+
+────────────────────────────────
+ITERATIONS 6–7  pop the two empties
+────────────────────────────────
+  low > high → continue ; stack now empty
+
+────────────────────────────────
+RESULT
+────────────────────────────────
+  return dummy.left =
+        2
+       / \
+      1   3
+  (height-balanced BST)</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 11. Q→Code map -->
+  <section id="qmap" data-toc-label="Question → Code Map">
+    <h2>11 &nbsp; Question → Code Map</h2>
+    <table class="t-qmap">
+      <thead><tr><th>What you asked / planned</th><th>What it became</th></tr></thead>
+      <tbody>
+        <tr><td>"Empty array → empty tree"</td><td><code>if nums.isEmpty { return nil }</code> and the <code>low &gt; high</code> skip</td></tr>
+        <tr><td>"Middle as root for balance"</td><td><code>let mid = (frame.low + frame.high) / 2</code></td></tr>
+        <tr><td>"Work over index ranges, no copies"</td><td>frames carry <code>(low, high)</code> into the shared <code>nums</code></td></tr>
+        <tr><td>"Attach each built node to its parent"</td><td><code>if frame.isLeft { parent.left = node } else { parent.right = node }</code></td></tr>
+        <tr><td>"Root attaches by the same rule"</td><td>the <code>dummy</code> holder; <code>return dummy.left</code></td></tr>
+        <tr><td>"Exclude root from both halves"</td><td><code>(low, mid-1, …)</code> and <code>(mid+1, high, …)</code></td></tr>
+        <tr><td>"Iterative, explicit stack"</td><td><code>while let frame = stack.popLast()</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 12. Complexity -->
+  <section id="complexity" data-toc-label="Complexity">
+    <h2>12 &nbsp; Complexity</h2>
+    <table class="t-cmx">
+      <thead><tr><th>Phase</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Build</td><td class="tc">O(n)</td><td class="sc">O(log n)</td><td>Each array element is turned into exactly one node once; empty-range frames are O(1) and number O(n) total. The stack holds at most one root-to-leaf path of frames → height = O(log n) when balanced.</td></tr>
+        <tr class="bottleneck"><td>Total</td><td class="tc">O(n)</td><td class="sc">O(log n)</td><td>Linear, dominated by node creation. Space is the stack depth, not slice copies — working over index ranges is what keeps it O(log n) instead of O(n log n).</td></tr>
+      </tbody>
+    </table>
+    <div class="co-insight"><strong>Why index ranges beat slices.</strong> Passing <code>Array(nums[low...mid-1])</code> copies up to n elements, and across the log n levels that totals O(n log n) time and space in copies alone. Passing the two integers <code>(low, high)</code> is O(1) per frame, so the whole build stays O(n) time and O(log n) space. The output tree itself is O(n) nodes — irreducible.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13. Follow-ups -->
+  <section id="followups" data-toc-label="Follow-Up Bank">
+    <h2>13 &nbsp; Follow-Up Bank — the interviewer's second act</h2>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Before you push this to production — can you see any improvements you'd make?"</div>
+      <div class="followup-a">The build is already O(n) time and O(log n) auxiliary space, which is optimal — you must create n nodes. The recursive version is arguably cleaner and just as efficient (its call stack is the same O(log n)); I'd choose it for readability unless stack-overflow on pathological depth is a concern, which it isn't for a balanced build. The one robustness note is asserting the input is actually sorted if that's not guaranteed.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Now the input is a sorted <em>linked list</em>, not an array — LC 109."</div>
+      <div class="followup-a">You lose O(1) random access to the middle. Two options: copy the list into an array first (back to this exact problem), or use the elegant in-order simulation — count the length, then build the tree with an in-order recursion that consumes list nodes left-to-right, advancing a shared pointer. The second is O(n) time, O(log n) space, and avoids the array copy.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Verify the result is actually a valid, height-balanced BST."</div>
+      <div class="followup-a">Two checks. BST validity: an in-order traversal must yield strictly increasing values (or non-decreasing if duplicates allowed). Balance: a post-order recursion returning each subtree's height, failing if any node's children differ by more than one. Both are O(n) single passes — useful as test oracles against the builder.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "How does this set up the rest of the tree block?"</div>
+      <div class="followup-a">It drills the recurse-and-combine reflex with no combine logic yet — just "build a subtree from each half." The next problem, <a href="LC236_master.html">LC 236 — LCA of a Binary Tree</a>, keeps the same recursion shape but makes the <em>combine</em> step the whole point: each node combines what its two subtrees report to decide if it is the lowest common ancestor. Same skeleton, richer return value.</div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 14. Theory decoder -->
+  <section id="decoder" data-toc-label="Theory Decoder">
+    <h2>14 &nbsp; Theory Decoder — the theory as used here</h2>
+    <table class="t-decoder">
+      <thead><tr><th>General concept</th><th>Instantiated in this solution as</th><th>General form</th></tr></thead>
+      <tbody>
+        <tr><td>Recursive tree construction</td><td><code>build(low, high)</code> picks the middle as root and builds each half — recurse-and-combine with no combine yet.</td><td><a href="../theory/trees/lca_deep_dive_master.html#v-build">theory §8.1</a></td></tr>
+        <tr><td>Sorted ↔ balanced-BST duality</td><td>The sorted array is the in-order layout; middle-as-root keeps subtree sizes equal.</td><td><a href="../theory/trees/lca_deep_dive_master.html#mental-model">theory §4</a></td></tr>
+        <tr><td>Iterative via explicit stack</td><td>A frame stack of <code>(low, high, parent, isLeft)</code> replaces the call stack.</td><td><a href="../theory/trees/lca_deep_dive_master.html#iterative">theory §6</a></td></tr>
+        <tr><td>Index-range divide (no copies)</td><td>Frames carry indices into the shared array, not slices, keeping space O(log n).</td><td><a href="../theory/trees/lca_deep_dive_master.html#complexity">theory §9</a></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 15. Back-reference -->
+  <section id="parent" data-toc-label="Parent Theory">
+    <h2>15 &nbsp; Parent Theory</h2>
+    <p>This walkthrough instantiates Variant 8.1 of a larger pattern. The parent page is not free-form — it follows the theory masterfile standard, so here is exactly what you land on:</p>
+    <div class="ref-grid">
+      <a class="backref-card" href="../theory/trees/lca_deep_dive_master.html">
+        <span class="ref-file">leetcode_theory/trees/lca_deep_dive_master.html</span>
+        <span class="ref-title">Lowest Common Ancestor — Deep Dive Theory Masterfile</span>
+        <span class="ref-desc">The canonical reference for the tree/LCA family: the recurse-and-combine mental model (§4), the four-variant catalog with Variant 8.1 Recursive Construction this problem instantiates (§8.1), the explicit-stack iterative pattern (§6), the half-range off-by-one and identity pitfalls (§10), the empty/single-element edge cases (§11), and the cheat sheet (§12). Its cross-reference section (§13) links back to this walkthrough, and it sits under the Trees hub, which carries the full tree vocabulary (tree, BST, trie, traversals).</span>
+      </a>
+    </div>
+  </section>
+
+  <div class="page-footer">
+    LC 108 — Convert Sorted Array to BST · Walkthrough Masterfile · Parent theory:
+    <a href="../theory/trees/lca_deep_dive_master.html">Lowest Common Ancestor</a> ·
+    Structure per <code>.claude/skills/wiki/references/walkthrough-format.md</code>
+  </div>
+
+</main>
+</div>
+
+<script src="../../static/generated/manifest.js"></script>
+<script src="../../static/generated/nav.js"></script>
+<script src="../../static/generated/toc.js"></script>
+</body>
+</html>

@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hash Map / Hash Set Deep Dive · Theory Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Hash Map / Hash Set Deep Dive",
+  "nav": "Hash Map / Hash Set Deep Dive",
+  "topics": [
+    "Hash Map",
+    "Hash Set",
+    "Arrays"
+  ],
+  "blurb": "Set membership, complement maps, cycle detection, sliding index maps — the four hash map patterns in Swift. Directed at LC217, LC202, LC219, LC1."
+}
+</script>
+<link rel="stylesheet" href="../../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="theory">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">Hash Map / Hash Set — Deep Dive</h1>
+  <div class="page-meta">
+    <span>Theory Masterfile</span><span>·</span>
+    <span>Language: Swift</span><span>·</span>
+    <span>Set membership · Complement map · Seen-state · Sliding index map</span>
+  </div>
+
+  <!-- 1. Definition -->
+  <section id="lead" data-toc-label="Definition">
+    <div class="infobox">
+      <div class="infobox-title">At a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Type</div><div class="infobox-v">Hash-based array traversal</div></div>
+      <div class="infobox-row"><div class="infobox-k">Core idea</div><div class="infobox-v">Trade O(n) space for O(1) lookup — answer "have we seen this?" in constant time</div></div>
+      <div class="infobox-row"><div class="infobox-k">Time</div><div class="infobox-v">O(n) — one pass, O(1) amortized per operation</div></div>
+      <div class="infobox-row"><div class="infobox-k">Space</div><div class="infobox-v">O(n) — at most n entries in the map or set</div></div>
+      <div class="infobox-row"><div class="infobox-k">Signal words</div><div class="infobox-v">"duplicate", "pair sums to", "seen before", "within distance k"</div></div>
+      <div class="infobox-row"><div class="infobox-k">Requires sorted?</div><div class="infobox-v">No — works on any array in any order</div></div>
+      <div class="infobox-row"><div class="infobox-k">Walkthroughs</div><div class="infobox-v mono">LC217 · LC202 · LC219 · LC1 (coming)</div></div>
+    </div>
+
+    <div class="lead">
+      <p>The <strong>hash map</strong> pattern converts a brute-force O(n²) "check all previous elements" search into a single O(n) pass by storing previously seen values in a constant-time lookup structure. The core trade is always the same: spend O(n) space now, eliminate an inner loop forever.</p>
+      <p>Four distinct interview patterns use this trade: checking whether a value has appeared before (set membership), tracking whether an algorithm has revisited a state (cycle detection), storing a complement to find a matching pair (complement map), and recording the last index at which a value appeared to check proximity (sliding index map). All four are one-pass O(n) algorithms; they differ only in what is stored in the map and what is looked up.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Recognition signals -->
+  <section id="signals" data-toc-label="Recognition Signals">
+    <h2>2 &nbsp; Recognition Signals — when to reach for it</h2>
+    <table class="t-clue">
+      <thead><tr><th>When the problem says…</th><th>It means…</th><th>Problem</th></tr></thead>
+      <tbody>
+        <tr><td>"contains duplicate" / "any element appears twice"</td><td>Variant 8.1 — insert into a set; check before inserting</td><td>LC217</td></tr>
+        <tr><td>"detect a cycle" / "does this process repeat?"</td><td>Variant 8.2 — set of seen states; stop when you see one again</td><td>LC202</td></tr>
+        <tr><td>"two numbers that sum to target" (unsorted)</td><td>Variant 8.3 — store <code>target − nums[i]</code>, look it up each step</td><td>LC1</td></tr>
+        <tr><td>"contains duplicate within distance k"</td><td>Variant 8.4 — map value → last seen index; check <code>i − map[v] ≤ k</code></td><td>LC219</td></tr>
+      </tbody>
+    </table>
+    <div class="co-when"><strong>The disqualifier:</strong> if the array is sorted and you need a pair that sums to a target, two pointers is O(1) space and equally fast. Prefer two pointers when the input is already sorted — reach for a hash map when it is not.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Terminology decoder -->
+  <section id="terminology" data-toc-label="Terminology Decoder">
+    <h2>3 &nbsp; Terminology Decoder</h2>
+    <table class="t-decoder">
+      <thead><tr><th>Term</th><th>Plain meaning</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td>Hash map</td><td>Key-value store with O(1) amortized lookup, insert, and delete; implemented as an array of buckets</td><td><code>var map: [Int: Int] = [:]</code></td></tr>
+        <tr><td>Hash set</td><td>A map whose values are discarded — only membership matters; O(1) <code>contains</code> and <code>insert</code></td><td><code>var seen: Set&lt;Int&gt; = []</code></td></tr>
+        <tr><td>Bucket</td><td>A slot in the underlying array; the hash function maps a key to a bucket index</td><td>key=7, hash=7%8=7 → bucket 7</td></tr>
+        <tr><td>Collision</td><td>Two different keys map to the same bucket; resolved by chaining or probing</td><td>keys 7 and 15 both → bucket 7 (mod 8)</td></tr>
+        <tr><td>Load factor</td><td>Ratio of entries to buckets; when it exceeds ~0.75 the table resizes (causing an O(n) rehash)</td><td>8 entries / 16 buckets = 0.5 load factor</td></tr>
+        <tr><td>Amortized O(1)</td><td>Most operations are O(1); the rare O(n) resize is paid for by the many cheap inserts that preceded it</td><td>n inserts = O(n) total, so O(1) each</td></tr>
+        <tr><td>Complement</td><td>For a target sum, the complement of <code>x</code> is <code>target − x</code> — the other value you need</td><td>target=9, x=2 → complement=7</td></tr>
+        <tr><td>Sliding index map</td><td>A hash map keyed by value that stores the most recent index at which that value appeared</td><td><code>map[nums[i]] = i</code> → look up <code>i − map[v]</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Mental model -->
+  <section id="mental-model" data-toc-label="Mental Model">
+    <h2>4 &nbsp; Mental Model — the phone book</h2>
+
+    <div class="co-idea">
+      <div class="co-idea-title">The one idea</div>
+      A hash map is a phone book: you look up a name (key) in O(1) and get its number (value) instantly, no matter how big the book is. The hash function is the alphabetical index — it tells you which page to open. The entire pattern is: <em>build the phone book as you walk the array, and look things up in it before you add to it</em>.
+    </div>
+
+    <p>Watch the complement map (Variant 8.3) find a pair in <code>[2, 7, 11, 15]</code> with target <code>9</code>:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">complement map — each step: look up first, then store</span></div>
+    <pre class="dry"><span class="tr-var">i=0  nums[0]=2</span>   complement=9−2=<span class="tr-aha">7</span>   map={}              7 not in map → store {2:0}
+<span class="tr-var">i=1  nums[1]=7</span>   complement=9−7=<span class="tr-aha">2</span>   map={2:0}           <span class="tr-ok">2 IS in map → return [map[2], 1] = [0, 1]</span></pre>
+    <p class="ascii-caption">Two steps, zero inner loop. The map holds the "other half" of every pair we've seen so far. When the complement of the current element is already in the map, we're done.</p>
+
+    <p>And the simpler set membership pattern on <code>[1, 2, 3, 1]</code>:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">set membership — insert and check in one pass</span></div>
+    <pre class="dry"><span class="tr-var">i=0  nums[0]=1</span>   seen={}     1 not in seen → insert → seen={1}
+<span class="tr-var">i=1  nums[1]=2</span>   seen={1}    2 not in seen → insert → seen={1,2}
+<span class="tr-var">i=2  nums[2]=3</span>   seen={1,2}  3 not in seen → insert → seen={1,2,3}
+<span class="tr-var">i=3  nums[3]=1</span>   seen={1,2,3} <span class="tr-ok">1 IS in seen → return true</span></pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Pseudocode primer -->
+  <section id="pseudocode" data-toc-label="Pseudocode Primer">
+    <h2>5 &nbsp; Pseudocode Primer</h2>
+    <p>Two canonical templates cover all four variants. The only differences are what is stored and what is looked up.</p>
+
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">template A — set membership / seen-state (LC217 · LC202 shape)</span></div>
+    <pre class="pseudo"><span class="pk">FUNCTION</span> setMembership(input):
+    seen ← empty set
+    <span class="pk">FOR</span> each element <span class="pk">IN</span> input:
+        <span class="pk">IF</span> element <span class="pk">IN</span> seen:
+            <span class="pk">RETURN</span> true     <span class="pc">// found a repeat / cycle</span>
+        seen.insert(element)
+    <span class="pk">RETURN</span> false</pre>
+
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">template B — map with associated data (LC1 · LC219 shape)</span></div>
+    <pre class="pseudo"><span class="pk">FUNCTION</span> mapLookup(input, target):
+    map ← empty map          <span class="pc">// key: value seen; value: index (or complement)</span>
+    <span class="pk">FOR</span> i <span class="pk">FROM</span> 0 <span class="pk">TO</span> length(input) − 1:
+        query ← derive_query(input[i], target)   <span class="pc">// e.g. target − input[i]</span>
+        <span class="pk">IF</span> query <span class="pk">IN</span> map:
+            <span class="pk">RETURN</span> answer using map[query] and i
+        map[input[i]] ← i    <span class="pc">// store AFTER the lookup — order matters</span>
+    <span class="pk">RETURN</span> not found</pre>
+
+    <div class="co-insight"><strong>Why the lookup comes before the store:</strong> if you store first and then look up, a single-element answer will always find itself (e.g., LC1 with input <code>[0, 0]</code> target <code>0</code> would falsely match index 0 with itself). Look up first, store after.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. Iterative-only -->
+  <section id="iterative" data-toc-label="Iterative-Only Pattern">
+    <h2>6 &nbsp; Iterative-Only Pattern</h2>
+    <p>All four hash map variants are inherently iterative: a single forward-pass <code>for</code> loop. There is no recursive structure to consider — hashing is a lookup operation, not a decomposition of the problem into subproblems. A recursive formulation would just be a manual simulation of the same loop, with call-stack overhead added for no benefit.</p>
+    <ul>
+      <li><strong>No divide-and-conquer:</strong> you are not splitting the array; you are accumulating state as you scan forward, left to right.</li>
+      <li><strong>No backtracking:</strong> you never revisit an element. The map holds everything you need from the past in O(1) reachable form.</li>
+      <li><strong>Single direction:</strong> the index only ever increases. If you feel the need to scan backwards or restart the loop, you have likely confused this with a two-pointer problem.</li>
+    </ul>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Swift translation -->
+  <section id="swift" data-toc-label="Swift Translation">
+    <h2>7 &nbsp; Swift Translation</h2>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">LC1 — Two Sum, complement map, fully annotated</span></div>
+    <pre class="swift"><span class="kw">func</span> <span class="fn">twoSum</span>(<span class="kw">_</span> nums: [<span class="tp">Int</span>], <span class="kw">_</span> target: <span class="tp">Int</span>) -&gt; [<span class="tp">Int</span>] {
+    <span class="cm">// key: a number we've seen; value: the index we saw it at</span>
+    <span class="kw">var</span> map: [<span class="tp">Int</span>: <span class="tp">Int</span>] = [:]
+
+    <span class="kw">for</span> (i, num) <span class="kw">in</span> nums.enumerated() {
+        <span class="kw">let</span> complement = target - num
+
+        <span class="cm">// ① LOOK UP before storing — avoids matching an element with itself</span>
+        <span class="kw">if let</span> j = map[complement] {
+            <span class="kw">return</span> [j, i]
+        }
+
+        <span class="cm">// ② STORE after the lookup</span>
+        map[num] = i
+    }
+    <span class="kw">return</span> []   <span class="cm">// problem guarantees a solution exists; this is unreachable</span>
+}</pre>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">LC219 — sliding index map: check proximity before updating</span></div>
+    <pre class="swift"><span class="kw">func</span> <span class="fn">containsNearbyDuplicate</span>(<span class="kw">_</span> nums: [<span class="tp">Int</span>], <span class="kw">_</span> k: <span class="tp">Int</span>) -&gt; <span class="tp">Bool</span> {
+    <span class="cm">// key: a value we've seen; value: the most recent index we saw it at</span>
+    <span class="kw">var</span> lastSeen: [<span class="tp">Int</span>: <span class="tp">Int</span>] = [:]
+
+    <span class="kw">for</span> (i, num) <span class="kw">in</span> nums.enumerated() {
+        <span class="cm">// ① CHECK first: if we've seen this value and it was within k steps</span>
+        <span class="kw">if let</span> j = lastSeen[num], i - j &lt;= k {
+            <span class="kw">return true</span>
+        }
+        <span class="cm">// ② UPDATE: always overwrite with the most recent index</span>
+        lastSeen[num] = i
+    }
+    <span class="kw">return false</span>
+}</pre>
+
+    <div class="co-note"><strong>Swift-specific costs to say out loud:</strong> <code>Dictionary</code> subscript returns an <code>Optional</code> — always unwrap safely with <code>if let</code>. The <code>default: 0</code> subscript (<code>map[key, default: 0]</code>) is idiomatic for frequency counts. <code>Set.contains</code> and <code>Dictionary</code> lookup are both O(1) amortized — but hash collisions can degrade to O(n) in the theoretical worst case.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 8. Variant catalog -->
+  <section id="variants" data-toc-label="Variant Catalog">
+    <h2>8 &nbsp; Variant Catalog</h2>
+
+    <div class="pattern-block" id="v-membership" data-toc-label="8.1 Set membership">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.1</span>
+        <span class="block-name">Hash Set Membership</span>
+        <div class="block-pills"><span class="pill pill-t">O(n)</span><span class="pill pill-s">O(n)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> "does any element appear more than once?" The answer is purely yes/no; no associated data is needed. A <code>Set</code> is correct — using a <code>Dictionary</code> here is needless complexity.</div>
+        <p><strong>Pattern:</strong> insert each element into a set. Before inserting, check if it is already there. If yes, return true immediately.</p>
+        <pre class="pseudo"><span class="pk">FOR</span> each value <span class="pk">IN</span> array:
+    <span class="pk">IF</span> value <span class="pk">IN</span> seen: <span class="pk">RETURN</span> true
+    seen.insert(value)
+<span class="pk">RETURN</span> false</pre>
+        <p><strong>Problems:</strong> LC217 — Contains Duplicate (the warm-up for this entire block).</p>
+      </div>
+    </div>
+
+    <div class="pattern-block" id="v-seen" data-toc-label="8.2 Seen-state tracking">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.2</span>
+        <span class="block-name">Seen-State Tracking (Cycle Detection)</span>
+        <div class="block-pills"><span class="pill pill-t">O(n)</span><span class="pill pill-s">O(n)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> "does this process / sequence eventually repeat a state?" The algorithm generates states one at a time; a set tracks every state visited. When a state appears that's already in the set, a cycle is detected.</div>
+        <p><strong>Pattern:</strong> identical to 8.1 in structure, but the "value" is the <em>state</em> of the algorithm at each step — not necessarily an array element. For LC202, the state is the sum of squared digits.</p>
+        <pre class="pseudo"><span class="pk">WHILE</span> state ≠ terminal:
+    <span class="pk">IF</span> state <span class="pk">IN</span> seen: <span class="pk">RETURN</span> false   <span class="pc">// cycle detected</span>
+    seen.insert(state)
+    state ← next(state)
+<span class="pk">RETURN</span> true</pre>
+        <p><strong>Problems:</strong> LC202 — Happy Number.</p>
+        <div class="co-insight"><strong>Alternative — Floyd's cycle detection:</strong> two pointers (slow/fast) can detect cycles in O(1) space. The set approach is simpler to explain in an interview; mention Floyd's as a follow-up optimization.</div>
+      </div>
+    </div>
+
+    <div class="pattern-block" id="v-complement" data-toc-label="8.3 Complement map">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.3</span>
+        <span class="block-name">Complement Map (Pair Lookup)</span>
+        <div class="block-pills"><span class="pill pill-t">O(n)</span><span class="pill pill-s">O(n)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> "find two elements that sum to a target" and the array is <em>unsorted</em> (or sorting would destroy index information). Store the complement <code>target − x</code> for each element; look it up at the next element.</div>
+        <p><strong>Pattern:</strong> for each element, compute its complement. If the complement is in the map, return the pair. Otherwise, store the current element mapped to its index. Always look up before storing.</p>
+        <pre class="pseudo"><span class="pk">FOR</span> i, value <span class="pk">IN</span> array:
+    <span class="pk">IF</span> (target − value) <span class="pk">IN</span> map: <span class="pk">RETURN</span> [map[target−value], i]
+    map[value] ← i
+<span class="pk">RETURN</span> not found</pre>
+        <p><strong>Problems:</strong> LC1 — Two Sum (the canonical complement-map problem).</p>
+      </div>
+    </div>
+
+    <div class="pattern-block" id="v-index" data-toc-label="8.4 Sliding index map">
+      <div class="block-header">
+        <span class="block-kicker">Variant 8.4</span>
+        <span class="block-name">Sliding Index Map (Proximity Check)</span>
+        <div class="block-pills"><span class="pill pill-t">O(n)</span><span class="pill pill-s">O(n)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-when"><strong>When to use:</strong> "are there two equal elements whose indices are at most k apart?" The map stores value → most recent index, and you check the distance on each lookup.</div>
+        <p><strong>Pattern:</strong> for each element, check if its value is already in the map and whether the stored index is within k. Then update the map with the current index — even if a match was found (to keep "most recent" accurate for future checks).</p>
+        <pre class="pseudo"><span class="pk">FOR</span> i, value <span class="pk">IN</span> array:
+    <span class="pk">IF</span> value <span class="pk">IN</span> map <span class="pk">AND</span> i − map[value] ≤ k: <span class="pk">RETURN</span> true
+    map[value] ← i     <span class="pc">// always update to the most recent index</span>
+<span class="pk">RETURN</span> false</pre>
+        <p><strong>Problems:</strong> LC219 — Contains Duplicate II.</p>
+        <div class="co-note"><strong>Note — update after the check, not before:</strong> the check must use the previous index; update first and you'll always see a distance of 0.</div>
+      </div>
+    </div>
+
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 9. Complexity -->
+  <section id="complexity" data-toc-label="Complexity Analysis">
+    <h2>9 &nbsp; Complexity Analysis</h2>
+    <p><strong>Why O(n) time.</strong> Each element is visited exactly once in the <code>for</code> loop. Each operation inside the loop — a set <code>contains</code>, a map lookup, or a map insert — is O(1) amortized. The total work across all n elements is therefore O(n). There is no inner loop, no sorting, no recursion.</p>
+    <p><strong>Amortized O(1) vs worst-case O(n).</strong> A hash map occasionally resizes its internal array when the load factor exceeds ~0.75. The resize copies all entries — O(n) work. But this happens rarely enough that the average cost per insert across n insertions is still O(1). In interview contexts, always say "O(1) amortized" rather than "O(1)".</p>
+    <table class="t-cmx">
+      <thead><tr><th>Variant</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Set membership (8.1)</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td>One pass; set holds up to n distinct elements.</td></tr>
+        <tr><td>Seen-state (8.2)</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td>One pass; set holds at most n distinct states before cycle is detected.</td></tr>
+        <tr><td>Complement map (8.3)</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td>One pass; map holds up to n entries before a match is found.</td></tr>
+        <tr><td>Sliding index map (8.4)</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td>One pass; map holds at most n distinct values (one entry per distinct value).</td></tr>
+        <tr class="bottleneck"><td>Hidden O(n²) trap</td><td class="tc">O(n²)</td><td class="sc">—</td><td>Any nested loop checking "for each prior element" (brute force) — exactly what the map exists to eliminate.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 10. Pitfalls -->
+  <section id="pitfalls" data-toc-label="Common Pitfalls">
+    <h2>10 &nbsp; Common Pitfalls</h2>
+    <div class="co-pitfall">
+      <div class="co-pitfall-title">Pitfalls — bugs this pattern invites</div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Storing before looking up (LC1 / LC219 bug).</strong> If you insert into the map before querying it, an element can match itself — e.g., <code>[0, 4, 3, 0]</code> target <code>0</code> would return <code>[0, 0]</code> at <code>i=0</code> if you store first. Always look up, then store.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Using a map when a set suffices (LC217).</strong> If you only need to answer "has this value appeared?" you never use the stored index. Using a <code>Dictionary&lt;Int, Int&gt;</code> wastes memory and adds noise. Use <code>Set&lt;Int&gt;</code>.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Forgetting to update the index in the sliding index map (LC219).</strong> Even after finding a valid match and returning <code>true</code>, if you continued, you would need to update the map with the current index — to keep "most recent" accurate for future checks. Not updating leaves stale indices that produce wrong results on future lookups.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Nil-unwrap crash on uninitialized count.</strong> <code>map[key]! += 1</code> crashes if <code>key</code> is not in the map. Always use <code>map[key, default: 0] += 1</code> for frequency counting.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Leaving zero-count keys in a frequency map.</strong> If validity depends on <code>map.count</code> or iterating over keys, a key with value <code>0</code> corrupts the count. Remove the key when its count reaches zero: <code>if map[key] == 0 { map.removeValue(forKey: key) }</code>.</span></div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 11. Edge cases -->
+  <section id="edge-cases" data-toc-label="Edge Cases">
+    <h2>11 &nbsp; Edge Cases to Verbalize</h2>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected behavior</th><th>What it exercises</th></tr></thead>
+      <tbody>
+        <tr><td><code>nums = []</code></td><td>false / [] — loop body never runs</td><td>initialization; return without hitting the map</td></tr>
+        <tr><td><code>nums = [1]</code></td><td>false — no pair possible</td><td>early return guard; map has one entry at the end</td></tr>
+        <tr><td><code>nums = [1, 1]</code></td><td>LC217: true immediately at i=1</td><td>earliest possible duplicate</td></tr>
+        <tr><td><code>nums = [1, 2, 3, 1], k = 3</code></td><td>LC219: true — indices 0 and 3, distance exactly k</td><td>boundary: ≤ k, not &lt; k</td></tr>
+        <tr><td><code>nums = [1, 2, 3, 1], k = 2</code></td><td>LC219: false — distance 3 &gt; k</td><td>boundary: distance just outside k</td></tr>
+        <tr><td><code>nums = [0, 0], target = 0</code></td><td>LC1: [0, 1] — not [0, 0]</td><td>look-up-before-store prevents self-match</td></tr>
+        <tr><td>target not achievable (LC1)</td><td>[] — map fully populated, no match found</td><td>the unreachable return at the end (problem guarantees a solution)</td></tr>
+        <tr><td>LC202: n = 1</td><td>true — 1 is a happy number (sum of squares = 1)</td><td>terminal condition check before any loop iteration</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 12. Cheat sheet -->
+  <section id="cheatsheet" data-toc-label="Cheat Sheet">
+    <h2>12 &nbsp; Cheat Sheet</h2>
+    <table class="t-versus">
+      <thead><tr><th>You see…</th><th>Variant</th><th>Store</th><th>Look up</th></tr></thead>
+      <tbody>
+        <tr><td>"duplicate?" / "seen before?"</td><td>8.1 Set</td><td>the value</td><td>the value before inserting</td></tr>
+        <tr><td>"cycle?" / "repeated state?"</td><td>8.2 Seen set</td><td>the state</td><td>the state before each step</td></tr>
+        <tr><td>"pair sums to target" (unsorted)</td><td>8.3 Complement map</td><td><code>value → index</code></td><td><code>target − value</code></td></tr>
+        <tr><td>"duplicate within k distance"</td><td>8.4 Index map</td><td><code>value → latest index</code></td><td>check <code>i − map[v] ≤ k</code></td></tr>
+      </tbody>
+    </table>
+
+    <div class="code-label"><span class="code-lang lang-swift">Swift</span><span class="code-desc">copy-paste skeletons for the four variants</span></div>
+    <pre class="swift"><span class="cm">// 8.1 Set membership</span>
+<span class="kw">var</span> seen = <span class="tp">Set</span>&lt;<span class="tp">Int</span>&gt;()
+<span class="kw">for</span> v <span class="kw">in</span> nums { <span class="kw">if</span> seen.contains(v) { <span class="kw">return true</span> }; seen.insert(v) }
+
+<span class="cm">// 8.2 Seen-state</span>
+<span class="kw">var</span> seen = <span class="tp">Set</span>&lt;<span class="tp">Int</span>&gt;()
+<span class="kw">while</span> state != terminal { <span class="kw">if</span> seen.contains(state) { <span class="kw">return false</span> }; seen.insert(state); state = next(state) }
+
+<span class="cm">// 8.3 Complement map</span>
+<span class="kw">var</span> map: [<span class="tp">Int</span>: <span class="tp">Int</span>] = [:]
+<span class="kw">for</span> (i, v) <span class="kw">in</span> nums.enumerated() {
+    <span class="kw">if let</span> j = map[target - v] { <span class="kw">return</span> [j, i] }
+    map[v] = i
+}
+
+<span class="cm">// 8.4 Sliding index map</span>
+<span class="kw">var</span> last: [<span class="tp">Int</span>: <span class="tp">Int</span>] = [:]
+<span class="kw">for</span> (i, v) <span class="kw">in</span> nums.enumerated() {
+    <span class="kw">if let</span> j = last[v], i - j &lt;= k { <span class="kw">return true</span> }
+    last[v] = i
+}</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13. Cross-reference -->
+  <section id="practice" data-toc-label="Demonstrated in Practice">
+    <h2>13 &nbsp; Demonstrated in Practice</h2>
+    <p>The walkthroughs below apply the theory directly to the study-plan problems. Each card names the variant it demonstrates and what you land on when you open it.</p>
+    <div class="ref-grid">
+      <span class="xref-card xref-coming">
+        <span class="ref-file">leetcode_walkthroughs/LC217_master.html</span>
+        <span class="ref-title">LC 217 — Contains Duplicate (Easy)</span>
+        <span class="ref-desc">Variant 8.1 (set membership) at its absolute simplest — the warm-up for the entire block. Theory Decoder maps the three-line solution back to §8.1.</span>
+      </span>
+      <span class="xref-card xref-coming">
+        <span class="ref-file">leetcode_walkthroughs/LC202_master.html</span>
+        <span class="ref-title">LC 202 — Happy Number (Easy)</span>
+        <span class="ref-desc">Variant 8.2 (seen-state cycle detection). Shows why the set tracks <em>states</em> not values, and introduces Floyd's cycle detection as a follow-up O(1)-space optimization.</span>
+      </span>
+      <span class="xref-card xref-coming">
+        <span class="ref-file">leetcode_walkthroughs/LC1_master.html</span>
+        <span class="ref-title">LC 1 — Two Sum (Easy)</span>
+        <span class="ref-desc">Variant 8.3 (complement map). The canonical hash map interview problem — demonstrates the look-up-before-store rule and the O(n) vs O(n²) argument in full.</span>
+      </span>
+      <span class="xref-card xref-coming">
+        <span class="ref-file">leetcode_walkthroughs/LC219_master.html</span>
+        <span class="ref-title">LC 219 — Contains Duplicate II (Easy)</span>
+        <span class="ref-desc">Variant 8.4 (sliding index map). Shows the always-update-after-check rule and the ≤ k boundary condition.</span>
+      </span>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 14. Solo problem -->
+  <section id="solo" data-toc-label="Solo Problem">
+    <h2>14 &nbsp; Solo Problem — no solution on this page</h2>
+    <div class="solo-box">
+      <div class="solo-banner">Solo problem — no solution on this page</div>
+      <p><strong>LC 1 — Two Sum (Easy).</strong> Given an array of integers and a target, return the indices of the two numbers that add up to the target. You may not use the same element twice. This is Variant 8.3 — rebuild it cold before opening anything.</p>
+      <ul class="checklist">
+        <li>Which variant is this, and what do you store in the map vs what do you look up?</li>
+        <li>Why do you look up before storing — what goes wrong if you store first?</li>
+        <li>What is the time complexity? The space complexity? Why?</li>
+        <li>What do you return if no pair exists? (The problem guarantees one does — but verbalize the guard.)</li>
+        <li>How does the solution change if the array were sorted? (Follow-up: two pointers, O(1) space.)</li>
+      </ul>
+    </div>
+  </section>
+
+  <div class="page-footer">
+    Hash Map / Hash Set Deep Dive · Theory Masterfile ·
+    <a href="arrays_hashing_overview_master.html">Arrays &amp; Hashing Overview</a> ·
+    <a href="two_pointers_deep_dive_master.html">Two Pointers Deep Dive</a> ·
+    Structure per <code>.claude/skills/wiki/references/theory-format.md</code>
+  </div>
+
+</main>
+</div>
+
+<script src="../../../static/generated/manifest.js"></script>
+<script src="../../../static/generated/nav.js"></script>
+<script src="../../../static/generated/toc.js"></script>
+</body>
+</html>

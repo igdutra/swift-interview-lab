@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LC 415 — Add Strings · Walkthrough Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "LC 415 — Add Strings",
+  "nav": "LC 415",
+  "topics": [
+    "Strings",
+    "Simulation",
+    "Math"
+  ],
+  "blurb": "Digit-buffer build (Variant 8.1). Right-to-left carry walk with the carry folded into the loop condition — no padding, no post-loop carry branch, append-and-reverse to stay O(n).",
+  "difficulty": "E"
+}
+</script>
+<link rel="stylesheet" href="../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="walkthrough">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">LC 415 — Add Strings</h1>
+  <div class="page-meta">
+    <span>Walkthrough Masterfile</span><span>·</span>
+    <span>Language: Swift</span><span>·</span>
+    <span>Easy · Digit-buffer build · Right-to-left carry walk</span>
+  </div>
+
+  <!-- 1. Restatement -->
+  <section id="lead" data-toc-label="The Problem">
+    <div class="infobox">
+      <div class="infobox-title">Problem at a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Difficulty</div><div class="infobox-v"><span class="tag tag-E">Easy</span></div></div>
+      <div class="infobox-row"><div class="infobox-k">Pattern</div><div class="infobox-v">Digit-buffer build — right-to-left carry walk (Variant 8.1)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Tools</div><div class="infobox-v">Two read pointers · result buffer · single carry Int · ASCII digit math</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key insight</div><div class="infobox-v">Fold the final carry flush into the loop with the condition <code>left ≥ 0 || right ≥ 0 || carry &gt; 0</code></div></div>
+      <div class="infobox-row"><div class="infobox-k">Time / Space</div><div class="infobox-v">O(max(n, m)) / O(max(n, m))</div></div>
+      <div class="infobox-row"><div class="infobox-k">Theory</div><div class="infobox-v mono"><a href="../theory/strings/text_formatting_deep_dive_master.html">text_formatting_deep_dive_master.html</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p>You are given two non-negative integers represented as strings, <code>num1</code> and <code>num2</code>. Return their sum, also as a string. The catch is the one that makes it a real problem: you may not convert the strings to <code>Int</code> (or any built-in big-integer type) and you may not use any library that does the addition for you. You add them the way you learned in grade school — column by column, right to left, carrying the overflow.</p>
+
+      <table class="t-example">
+        <thead><tr><th>Input</th><th>Output</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><code>num1 = "11", num2 = "123"</code></td><td><code>"134"</code></td><td>11 + 123; the shorter number contributes 0 in its missing high columns</td></tr>
+          <tr><td><code>num1 = "456", num2 = "77"</code></td><td><code>"533"</code></td><td>6+7=13 → write 3, carry 1; 5+7+1=13 → write 3, carry 1; 4+0+1=5</td></tr>
+          <tr><td><code>num1 = "0", num2 = "0"</code></td><td><code>"0"</code></td><td>Degenerate case — the loop must still run once and not produce <code>""</code></td></tr>
+        </tbody>
+      </table>
+
+      <p>The twist is that the numbers can be up to 10⁴ digits long — far beyond what any fixed-width integer holds. The whole point is to simulate the arithmetic on the characters directly, which is exactly why the <code>Int</code> conversion is banned.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Reading the problem -->
+  <section id="reading" data-toc-label="Reading the Problem">
+    <h2>2 &nbsp; Reading the Problem — insights from the constraints</h2>
+
+    <div class="co-insight"><strong>"You must not convert the inputs to integers directly":</strong> this is the constraint that defines the problem. It forces character-level arithmetic — you subtract the ASCII value of <code>"0"</code> from each character to get its numeric value, add, and convert back. The entire technique exists because the natural shortcut is forbidden.</div>
+
+    <div class="co-insight"><strong>Lengths up to 10⁴:</strong> the two numbers need not be the same length. The shorter one runs out of digits before the longer one. Rather than left-padding the shorter string with zeros (an extra allocation), you guard each read: if a pointer has fallen off the left edge, that column contributes 0.</div>
+
+    <div class="co-insight"><strong>"Non-negative integers":</strong> no minus signs, no subtraction. You only ever add, and the carry is only ever 0 or 1. This keeps the column math to a single <code>sum = digit1 + digit2 + carry; write sum % 10; carry = sum / 10</code>.</div>
+
+    <div class="co-insight"><strong>"No leading zeros, except the number 0 itself":</strong> the inputs are clean, so you never strip leading zeros on the way in. But the output must obey the same rule — and the only way to accidentally violate it is the all-zeros case, which the example table flags.</div>
+
+    <div class="co-insight"><strong>Addition is right-to-left:</strong> the least significant digit is at the <em>end</em> of each string. So you walk both strings backward with two independent pointers, and you build the result backward too — appending the low digit each step, then reversing once at the end.</div>
+
+    <table class="t-clue">
+      <thead><tr><th>Phrase / constraint</th><th>What it forces</th></tr></thead>
+      <tbody>
+        <tr><td>"Must not convert to integers"</td><td>Character arithmetic: <code>Character.wholeNumberValue</code> or ASCII subtraction, per column</td></tr>
+        <tr><td>Unequal lengths</td><td>Independent pointers + bounds guard contributing 0, not left-padding</td></tr>
+        <tr><td>Non-negative only</td><td>Carry is 0 or 1; one addition formula, no borrow logic</td></tr>
+        <tr><td>Up to 10⁴ digits</td><td>O(n) single pass; never build an Int — that's the whole point</td></tr>
+        <tr><td>Least significant digit last</td><td>Walk both strings from the right; build the buffer backward, reverse once</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Edge cases -->
+  <section id="edge-cases" data-toc-label="Edge Case Inventory">
+    <h2>3 &nbsp; Edge Case Inventory</h2>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected</th><th>Handled by</th></tr></thead>
+      <tbody>
+        <tr><td><code>"0" + "0"</code></td><td><code>"0"</code></td><td>The loop condition fires once (both pointers at index 0); writes a single <code>"0"</code>. Never produces <code>""</code> or <code>"00"</code> because the loop runs on the digit, not on a carry.</td></tr>
+        <tr><td><code>"1" + "9999"</code> — unequal lengths</td><td><code>"10000"</code></td><td>The short pointer falls off the left edge and contributes 0; the carry propagates through the remaining columns of the long number.</td></tr>
+        <tr><td><code>"99" + "1"</code> — carry to a new column</td><td><code>"100"</code></td><td>After both pointers exhaust, <code>carry &gt; 0</code> keeps the loop alive one more turn to emit the leading <code>1</code>.</td></tr>
+        <tr><td><code>"9" + "9"</code> — single-column overflow</td><td><code>"18"</code></td><td>9+9=18 → write 8, carry 1; both pointers exhausted but <code>carry &gt; 0</code> writes the 1.</td></tr>
+        <tr><td><code>"123" + "0"</code> — one operand zero</td><td><code>"123"</code></td><td>The zero contributes 0 in its single column; remaining columns of <code>num1</code> copy through with carry 0.</td></tr>
+        <tr><td>GOTCHA: forgetting the final carry</td><td>wrong: <code>"99"+"1"</code> → <code>"00"</code></td><td>If the loop stops when both indices run out, the surviving carry is dropped. Putting <code>carry &gt; 0</code> in the loop condition is what handles it.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="co-insight"><strong>The carry-in-the-loop-condition trick is the whole elegance.</strong> A naive solution loops while either pointer is in range, then adds a special post-loop <code>if carry &gt; 0 { append("1") }</code>. Folding <code>carry &gt; 0</code> into the loop condition eliminates that branch entirely — the loop naturally runs one extra time to flush a surviving carry, and exactly zero extra times when there is none.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Hints -->
+  <section id="hints" data-toc-label="Try It Yourself First">
+    <h2>4 &nbsp; Try It Yourself First</h2>
+    <p>This is a warm-up, but the carry handling has a sharp edge. Try it cold, then open hints one at a time.</p>
+    <details class="hint"><summary>Hint 1 — the constraint</summary><p>You cannot turn the strings into <code>Int</code>. That forces you to add them digit by digit, exactly the way you do by hand: start from the rightmost column, add the two digits plus any carry, write the low digit, carry the rest.</p></details>
+    <details class="hint"><summary>Hint 2 — the pattern</summary><p>Digit-buffer build. Use two read pointers starting at the last index of each string and a result buffer. Each step: read a digit from each pointer (0 if that pointer has run off the left edge), add them with the carry, append <code>columnSum % 10</code>, set <code>carry = columnSum / 10</code>, and step both pointers left.</p></details>
+    <details class="hint"><summary>Hint 3 — the loop condition</summary><p>Don't stop when the pointers run out — stop when the pointers run out <em>and</em> the carry is gone. Use <code>while leftIndex &gt;= 0 || rightIndex &gt;= 0 || carry &gt; 0</code>. That single condition handles unequal lengths and a final carry-out without any post-loop special case. Build the buffer backward, then reverse it once at the end.</p></details>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Interview simulation -->
+  <section id="simulation" data-toc-label="Interview Simulation">
+    <h2>5 &nbsp; Interview Simulation</h2>
+    <p>The interviewer has stated the problem. The script starts with your first words — practice it out loud.</p>
+
+    <div class="sim-block" id="sim-questions" data-toc-label="5.1 Clarifying questions">
+      <div class="sim-header">Step 1 — Clarifying questions</div>
+      <div class="sim-body">
+        <div class="sim-q">Q: "Are both inputs guaranteed to be valid non-negative integers with no leading zeros, no signs, no whitespace?"</div>
+        <div class="sim-a">A: Yes — clean digit strings, no leading zeros except the literal <code>"0"</code>. <strong>→ No input validation or trimming; I can treat every character as a digit.</strong></div>
+
+        <div class="sim-q">Q: "Can I assume ASCII digits only, so I can subtract the code point of <code>'0'</code>?"</div>
+        <div class="sim-a">A: Yes, only <code>'0'</code>–<code>'9'</code>. <strong>→ I'll use <code>Character.wholeNumberValue</code> (or ASCII subtraction) to get each digit's value — no Int conversion of the whole string.</strong></div>
+
+        <div class="sim-q">Q: "The two numbers might be different lengths — should I handle that without padding the shorter one?"</div>
+        <div class="sim-a">A: Yes, lengths can differ by a lot. <strong>→ Independent pointers with a bounds guard that contributes 0 when a pointer falls off, rather than allocating a padded copy.</strong></div>
+
+        <div class="sim-q">Q: "How large can the inputs be — is there a risk the sum overflows a machine integer?"</div>
+        <div class="sim-a">A: Up to 10⁴ digits each — far beyond Int range. <strong>→ That's exactly why I must stay at the character level; there is no Int that holds these.</strong></div>
+      </div>
+    </div>
+
+    <div class="sim-block" id="sim-plan" data-toc-label="5.2 The plan, spoken">
+      <div class="sim-header">Step 2 — The plan, before any code</div>
+      <div class="sim-body">
+        <div class="speech">
+          <div class="speech-kicker">The plan, spoken</div>
+          <p>"This is a digit-buffer build — Variant 8.1 of the Text Formatting and Simulation family. The signal is 'do arithmetic on numbers given as strings, with no BigInt allowed.' I simulate grade-school column addition right to left."</p>
+          <p>"Let me pin the governing conditions before naming any structure. The loop's continuation condition is the heart of the problem: I keep going <em>while there is still a digit to read in either number, or a carry left to flush</em> — <code>leftIndex &gt;= 0 || rightIndex &gt;= 0 || carry &gt; 0</code>. The invariant each pass maintains is that everything to the right of the current column is already correctly summed and sitting in the buffer, and <code>carry</code> holds exactly the overflow from that already-summed suffix. The stop condition is the negation: both pointers off the left edge AND no carry — at that moment the buffer holds the complete reversed result."</p>
+          <p>"The structures follow from those conditions. I need two read pointers, <code>leftIndex</code> and <code>rightIndex</code>, starting at the last index of each string, because the conditions reference 'a digit still to read in either number.' I need one Int <code>carry</code>, because the invariant says I carry exactly the suffix overflow and that is never more than 1. And I need a result buffer — an array of characters I append the low digit to each step, because the loop produces digits in reverse order and I want O(1) appends rather than O(n) string prepends."</p>
+          <p>"The walk: each pass, read <code>digit1</code> from <code>leftIndex</code> (or 0 if <code>leftIndex &lt; 0</code>), <code>digit2</code> from <code>rightIndex</code> (or 0 if <code>rightIndex &lt; 0</code>), compute <code>columnSum = digit1 + digit2 + carry</code>, append <code>columnSum % 10</code> to the buffer, set <code>carry = columnSum / 10</code>, and decrement both pointers. When the loop's stop condition holds, reverse the buffer and join it into a string. Time is O(max(n, m)) — one pass over the longer number; space is O(max(n, m)) for the result buffer."</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. Approach rationale -->
+  <section id="approach" data-toc-label="Why This Approach">
+    <h2>6 &nbsp; Why This Approach — and not the others</h2>
+    <table class="t-versus">
+      <thead><tr><th>Candidate</th><th>Cost</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>Convert both to <code>Int</code>, add, stringify</td><td>O(n)</td><td><strong>Disqualified.</strong> Banned by the problem, and impossible anyway — 10⁴-digit numbers do not fit in any fixed-width integer. This is the trap the constraint is built to block.</td></tr>
+        <tr><td>Left-pad the shorter string with zeros, then add column by column</td><td>O(n) time, O(n) extra for the padded copy</td><td>Works and is correct, but the padding is a wasted allocation. A bounds guard contributing 0 achieves the same with no extra string.</td></tr>
+        <tr><td>Build the result with string prepend (<code>"3" + result</code>)</td><td>O(n²)</td><td>Correct order without a reverse, but each prepend copies the whole accumulated string — quadratic. Append-then-reverse is linear.</td></tr>
+        <tr><td><strong>Two pointers, carry in the loop condition, append + reverse</strong></td><td>O(max(n,m)) / O(max(n,m))</td><td><strong>Chosen.</strong> One pass, no padding, no post-loop carry branch, O(1) amortized appends. The loop condition does all the bookkeeping.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-when"><strong>The deciding signal:</strong> "numbers as strings, no BigInt." Any time a problem hands you arithmetic on arbitrarily long numeric strings and forbids the integer conversion, reach for the right-to-left digit-buffer walk with a carry. It is the same skeleton for Add Strings, Add Two Numbers (linked-list form), Multiply Strings, and Plus One.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Data structures -->
+  <section id="structures" data-toc-label="Data Structures">
+    <h2>7 &nbsp; Data Structures — choice and justification</h2>
+    <table class="t-decoder">
+      <thead><tr><th>Structure</th><th>Holds</th><th>Why this and not weaker/stronger</th></tr></thead>
+      <tbody>
+        <tr><td><code>digits1: [Character]</code>, <code>digits2: [Character]</code></td><td>The two input strings as random-access arrays</td><td>Swift <code>String</code> has no O(1) integer subscript — indexing is O(n) per access. Materializing each string into a <code>[Character]</code> once gives O(1) indexing for the pointer walk, turning a potential O(n²) into O(n).</td></tr>
+        <tr><td><code>left: Int</code>, <code>right: Int</code></td><td>Current column index in each number, walking right to left</td><td>Two independent indices, not one shared loop counter, because the numbers differ in length. Each is guarded so a negative index contributes the digit 0.</td></tr>
+        <tr><td><code>carry: Int</code></td><td>The overflow from the column just summed (always 0 or 1)</td><td>A single Int, not a stack or queue — addition of non-negative numbers never carries more than 1. Living in the loop condition, it also drives the final flush.</td></tr>
+        <tr><td><code>result: [Character]</code></td><td>The output digits, accumulated least-significant first</td><td>An array with O(1) append, reversed once at the end. Building a <code>String</code> by prepending would be O(n²); appending to an array and reversing is O(n).</td></tr>
+      </tbody>
+    </table>
+    <div class="co-insight"><strong>Why convert <code>String</code> to <code>[Character]</code> first.</strong> In Swift, <code>num1[someIndex]</code> requires a <code>String.Index</code>, and computing the index for position k is an O(k) walk from the start. Doing that inside a loop makes the whole algorithm O(n²). Converting to <code>[Character]</code> (or <code>[UInt8]</code> via <code>Array(num1.utf8)</code>) once up front buys true O(1) random access for the rest of the function.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 8. Pseudocode dry run -->
+  <section id="dryrun" data-toc-label="Pseudocode Dry Run">
+    <h2>8 &nbsp; Pseudocode Dry Run</h2>
+
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">right-to-left column addition with carry folded into the loop</span></div>
+    <pre class="pseudo">leftIndex  ← lastIndex(num1)
+rightIndex ← lastIndex(num2)
+carry ← 0
+resultBuffer ← empty buffer
+
+<span class="pk">WHILE</span> leftIndex ≥ 0 <span class="pk">OR</span> rightIndex ≥ 0 <span class="pk">OR</span> carry &gt; 0:
+    digit1 ← (leftIndex ≥ 0)  ? digitAt(num1, leftIndex)  : 0
+    digit2 ← (rightIndex ≥ 0) ? digitAt(num2, rightIndex) : 0
+    columnSum ← digit1 + digit2 + carry
+    append(resultBuffer, columnSum mod 10)   <span class="pc">// low digit, buffer grows backward</span>
+    carry ← columnSum / 10                   <span class="pc">// 0 or 1</span>
+    leftIndex  ← leftIndex  − 1
+    rightIndex ← rightIndex − 1
+
+<span class="pk">RETURN</span> reverse(resultBuffer) as string</pre>
+
+    <p>Trace on <code>num1 = "456", num2 = "77"</code> — expected <code>"533"</code>:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">column-by-column carry walk for "456" + "77"</span></div>
+    <pre class="dry"><span class="tr-var">left=2  right=1  carry=0  result=[]</span>
+
+col  d1  d2  carry  sum  write  newCarry  result
+─────────────────────────────────────────────────
+ 1    6   7    0     13    3       1       [3]
+ 2    5   7    1     13    3       1       [3,3]
+ 3    4   0    1      5    5       0       [3,3,5]      <span class="tr-var">↑ right ran out → d2=0</span>
+
+left=−1, right=−2, carry=0 → loop stops
+reverse([3,3,5]) = [5,3,3]
+<span class="tr-ok">RETURN "533"</span></pre>
+
+    <p>And the carry-out case <code>num1 = "99", num2 = "1"</code> — expected <code>"100"</code>:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">surviving carry forces one extra loop turn</span></div>
+    <pre class="dry"><span class="tr-var">left=1  right=0  carry=0  result=[]</span>
+
+col  d1  d2  carry  sum  write  newCarry  result
+─────────────────────────────────────────────────
+ 1    9   1    0     10    0       1       [0]
+ 2    9   0    1     10    0       1       [0,0]        <span class="tr-var">↑ right out → d2=0</span>
+ 3    0   0    1      1    1       0       [0,0,1]      <span class="tr-bad">↑ both out, carry&gt;0 keeps loop alive</span>
+
+reverse([0,0,1]) = [1,0,0]
+<span class="tr-ok">RETURN "100"</span></pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 9. Swift solution -->
+  <section id="swift" data-toc-label="Swift Solution">
+    <h2>9 &nbsp; Swift Solution — iterative</h2>
+
+    <div class="solution-block">
+      <div class="block-header">
+        <span class="block-badge">A.1</span>
+        <span class="block-name">Two-pointer carry walk — append and reverse</span>
+        <div class="block-pills"><span class="pill pill-t">O(max(n,m))</span><span class="pill pill-s">O(max(n,m))</span></div>
+      </div>
+      <div class="block-body">
+        <div class="approach-box">
+          <div class="approach-title">Plan</div>
+          Materialize both strings as character arrays for O(1) indexing. Walk two pointers from the right ends. Each step, read a digit from each (0 if a pointer has fallen off the left edge), add them with the carry, append the low digit to the result buffer, update the carry. Keep looping while either pointer is in range or a carry survives. Reverse the buffer and join it into the answer.
+        </div>
+
+        <pre class="swift"><span class="kw">func</span> <span class="fn">addStrings</span>(<span class="kw">_</span> num1: <span class="tp">String</span>, <span class="kw">_</span> num2: <span class="tp">String</span>) -&gt; <span class="tp">String</span> {
+    <span class="kw">let</span> digits1 = <span class="tp">Array</span>(num1)
+    <span class="kw">let</span> digits2 = <span class="tp">Array</span>(num2)
+    <span class="kw">var</span> leftIndex  = digits1.count - <span class="nm">1</span>
+    <span class="kw">var</span> rightIndex = digits2.count - <span class="nm">1</span>
+    <span class="kw">var</span> carry = <span class="nm">0</span>
+    <span class="kw">var</span> resultDigits: [<span class="tp">Character</span>] = []
+
+    <span class="cm">// Invariant: everything to the right is summed; carry holds that suffix's overflow.</span>
+    <span class="kw">while</span> leftIndex &gt;= <span class="nm">0</span> || rightIndex &gt;= <span class="nm">0</span> || carry &gt; <span class="nm">0</span> {
+        <span class="kw">let</span> digit1 = leftIndex  &gt;= <span class="nm">0</span> ? digits1[leftIndex].wholeNumberValue! : <span class="nm">0</span>
+        <span class="kw">let</span> digit2 = rightIndex &gt;= <span class="nm">0</span> ? digits2[rightIndex].wholeNumberValue! : <span class="nm">0</span>
+        <span class="kw">let</span> columnSum = digit1 + digit2 + carry
+        resultDigits.<span class="fn">append</span>(<span class="tp">Character</span>(<span class="tp">String</span>(columnSum % <span class="nm">10</span>)))
+        carry = columnSum / <span class="nm">10</span>
+        leftIndex  -= <span class="nm">1</span>
+        rightIndex -= <span class="nm">1</span>
+    }
+
+    <span class="kw">return</span> <span class="tp">String</span>(resultDigits.<span class="fn">reversed</span>())
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 10. Code dry run -->
+  <section id="code-dry-run" data-toc-label="Code Dry Run">
+    <h2>10 &nbsp; Code Dry Run — the Swift solution, traced</h2>
+    <p>Full debugger-style trace on <code>num1 = "456", num2 = "77"</code> → expected <code>"533"</code>.</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">full execution trace — /code-dry-run format</span></div>
+    <pre class="dry">────────────────────────────────
+/code-dry-run
+Problem: LC 415 — Add Strings
+Input:   num1 = "456", num2 = "77"
+────────────────────────────────
+
+addStrings
+  digits1      = ["4","5","6"]
+  digits2      = ["7","7"]
+  leftIndex    = 2
+  rightIndex   = 1
+  carry        = 0
+  resultDigits = []
+
+────────────────────────────────
+ITERATION 1  leftIndex=2  rightIndex=1
+────────────────────────────────
+
+  leftIndex >= 0? YES → digit1 = digits1[2]("6") = 6
+  rightIndex >= 0? YES → digit2 = digits2[1]("7") = 7
+  columnSum = 6 + 7 + 0 = 13
+  append(13 % 10 = 3)        →  resultDigits = ["3"]
+  carry = 13 / 10 = 1
+  leftIndex  → 1
+  rightIndex → 0
+
+  State: resultDigits=["3"], carry=1
+
+────────────────────────────────
+ITERATION 2  leftIndex=1  rightIndex=0
+────────────────────────────────
+
+  leftIndex >= 0? YES → digit1 = digits1[1]("5") = 5
+  rightIndex >= 0? YES → digit2 = digits2[0]("7") = 7
+  columnSum = 5 + 7 + 1 = 13
+  append(13 % 10 = 3)        →  resultDigits = ["3","3"]
+  carry = 13 / 10 = 1
+  leftIndex  → 0
+  rightIndex → -1
+
+  State: resultDigits=["3","3"], carry=1
+
+────────────────────────────────
+ITERATION 3  leftIndex=0  rightIndex=-1
+────────────────────────────────
+
+  leftIndex >= 0? YES → digit1 = digits1[0]("4") = 4
+  rightIndex >= 0? NO  → digit2 = 0
+  ↑ num2 exhausted — the bounds guard supplies 0, no padding needed
+  columnSum = 4 + 0 + 1 = 5
+  append(5 % 10 = 5)         →  resultDigits = ["3","3","5"]
+  carry = 5 / 10 = 0
+  leftIndex  → -1
+  rightIndex → -2
+
+  State: resultDigits=["3","3","5"], carry=0
+
+────────────────────────────────
+LOOP CONDITION CHECK
+────────────────────────────────
+
+  leftIndex >= 0? NO   (-1)
+  rightIndex >= 0? NO  (-2)
+  carry > 0? NO        (0)
+  NO || NO || NO → false → exit loop
+
+────────────────────────────────
+RESULT
+────────────────────────────────
+
+  String(resultDigits.reversed()) = String(["5","3","3"])
+  return "533"</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 11. Q→Code map -->
+  <section id="qmap" data-toc-label="Question → Code Map">
+    <h2>11 &nbsp; Question → Code Map</h2>
+    <table class="t-qmap">
+      <thead><tr><th>What you asked / planned</th><th>What it became</th></tr></thead>
+      <tbody>
+        <tr><td>"Clean digit strings, no validation"</td><td>No guard clauses; <code>wholeNumberValue!</code> force-unwrap is safe on guaranteed digits</td></tr>
+        <tr><td>"O(1) indexing for the pointer walk"</td><td><code>let digits1 = Array(num1)</code> / <code>Array(num2)</code></td></tr>
+        <tr><td>"Two independent pointers from the right"</td><td><code>var leftIndex = digits1.count - 1</code>, <code>var rightIndex = digits2.count - 1</code></td></tr>
+        <tr><td>"Off-the-edge pointer contributes 0"</td><td><code>leftIndex &gt;= 0 ? digits1[leftIndex]… : 0</code></td></tr>
+        <tr><td>"Keep going while a digit or carry remains"</td><td><code>while leftIndex &gt;= 0 || rightIndex &gt;= 0 || carry &gt; 0</code></td></tr>
+        <tr><td>"Column math, write low digit, keep carry"</td><td><code>columnSum = digit1 + digit2 + carry</code>; append <code>% 10</code>; <code>carry = columnSum / 10</code></td></tr>
+        <tr><td>"Build backward, reverse once"</td><td><code>return String(resultDigits.reversed())</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 12. Complexity -->
+  <section id="complexity" data-toc-label="Complexity">
+    <h2>12 &nbsp; Complexity</h2>
+    <table class="t-cmx">
+      <thead><tr><th>Phase</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Array materialization</td><td class="tc">O(n + m)</td><td class="sc">O(n + m)</td><td><code>Array(num1)</code> and <code>Array(num2)</code> copy each string once into character arrays.</td></tr>
+        <tr><td>Carry walk</td><td class="tc">O(max(n, m))</td><td class="sc">O(max(n, m))</td><td>The loop runs once per column of the longer number (plus at most one extra turn for a final carry). The result buffer grows to at most max(n,m)+1 digits.</td></tr>
+        <tr class="bottleneck"><td>Total</td><td class="tc">O(max(n, m))</td><td class="sc">O(max(n, m))</td><td>Dominated by a single linear pass. The result string is irreducible — the output itself is that long, so no algorithm can do better in space.</td></tr>
+      </tbody>
+    </table>
+    <div class="co-insight"><strong>Why the <code>+= </code>-on-String pitfall matters here.</strong> If you build the answer as a <code>String</code> by prepending (<code>result = String(columnSum % 10) + result</code>), each prepend copies the entire accumulated string, making the build O(n²). Appending to a <code>[Character]</code> and reversing once at the end keeps it O(n). This is the single performance trap in an otherwise easy problem.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13. Follow-ups -->
+  <section id="followups" data-toc-label="Follow-Up Bank">
+    <h2>13 &nbsp; Follow-Up Bank — the interviewer's second act</h2>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Before you push this to production — can you see any improvements you'd make?"</div>
+      <div class="followup-a">Two constant-factor wins. First, work on <code>Array(num1.utf8)</code> instead of <code>Array(num1)</code> — UInt8 bytes are cheaper than Character values, and the digit is just <code>byte - 48</code>. Second, I could pre-size the result buffer with <code>reserveCapacity(max(n, m) + 1)</code> to avoid reallocations as it grows. The asymptotics stay O(max(n, m)); these just shave the constant.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Now the inputs are two linked lists of digits, least-significant digit first — add them."</div>
+      <div class="followup-a">That is LC 2 — Add Two Numbers, the same carry walk in a different container. The list is already stored least-significant-first, so there's no reversal at all: walk both lists forward in lockstep, build the result list node by node, and the same <code>while l1 != nil || l2 != nil || carry &gt; 0</code> condition flushes the final carry. The algorithm is identical; only the data structure changes.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Multiply the two numeric strings instead of adding them."</div>
+      <div class="followup-a">That's LC 43 — Multiply Strings. The trick is that the product of digit <code>i</code> of num1 and digit <code>j</code> of num2 lands in result positions <code>i+j</code> and <code>i+j+1</code>. Allocate a result array of length <code>n + m</code>, accumulate each pairwise product into those two positions with carry, then strip the leading zero. It reuses this problem's per-digit carry handling, applied on a grid of digit pairs rather than a single column.</div>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "What if the numbers can be negative, given with a leading minus sign?"</div>
+      <div class="followup-a">Parse the signs first. Same signs → add the magnitudes (this exact routine) and reattach the sign. Different signs → subtract the smaller magnitude from the larger (a borrow walk, the mirror of this carry walk) and take the sign of the larger. The addition core is unchanged; you add a magnitude comparison and a subtract-with-borrow variant.</div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 14. Theory decoder -->
+  <section id="decoder" data-toc-label="Theory Decoder">
+    <h2>14 &nbsp; Theory Decoder — the theory as used here</h2>
+    <table class="t-decoder">
+      <thead><tr><th>General concept</th><th>Instantiated in this solution as</th><th>General form</th></tr></thead>
+      <tbody>
+        <tr><td>Digit-buffer build</td><td>Walk both numbers right to left, append each column's low digit to a buffer, reverse once at the end.</td><td><a href="../theory/strings/text_formatting_deep_dive_master.html#v-digit">theory §8.1</a></td></tr>
+        <tr><td>Carry in the loop condition</td><td><code>while leftIndex &gt;= 0 || rightIndex &gt;= 0 || carry &gt; 0</code> — the final flush is part of the loop, not a special case.</td><td><a href="../theory/strings/text_formatting_deep_dive_master.html#pitfalls">theory §10</a></td></tr>
+        <tr><td>Bounds-guarded read</td><td><code>leftIndex &gt;= 0 ? digits1[leftIndex]… : 0</code> handles unequal lengths without padding.</td><td><a href="../theory/strings/text_formatting_deep_dive_master.html#edge-cases">theory §11</a></td></tr>
+        <tr><td>Append-and-reverse over prepend</td><td><code>resultDigits.append(…)</code> then <code>String(resultDigits.reversed())</code> keeps the build O(n).</td><td><a href="../theory/strings/text_formatting_deep_dive_master.html#complexity">theory §9</a></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 15. Back-reference -->
+  <section id="parent" data-toc-label="Parent Theory">
+    <h2>15 &nbsp; Parent Theory</h2>
+    <p>This walkthrough instantiates Variant 8.1 of a larger pattern. The parent page is not free-form — it follows the theory masterfile standard, so here is exactly what you land on:</p>
+    <div class="ref-grid">
+      <a class="backref-card" href="../theory/strings/text_formatting_deep_dive_master.html">
+        <span class="ref-file">leetcode_theory/strings/text_formatting_deep_dive_master.html</span>
+        <span class="ref-title">Text Formatting &amp; Simulation — Deep Dive Theory Masterfile</span>
+        <span class="ref-desc">The canonical reference for the "produce" family: the four-variant catalog with Variant 8.1 Digit-Buffer Build this problem instantiates (§8.1), the carry-in-the-loop-condition pitfall (§10), the Add <code>"0"+"0"</code> and <code>"99"+"1"</code> edge cases verbalized (§11), the complexity table (§9), and the cheat sheet (§12). Its cross-reference section (§13) links back to this walkthrough.</span>
+      </a>
+    </div>
+  </section>
+
+  <div class="page-footer">
+    LC 415 — Add Strings · Walkthrough Masterfile · Parent theory:
+    <a href="../theory/strings/text_formatting_deep_dive_master.html">Text Formatting &amp; Simulation</a> ·
+    Structure per <code>.claude/skills/wiki/references/walkthrough-format.md</code>
+  </div>
+
+</main>
+</div>
+
+<script src="../../static/generated/manifest.js"></script>
+<script src="../../static/generated/nav.js"></script>
+<script src="../../static/generated/toc.js"></script>
+</body>
+</html>

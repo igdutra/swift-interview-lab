@@ -96,21 +96,21 @@ export const wikiConfiguration: WikiConfiguration = {
 
   // ---- domains: the knowledge trees ----
   //
-  // NOTE ON FOLDER NAMES: `folder` is a GLOBAL namespace — derive.ts matches
-  // the first path segment against it across every domain, and the path
-  // grammar is exactly two levels deep (folder/section/page.html). So a
-  // domain cannot own a nested `leetcode/theory/` folder; the domain prefix
-  // is carried in the folder NAME instead, and the domain grouping lives
-  // here in config, which is where nav.ts reads it from anyway.
+  // Each `folder` below is ONE path segment, not a path. The full folder
+  // path is built by walking this tree, so every folder name is written
+  // exactly once — renaming one is a single-word edit here, and every
+  // generated link follows on the next build. Authored links never contain
+  // folder names at all (see engine/lib/links.ts).
   domains: [
     {
       identifier: "leetcode",
       label: "LeetCode",
+      folder: "leetcode",
       categories: [
         {
           identifier: "theory",
           label: "Theory",
-          folder: "leetcode_theory",
+          folder: "theory",
           layout: "sections",
           pageType: "theory",
           pageBodyCategory: "theory",
@@ -128,7 +128,7 @@ export const wikiConfiguration: WikiConfiguration = {
         {
           identifier: "walkthroughs",
           label: "Walkthroughs",
-          folder: "leetcode_walkthroughs",
+          folder: "walkthroughs",
           layout: "flat",
           pageType: "walkthrough",
           pageBodyCategory: "walkthrough",
@@ -139,7 +139,7 @@ export const wikiConfiguration: WikiConfiguration = {
         {
           identifier: "reference",
           label: "Review & Reference",
-          folder: "leetcode_reference",
+          folder: "reference",
           layout: "flat",
           pageType: "reference",
           pageBodyCategory: "reference",
@@ -151,16 +151,30 @@ export const wikiConfiguration: WikiConfiguration = {
     {
       identifier: "ios",
       label: "iOS",
+      folder: "ios",
       categories: [
         {
+          // A parent category: holds sub-categories, not pages. Its own
+          // pages would live in ios/swiftui/<child>/<section>/.
           identifier: "swiftui",
           label: "SwiftUI",
-          folder: "ios_swiftui",
+          folder: "swiftui",
           layout: "sections",
           pageType: "ios-topic",
           pageBodyCategory: "ios-topic",
           requiresDifficulty: false,
-          sections: [{ identifier: "fundamentals", label: "Fundamentals" }],
+          children: [
+            {
+              identifier: "swiftui-theory",
+              label: "Theory",
+              folder: "theory",
+              layout: "sections",
+              pageType: "ios-topic",
+              pageBodyCategory: "ios-topic",
+              requiresDifficulty: false,
+              sections: [{ identifier: "fundamentals", label: "Fundamentals" }],
+            },
+          ],
         },
       ],
     },

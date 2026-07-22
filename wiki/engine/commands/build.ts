@@ -7,10 +7,12 @@
 // ============================================================
 
 import { writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { wikiConfiguration } from "../../wiki.config.ts";
 import { scanWikiPages } from "../lib/scan.ts";
 import { extractPage } from "../lib/extract.ts";
 import { assemblePageRecord, buildManifest, renderManifestFile } from "../lib/manifest.ts";
+import { rewritePageLinks } from "../lib/resolve-links.ts";
 import { CONTENT_ROOT, MANIFEST_PATH } from "../lib/paths.ts";
 import type { PageRecord } from "../lib/types.ts";
 
@@ -18,6 +20,24 @@ const pagePaths = scanWikiPages(CONTENT_ROOT);
 const records: PageRecord[] = [];
 const failures: string[] = [];
 
+// ---- pass 1: resolve authored link identities into real paths ----
+// Authors write a target's filename; the correct relative path is
+// derived here from where the page actually sits on disk.
+let rewrittenFileCount = 0;
+for (const pagePath of pagePaths) {
+  const absolutePath = join(CONTENT_ROOT, pagePath);
+  const scannedPage = extractPage(CONTENT_ROOT, pagePath);
+  const { html, problems } = rewritePageLinks(scannedPage.html, pagePath, pagePaths);
+  for (const problem of problems) {
+    failures.push(`${pagePath}: ${problem.message}`);
+  }
+  if (html !== scannedPage.html) {
+    writeFileSync(absolutePath, html);
+    rewrittenFileCount += 1;
+  }
+}
+
+// ---- pass 2: assemble the manifest from the resolved pages ----
 for (const pagePath of pagePaths) {
   const scannedPage = extractPage(CONTENT_ROOT, pagePath);
   const { record, errors } = assemblePageRecord(wikiConfiguration, scannedPage);
@@ -41,4 +61,7 @@ if (failures.length > 0) {
 
 const manifest = buildManifest(wikiConfiguration, records);
 writeFileSync(MANIFEST_PATH, renderManifestFile(manifest));
-console.log(`manifest.js written — ${records.length} pages across ${pagePaths.length} scanned files.`);
+console.log(
+  `manifest.js written — ${records.length} pages across ${pagePaths.length} scanned files` +
+    ` (${rewrittenFileCount} had links resolved).`,
+);

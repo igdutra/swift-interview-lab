@@ -14,7 +14,7 @@ import { wikiConfiguration } from "../../wiki.config.ts";
 import { scanWikiPages } from "../lib/scan.ts";
 import { extractPage } from "../lib/extract.ts";
 import { assemblePageRecord, buildManifest, renderManifestFile } from "../lib/manifest.ts";
-import { rootPrefixForDepth } from "../lib/derive.ts";
+import { listCategories, rootPrefixForDepth } from "../lib/derive.ts";
 import { CONTENT_ROOT, CSS_HREF, MANIFEST_PATH, MANIFEST_SRC, NAV_SRC, STATIC_DIR, TOC_SRC, WIKI_CSS_PATH } from "../lib/paths.ts";
 import type { PageRecord, ScannedPage } from "../lib/types.ts";
 
@@ -76,8 +76,9 @@ for (const pagePath of pagePaths) {
   }
 }
 
+// Includes nested sub-categories, not just each domain's top level.
 const categoriesById = new Map(
-  wikiConfiguration.domains.flatMap((domain) => domain.categories).map((category) => [category.identifier, category]),
+  listCategories(wikiConfiguration).map(({ category }) => [category.identifier, category]),
 );
 
 // ---------- per-page checks ----------
@@ -205,12 +206,14 @@ for (const [pagePath, scannedPage] of scannedPages) {
 
 // ---------- structural checks ----------
 
-for (const category of categoriesById.values()) {
-  if (category.layout !== "sections") {
+// Folder paths come from walking the config tree, so nesting depth is
+// whatever wiki.config.ts declares.
+for (const { category, folderSegments } of listCategories(wikiConfiguration)) {
+  if (category.layout !== "sections" || (category.children ?? []).length > 0) {
     continue;
   }
   for (const section of category.sections ?? []) {
-    const hubPath = `${category.folder}/${section.identifier}/index.html`;
+    const hubPath = `${folderSegments.join("/")}/${section.identifier}/index.html`;
     if (!scannedPages.has(hubPath)) {
       reportError(hubPath, `configured section "${section.identifier}" has no hub index.html`);
     }

@@ -5,6 +5,7 @@
 // ============================================================
 
 import type {
+  CategoryConfiguration,
   Difficulty,
   ManifestCategory,
   ManifestDomain,
@@ -15,7 +16,7 @@ import type {
   WikiConfiguration,
   WikiManifest,
 } from "./types.ts";
-import { deriveLocation } from "./derive.ts";
+import { deriveLocation, listCategories } from "./derive.ts";
 
 const ALLOWED_META_KEYS = new Set(["title", "nav", "topics", "blurb", "difficulty", "order"]);
 const DIFFICULTY_VALUES = new Set(["E", "M", "H"]);
@@ -103,9 +104,9 @@ export function assemblePageRecord(configuration: WikiConfiguration, scannedPage
     return { record: null, errors };
   }
 
-  const category = configuration.domains
-    .flatMap((domain) => domain.categories)
-    .find((candidate) => candidate.identifier === location.category);
+  const category = listCategories(configuration).find(
+    ({ category: candidate }) => candidate.identifier === location.category,
+  )?.category;
   const isRegularPage = location.role === "page" || location.role === "overview" || location.role === "deep-dive";
   if (category !== undefined && isRegularPage) {
     if (category.requiresDifficulty && pageMeta.difficulty === undefined) {
@@ -175,10 +176,31 @@ function compareByDeclaredOrder(first: PageRecord, second: PageRecord): number {
 
 /** Build the full manifest from already-assembled page records. */
 export function buildManifest(configuration: WikiConfiguration, records: PageRecord[]): WikiManifest {
+  // Sub-categories are flattened into their domain's list: the manifest is
+  // a NAVIGATION view, and a parent category that only holds children has
+  // no pages of its own to show. Its label is prefixed onto each child so
+  // "SwiftUI > Theory" stays readable in the nav.
+  function flattenCategories(
+    categories: CategoryConfiguration[],
+    labelPrefix: string,
+  ): { configuration: CategoryConfiguration; label: string }[] {
+    const flattened: { configuration: CategoryConfiguration; label: string }[] = [];
+    for (const categoryConfiguration of categories) {
+      const label = labelPrefix === "" ? categoryConfiguration.label : `${labelPrefix} · ${categoryConfiguration.label}`;
+      const children = categoryConfiguration.children ?? [];
+      if (children.length > 0) {
+        flattened.push(...flattenCategories(children, label));
+      } else {
+        flattened.push({ configuration: categoryConfiguration, label });
+      }
+    }
+    return flattened;
+  }
+
   const domains: ManifestDomain[] = configuration.domains.map((domainConfiguration) => ({
     identifier: domainConfiguration.identifier,
     label: domainConfiguration.label,
-    categories: domainConfiguration.categories.map((categoryConfiguration): ManifestCategory => {
+    categories: flattenCategories(domainConfiguration.categories, "").map(({ configuration: categoryConfiguration, label: categoryLabel }): ManifestCategory => {
       const categoryRecords = records.filter((record) => record.category === categoryConfiguration.identifier);
 
       if (categoryConfiguration.layout === "sections") {
@@ -197,7 +219,7 @@ export function buildManifest(configuration: WikiConfiguration, records: PageRec
         });
         return {
           identifier: categoryConfiguration.identifier,
-          label: categoryConfiguration.label,
+          label: categoryLabel,
           layout: "sections",
           hubPath: null,
           sections,
@@ -210,7 +232,7 @@ export function buildManifest(configuration: WikiConfiguration, records: PageRec
         categoryConfiguration.flatSort === "problemNumber" ? compareByProblemNumber : compareByDeclaredOrder;
       return {
         identifier: categoryConfiguration.identifier,
-        label: categoryConfiguration.label,
+        label: categoryLabel,
         layout: "flat",
         hubPath: hubRecord?.path ?? null,
         sections: [],

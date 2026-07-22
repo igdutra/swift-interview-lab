@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sorting Algorithm Complexity · Study Wiki</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Sorting Algorithm Complexity",
+  "nav": "Sort Complexity",
+  "topics": [
+    "Complexity",
+    "Sorting"
+  ],
+  "blurb": "Timsort vs Heapsort vs Counting Sort — when theory and practice diverge.",
+  "order": 5
+}
+</script>
+<link rel="stylesheet" href="../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="reference">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+<main class="content">
+
+  <h1 class="page-title">Sorting Algorithm Complexity</h1>
+  <div class="page-meta">
+    <span>Review &amp; Reference</span>
+    <span>·</span>
+    <span>Complexity · Sorting</span>
+  </div>
+
+  <div class="lead">
+    <p>More optimal on paper ≠ faster in practice. Knowing <em>why</em> is the insight interviewers want to hear.</p>
+  </div>
+
+  <h2 id="overview" data-toc-label="Overview"><span class="sec-num">1</span> Overview</h2>
+  <p>All major programming languages ship a built-in sort. It is always correct to say sorting costs <strong>O(n log n)</strong>. But the specific algorithm — and its real-world behavior — varies by language:</p>
+  <ul>
+    <li><strong>Swift / Python / Java</strong> → Timsort (hybrid merge + insertion sort)</li>
+    <li><strong>C++</strong> → Introsort (hybrid quicksort + heapsort + insertion sort; not mandated by spec)</li>
+  </ul>
+
+  <h2 id="table" data-toc-label="Complexity Table"><span class="sec-num">2</span> Complexity Table</h2>
+  <table class="t-cmx">
+    <thead>
+      <tr>
+        <th>Algorithm</th>
+        <th>Best</th>
+        <th>Average</th>
+        <th>Worst</th>
+        <th>Space</th>
+        <th>Stable?</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr><td>Timsort</td>         <td class="sc">O(n)</td>      <td class="tc">O(n log n)</td> <td class="tc">O(n log n)</td> <td>O(n)</td>    <td>Yes</td></tr>
+      <tr><td>Merge Sort</td>      <td class="tc">O(n log n)</td><td class="tc">O(n log n)</td> <td class="tc">O(n log n)</td> <td>O(n)</td>    <td>Yes</td></tr>
+      <tr><td>Heapsort</td>        <td class="tc">O(n log n)</td><td class="tc">O(n log n)</td> <td class="tc">O(n log n)</td> <td class="sc">O(1)</td>   <td>No</td></tr>
+      <tr><td>Quicksort</td>       <td class="tc">O(n log n)</td><td class="tc">O(n log n)</td> <td class="bottleneck">O(n²)</td>               <td class="sc">O(log n)</td><td>No</td></tr>
+      <tr><td>Insertion Sort</td>  <td class="sc">O(n)</td>      <td>O(n²)</td>                 <td>O(n²)</td>                 <td class="sc">O(1)</td>   <td>Yes</td></tr>
+      <tr><td>Bubble Sort</td>     <td class="sc">O(n)</td>      <td>O(n²)</td>                 <td>O(n²)</td>                 <td class="sc">O(1)</td>   <td>Yes</td></tr>
+      <tr><td>Selection Sort</td>  <td>O(n²)</td>                <td>O(n²)</td>                 <td>O(n²)</td>                 <td class="sc">O(1)</td>   <td>No</td></tr>
+      <tr><td>Counting Sort</td>   <td class="sc">O(n+k)</td>    <td class="sc">O(n+k)</td>     <td class="sc">O(n+k)</td>    <td>O(k)</td>   <td>Yes</td></tr>
+      <tr><td>Radix Sort</td>      <td class="sc">O(nk)</td>     <td class="sc">O(nk)</td>      <td class="sc">O(nk)</td>     <td>O(n+k)</td> <td>Yes</td></tr>
+    </tbody>
+  </table>
+  <p class="u-note-text">Green = advantageous. Highlighted row = worst-case trap. k = range of input values.</p>
+
+  <h2 id="winners" data-toc-label="Who Wins on Paper"><span class="sec-num">3</span> Who Wins on Paper</h2>
+
+  <div class="co co-insight">
+    <strong>Best case O(n):</strong> Timsort shares this with Bubble Sort, Insertion Sort, and Counting Sort — no advantage there alone.
+  </div>
+
+  <p><strong>Worst case:</strong> Timsort is O(n log n), which is actually <em>better</em> than Quicksort's O(n²) worst case. Quicksort's worst case is a real trap on nearly-sorted or adversarial input.</p>
+
+  <p><strong>Space complexity — the interesting differentiator:</strong></p>
+  <ul>
+    <li>Timsort: <strong>O(n)</strong></li>
+    <li>Heapsort, Bubble Sort, Insertion Sort, Selection Sort: <strong>O(1)</strong> — fully in-place</li>
+  </ul>
+
+  <div class="co co-when">
+    <strong>Heapsort</strong> is the most "complete" winner on paper: O(n log n) best/average/worst, O(1) space. The catch? It's not stable, and has poor cache performance in practice.
+  </div>
+
+  <p><strong>Counting Sort / Radix Sort</strong> can beat everyone at O(n+k) or O(nk) — but only when data fits the constraint (integers in a known, bounded range).</p>
+
+  <h2 id="practice" data-toc-label="Theory vs Practice"><span class="sec-num">4</span> Theory vs Practice</h2>
+  <p>Timsort wins in real-world usage despite worse space complexity because:</p>
+  <ol>
+    <li><strong>Real data is often partially sorted</strong> — Timsort detects and exploits existing "runs"</li>
+    <li><strong>Cache locality matters enormously</strong> — Heapsort's random memory access pattern is cache-hostile</li>
+    <li><strong>Stability is frequently required</strong> — sorting by one key then another must preserve prior order</li>
+  </ol>
+
+  <div class="co co-pitfall">
+    Don't assert that a theoretically superior algorithm is "better" without qualifying the claim. Cache behavior and stability requirements often flip the real-world ranking.
+  </div>
+
+  <h2 id="interview" data-toc-label="Interview Insight"><span class="sec-num">5</span> Interview Insight</h2>
+  <div class="co co-idea">
+    <strong>The soundbite worth saying:</strong> "More optimal on paper ≠ faster in practice — Timsort wins real benchmarks because real data is partially sorted and cache locality dominates at scale."
+  </div>
+  <p>When an interviewer asks about sorting complexity, this is the answer that separates candidates who memorized a table from candidates who understand <em>why</em>.</p>
+
+  <div class="page-footer">
+    Source: Interview-sheet.md §2 · Review &amp; Reference · Study Wiki
+  </div>
+
+</main>
+</div>
+
+<script src="../../static/generated/manifest.js"></script>
+<script src="../../static/generated/nav.js"></script>
+<script src="../../static/generated/toc.js"></script>
+</body>
+</html>

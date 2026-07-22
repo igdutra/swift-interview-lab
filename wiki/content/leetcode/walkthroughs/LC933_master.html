@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LC 933 — Number of Recent Calls · Walkthrough Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "LC 933 — Number of Recent Calls",
+  "nav": "LC 933",
+  "topics": [
+    "Queue",
+    "Sliding Window",
+    "Design"
+  ],
+  "blurb": "Sliding-window queue in its simplest form — append, evict-while-stale from front, return count. Recognition signals: rolling time window + strictly increasing timestamps + stateful class. Why queue beats stack, two-pointer, and sorted set.",
+  "difficulty": "E"
+}
+</script>
+<link rel="stylesheet" href="../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="walkthrough">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">LC 933 — Number of Recent Calls</h1>
+  <div class="page-meta">
+    <span>Walkthrough Masterfile</span><span>·</span>
+    <span>Language: Swift</span><span>·</span>
+    <span>Easy · Sliding-Window Queue · FIFO eviction</span>
+  </div>
+
+  <!-- 1. Restatement -->
+  <section id="lead" data-toc-label="The Problem">
+    <div class="infobox">
+      <div class="infobox-title">Problem at a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Difficulty</div><div class="infobox-v"><span class="tag tag-E">Easy</span></div></div>
+      <div class="infobox-row"><div class="infobox-k">Pattern</div><div class="infobox-v">Sliding-Window Queue — enqueue at back, evict stale from front, return count</div></div>
+      <div class="infobox-row"><div class="infobox-k">Tools</div><div class="infobox-v">A FIFO queue of timestamps · front-eviction while-loop · window formula <code>t − 3000</code></div></div>
+      <div class="infobox-row"><div class="infobox-k">Key insight</div><div class="infobox-v">Timestamps arrive in strictly increasing order → the oldest is always at the front → no search needed, just evict the front until it's fresh</div></div>
+      <div class="infobox-row"><div class="infobox-k">Time / Space</div><div class="infobox-v">O(1) amortized per ping / O(w) where w = max requests in any 3000ms window</div></div>
+      <div class="infobox-row"><div class="infobox-k">Theory</div><div class="infobox-v mono"><a href="../theory/stacks_queues/queue_master.html">queue_master.html</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p>Implement a <code>RecentCounter</code> class with a single method <code>ping(t: Int) → Int</code>. Each call records a new request at time <code>t</code> and returns the total number of requests that have occurred in the closed interval <code>[t − 3000, t]</code>. The problem guarantees that calls arrive in <strong>strictly increasing</strong> timestamp order.</p>
+
+      <table class="t-example">
+        <thead><tr><th>Calls in order</th><th>Return value</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><code>ping(1)</code></td><td><code>1</code></td><td>Window [−2999, 1] — only request 1 is in range</td></tr>
+          <tr><td><code>ping(100)</code></td><td><code>2</code></td><td>Window [−2900, 100] — requests 1 and 100 both fit</td></tr>
+          <tr><td><code>ping(3001)</code></td><td><code>3</code></td><td>Window [1, 3001] — requests 1, 100, 3001 all fit</td></tr>
+          <tr><td><code>ping(3002)</code></td><td><code>3</code></td><td>Window [2, 3002] — request 1 is now stale; requests 100, 3001, 3002 remain</td></tr>
+        </tbody>
+      </table>
+
+      <p>The twist: the window boundary moves with every call, so a request that was valid last time may be stale this time. You need a structure that can efficiently add new items and remove old ones — and the strictly-increasing constraint tells you exactly where the oldest item always is: the front.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Reading the problem -->
+  <section id="reading" data-toc-label="Reading the Problem">
+    <h2>2 &nbsp; Reading the Problem — Recognition Signals</h2>
+
+    <div class="co-idea">
+      <div class="co-idea-title">How to recognize this is a queue problem</div>
+      Three signals fire at once, and together they route you to a sliding-window queue before you write a single variable:
+      <br><br>
+      <strong>Signal 1 — "how many requests in the last T milliseconds?"</strong> Any time a problem asks for a count (or sum, or presence) within a rolling time window, that window has two ends: a back where new items arrive and a front where old items expire. Two ends with different operations = queue.
+      <br><br>
+      <strong>Signal 2 — "strictly increasing timestamps."</strong> This is the critical simplifier. It means the oldest item is <em>always at the front</em> — you never need to search for stale items. The front of the queue is the only place a stale item can be. The while-loop that evicts from the front runs in O(1) amortized because each item is evicted at most once across all calls.
+      <br><br>
+      <strong>Signal 3 — stateful object with repeated queries.</strong> You are implementing a class (<code>RecentCounter</code>), not a function. The state persists between calls. That state is the window itself — a queue that survives across pings. If this were a one-shot function over a static array, two pointers or a prefix sum might apply. The streaming, call-by-call nature forces a data structure that <em>remembers</em>.
+    </div>
+
+    <table class="t-clue">
+      <thead><tr><th>Phrase / constraint</th><th>Design decision it forces</th></tr></thead>
+      <tbody>
+        <tr><td>"how many requests in the last 3000 milliseconds"</td><td>Rolling time window → keep only in-range items → queue with front-eviction</td></tr>
+        <tr><td>"strictly increasing" timestamps</td><td>Oldest is always at the front → no search, no sorting → O(1) amortized eviction</td></tr>
+        <tr><td>Stateful class, called repeatedly</td><td>State must persist between pings → instance variable, not a local</td></tr>
+        <tr><td>Window = [t − 3000, t] inclusive</td><td>Eviction condition is <code>window.first! &lt; t − 3000</code> (strictly less than, not ≤)</td></tr>
+        <tr><td>Return the count</td><td><code>window.count</code> after eviction — no separate counter needed</td></tr>
+      </tbody>
+    </table>
+
+    <div class="co-insight"><strong>Why not a stack?</strong> A stack removes from the same end you add to (LIFO). Here you add new requests to the back and evict old ones from the front — those are opposite ends. LIFO would force you to remove the most recent request first, which is exactly wrong. FIFO (queue) removes the oldest first, which is exactly what "stale" means.</div>
+
+    <div class="co-insight"><strong>Why not a sliding-window array (two pointers)?</strong> The standard two-pointer sliding window runs over a <em>static array</em> you can index freely. Here the input is a <em>stream</em> — requests arrive one at a time, and you must answer after each one without seeing future values. A queue is the natural fit for streams because it accumulates items as they arrive and discards them as they expire, with no random access needed.</div>
+
+    <div class="co-insight"><strong>Why not a sorted set or binary search?</strong> Sorted structures give O(log n) insertion and O(log n) eviction. The queue gives O(1) amortized for both — a strict improvement. Binary search would only help if timestamps could arrive out of order, but the problem guarantees they don't.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Edge cases -->
+  <section id="edge-cases" data-toc-label="Edge Case Inventory">
+    <h2>3 &nbsp; Edge Case Inventory</h2>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected behavior</th><th>Which line handles it</th></tr></thead>
+      <tbody>
+        <tr><td>First ping ever</td><td>Window is empty before the call; enqueue t; eviction loop doesn't run (nothing is stale); return 1</td><td><code>window.append(t)</code> then <code>window.count</code> = 1</td></tr>
+        <tr><td>All pings within 3000ms of each other</td><td>Nothing is ever evicted; window grows with each call; count equals total pings so far</td><td>Eviction while-condition is never true</td></tr>
+        <tr><td>Ping that expires the very first request (t = 3002 after ping(1))</td><td>Request at t=1 falls outside [2, 3002]; evicted; count reflects remaining window</td><td><code>window.first! < t − 3000</code> → <code>1 < 2</code> → true → evict</td></tr>
+        <tr><td>Long gap — many old pings expire at once</td><td>The while loop runs multiple iterations, evicting several stale items; amortized cost is still O(1) per item across all pings</td><td>While loop runs until front is fresh; each evicted item was pushed exactly once</td></tr>
+        <tr><td>t exactly at the boundary (t = prior_t + 3000)</td><td>The prior request at <code>t − 3000</code> is still in range (window is inclusive); it must NOT be evicted</td><td><code>window.first! &lt; t − 3000</code> — strict less-than preserves the boundary item</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Try it yourself -->
+  <section id="hints" data-toc-label="Try It Yourself First">
+    <h2>4 &nbsp; Try It Yourself First</h2>
+    <details class="hint">
+      <summary>Hint 1 — constraint</summary>
+      <p>Timestamps are strictly increasing. Where is the oldest request always located? Does that eliminate the need to search for stale items?</p>
+    </details>
+    <details class="hint">
+      <summary>Hint 2 — pattern</summary>
+      <p>You need to add new items at one end and remove old items from the other end. Which linear structure does that describe — a stack or a queue? What is the eviction condition?</p>
+    </details>
+    <details class="hint">
+      <summary>Hint 3 — structure</summary>
+      <p>Store all in-window timestamps in a queue. On each <code>ping(t)</code>: (1) append <code>t</code> to the back; (2) while the front is less than <code>t − 3000</code>, remove it; (3) return <code>queue.count</code>. The window boundary is <code>[t − 3000, t]</code> inclusive, so use strict less-than for eviction.</p>
+    </details>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Interview simulation -->
+  <section id="simulation" data-toc-label="Interview Simulation">
+    <h2>5 &nbsp; Interview Simulation</h2>
+
+    <div class="sim-block">
+      <div class="sim-header">Interview Simulation — Say This Out Loud</div>
+
+      <div id="sim-questions" data-toc-label="5.1 Clarifying questions" class="u-pad-16-20-0">
+        <h3 class="u-mt-0">5.1 &nbsp; Clarifying Questions</h3>
+
+        <div>
+          <div class="sim-q">Q: Are timestamps guaranteed to be strictly increasing?</div>
+          <div class="sim-a">A: Yes. → Then the oldest request is always at the front of whatever structure I use — I never need to search for stale items. Front-eviction is O(1) amortized.</div>
+        </div>
+        <div>
+          <div class="sim-q">Q: Is the window inclusive on both ends — does a request at exactly t − 3000 count?</div>
+          <div class="sim-a">A: Yes, [t − 3000, t] is closed. → My eviction condition must be strict less-than: remove the front only when it is strictly less than t − 3000. Equal means it's still valid.</div>
+        </div>
+        <div>
+          <div class="sim-q">Q: What should ping return — just the count, not the actual requests?</div>
+          <div class="sim-a">A: Just the integer count. → I only need to store the timestamps themselves, not any payload. The queue length after eviction is the answer.</div>
+        </div>
+      </div>
+
+      <div id="sim-plan" data-toc-label="5.2 The plan, spoken" class="u-pad-16-20">
+        <h3 class="u-mt-0">5.2 &nbsp; The Plan, Spoken</h3>
+        <div class="speech">
+"This is a sliding-window queue problem. The three signals that tell me that: first, 'how many requests in the last 3000ms' — that's a rolling time window, which means I add new items at one end and evict old items from the other. Two different ends, two different operations — that's a queue, not a stack. Second, 'strictly increasing timestamps' — the oldest item is always at the front, so I never need to search for stale items; front-eviction is the only eviction path. Third, it's a stateful class with repeated calls — the window has to survive between pings, so it's an instance variable.
+
+The sequence: on each ping(t), I first enqueue t at the back. Then I evict from the front while the front timestamp is strictly less than t minus 3000. The window is inclusive, so I must use strict less-than — if the front equals t minus 3000, it still counts. After eviction, the queue holds exactly the valid requests, so I return the queue's count.
+
+The state I need: a single array used as a queue — a window of Int timestamps.
+
+The invariant: after every ping returns, the queue contains exactly the timestamps in [t − 3000, t] and nothing else.
+
+The condition: evict while window.first! < t − 3000. Record inside the condition? No — I just return window.count after the loop exits.
+
+Let me walk the example: pings arrive at 1, 100, 3001, 3002.
+ping(1): append 1 → window=[1]. Evict while front < 1−3000 = −2999: 1 is not < −2999 → no eviction. Return 1. ✓
+ping(100): append 100 → window=[1,100]. Evict while front < −2900: 1 is not < −2900 → no eviction. Return 2. ✓
+ping(3001): append 3001 → window=[1,100,3001]. Evict while front < 1: 1 is not < 1 → no eviction. Return 3. ✓
+ping(3002): append 3002 → window=[1,100,3001,3002]. Evict while front < 2: 1 < 2 → remove 1 → window=[100,3001,3002]. Front 100 is not < 2 → stop. Return 3. ✓
+
+Time is O(1) amortized per ping — each timestamp is appended once and removed at most once across all calls. Space is O(w) where w is the maximum number of requests in any 3000ms window."
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. Why this approach -->
+  <section id="approach" data-toc-label="Why This Approach">
+    <h2>6 &nbsp; Why This Approach</h2>
+
+    <table class="t-versus">
+      <thead><tr><th>Approach</th><th>Time per ping</th><th>Space</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>Store all timestamps; filter on every ping</td><td>O(n) — scan all previous pings</td><td>O(n)</td><td>Correct but wasteful — rescanning pings that were already stale last call</td></tr>
+        <tr><td>Binary search on sorted list</td><td>O(log n) — find left boundary</td><td>O(n)</td><td>Better, but requires sorted access and still O(n) deletion cost</td></tr>
+        <tr><td><strong>Sliding-window queue (front-eviction)</strong></td><td><strong>O(1) amortized</strong></td><td><strong>O(w)</strong></td><td><strong>Optimal. Monotonically increasing timestamps make front = oldest, always.</strong></td></tr>
+      </tbody>
+    </table>
+
+    <div class="co-insight"><strong>The strictly-increasing guarantee is the whole trick.</strong> If timestamps could arrive out of order, the oldest item might be anywhere in the structure — you'd need a min-heap or sorted set (O(log n)). The guarantee that timestamps increase means the queue is always sorted for free: the front is always the oldest. Front-eviction requires no search at all.</div>
+
+    <div class="co-insight"><strong>Why the amortized argument holds.</strong> Across all <em>n</em> total pings, each timestamp is appended exactly once and removed at most once. So even though the while-loop can run many times on a single ping, it cannot run more than <em>n</em> times total. Total work across all pings is O(n), so amortized cost per ping is O(1).</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Data structures -->
+  <section id="structures" data-toc-label="Data Structures">
+    <h2>7 &nbsp; Data Structures</h2>
+    <table class="t-decoder">
+      <thead><tr><th>Structure</th><th>What it stores</th><th>Why this one</th></tr></thead>
+      <tbody>
+        <tr><td>Array used as FIFO queue (<code>[Int]</code>)</td><td>Timestamps of all requests currently inside the [t−3000, t] window</td><td>Enqueue (append) at the back is O(1). Eviction from the front via <code>removeFirst()</code> is O(n) per call on a plain array — acceptable here because the problem's constraints (at most 10⁴ pings) keep n small. For large n, the head-index trick gives O(1).</td></tr>
+      </tbody>
+    </table>
+
+    <div class="co-note"><strong>On <code>removeFirst()</code> cost.</strong> <code>removeFirst()</code> on a Swift Array shifts every remaining element left — O(n) per call. For LC933's constraints (n ≤ 10⁴ pings, window ≤ 3000ms) this is fine. If the interviewer pushes on performance, the head-index optimization gives O(1) amortized dequeue with no extra space. See the follow-up bank.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 8. Pseudocode dry run -->
+  <section id="dryrun" data-toc-label="Pseudocode Dry Run">
+    <h2>8 &nbsp; Pseudocode Dry Run</h2>
+
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span></div>
+<pre class="pseudo"><span class="pk">class</span> RecentCounter:
+    window ← empty queue          <span class="pc">// holds timestamps of in-window pings</span>
+
+    <span class="pk">function</span> ping(t):
+        window.enqueue(t)          <span class="pc">// 1. record the new request</span>
+        <span class="pk">while</span> window.front &lt; t − 3000:
+            window.dequeue()       <span class="pc">// 2. evict stale requests from the front</span>
+        <span class="pk">return</span> window.size         <span class="pc">// 3. everything left is in-window</span></pre>
+
+    <p>Trace on <code>ping(1), ping(100), ping(3001), ping(3002)</code>:</p>
+    <table class="t-decoder">
+      <thead><tr><th>Call</th><th>Append</th><th>Window before eviction</th><th>Eviction threshold</th><th>Items evicted</th><th>Window after</th><th>Return</th></tr></thead>
+      <tbody>
+        <tr><td><code>ping(1)</code></td><td>1</td><td>[1]</td><td>&lt; −2999</td><td>none</td><td>[1]</td><td>1</td></tr>
+        <tr><td><code>ping(100)</code></td><td>100</td><td>[1, 100]</td><td>&lt; −2900</td><td>none</td><td>[1, 100]</td><td>2</td></tr>
+        <tr><td><code>ping(3001)</code></td><td>3001</td><td>[1, 100, 3001]</td><td>&lt; 1</td><td>none (1 is not &lt; 1)</td><td>[1, 100, 3001]</td><td>3</td></tr>
+        <tr><td><code>ping(3002)</code></td><td>3002</td><td>[1, 100, 3001, 3002]</td><td>&lt; 2</td><td>1 (1 &lt; 2)</td><td>[100, 3001, 3002]</td><td>3</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 9. Swift solution -->
+  <section id="swift" data-toc-label="Swift Solution">
+    <h2>9 &nbsp; Swift Solution</h2>
+
+    <div class="solution-block">
+      <div class="block-header">
+        <span class="block-badge">A.1</span>
+        <span class="block-name">Sliding-window queue — removeFirst() form</span>
+        <div class="block-pills"><span class="pill pill-t">O(1) amortized</span><span class="pill pill-s">O(w)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-tip"><strong>PLAN:</strong> Instance stores a queue of in-window timestamps. Each ping appends the new timestamp, evicts from the front while stale, returns the count.</div>
+
+        <div class="code-label"><span class="code-lang lang-swift">Swift</span></div>
+<pre class="swift"><span class="kw">private class</span> <span class="tp">RecentCounter</span> {
+    <span class="kw">private var</span> window: [<span class="tp">Int</span>] = []
+
+    <span class="kw">func</span> <span class="fn">ping</span>(_ timestamp: <span class="tp">Int</span>) -> <span class="tp">Int</span> {
+        window.<span class="fn">append</span>(timestamp)
+
+        <span class="kw">while let</span> oldest = window.first, oldest &lt; timestamp - <span class="nm">3000</span> {
+            window.<span class="fn">removeFirst</span>()             <span class="cm">// O(n) per call — acceptable for n ≤ 10⁴</span>
+        }
+
+        <span class="kw">return</span> window.count
+    }
+}</pre>
+      </div>
+    </div>
+
+    <div class="solution-block u-mt-24">
+      <div class="block-header">
+        <span class="block-badge">A.2</span>
+        <span class="block-name">Head-index optimization — O(1) amortized dequeue</span>
+        <div class="block-pills"><span class="pill pill-t">O(1) amortized</span><span class="pill pill-s">O(n)</span></div>
+      </div>
+      <div class="block-body">
+        <div class="co-tip"><strong>PLAN:</strong> Replace <code>removeFirst()</code> with a head index. The array grows but never shrinks — elements before <code>head</code> are logically evicted. Eliminates O(n) shifting at the cost of holding evicted timestamps in memory.</div>
+
+        <div class="code-label"><span class="code-lang lang-swift">Swift</span></div>
+<pre class="swift"><span class="kw">private class</span> <span class="tp">RecentCounterFast</span> {
+    <span class="kw">private var</span> window: [<span class="tp">Int</span>] = []
+    <span class="kw">private var</span> head = <span class="nm">0</span>               <span class="cm">// index of the current front (logical dequeue)</span>
+
+    <span class="kw">func</span> <span class="fn">ping</span>(_ timestamp: <span class="tp">Int</span>) -> <span class="tp">Int</span> {
+        window.<span class="fn">append</span>(timestamp)
+
+        <span class="kw">while</span> window[head] &lt; timestamp - <span class="nm">3000</span> {
+            head += <span class="nm">1</span>                   <span class="cm">// O(1) logical eviction — no shifting</span>
+        }
+
+        <span class="kw">return</span> window.count - head    <span class="cm">// elements from head to end are in-window</span>
+    }
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 10. Code dry run -->
+  <section id="code-dry-run" data-toc-label="Code Dry Run">
+    <h2>10 &nbsp; Code Dry Run</h2>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">RecentCounter — ping(1), ping(100), ping(3001), ping(3002)</span></div>
+<pre class="dry">────────────────────────────────
+/code-dry-run
+Problem: LC 933 — Number of Recent Calls
+Input:   ping(1), ping(100), ping(3001), ping(3002)
+────────────────────────────────
+INIT
+  window = []
+
+────────────────────────────────
+CALL  ping(1)   timestamp = 1
+  window.append(1)              →  window = [1]
+  window.first = 1  →  1 < 1 − 3000 = −2999?  NO → while exits
+  return window.count = 1  ✓
+
+State: window=[1]
+
+────────────────────────────────
+CALL  ping(100)   timestamp = 100
+  window.append(100)            →  window = [1, 100]
+  window.first = 1  →  1 < 100 − 3000 = −2900?  NO → while exits
+  return window.count = 2  ✓
+
+State: window=[1, 100]
+
+────────────────────────────────
+CALL  ping(3001)   timestamp = 3001
+  window.append(3001)           →  window = [1, 100, 3001]
+  window.first = 1  →  1 < 3001 − 3000 = 1?  NO (1 is not < 1) → while exits
+  ↑ boundary is inclusive — the request at t=1 is exactly at t−3000=1, still valid
+  return window.count = 3  ✓
+
+State: window=[1, 100, 3001]
+
+────────────────────────────────
+CALL  ping(3002)   timestamp = 3002
+  window.append(3002)           →  window = [1, 100, 3001, 3002]
+
+  EVICTION LOOP
+    window.first = 1  →  1 < 3002 − 3000 = 2?  YES → removeFirst()
+    window = [100, 3001, 3002]
+
+    window.first = 100  →  100 < 2?  NO → while exits
+
+  return window.count = 3  ✓
+
+State: window=[100, 3001, 3002]
+
+────────────────────────────────
+RESULT
+  Outputs: [1, 2, 3, 3]  ✓
+────────────────────────────────</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 11. Question → code map -->
+  <section id="qmap" data-toc-label="Question → Code Map">
+    <h2>11 &nbsp; Question → Code Map</h2>
+    <table class="t-qmap">
+      <thead><tr><th>Clarifying question / plan decision</th><th>The line it became</th></tr></thead>
+      <tbody>
+        <tr><td>"Strictly increasing timestamps" → oldest always at the front</td><td><code>while let oldest = window.first</code> — peek at the front, no search needed</td></tr>
+        <tr><td>"Window is [t − 3000, t] inclusive" → strict less-than for eviction</td><td><code>oldest &lt; timestamp - 3000</code> — <code>&lt;</code> not <code>&lt;=</code> preserves the boundary item</td></tr>
+        <tr><td>Enqueue first, then evict — not the other way around</td><td><code>window.append(timestamp)</code> before the while-loop</td></tr>
+        <tr><td>State persists across calls</td><td><code>private var window: [Int] = []</code> as an instance variable, not a local</td></tr>
+        <tr><td>"Return the count" → queue size after eviction</td><td><code>return window.count</code></td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 12. Complexity -->
+  <section id="complexity" data-toc-label="Complexity">
+    <h2>12 &nbsp; Complexity</h2>
+    <table class="t-cmx">
+      <thead><tr><th>Solution</th><th>Time per ping</th><th>Space</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>A.1 — removeFirst() form</td><td class="tc">O(1) amortized*</td><td class="sc">O(w)</td><td>Each timestamp appended once, removed at most once → O(n) total across all pings → O(1) amortized. *Each removeFirst() is O(current window size) due to shifting — acceptable for n ≤ 10⁴.</td></tr>
+        <tr><td>A.2 — head-index form</td><td class="tc">O(1) amortized</td><td class="sc">O(n)</td><td>head advance is O(1). Array grows to n elements and never shrinks — trades O(n) space to eliminate all shifting.</td></tr>
+        <tr><td>Brute force — filter on each ping</td><td class="tc">O(n)</td><td class="sc">O(n)</td><td>Rescans all prior pings on every call — throws away the ordering guarantee.</td></tr>
+        <tr class="bottleneck"><td>Bottleneck</td><td class="tc">O(n) total</td><td class="sc">—</td><td>Irreducible: you must process each ping at least once. The queue achieves this lower bound.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13. Follow-up bank -->
+  <section id="followups" data-toc-label="Follow-Up Bank">
+    <h2>13 &nbsp; Follow-Up Bank</h2>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: Before you push this to production — can you see any improvements you'd make?</div>
+      <p>The <code>removeFirst()</code> call shifts every remaining element in the array — O(current window size) per eviction step. In production with high-throughput pings, I'd swap to the head-index trick (solution A.2): advance a <code>head</code> index instead of shifting, and return <code>window.count - head</code>. Each ping is then a true O(1) operation. The tradeoff is that the array now holds all timestamps ever seen (O(n) space) rather than just the in-window ones (O(w)), but for a rate-limiter that's usually acceptable.</p>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: What if pings could arrive out of order?</div>
+      <p>The strictly-increasing guarantee is what makes front-eviction O(1) amortized. Without it, the oldest item is no longer guaranteed to be at the front — stale items could be anywhere. You'd need a min-heap to always find the oldest in O(log n), or a sorted structure. The queue degrades from O(1) amortized to O(log n) per ping in that case.</p>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: What if the window size isn't fixed at 3000ms but is passed per query?</div>
+      <p>The same queue structure works — just replace <code>timestamp - 3000</code> with <code>timestamp - windowSize</code> in the eviction condition. If different callers can use different window sizes simultaneously, you'd need one queue per window size. The algorithm is unchanged; only the threshold becomes a parameter.</p>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: How would you implement this in a thread-safe way?</div>
+      <p>Wrap the queue in an actor (Swift concurrency) or protect the array and head index with a lock. The queue's single-writer / single-reader pattern maps cleanly to an actor: <code>actor RecentCounter</code> with <code>func ping(_ t: Int) async → Int</code>. The lock-based approach works too but requires careful unlock-on-return handling. In a high-throughput system, a lock-free ring buffer (fixed-size circular buffer) is the production choice — O(1) at both ends with no allocation after init.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 14. Theory decoder -->
+  <section id="decoder" data-toc-label="Theory Decoder">
+    <h2>14 &nbsp; Theory Decoder</h2>
+    <p>This problem instantiates one concept from the parent queue theory: the <strong>sliding-window queue</strong> — Pattern 2 of the queue theory page.</p>
+
+    <table class="t-decoder">
+      <thead><tr><th>Theory concept</th><th>How it appears in LC 933</th></tr></thead>
+      <tbody>
+        <tr><td>FIFO eviction (oldest first)</td><td>The front of the queue is always the oldest timestamp. When it falls outside [t−3000, t], it is the first to be removed — and the only candidate. No other position needs to be checked.</td></tr>
+        <tr><td>Enqueue at back, dequeue at front</td><td><code>window.append(timestamp)</code> is enqueue; <code>window.removeFirst()</code> is dequeue. These are opposite ends — the defining property of a queue versus a stack.</td></tr>
+        <tr><td>Amortized O(1) per item</td><td>Across all pings, each timestamp enters the queue once (<code>append</code>) and leaves at most once (<code>removeFirst</code> or head advance). Total work is O(n); amortized per call is O(1). The while-loop running multiple evictions on one ping is paid for by earlier pings that did no eviction at all.</td></tr>
+        <tr><td>Strictly-increasing constraint → natural sorted order</td><td>Because pings arrive in order, the queue is always sorted oldest-to-newest from front to back. This is the property that makes front-eviction sufficient — it is the entire reason O(1) amortized is achievable here.</td></tr>
+        <tr><td>Window size = queue.count after eviction</td><td>The queue maintains the invariant that it contains <em>exactly</em> the in-window timestamps. No separate counter needed — the structure itself is the count.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 15. Parent theory -->
+  <section id="parent" data-toc-label="Parent Theory">
+    <h2>15 &nbsp; Parent Theory</h2>
+    <div class="ref-grid">
+      <a class="backref-card" href="../theory/stacks_queues/queue_master.html">
+        <span class="ref-file">leetcode_theory/stacks_queues/queue_master.html</span>
+        <span class="ref-title">Queue — FIFO Deep Dive</span>
+        <span class="ref-desc">Parent theory for this walkthrough. Section §2 has the sliding-window queue skeleton (Pattern 2) this problem instantiates. Section §4 covers when to reach for a queue vs. stack vs. sorted structure, and §5 explains why FIFO guarantees the amortized O(1) argument.</span>
+      </a>
+    </div>
+      <p class="u-note-gap">See also: <a href="../theory/design/stateful_system_design_deep_dive_master.html">stateful_system_design_deep_dive_master.html</a> — the mutate-and-query design frame this counter instantiates.</p>
+
+  </section>
+
+  <div class="page-footer">
+    LC 933 — Number of Recent Calls · Walkthrough Masterfile ·
+    Theory: <a href="../theory/stacks_queues/queue_master.html">queue_master.html</a> ·
+    Pattern: Sliding-Window Queue (Pattern 2)
+  </div>
+
+</main>
+</div>
+
+<script src="../../static/generated/manifest.js"></script>
+<script src="../../static/generated/nav.js"></script>
+<script src="../../static/generated/toc.js"></script>
+</body>
+</html>

@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stages of an Interview · Study Wiki</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "Stages of an Interview",
+  "nav": "Interview Stages",
+  "topics": [
+    "Process",
+    "Soft Skills"
+  ],
+  "blurb": "7-stage breakdown of a technical interview round with a condensed cheat sheet.",
+  "order": 4
+}
+</script>
+<link rel="stylesheet" href="../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="reference">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+<main class="content">
+
+  <h1 class="page-title">Stages of an Interview</h1>
+  <div class="page-meta">
+    <span>Review &amp; Reference</span>
+    <span>·</span>
+    <span>Process &amp; Soft Skills</span>
+  </div>
+
+  <div class="lead">
+    <p>Most algorithmic interview rounds are 45–60 minutes. Each stage has specific actions that maximize your chances of success.</p>
+  </div>
+
+  <!-- Goal pattern: the two moves that bulletproof the plan phase -->
+  <div class="co co-idea">
+    <strong>THE GOAL PATTERN — the plan phase, done right.</strong>
+    Stages 2–3 are where most candidates win or lose, before a line of code exists. Two moves make them bulletproof:
+    <ul>
+      <li><strong>Front-load the walk.</strong> Don't wait for §5 to test. The moment you've named an approach, dry-run it out loud against a <em>stressful</em> input — empty, single element, duplicate, the last index — tracking state in writing as you go. A bug caught here costs 30 seconds; the same bug caught after 20 lines of code costs a rewrite and your composure.</li>
+      <li><strong>Get explicit buy-in, then code.</strong> End the plan with "<em>Does this approach sound good before I start coding?</em>" Their nod is your starting gun — and your hard stop on planning. It lets the interviewer redirect you while it's still cheap, and turns any later bug into something you debug <em>together</em> instead of being judged on alone.</li>
+    </ul>
+  </div>
+  <div class="co co-insight">
+    What the interviewer is actually scoring here isn't "the right answer" — it's whether you solve the <em>right problem</em>, reason out loud instead of reciting, and take a hint without ego. The walk-then-check-in sequence demonstrates all three at once.
+  </div>
+
+  <!-- 1 -->
+  <h2 id="intro" data-toc-label="1. Introductions"><span class="sec-num">1</span> Introductions</h2>
+  <p>At the start, the interviewer briefly introduces themselves, then asks you to do the same.</p>
+  <div class="co co-tip">
+    <strong>Prepare a 30–60 second intro</strong> covering education, work experience, and interests. Rehearse it until it feels natural.
+  </div>
+  <ul>
+    <li>Smile and speak with a confident voice.</li>
+    <li>Pay attention when the interviewer describes their work — use it to ask better questions at the end.</li>
+    <li>If you share an interest with the interviewer, mention it naturally.</li>
+  </ul>
+
+  <!-- 2 -->
+  <h2 id="problem" data-toc-label="2. Problem Statement"><span class="sec-num">2</span> Problem Statement</h2>
+  <p>The interviewer reads the problem (often pasting it into a shared editor). Your goal: fully understand it before writing a single line.</p>
+  <div class="co co-when">
+    <strong>Always paraphrase the problem back</strong> to the interviewer after they read it. This confirms understanding and shows communication skill.
+  </div>
+  <p><strong>Clarifying questions to ask:</strong></p>
+  <ul>
+    <li>Will the input only have integers, or could there be other types?</li>
+    <li>Will the input be sorted or unsorted?</li>
+    <li>Is the input guaranteed to have elements, or could it be empty?</li>
+    <li>What should I do if an invalid input is given?</li>
+    <li>What is the expected input size? (Small <em>n</em> → backtracking; ~100–1000 → O(n²) may be fine; large → need better than O(n).)</li>
+  </ul>
+  <div class="co co-insight">
+    Walk through one of the provided example test cases out loud to confirm your understanding before moving on.
+  </div>
+
+  <!-- 3 -->
+  <h2 id="brainstorm" data-toc-label="3. Brainstorming DS&amp;A"><span class="sec-num">3</span> Brainstorming DS&amp;A</h2>
+  <p>Figure out which data structure or algorithm applies by breaking down what the problem needs and what can accomplish it efficiently.</p>
+  <div class="co co-tip">
+    <strong>Think out loud.</strong> Even a wrong idea is valuable — it shows your thought process and opens the door for the interviewer to give hints.
+  </div>
+  <ul>
+    <li>Identify the pattern: subarrays → sliding window; graph traversal → DFS/BFS; sorted search → binary search; etc.</li>
+    <li>Be receptive to interviewer hints. They know the optimal solution and want you to succeed. Don't be stubborn.</li>
+    <li>Before coding, explain your approach to the interviewer and get their agreement that it's reasonable.</li>
+  </ul>
+  <div class="co co-when">
+    If the interviewer is hinting at something, follow that thread — they are not trying to mislead you.
+  </div>
+
+  <!-- 4 -->
+  <h2 id="implementation" data-toc-label="4. Implementation"><span class="sec-num">4</span> Implementation</h2>
+  <p>Once the approach is agreed on, write clean, well-explained code.</p>
+  <ul>
+    <li>Ask before importing libraries or modules.</li>
+    <li>Narrate decisions as you type: "I'm declaring a <code>Set</code> here to avoid revisiting nodes and prevent cycles."</li>
+    <li>Write clean code following the language's conventions (case, indentation, spacing).</li>
+    <li>Avoid duplicated logic — use helper functions or loop over a directions array instead of repeating the same block 4 times.</li>
+  </ul>
+  <div class="co co-tip">
+    <strong>Brute force first is fine</strong> — acknowledge it's suboptimal, implement it cleanly, then identify the slow steps and optimize. Include the interviewer in that discussion.
+  </div>
+  <div class="co co-insight">
+    Don't panic if you get stuck. Communicate your concern. Silence is the worst thing you can do.
+  </div>
+
+  <!-- 5 -->
+  <h2 id="testing" data-toc-label="5. Testing &amp; Debugging"><span class="sec-num">5</span> Testing &amp; Debugging</h2>
+  <p>After coding, walk through test cases — sometimes the environment runs code, sometimes it doesn't.</p>
+  <table class="t-edge">
+    <thead><tr><th>Environment</th><th>Approach</th></tr></thead>
+    <tbody>
+      <tr><td>Built-in test cases, code runs</td><td>Focus on correctness — edge cases are already included. Least pressure on you to generate tests.</td></tr>
+      <tr><td>You write tests, code runs</td><td>Call your function in the outer scope and print results. Include edge cases, typical inputs, and potentially invalid inputs.</td></tr>
+      <tr><td>You write tests, code doesn't run</td><td>Walk through manually. Track variable values in writing. Condense trivial loops ("after this, the prefix sum will look like…").</td></tr>
+    </tbody>
+  </table>
+  <div class="co co-tip">
+    If there's a bug and the environment supports running code, add print statements at key points, then walk through a small test case comparing expected vs actual variable values.
+  </div>
+
+  <!-- 6 -->
+  <h2 id="followups" data-toc-label="6. Explanations &amp; Follow-ups"><span class="sec-num">6</span> Explanations &amp; Follow-ups</h2>
+  <p>Be ready to answer these questions after coding:</p>
+  <ul>
+    <li><strong>Time and space complexity</strong> — worst case, and average if it differs significantly.</li>
+    <li><strong>Why did you choose X?</strong> — data structure, algorithm, loop configuration. Know your reasoning.</li>
+    <li><strong>Can the algorithm be improved?</strong> — if the interviewer asks this, the answer is almost always <em>yes</em>. Don't assert optimality unless you're certain.</li>
+  </ul>
+  <div class="co co-insight">
+    If there's time left, you may get a new problem (restart from §2) or a follow-up with new constraints. This is why understanding solutions matters more than memorizing them.
+  </div>
+
+  <!-- 7 -->
+  <h2 id="outro" data-toc-label="7. Outro"><span class="sec-num">7</span> Outro</h2>
+  <p>The last few minutes are for your questions. You rarely improve the outcome here, but you can hurt it.</p>
+  <div class="co co-when">
+    Interviews are two-way. Use this time to evaluate whether <em>you</em> want to work there.
+  </div>
+  <p><strong>Good questions to have ready:</strong></p>
+  <ul>
+    <li>What does an average day look like?</li>
+    <li>Why did you join this company instead of another?</li>
+    <li>What's your favorite and least favorite thing about the job?</li>
+    <li>What kind of work can I expect to do?</li>
+  </ul>
+  <div class="co co-tip">
+    Read the company's tech blog before the interview. Asking specific questions about engineering decisions signals genuine interest.
+  </div>
+
+  <!-- Cheat Sheet -->
+  <h2 id="cheatsheet" data-toc-label="Cheat Sheet"><span class="sec-num">★</span> Cheat Sheet</h2>
+  <p>Print this and keep it visible during a remote interview.</p>
+
+  <div class="u-panel">
+
+    <p class="u-mb-4"><strong>Stage 1 — Introductions</strong></p>
+    <ul class="u-mb-16">
+      <li>Rehearsed 30–60 sec intro (education, experience, interests)</li>
+      <li>Smile, confident voice</li>
+      <li>Listen when they describe their work</li>
+    </ul>
+
+    <p class="u-mb-4"><strong>Stage 2 — Problem Statement</strong></p>
+    <ul class="u-mb-16">
+      <li>Paraphrase the problem back</li>
+      <li>Ask about input types, sorting, empty inputs, invalid inputs, size</li>
+      <li>Walk through one example test case</li>
+    </ul>
+
+    <p class="u-mb-4"><strong>Stage 3 — Brainstorming DS&amp;A</strong></p>
+    <ul class="u-mb-16">
+      <li>Always think out loud</li>
+      <li>Break down: what do I need to do → what can accomplish it efficiently?</li>
+      <li>Be receptive to hints</li>
+      <li>Explain your approach to the interviewer before coding</li>
+    </ul>
+
+    <p class="u-mb-4"><strong>Stage 4 — Implementation</strong></p>
+    <ul class="u-mb-16">
+      <li>Narrate decisions as you code</li>
+      <li>Write clean, convention-following code</li>
+      <li>No duplicate logic — use helpers/loops</li>
+      <li>Stuck? Communicate, don't go silent</li>
+      <li>Brute force first is fine — then optimize together</li>
+    </ul>
+
+    <p class="u-mb-4"><strong>Stage 5 — Testing &amp; Debugging</strong></p>
+    <ul class="u-mb-16">
+      <li>Track variables in writing as you walk through cases</li>
+      <li>Condense trivial steps ("after this loop, prefix sum = …")</li>
+      <li>Use print statements if environment allows</li>
+    </ul>
+
+    <p class="u-mb-4"><strong>Stage 6 — Follow-ups</strong></p>
+    <ul class="u-mb-16">
+      <li>Time/space complexity (worst case + average if different)</li>
+      <li>Justify your choices</li>
+      <li>If asked "can it be improved?" → answer is usually yes</li>
+    </ul>
+
+    <p class="u-mb-4"><strong>Stage 7 — Outro</strong></p>
+    <ul class="u-m-0">
+      <li>Have 2–3 questions ready about the company/role</li>
+      <li>Stay engaged, smile, ask follow-ups</li>
+    </ul>
+
+  </div>
+
+  <div class="page-footer">
+    Source: Interview-sheet.md §1 &amp; §3 · Review &amp; Reference · Study Wiki
+  </div>
+
+</main>
+</div>
+
+<script src="../../static/generated/manifest.js"></script>
+<script src="../../static/generated/nav.js"></script>
+<script src="../../static/generated/toc.js"></script>
+</body>
+</html>

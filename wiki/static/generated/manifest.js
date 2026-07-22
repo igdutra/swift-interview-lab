@@ -17,69 +17,69 @@ const WIKI_MANIFEST = {
             {
               "identifier": "arrays",
               "label": "Arrays & Hashing",
-              "hubPath": "leetcode_theory/arrays/index.html",
+              "hubPath": "leetcode/theory/arrays/index.html",
               "pagePaths": [
-                "leetcode_theory/arrays/arrays_hashing_overview_master.html",
-                "leetcode_theory/arrays/hash_map_deep_dive_master.html",
-                "leetcode_theory/arrays/prefix_suffix_master.html",
-                "leetcode_theory/arrays/sliding_window_master.html",
-                "leetcode_theory/arrays/two_pointers_deep_dive_master.html"
+                "leetcode/theory/arrays/arrays_hashing_overview_master.html",
+                "leetcode/theory/arrays/hash_map_deep_dive_master.html",
+                "leetcode/theory/arrays/prefix_suffix_master.html",
+                "leetcode/theory/arrays/sliding_window_master.html",
+                "leetcode/theory/arrays/two_pointers_deep_dive_master.html"
               ]
             },
             {
               "identifier": "intervals",
               "label": "Intervals",
-              "hubPath": "leetcode_theory/intervals/index.html",
+              "hubPath": "leetcode/theory/intervals/index.html",
               "pagePaths": [
-                "leetcode_theory/intervals/intervals_overview_master.html"
+                "leetcode/theory/intervals/intervals_overview_master.html"
               ]
             },
             {
               "identifier": "strings",
               "label": "Strings & Simulation",
-              "hubPath": "leetcode_theory/strings/index.html",
+              "hubPath": "leetcode/theory/strings/index.html",
               "pagePaths": [
-                "leetcode_theory/strings/strings_simulation_overview_master.html",
-                "leetcode_theory/strings/string_parsing_deep_dive_master.html",
-                "leetcode_theory/strings/text_formatting_deep_dive_master.html"
+                "leetcode/theory/strings/strings_simulation_overview_master.html",
+                "leetcode/theory/strings/string_parsing_deep_dive_master.html",
+                "leetcode/theory/strings/text_formatting_deep_dive_master.html"
               ]
             },
             {
               "identifier": "stacks_queues",
               "label": "Stacks & Queues",
-              "hubPath": "leetcode_theory/stacks_queues/index.html",
+              "hubPath": "leetcode/theory/stacks_queues/index.html",
               "pagePaths": [
-                "leetcode_theory/stacks_queues/stacks_queues_overview_master.html",
-                "leetcode_theory/stacks_queues/queue_master.html",
-                "leetcode_theory/stacks_queues/stack_master.html"
+                "leetcode/theory/stacks_queues/stacks_queues_overview_master.html",
+                "leetcode/theory/stacks_queues/queue_master.html",
+                "leetcode/theory/stacks_queues/stack_master.html"
               ]
             },
             {
               "identifier": "design",
               "label": "Object & System Design",
-              "hubPath": "leetcode_theory/design/index.html",
+              "hubPath": "leetcode/theory/design/index.html",
               "pagePaths": [
-                "leetcode_theory/design/iterator_design_deep_dive_master.html",
-                "leetcode_theory/design/stateful_system_design_deep_dive_master.html"
+                "leetcode/theory/design/iterator_design_deep_dive_master.html",
+                "leetcode/theory/design/stateful_system_design_deep_dive_master.html"
               ]
             },
             {
               "identifier": "trees",
               "label": "Trees",
-              "hubPath": "leetcode_theory/trees/index.html",
+              "hubPath": "leetcode/theory/trees/index.html",
               "pagePaths": [
-                "leetcode_theory/trees/lca_deep_dive_master.html"
+                "leetcode/theory/trees/lca_deep_dive_master.html"
               ]
             },
             {
               "identifier": "graphs",
               "label": "Graphs",
-              "hubPath": "leetcode_theory/graphs/index.html",
+              "hubPath": "leetcode/theory/graphs/index.html",
               "pagePaths": [
-                "leetcode_theory/graphs/bfs_deep_dive_master.html",
-                "leetcode_theory/graphs/dfs_deep_dive_master.html",
-                "leetcode_theory/graphs/dijkstra_deep_dive_master.html",
-                "leetcode_theory/graphs/topological_sort_deep_dive_master.html"
+                "leetcode/theory/graphs/bfs_deep_dive_master.html",
+                "leetcode/theory/graphs/dfs_deep_dive_master.html",
+                "leetcode/theory/graphs/dijkstra_deep_dive_master.html",
+                "leetcode/theory/graphs/topological_sort_deep_dive_master.html"
               ]
             }
           ],
@@ -92,58 +92,58 @@ const WIKI_MANIFEST = {
           "hubPath": null,
           "sections": [],
           "pagePaths": [
-            "leetcode_walkthroughs/LC3_master.html",
-            "leetcode_walkthroughs/LC11_master.html",
-            "leetcode_walkthroughs/LC15_master.html",
-            "leetcode_walkthroughs/LC20_master.html",
-            "leetcode_walkthroughs/LC42_master.html",
-            "leetcode_walkthroughs/LC56_master.html",
-            "leetcode_walkthroughs/LC57_master.html",
-            "leetcode_walkthroughs/LC68_master.html",
-            "leetcode_walkthroughs/LC76_master.html",
-            "leetcode_walkthroughs/LC108_master.html",
-            "leetcode_walkthroughs/LC125_master.html",
-            "leetcode_walkthroughs/LC207_master.html",
-            "leetcode_walkthroughs/LC209_master.html",
-            "leetcode_walkthroughs/LC227_master.html",
-            "leetcode_walkthroughs/LC236_master.html",
-            "leetcode_walkthroughs/LC238_master.html",
-            "leetcode_walkthroughs/LC303_master.html",
-            "leetcode_walkthroughs/LC336_master.html",
-            "leetcode_walkthroughs/LC341_master.html",
-            "leetcode_walkthroughs/LC348_master.html",
-            "leetcode_walkthroughs/LC362_master.html",
-            "leetcode_walkthroughs/LC385_master.html",
-            "leetcode_walkthroughs/LC394_master.html",
-            "leetcode_walkthroughs/LC415_master.html",
-            "leetcode_walkthroughs/LC496_master.html",
-            "leetcode_walkthroughs/LC560_master.html",
-            "leetcode_walkthroughs/LC638_master.html",
-            "leetcode_walkthroughs/LC755_master.html",
-            "leetcode_walkthroughs/LC759_master.html",
-            "leetcode_walkthroughs/LC933_master.html",
-            "leetcode_walkthroughs/LC986_master.html",
-            "leetcode_walkthroughs/LC1041_master.html",
-            "leetcode_walkthroughs/LC1091_master.html",
-            "leetcode_walkthroughs/LC1166_master.html",
-            "leetcode_walkthroughs/LC1284_master.html",
-            "leetcode_walkthroughs/LC1631_master.html",
-            "leetcode_walkthroughs/CUSTOM1_Relay_Handoff_Coverage_master.html"
+            "leetcode/walkthroughs/LC3_master.html",
+            "leetcode/walkthroughs/LC11_master.html",
+            "leetcode/walkthroughs/LC15_master.html",
+            "leetcode/walkthroughs/LC20_master.html",
+            "leetcode/walkthroughs/LC42_master.html",
+            "leetcode/walkthroughs/LC56_master.html",
+            "leetcode/walkthroughs/LC57_master.html",
+            "leetcode/walkthroughs/LC68_master.html",
+            "leetcode/walkthroughs/LC76_master.html",
+            "leetcode/walkthroughs/LC108_master.html",
+            "leetcode/walkthroughs/LC125_master.html",
+            "leetcode/walkthroughs/LC207_master.html",
+            "leetcode/walkthroughs/LC209_master.html",
+            "leetcode/walkthroughs/LC227_master.html",
+            "leetcode/walkthroughs/LC236_master.html",
+            "leetcode/walkthroughs/LC238_master.html",
+            "leetcode/walkthroughs/LC303_master.html",
+            "leetcode/walkthroughs/LC336_master.html",
+            "leetcode/walkthroughs/LC341_master.html",
+            "leetcode/walkthroughs/LC348_master.html",
+            "leetcode/walkthroughs/LC362_master.html",
+            "leetcode/walkthroughs/LC385_master.html",
+            "leetcode/walkthroughs/LC394_master.html",
+            "leetcode/walkthroughs/LC415_master.html",
+            "leetcode/walkthroughs/LC496_master.html",
+            "leetcode/walkthroughs/LC560_master.html",
+            "leetcode/walkthroughs/LC638_master.html",
+            "leetcode/walkthroughs/LC755_master.html",
+            "leetcode/walkthroughs/LC759_master.html",
+            "leetcode/walkthroughs/LC933_master.html",
+            "leetcode/walkthroughs/LC986_master.html",
+            "leetcode/walkthroughs/LC1041_master.html",
+            "leetcode/walkthroughs/LC1091_master.html",
+            "leetcode/walkthroughs/LC1166_master.html",
+            "leetcode/walkthroughs/LC1284_master.html",
+            "leetcode/walkthroughs/LC1631_master.html",
+            "leetcode/walkthroughs/CUSTOM1_Relay_Handoff_Coverage_master.html"
           ]
         },
         {
           "identifier": "reference",
           "label": "Review & Reference",
           "layout": "flat",
-          "hubPath": "leetcode_reference/index.html",
+          "hubPath": "leetcode/reference/index.html",
           "sections": [],
           "pagePaths": [
-            "leetcode_reference/final_glance.html",
-            "leetcode_reference/code_snippets.html",
-            "leetcode_reference/pattern_recognition.html",
-            "leetcode_reference/interview_stages.html",
-            "leetcode_reference/sort_complexity.html",
-            "leetcode_reference/cheatsheet.html"
+            "leetcode/reference/final_glance.html",
+            "leetcode/reference/code_snippets.html",
+            "leetcode/reference/pattern_recognition.html",
+            "leetcode/reference/interview_stages.html",
+            "leetcode/reference/sort_complexity.html",
+            "leetcode/reference/cheatsheet.html"
           ]
         }
       ]
@@ -153,17 +153,17 @@ const WIKI_MANIFEST = {
       "label": "iOS",
       "categories": [
         {
-          "identifier": "swiftui",
-          "label": "SwiftUI",
+          "identifier": "swiftui-theory",
+          "label": "SwiftUI · Theory",
           "layout": "sections",
           "hubPath": null,
           "sections": [
             {
               "identifier": "fundamentals",
               "label": "Fundamentals",
-              "hubPath": "ios_swiftui/fundamentals/index.html",
+              "hubPath": "ios/swiftui/theory/fundamentals/index.html",
               "pagePaths": [
-                "ios_swiftui/fundamentals/swiftui_dummy_master.html"
+                "ios/swiftui/theory/fundamentals/swiftui_dummy_master.html"
               ]
             }
           ],
@@ -191,10 +191,10 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "ios_swiftui/fundamentals/index.html": {
-      "path": "ios_swiftui/fundamentals/index.html",
+    "ios/swiftui/theory/fundamentals/index.html": {
+      "path": "ios/swiftui/theory/fundamentals/index.html",
       "domain": "ios",
-      "category": "swiftui",
+      "category": "swiftui-theory",
       "section": "fundamentals",
       "role": "hub",
       "title": "SwiftUI Fundamentals",
@@ -205,15 +205,15 @@ const WIKI_MANIFEST = {
         "State",
         "Layout"
       ],
-      "blurb": "SwiftUI Fundamentals hub — identity, state ownership, data flow, layout, navigation, and the lifecycle.",
+      "blurb": "SwiftUI Theory hub — identity, state ownership, data flow, layout, navigation, and the lifecycle.",
       "difficulty": null,
       "problemNumber": null,
       "order": null
     },
-    "ios_swiftui/fundamentals/swiftui_dummy_master.html": {
-      "path": "ios_swiftui/fundamentals/swiftui_dummy_master.html",
+    "ios/swiftui/theory/fundamentals/swiftui_dummy_master.html": {
+      "path": "ios/swiftui/theory/fundamentals/swiftui_dummy_master.html",
       "domain": "ios",
-      "category": "swiftui",
+      "category": "swiftui-theory",
       "section": "fundamentals",
       "role": "deep-dive",
       "title": "Page Type Demo",
@@ -227,8 +227,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_reference/cheatsheet.html": {
-      "path": "leetcode_reference/cheatsheet.html",
+    "leetcode/reference/cheatsheet.html": {
+      "path": "leetcode/reference/cheatsheet.html",
       "domain": "leetcode",
       "category": "reference",
       "section": null,
@@ -245,8 +245,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": 6
     },
-    "leetcode_reference/code_snippets.html": {
-      "path": "leetcode_reference/code_snippets.html",
+    "leetcode/reference/code_snippets.html": {
+      "path": "leetcode/reference/code_snippets.html",
       "domain": "leetcode",
       "category": "reference",
       "section": null,
@@ -263,8 +263,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": 2
     },
-    "leetcode_reference/final_glance.html": {
-      "path": "leetcode_reference/final_glance.html",
+    "leetcode/reference/final_glance.html": {
+      "path": "leetcode/reference/final_glance.html",
       "domain": "leetcode",
       "category": "reference",
       "section": null,
@@ -281,8 +281,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": 1
     },
-    "leetcode_reference/index.html": {
-      "path": "leetcode_reference/index.html",
+    "leetcode/reference/index.html": {
+      "path": "leetcode/reference/index.html",
       "domain": "leetcode",
       "category": "reference",
       "section": null,
@@ -300,8 +300,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_reference/interview_stages.html": {
-      "path": "leetcode_reference/interview_stages.html",
+    "leetcode/reference/interview_stages.html": {
+      "path": "leetcode/reference/interview_stages.html",
       "domain": "leetcode",
       "category": "reference",
       "section": null,
@@ -317,8 +317,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": 4
     },
-    "leetcode_reference/pattern_recognition.html": {
-      "path": "leetcode_reference/pattern_recognition.html",
+    "leetcode/reference/pattern_recognition.html": {
+      "path": "leetcode/reference/pattern_recognition.html",
       "domain": "leetcode",
       "category": "reference",
       "section": null,
@@ -335,8 +335,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": 3
     },
-    "leetcode_reference/sort_complexity.html": {
-      "path": "leetcode_reference/sort_complexity.html",
+    "leetcode/reference/sort_complexity.html": {
+      "path": "leetcode/reference/sort_complexity.html",
       "domain": "leetcode",
       "category": "reference",
       "section": null,
@@ -352,8 +352,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": 5
     },
-    "leetcode_theory/arrays/arrays_hashing_overview_master.html": {
-      "path": "leetcode_theory/arrays/arrays_hashing_overview_master.html",
+    "leetcode/theory/arrays/arrays_hashing_overview_master.html": {
+      "path": "leetcode/theory/arrays/arrays_hashing_overview_master.html",
       "domain": "leetcode",
       "category": "theory",
       "section": "arrays",
@@ -370,8 +370,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_theory/arrays/hash_map_deep_dive_master.html": {
-      "path": "leetcode_theory/arrays/hash_map_deep_dive_master.html",
+    "leetcode/theory/arrays/hash_map_deep_dive_master.html": {
+      "path": "leetcode/theory/arrays/hash_map_deep_dive_master.html",
       "domain": "leetcode",
       "category": "theory",
       "section": "arrays",
@@ -388,8 +388,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_theory/arrays/index.html": {
-      "path": "leetcode_theory/arrays/index.html",
+    "leetcode/theory/arrays/index.html": {
+      "path": "leetcode/theory/arrays/index.html",
       "domain": "leetcode",
       "category": "theory",
       "section": "arrays",
@@ -407,8 +407,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_theory/arrays/prefix_suffix_master.html": {
-      "path": "leetcode_theory/arrays/prefix_suffix_master.html",
+    "leetcode/theory/arrays/prefix_suffix_master.html": {
+      "path": "leetcode/theory/arrays/prefix_suffix_master.html",
       "domain": "leetcode",
       "category": "theory",
       "section": "arrays",
@@ -425,8 +425,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_theory/arrays/sliding_window_master.html": {
-      "path": "leetcode_theory/arrays/sliding_window_master.html",
+    "leetcode/theory/arrays/sliding_window_master.html": {
+      "path": "leetcode/theory/arrays/sliding_window_master.html",
       "domain": "leetcode",
       "category": "theory",
       "section": "arrays",
@@ -443,8 +443,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_theory/arrays/two_pointers_deep_dive_master.html": {
-      "path": "leetcode_theory/arrays/two_pointers_deep_dive_master.html",
+    "leetcode/theory/arrays/two_pointers_deep_dive_master.html": {
+      "path": "leetcode/theory/arrays/two_pointers_deep_dive_master.html",
       "domain": "leetcode",
       "category": "theory",
       "section": "arrays",
@@ -461,8 +461,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_theory/design/index.html": {
-      "path": "leetcode_theory/design/index.html",
+    "leetcode/theory/design/index.html": {
+      "path": "leetcode/theory/design/index.html",
       "domain": "leetcode",
       "category": "theory",
       "section": "design",
@@ -479,8 +479,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_theory/design/iterator_design_deep_dive_master.html": {
-      "path": "leetcode_theory/design/iterator_design_deep_dive_master.html",
+    "leetcode/theory/design/iterator_design_deep_dive_master.html": {
+      "path": "leetcode/theory/design/iterator_design_deep_dive_master.html",
       "domain": "leetcode",
       "category": "theory",
       "section": "design",
@@ -497,8 +497,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_theory/design/stateful_system_design_deep_dive_master.html": {
-      "path": "leetcode_theory/design/stateful_system_design_deep_dive_master.html",
+    "leetcode/theory/design/stateful_system_design_deep_dive_master.html": {
+      "path": "leetcode/theory/design/stateful_system_design_deep_dive_master.html",
       "domain": "leetcode",
       "category": "theory",
       "section": "design",
@@ -515,8 +515,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_theory/graphs/bfs_deep_dive_master.html": {
-      "path": "leetcode_theory/graphs/bfs_deep_dive_master.html",
+    "leetcode/theory/graphs/bfs_deep_dive_master.html": {
+      "path": "leetcode/theory/graphs/bfs_deep_dive_master.html",
       "domain": "leetcode",
       "category": "theory",
       "section": "graphs",
@@ -533,8 +533,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_theory/graphs/dfs_deep_dive_master.html": {
-      "path": "leetcode_theory/graphs/dfs_deep_dive_master.html",
+    "leetcode/theory/graphs/dfs_deep_dive_master.html": {
+      "path": "leetcode/theory/graphs/dfs_deep_dive_master.html",
       "domain": "leetcode",
       "category": "theory",
       "section": "graphs",
@@ -551,8 +551,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_theory/graphs/dijkstra_deep_dive_master.html": {
-      "path": "leetcode_theory/graphs/dijkstra_deep_dive_master.html",
+    "leetcode/theory/graphs/dijkstra_deep_dive_master.html": {
+      "path": "leetcode/theory/graphs/dijkstra_deep_dive_master.html",
       "domain": "leetcode",
       "category": "theory",
       "section": "graphs",
@@ -569,8 +569,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_theory/graphs/index.html": {
-      "path": "leetcode_theory/graphs/index.html",
+    "leetcode/theory/graphs/index.html": {
+      "path": "leetcode/theory/graphs/index.html",
       "domain": "leetcode",
       "category": "theory",
       "section": "graphs",
@@ -588,8 +588,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_theory/graphs/topological_sort_deep_dive_master.html": {
-      "path": "leetcode_theory/graphs/topological_sort_deep_dive_master.html",
+    "leetcode/theory/graphs/topological_sort_deep_dive_master.html": {
+      "path": "leetcode/theory/graphs/topological_sort_deep_dive_master.html",
       "domain": "leetcode",
       "category": "theory",
       "section": "graphs",
@@ -607,8 +607,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_theory/intervals/index.html": {
-      "path": "leetcode_theory/intervals/index.html",
+    "leetcode/theory/intervals/index.html": {
+      "path": "leetcode/theory/intervals/index.html",
       "domain": "leetcode",
       "category": "theory",
       "section": "intervals",
@@ -625,8 +625,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_theory/intervals/intervals_overview_master.html": {
-      "path": "leetcode_theory/intervals/intervals_overview_master.html",
+    "leetcode/theory/intervals/intervals_overview_master.html": {
+      "path": "leetcode/theory/intervals/intervals_overview_master.html",
       "domain": "leetcode",
       "category": "theory",
       "section": "intervals",
@@ -643,8 +643,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_theory/stacks_queues/index.html": {
-      "path": "leetcode_theory/stacks_queues/index.html",
+    "leetcode/theory/stacks_queues/index.html": {
+      "path": "leetcode/theory/stacks_queues/index.html",
       "domain": "leetcode",
       "category": "theory",
       "section": "stacks_queues",
@@ -665,8 +665,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_theory/stacks_queues/queue_master.html": {
-      "path": "leetcode_theory/stacks_queues/queue_master.html",
+    "leetcode/theory/stacks_queues/queue_master.html": {
+      "path": "leetcode/theory/stacks_queues/queue_master.html",
       "domain": "leetcode",
       "category": "theory",
       "section": "stacks_queues",
@@ -685,8 +685,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_theory/stacks_queues/stack_master.html": {
-      "path": "leetcode_theory/stacks_queues/stack_master.html",
+    "leetcode/theory/stacks_queues/stack_master.html": {
+      "path": "leetcode/theory/stacks_queues/stack_master.html",
       "domain": "leetcode",
       "category": "theory",
       "section": "stacks_queues",
@@ -705,8 +705,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_theory/stacks_queues/stacks_queues_overview_master.html": {
-      "path": "leetcode_theory/stacks_queues/stacks_queues_overview_master.html",
+    "leetcode/theory/stacks_queues/stacks_queues_overview_master.html": {
+      "path": "leetcode/theory/stacks_queues/stacks_queues_overview_master.html",
       "domain": "leetcode",
       "category": "theory",
       "section": "stacks_queues",
@@ -723,8 +723,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_theory/strings/index.html": {
-      "path": "leetcode_theory/strings/index.html",
+    "leetcode/theory/strings/index.html": {
+      "path": "leetcode/theory/strings/index.html",
       "domain": "leetcode",
       "category": "theory",
       "section": "strings",
@@ -742,8 +742,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_theory/strings/string_parsing_deep_dive_master.html": {
-      "path": "leetcode_theory/strings/string_parsing_deep_dive_master.html",
+    "leetcode/theory/strings/string_parsing_deep_dive_master.html": {
+      "path": "leetcode/theory/strings/string_parsing_deep_dive_master.html",
       "domain": "leetcode",
       "category": "theory",
       "section": "strings",
@@ -760,8 +760,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_theory/strings/strings_simulation_overview_master.html": {
-      "path": "leetcode_theory/strings/strings_simulation_overview_master.html",
+    "leetcode/theory/strings/strings_simulation_overview_master.html": {
+      "path": "leetcode/theory/strings/strings_simulation_overview_master.html",
       "domain": "leetcode",
       "category": "theory",
       "section": "strings",
@@ -778,8 +778,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_theory/strings/text_formatting_deep_dive_master.html": {
-      "path": "leetcode_theory/strings/text_formatting_deep_dive_master.html",
+    "leetcode/theory/strings/text_formatting_deep_dive_master.html": {
+      "path": "leetcode/theory/strings/text_formatting_deep_dive_master.html",
       "domain": "leetcode",
       "category": "theory",
       "section": "strings",
@@ -796,8 +796,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_theory/trees/index.html": {
-      "path": "leetcode_theory/trees/index.html",
+    "leetcode/theory/trees/index.html": {
+      "path": "leetcode/theory/trees/index.html",
       "domain": "leetcode",
       "category": "theory",
       "section": "trees",
@@ -815,8 +815,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_theory/trees/lca_deep_dive_master.html": {
-      "path": "leetcode_theory/trees/lca_deep_dive_master.html",
+    "leetcode/theory/trees/lca_deep_dive_master.html": {
+      "path": "leetcode/theory/trees/lca_deep_dive_master.html",
       "domain": "leetcode",
       "category": "theory",
       "section": "trees",
@@ -833,8 +833,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_walkthroughs/CUSTOM1_Relay_Handoff_Coverage_master.html": {
-      "path": "leetcode_walkthroughs/CUSTOM1_Relay_Handoff_Coverage_master.html",
+    "leetcode/walkthroughs/CUSTOM1_Relay_Handoff_Coverage_master.html": {
+      "path": "leetcode/walkthroughs/CUSTOM1_Relay_Handoff_Coverage_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -851,8 +851,8 @@ const WIKI_MANIFEST = {
       "problemNumber": null,
       "order": null
     },
-    "leetcode_walkthroughs/LC1041_master.html": {
-      "path": "leetcode_walkthroughs/LC1041_master.html",
+    "leetcode/walkthroughs/LC1041_master.html": {
+      "path": "leetcode/walkthroughs/LC1041_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -869,8 +869,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 1041,
       "order": null
     },
-    "leetcode_walkthroughs/LC108_master.html": {
-      "path": "leetcode_walkthroughs/LC108_master.html",
+    "leetcode/walkthroughs/LC108_master.html": {
+      "path": "leetcode/walkthroughs/LC108_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -887,8 +887,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 108,
       "order": null
     },
-    "leetcode_walkthroughs/LC1091_master.html": {
-      "path": "leetcode_walkthroughs/LC1091_master.html",
+    "leetcode/walkthroughs/LC1091_master.html": {
+      "path": "leetcode/walkthroughs/LC1091_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -905,8 +905,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 1091,
       "order": null
     },
-    "leetcode_walkthroughs/LC11_master.html": {
-      "path": "leetcode_walkthroughs/LC11_master.html",
+    "leetcode/walkthroughs/LC11_master.html": {
+      "path": "leetcode/walkthroughs/LC11_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -922,8 +922,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 11,
       "order": null
     },
-    "leetcode_walkthroughs/LC1166_master.html": {
-      "path": "leetcode_walkthroughs/LC1166_master.html",
+    "leetcode/walkthroughs/LC1166_master.html": {
+      "path": "leetcode/walkthroughs/LC1166_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -940,8 +940,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 1166,
       "order": null
     },
-    "leetcode_walkthroughs/LC125_master.html": {
-      "path": "leetcode_walkthroughs/LC125_master.html",
+    "leetcode/walkthroughs/LC125_master.html": {
+      "path": "leetcode/walkthroughs/LC125_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -957,8 +957,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 125,
       "order": null
     },
-    "leetcode_walkthroughs/LC1284_master.html": {
-      "path": "leetcode_walkthroughs/LC1284_master.html",
+    "leetcode/walkthroughs/LC1284_master.html": {
+      "path": "leetcode/walkthroughs/LC1284_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -975,8 +975,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 1284,
       "order": null
     },
-    "leetcode_walkthroughs/LC15_master.html": {
-      "path": "leetcode_walkthroughs/LC15_master.html",
+    "leetcode/walkthroughs/LC15_master.html": {
+      "path": "leetcode/walkthroughs/LC15_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -993,8 +993,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 15,
       "order": null
     },
-    "leetcode_walkthroughs/LC1631_master.html": {
-      "path": "leetcode_walkthroughs/LC1631_master.html",
+    "leetcode/walkthroughs/LC1631_master.html": {
+      "path": "leetcode/walkthroughs/LC1631_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -1011,8 +1011,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 1631,
       "order": null
     },
-    "leetcode_walkthroughs/LC20_master.html": {
-      "path": "leetcode_walkthroughs/LC20_master.html",
+    "leetcode/walkthroughs/LC20_master.html": {
+      "path": "leetcode/walkthroughs/LC20_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -1029,8 +1029,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 20,
       "order": null
     },
-    "leetcode_walkthroughs/LC207_master.html": {
-      "path": "leetcode_walkthroughs/LC207_master.html",
+    "leetcode/walkthroughs/LC207_master.html": {
+      "path": "leetcode/walkthroughs/LC207_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -1047,8 +1047,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 207,
       "order": null
     },
-    "leetcode_walkthroughs/LC209_master.html": {
-      "path": "leetcode_walkthroughs/LC209_master.html",
+    "leetcode/walkthroughs/LC209_master.html": {
+      "path": "leetcode/walkthroughs/LC209_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -1064,8 +1064,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 209,
       "order": null
     },
-    "leetcode_walkthroughs/LC227_master.html": {
-      "path": "leetcode_walkthroughs/LC227_master.html",
+    "leetcode/walkthroughs/LC227_master.html": {
+      "path": "leetcode/walkthroughs/LC227_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -1082,8 +1082,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 227,
       "order": null
     },
-    "leetcode_walkthroughs/LC236_master.html": {
-      "path": "leetcode_walkthroughs/LC236_master.html",
+    "leetcode/walkthroughs/LC236_master.html": {
+      "path": "leetcode/walkthroughs/LC236_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -1100,8 +1100,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 236,
       "order": null
     },
-    "leetcode_walkthroughs/LC238_master.html": {
-      "path": "leetcode_walkthroughs/LC238_master.html",
+    "leetcode/walkthroughs/LC238_master.html": {
+      "path": "leetcode/walkthroughs/LC238_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -1117,8 +1117,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 238,
       "order": null
     },
-    "leetcode_walkthroughs/LC3_master.html": {
-      "path": "leetcode_walkthroughs/LC3_master.html",
+    "leetcode/walkthroughs/LC3_master.html": {
+      "path": "leetcode/walkthroughs/LC3_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -1135,8 +1135,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 3,
       "order": null
     },
-    "leetcode_walkthroughs/LC303_master.html": {
-      "path": "leetcode_walkthroughs/LC303_master.html",
+    "leetcode/walkthroughs/LC303_master.html": {
+      "path": "leetcode/walkthroughs/LC303_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -1152,8 +1152,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 303,
       "order": null
     },
-    "leetcode_walkthroughs/LC336_master.html": {
-      "path": "leetcode_walkthroughs/LC336_master.html",
+    "leetcode/walkthroughs/LC336_master.html": {
+      "path": "leetcode/walkthroughs/LC336_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -1170,8 +1170,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 336,
       "order": null
     },
-    "leetcode_walkthroughs/LC341_master.html": {
-      "path": "leetcode_walkthroughs/LC341_master.html",
+    "leetcode/walkthroughs/LC341_master.html": {
+      "path": "leetcode/walkthroughs/LC341_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -1188,8 +1188,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 341,
       "order": null
     },
-    "leetcode_walkthroughs/LC348_master.html": {
-      "path": "leetcode_walkthroughs/LC348_master.html",
+    "leetcode/walkthroughs/LC348_master.html": {
+      "path": "leetcode/walkthroughs/LC348_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -1206,8 +1206,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 348,
       "order": null
     },
-    "leetcode_walkthroughs/LC362_master.html": {
-      "path": "leetcode_walkthroughs/LC362_master.html",
+    "leetcode/walkthroughs/LC362_master.html": {
+      "path": "leetcode/walkthroughs/LC362_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -1224,8 +1224,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 362,
       "order": null
     },
-    "leetcode_walkthroughs/LC385_master.html": {
-      "path": "leetcode_walkthroughs/LC385_master.html",
+    "leetcode/walkthroughs/LC385_master.html": {
+      "path": "leetcode/walkthroughs/LC385_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -1242,8 +1242,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 385,
       "order": null
     },
-    "leetcode_walkthroughs/LC394_master.html": {
-      "path": "leetcode_walkthroughs/LC394_master.html",
+    "leetcode/walkthroughs/LC394_master.html": {
+      "path": "leetcode/walkthroughs/LC394_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -1260,8 +1260,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 394,
       "order": null
     },
-    "leetcode_walkthroughs/LC415_master.html": {
-      "path": "leetcode_walkthroughs/LC415_master.html",
+    "leetcode/walkthroughs/LC415_master.html": {
+      "path": "leetcode/walkthroughs/LC415_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -1278,8 +1278,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 415,
       "order": null
     },
-    "leetcode_walkthroughs/LC42_master.html": {
-      "path": "leetcode_walkthroughs/LC42_master.html",
+    "leetcode/walkthroughs/LC42_master.html": {
+      "path": "leetcode/walkthroughs/LC42_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -1295,8 +1295,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 42,
       "order": null
     },
-    "leetcode_walkthroughs/LC496_master.html": {
-      "path": "leetcode_walkthroughs/LC496_master.html",
+    "leetcode/walkthroughs/LC496_master.html": {
+      "path": "leetcode/walkthroughs/LC496_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -1313,8 +1313,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 496,
       "order": null
     },
-    "leetcode_walkthroughs/LC56_master.html": {
-      "path": "leetcode_walkthroughs/LC56_master.html",
+    "leetcode/walkthroughs/LC56_master.html": {
+      "path": "leetcode/walkthroughs/LC56_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -1331,8 +1331,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 56,
       "order": null
     },
-    "leetcode_walkthroughs/LC560_master.html": {
-      "path": "leetcode_walkthroughs/LC560_master.html",
+    "leetcode/walkthroughs/LC560_master.html": {
+      "path": "leetcode/walkthroughs/LC560_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -1349,8 +1349,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 560,
       "order": null
     },
-    "leetcode_walkthroughs/LC57_master.html": {
-      "path": "leetcode_walkthroughs/LC57_master.html",
+    "leetcode/walkthroughs/LC57_master.html": {
+      "path": "leetcode/walkthroughs/LC57_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -1366,8 +1366,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 57,
       "order": null
     },
-    "leetcode_walkthroughs/LC638_master.html": {
-      "path": "leetcode_walkthroughs/LC638_master.html",
+    "leetcode/walkthroughs/LC638_master.html": {
+      "path": "leetcode/walkthroughs/LC638_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -1384,8 +1384,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 638,
       "order": null
     },
-    "leetcode_walkthroughs/LC68_master.html": {
-      "path": "leetcode_walkthroughs/LC68_master.html",
+    "leetcode/walkthroughs/LC68_master.html": {
+      "path": "leetcode/walkthroughs/LC68_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -1402,8 +1402,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 68,
       "order": null
     },
-    "leetcode_walkthroughs/LC755_master.html": {
-      "path": "leetcode_walkthroughs/LC755_master.html",
+    "leetcode/walkthroughs/LC755_master.html": {
+      "path": "leetcode/walkthroughs/LC755_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -1420,8 +1420,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 755,
       "order": null
     },
-    "leetcode_walkthroughs/LC759_master.html": {
-      "path": "leetcode_walkthroughs/LC759_master.html",
+    "leetcode/walkthroughs/LC759_master.html": {
+      "path": "leetcode/walkthroughs/LC759_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -1438,8 +1438,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 759,
       "order": null
     },
-    "leetcode_walkthroughs/LC76_master.html": {
-      "path": "leetcode_walkthroughs/LC76_master.html",
+    "leetcode/walkthroughs/LC76_master.html": {
+      "path": "leetcode/walkthroughs/LC76_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -1456,8 +1456,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 76,
       "order": null
     },
-    "leetcode_walkthroughs/LC933_master.html": {
-      "path": "leetcode_walkthroughs/LC933_master.html",
+    "leetcode/walkthroughs/LC933_master.html": {
+      "path": "leetcode/walkthroughs/LC933_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,
@@ -1474,8 +1474,8 @@ const WIKI_MANIFEST = {
       "problemNumber": 933,
       "order": null
     },
-    "leetcode_walkthroughs/LC986_master.html": {
-      "path": "leetcode_walkthroughs/LC986_master.html",
+    "leetcode/walkthroughs/LC986_master.html": {
+      "path": "leetcode/walkthroughs/LC986_master.html",
       "domain": "leetcode",
       "category": "walkthroughs",
       "section": null,

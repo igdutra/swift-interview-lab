@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LC 238 — Product of Array Except Self · Walkthrough Masterfile</title>
+<script type="application/json" data-page-meta>
+{
+  "title": "LC 238 — Product of Array Except Self",
+  "nav": "LC 238",
+  "topics": [
+    "Prefix-Suffix",
+    "Arrays"
+  ],
+  "blurb": "Prefix × suffix product (Variant 8.2). Division is disqualified — zeros break it. Two passes: prefix products into the output array, then a single rolling suffix integer multiplied in right-to-left. O(n) time, O(1) extra space.",
+  "difficulty": "M"
+}
+</script>
+<link rel="stylesheet" href="../../static/wiki.css">
+<link href="https://fonts.googleapis.com/css2?family=Linux+Libertine+O&family=Source+Code+Pro:ital,wght@0,400;0,600;1,400&family=Source+Sans+3:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+</head>
+<body data-category="walkthrough">
+
+<nav id="topnav" class="topnav"></nav>
+
+<div class="page">
+
+<!-- ── CONTENT ── -->
+<main class="content">
+
+  <h1 class="page-title">LC 238 — Product of Array Except Self</h1>
+  <div class="page-meta">
+    <span>Walkthrough Masterfile</span><span>·</span>
+    <span>Language: Swift</span><span>·</span>
+    <span>Medium · Prefix × suffix product · No division, no zeros problem</span>
+  </div>
+
+  <!-- 1. Restatement -->
+  <section id="lead" data-toc-label="The Problem">
+    <div class="infobox">
+      <div class="infobox-title">Problem at a Glance</div>
+      <div class="infobox-row"><div class="infobox-k">Difficulty</div><div class="infobox-v"><span class="tag tag-M">Medium</span></div></div>
+      <div class="infobox-row"><div class="infobox-k">Pattern</div><div class="infobox-v">Prefix × suffix product — Variant 8.2</div></div>
+      <div class="infobox-row"><div class="infobox-k">Tools</div><div class="infobox-v">Two passes; A.0: two explicit arrays (prefix + suffix); A.1 (optimal): prefix pass into result + rolling suffix variable</div></div>
+      <div class="infobox-row"><div class="infobox-k">Key insight</div><div class="infobox-v">result[i] = (product of all elements left of i) × (product of all elements right of i) — position i is excluded by construction, not by division</div></div>
+      <div class="infobox-row"><div class="infobox-k">Time / Space</div><div class="infobox-v">O(n) / O(n) extra (A.0) · O(n) / O(1) extra (A.1 optimal)</div></div>
+      <div class="infobox-row"><div class="infobox-k">Theory</div><div class="infobox-v mono"><a href="../theory/arrays/prefix_suffix_master.html">prefix_suffix_master.html</a></div></div>
+    </div>
+
+    <div class="lead">
+      <p>Given an integer array <code>nums</code>, return an array <code>result</code> where <code>result[i]</code> equals the product of every element in <code>nums</code> <strong>except</strong> <code>nums[i]</code>. You must solve it <strong>without using division</strong> and in O(n) time.</p>
+
+      <table class="t-example">
+        <thead><tr><th>Input</th><th>Output</th><th>Why</th></tr></thead>
+        <tbody>
+          <tr><td><code>[1, 2, 3, 4]</code></td><td><code>[24, 12, 8, 6]</code></td><td>result[0]=2×3×4=24; result[1]=1×3×4=12; result[2]=1×2×4=8; result[3]=1×2×3=6</td></tr>
+          <tr><td><code>[-1, 1, 0, -3, 3]</code></td><td><code>[0, 0, 9, 0, 0]</code></td><td>The zero at index 2 makes every other result 0; result[2] = (−1)×1×(−3)×3 = 9</td></tr>
+          <tr><td><code>[2, 3]</code></td><td><code>[3, 2]</code></td><td>Minimal case: result[0]=nums[1], result[1]=nums[0]</td></tr>
+        </tbody>
+      </table>
+
+      <p>The twist: the "no division" constraint rules out the obvious approach of computing the total product and dividing by each element. Division also breaks on zeros — if nums contains a zero, the total product is zero, and dividing by any element is either 0/nums[i] (wrong for the zero's own position) or division-by-zero. The prefix × suffix construction avoids division entirely: for each index <em>i</em>, the left pass delivers the product of everything to the left, and the right pass delivers the product of everything to the right. Neither pass includes nums[i] itself — exclusion is structural, not arithmetic.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 2. Reading the problem -->
+  <section id="reading" data-toc-label="Reading the Problem">
+    <h2>2 &nbsp; Reading the Problem — insights from the statement</h2>
+
+    <div class="co-insight"><strong>"Without using division":</strong> this single constraint eliminates the naïve O(n) solution (totalProduct / nums[i]) and hints directly at the answer. Without division, you must construct each result[i] from two separate pieces — the product of everything to its left and the product of everything to its right. That two-sided dependency is the prefix/suffix fingerprint.</div>
+
+    <div class="co-insight"><strong>"Product of all elements except nums[i]":</strong> the element at position <em>i</em> is absent. This is not "product of a range" — it is "product of the complement." The complement splits cleanly into left-of-i and right-of-i, and each half can be precomputed in one pass.</div>
+
+    <div class="co-insight"><strong>Zeros in the array:</strong> the constraint says nums[i] can be 0. This would break a division-based solution in two ways: if more than one zero exists, all products are 0; if exactly one zero exists, only the result at the zero's index is non-zero. The prefix × suffix approach handles both cases without any branching — zeros propagate through the product arrays exactly like any other value.</div>
+
+    <div class="co-insight"><strong>"O(n) time, O(1) extra space" (the follow-up):</strong> the output array <code>result</code> is not counted toward the space limit. This is a hint to reuse the output array as the prefix storage in the first pass and update it in-place with a running suffix product in the second pass.</div>
+
+    <table class="t-clue">
+      <thead><tr><th>Phrase / constraint</th><th>What it forces</th></tr></thead>
+      <tbody>
+        <tr><td>"without using division"</td><td>Cannot compute totalProduct and divide; must build each result from left-product × right-product separately</td></tr>
+        <tr><td>"except nums[i]"</td><td>Position i is excluded from both the left and right accumulations by construction — no need to track "which index to skip"</td></tr>
+        <tr><td>zeros allowed in nums</td><td>Division would fail; prefix × suffix propagates zeros correctly with no special case</td></tr>
+        <tr><td>"O(1) extra space" follow-up</td><td>Reuse the output array for the prefix pass; keep the suffix as a rolling scalar in the second pass</td></tr>
+        <tr><td>2 ≤ nums.length ≤ 10⁵</td><td>O(n) is required; O(n²) brute force (multiply for every index) is 10¹⁰ — dead</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 3. Edge cases -->
+  <section id="edge-cases" data-toc-label="Edge Case Inventory">
+    <h2>3 &nbsp; Edge Case Inventory</h2>
+    <table class="t-edge">
+      <thead><tr><th>Input</th><th>Expected</th><th>Handled by</th></tr></thead>
+      <tbody>
+        <tr><td><code>[a, b]</code> — two elements</td><td><code>[b, a]</code></td><td>prefixProduct = [1, a]; suffix pass: result[1] *= 1 = a; result[0] *= b = b</td></tr>
+        <tr><td>One zero in array, e.g. <code>[1,0,3]</code></td><td><code>[0,3,0]</code></td><td>prefix product goes to 0 after the zero; suffix product goes to 0 before it; only the zero's own index gets a non-zero result</td></tr>
+        <tr><td>Two zeros in array, e.g. <code>[0,1,0]</code></td><td><code>[0,0,0]</code></td><td>Every result is 0 — each position has at least one zero among its "except self" elements</td></tr>
+        <tr><td>All negative values</td><td>Products follow sign rules</td><td>Integer multiplication is sign-correct; no special handling needed</td></tr>
+        <tr><td>All ones, e.g. <code>[1,1,1,1]</code></td><td><code>[1,1,1,1]</code></td><td>Prefix and suffix products are all 1; result[i] = 1×1 = 1 everywhere</td></tr>
+        <tr><td>Single large value, e.g. <code>[10⁴, 10⁴]</code></td><td><code>[10⁴, 10⁴]</code></td><td>No overflow concern for n=2; for longer arrays the problem guarantees the answer fits in 32-bit signed integers</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 4. Hints -->
+  <section id="hints" data-toc-label="Try It Yourself First">
+    <h2>4 &nbsp; Try It Yourself First</h2>
+    <p>Attempt the problem before reading on. Open hints one at a time.</p>
+    <details class="hint"><summary>Hint 1 — why not division?</summary><p>The naïve solution is: compute the total product, then result[i] = totalProduct / nums[i]. Write down why this fails when nums contains a zero. If you can't use division, what two pieces of information about position i do you need?</p></details>
+    <details class="hint"><summary>Hint 2 — the two-pass shape</summary><p>result[i] = (product of nums[0..i−1]) × (product of nums[i+1..n−1]). Both halves can be computed in separate passes: a left-to-right pass builds the left products, and a right-to-left pass builds the right products. Neither pass ever includes nums[i] itself. How does this work for the first and last index?</p></details>
+    <details class="hint"><summary>Hint 3 — O(1) extra space</summary><p>In the left pass, write the prefix products directly into the result array. Then do a single right-to-left pass with a <em>running</em> suffix product (one integer variable), multiplying it into result[i] at each step. You end up with result[i] = prefixProduct[i] × suffixProduct[i] without ever allocating a second array.</p></details>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 5. Interview Simulation -->
+  <section id="simulation" data-toc-label="Interview Simulation">
+    <h2>5 &nbsp; Interview Simulation</h2>
+    <p>The interviewer has stated the problem. The script starts with your first words — practice it out loud.</p>
+
+    <div class="sim-block" id="sim-questions" data-toc-label="5.1 Clarifying questions">
+      <div class="sim-header">Step 1 — Clarifying questions</div>
+      <div class="sim-body">
+        <div class="sim-q">Q: "Can the array contain zeros? How many?"</div>
+        <div class="sim-a">A: Yes, zeros are allowed and there can be multiple. <strong>→ This rules out any division-based approach entirely, even if the constraint didn't — dividing by zero is undefined, and with two or more zeros every result is 0 anyway. My approach must produce correct results without division.</strong></div>
+
+        <div class="sim-q">Q: "Can elements be negative?"</div>
+        <div class="sim-a">A: Yes. <strong>→ Integer multiplication handles negatives correctly. No sign tracking needed.</strong></div>
+
+        <div class="sim-q">Q: "What is the minimum array length?"</div>
+        <div class="sim-a">A: Two elements. <strong>→ So every index always has at least one other element contributing to its result. No empty-product edge case at both ends simultaneously — the sentinel handles each end independently.</strong></div>
+
+        <div class="sim-q">Q: "The O(1) extra space constraint — does the output array count?"</div>
+        <div class="sim-a">A: No, the output array is not counted. <strong>→ I can reuse the output array for the prefix pass and then update it in-place during the suffix pass. That's two passes total, O(1) extra space excluding the output.</strong></div>
+      </div>
+    </div>
+
+    <div class="sim-block" id="sim-plan" data-toc-label="5.2 The plan, spoken">
+      <div class="sim-header">Step 2 — The plan, before any code</div>
+      <div class="sim-body">
+        <div class="speech">
+          <div class="speech-kicker">The plan, spoken</div>
+          <p>"This is a prefix × suffix product problem — Variant 8.2. The signal is 'except self' combined with 'no division': I need to exclude exactly one element per position, and I cannot invert the total. That forces me to build the result from two independent accumulations."</p>
+          <p>"Let me pin the conditions. For any index i, result[i] = (product of nums[0..i−1]) × (product of nums[i+1..n−1]). The governing invariant is that index i must be absent from both halves — not skipped, just structurally excluded by the boundary of each pass. The left half stops before i; the right half starts after i."</p>
+          <p>"The sentinel is identity: the product of zero elements is 1 — the multiplicative identity. So prefix[0] = 1 (there's nothing to the left of index 0) and suffix[n−1] = 1 (there's nothing to the right of index n−1). These sentinels mean the formula works uniformly at the endpoints."</p>
+          <p>"For O(1) extra space, I'll reuse the output array. First pass left-to-right: result[i] = running prefix product of nums[0..i−1]; starts at 1. Second pass right-to-left: maintain a running suffix product integer, initialized to 1; multiply result[i] by it at each step, then update the running suffix with nums[i]. After the second pass, result[i] holds prefix × suffix — exactly the product of everything except nums[i]."</p>
+          <p>"Data structures: the output array (not counted toward space) and one integer variable for the suffix pass. No extra arrays. Two linear passes, O(n) time, O(1) extra space."</p>
+          <p>"I'll trace the canonical example [1,2,3,4] to verify."</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 6. Approach rationale -->
+  <section id="approach" data-toc-label="Why This Approach">
+    <h2>6 &nbsp; Why This Approach — and not the others</h2>
+    <table class="t-versus">
+      <thead><tr><th>Candidate</th><th>Cost</th><th>Verdict</th></tr></thead>
+      <tbody>
+        <tr><td>Brute force: for each index, multiply all other elements</td><td>O(n²) time, O(1) extra</td><td>Correct but quadratic — n=10⁵ gives 10¹⁰ multiplications</td></tr>
+        <tr><td>Total product then divide by nums[i]</td><td>O(n) time, O(1) extra</td><td>Fails with zeros (division by zero; wrong result when multiple zeros exist). Explicitly forbidden by the constraint "no division."</td></tr>
+        <tr><td>Two extra arrays (prefix and suffix)</td><td>O(n) time, O(n) extra</td><td>Correct and readable — the natural two-pass form. Extra space is O(n) because both arrays are stored. Good starting point; the O(1) version is a refinement of this.</td></tr>
+        <tr><td><strong>Prefix pass into result + rolling suffix variable</strong></td><td>O(n) time, O(1) extra</td><td><strong>Chosen.</strong> Reuse the output array for the prefix pass; a single integer carries the suffix product right-to-left. Achieves the follow-up constraint. Zero-safe, division-free, two passes.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="co-idea">
+      <strong>THE ONE IDEA:</strong> Position i is excluded from result[i] structurally — the left pass computes the product of nums[0..i−1] and the right pass computes the product of nums[i+1..n−1]. Neither pass ever sees nums[i]. No division, no zero-check, no skip logic. The "gap" at position i is simply where the two passes don't overlap.
+    </div>
+
+    <div class="co-when"><strong>When to reach for prefix × suffix product (Variant 8.2):</strong> whenever you need "product of all elements except one" and cannot use division. The two sentinels of 1 (multiplicative identity) make the formula work uniformly at both ends without special-casing.</div>
+
+    <div class="co-pitfall">
+      <strong>PITFALLS</strong>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Using additive identity (0) instead of multiplicative identity (1) for the sentinel.</strong> The sentinel must be the identity for the accumulation operation. For sums, it's 0. For products, it's 1. Initializing runningSuffix to 0 would zero out every result in the second pass.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Updating the running suffix before multiplying into result.</strong> In the right-to-left pass, the correct order is: (1) multiply result[index] by runningSuffix, then (2) update runningSuffix with nums[index]. Reversing the order includes nums[index] in result[index], which is exactly what you must avoid.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">▸</span><span><strong>Reaching for division as the "obvious" O(n) solution.</strong> It works on arrays with no zeros and the constraint permits it — but both conditions are violated here. The problem explicitly says no division. Always check: are zeros possible? Is division forbidden? If either is true, use two-pass prefix/suffix.</span></div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 7. Data structures -->
+  <section id="structures" data-toc-label="Data Structures">
+    <h2>7 &nbsp; Data Structures — choice and justification</h2>
+    <table class="t-decoder">
+      <thead><tr><th>Variable</th><th>Holds</th><th>Why this and not something else</th></tr></thead>
+      <tbody>
+        <tr><td><code>result: [Int]</code> (length n)</td><td>First: prefix product of everything to the left of each index. After second pass: final result[i] = prefix × suffix at index i.</td><td>Reusing the output array avoids allocating a separate prefix array — this is the O(1) extra space optimization. The output array is not counted toward the space budget per the problem statement.</td></tr>
+        <tr><td><code>runningSuffix: Int</code></td><td>Running product of everything to the right of the current index, maintained right-to-left in the second pass. Initialized to 1 (multiplicative identity).</td><td>A single integer replaces an entire suffix array. At each step it holds exactly what suffixProduct[index] would contain in the two-array version. It is discarded at the end of the second pass.</td></tr>
+      </tbody>
+    </table>
+
+    <div class="co-note"><strong>The two-array connection:</strong> in the O(n) space version you would allocate <code>prefixProduct[index] = product of nums[0..index−1]</code> and <code>suffixProduct[index] = product of nums[index+1..n−1]</code> separately, then combine them. In this solution, <code>result[index]</code> after the first pass contains exactly <code>prefixProduct[index]</code>, and <code>runningSuffix</code> before the multiply step equals <code>suffixProduct[index]</code>. Same values, one fewer array.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 8. Pseudocode dry run -->
+  <section id="dryrun" data-toc-label="Pseudocode Dry Run">
+    <h2>8 &nbsp; Pseudocode Dry Run</h2>
+
+    <div class="code-label"><span class="code-lang lang-pseudo">Pseudocode</span><span class="code-desc">prefix × suffix product — two-pass O(1) space</span></div>
+    <pre class="pseudo">n ← length(nums)
+result ← array of size n
+
+<span class="pc">① LEFT PASS — prefix products into result</span>
+runningPrefix ← 1                      <span class="pc">// multiplicative identity</span>
+<span class="pk">FOR</span> index <span class="pk">FROM</span> 0 <span class="pk">TO</span> n−1:
+    result[index] ← runningPrefix      <span class="pc">// product of everything LEFT of index</span>
+    runningPrefix ← runningPrefix * nums[index]
+
+<span class="pc">② RIGHT PASS — multiply suffix products into result</span>
+runningSuffix ← 1                      <span class="pc">// multiplicative identity</span>
+<span class="pk">FOR</span> index <span class="pk">FROM</span> n−1 <span class="pk">DOWNTO</span> 0:
+    result[index] ← result[index] * runningSuffix   <span class="pc">// combine prefix × suffix</span>
+    runningSuffix ← runningSuffix * nums[index]
+
+<span class="pk">RETURN</span> result</pre>
+
+    <p>Trace on <code>[1, 2, 3, 4]</code>, expected output <code>[24, 12, 8, 6]</code>:</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">both passes — left then right</span></div>
+    <pre class="dry"><span class="tr-var">Left pass — writing prefix products into result</span>
+runningPrefix = 1
+
+index=0:  result[0] = 1   → runningPrefix = 1*1 = 1
+index=1:  result[1] = 1   → runningPrefix = 1*2 = 2
+index=2:  result[2] = 2   → runningPrefix = 2*3 = 6
+index=3:  result[3] = 6   → runningPrefix = 6*4 = 24 (not stored)
+
+<span class="tr-var">After left pass: result = [1, 1, 2, 6]</span>
+<span class="tr-ok">result[i] = product of nums[0..i−1]; result[0]=1 (identity sentinel)</span>
+
+<span class="tr-var">Right pass — multiplying suffix products into result</span>
+runningSuffix = 1
+
+index=3:  result[3] = 6 * 1  = 6   → runningSuffix = 1*4 = 4
+index=2:  result[2] = 2 * 4  = 8   → runningSuffix = 4*3 = 12
+index=1:  result[1] = 1 * 12 = 12  → runningSuffix = 12*2 = 24
+index=0:  result[0] = 1 * 24 = 24  → runningSuffix = 24*1 = 24 (not used)
+
+<span class="tr-ok">RETURN [24, 12, 8, 6] ✓</span>
+
+<span class="tr-var">Verify each position:</span>
+result[0] = 1×24 = 24 = 2×3×4 ✓
+result[1] = 1×12 = 12 = 1×3×4 ✓
+result[2] = 2×4  = 8  = 1×2×4 ✓
+result[3] = 6×1  = 6  = 1×2×3 ✓</pre>
+
+    <p class="ascii-caption">Key observation: at index 0, the prefix value is 1 (nothing to the left) and the suffix eventually contributes 2×3×4=24 — exactly the product of everything except nums[0]. Symmetrically at index 3, the prefix value is 6=1×2×3 and the suffix is 1 (nothing to the right). The sentinels handle both endpoints uniformly.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 9. Swift solution -->
+  <section id="swift" data-toc-label="Swift Solution">
+    <h2>9 &nbsp; Swift Solution</h2>
+
+    <div class="solution-block" id="swift-a0" data-toc-label="A.0 — Both arrays (prefix + suffix)">
+      <div class="block-header">
+        <span class="block-badge">A.0</span>
+        <span class="block-name">Two explicit arrays — prefix array + suffix array</span>
+        <div class="block-pills"><span class="pill pill-t">O(n)</span><span class="pill pill-s">O(n) extra</span></div>
+      </div>
+      <div class="block-body">
+        <div class="approach-box">
+          <div class="approach-title">Plan</div>
+          Allocate two arrays of size n: prefixProducts[i] = product of nums[0..i−1], suffixProducts[i] = product of nums[i+1..n−1]. Fill prefixProducts left-to-right and suffixProducts right-to-left, each initialized with the multiplicative identity 1. Then combine: result[i] = prefixProducts[i] × suffixProducts[i]. Three passes, O(n) extra space. This is the natural reading of the formula — understand it here before optimizing to A.1.
+        </div>
+
+        <pre class="swift"><span class="kw">func</span> <span class="fn">productExceptSelf</span>(<span class="kw">_</span> nums: [<span class="tp">Int</span>]) -&gt; [<span class="tp">Int</span>] {
+    <span class="kw">let</span> count = nums.count
+    <span class="kw">var</span> prefixProducts = [<span class="tp">Int</span>](repeating: <span class="nm">1</span>, count: count)
+    <span class="kw">var</span> suffixProducts = [<span class="tp">Int</span>](repeating: <span class="nm">1</span>, count: count)
+
+    <span class="cm">// Left pass: prefixProducts[i] = product of nums[0..i−1].</span>
+    <span class="cm">// prefixProducts[0] = 1 (nothing to the left — multiplicative identity).</span>
+    <span class="kw">var</span> runningPrefix = <span class="nm">1</span>
+    <span class="kw">for</span> (index, num) <span class="kw">in</span> nums.enumerated() {
+        prefixProducts[index] = runningPrefix
+        runningPrefix *= num
+    }
+
+    <span class="cm">// Right pass: suffixProducts[i] = product of nums[i+1..n−1].</span>
+    <span class="cm">// suffixProducts[n−1] = 1 (nothing to the right — multiplicative identity).</span>
+    <span class="kw">var</span> runningSuffix = <span class="nm">1</span>
+    <span class="kw">for</span> (index, num) <span class="kw">in</span> nums.enumerated().reversed() {
+        suffixProducts[index] = runningSuffix
+        runningSuffix *= num
+    }
+
+    <span class="cm">// Combine: result[i] = prefixProducts[i] × suffixProducts[i].</span>
+    <span class="kw">return</span> zip(prefixProducts, suffixProducts).map(<span class="nm">*</span>)
+}</pre>
+      </div>
+    </div>
+
+    <div class="co-note"><strong>A.0 → A.1 connection:</strong> in A.1, <code>result[index]</code> after the left pass holds exactly <code>prefixProducts[index]</code> from A.0, and <code>runningSuffix</code> before the multiply step holds exactly <code>suffixProducts[index]</code>. A.1 eliminates the suffix array by computing and consuming each suffix value on the fly, right-to-left. Same correctness, half the extra allocations.</div>
+
+    <div class="solution-block" id="swift-a1" data-toc-label="A.1 — Prefix pass + rolling suffix">
+      <div class="block-header">
+        <span class="block-badge">A.1</span>
+        <span class="block-name">Prefix pass into result + rolling suffix variable</span>
+        <div class="block-pills"><span class="pill pill-t">O(n)</span><span class="pill pill-s">O(1) extra</span></div>
+      </div>
+      <div class="block-body">
+        <div class="approach-box">
+          <div class="approach-title">Plan</div>
+          Left pass: fill result[i] with the running product of all elements to the left of i (result[0] = 1, the multiplicative sentinel). Right pass: walk right-to-left with a single running suffix product, multiplying it into result[i] before updating it with nums[i]. After both passes, result[i] = leftProduct[i] × rightProduct[i] = product of everything except nums[i].
+        </div>
+
+        <pre class="swift"><span class="kw">func</span> <span class="fn">productExceptSelf</span>(<span class="kw">_</span> nums: [<span class="tp">Int</span>]) -&gt; [<span class="tp">Int</span>] {
+    <span class="kw">let</span> count = nums.count
+    <span class="kw">var</span> result = [<span class="tp">Int</span>](repeating: <span class="nm">1</span>, count: count)
+
+    <span class="cm">// Left pass: result[i] = product of nums[0..i−1].</span>
+    <span class="cm">// result[0] stays 1 — the multiplicative identity (nothing to the left).</span>
+    <span class="kw">var</span> runningPrefix = <span class="nm">1</span>
+    <span class="kw">for</span> (index, num) <span class="kw">in</span> nums.enumerated() {
+        result[index] = runningPrefix
+        runningPrefix *= num
+    }
+
+    <span class="cm">// Right pass: multiply result[i] by the running product of nums[i+1..n−1].</span>
+    <span class="cm">// Multiply BEFORE updating runningSuffix so nums[i] is never included in result[i].</span>
+    <span class="kw">var</span> runningSuffix = <span class="nm">1</span>
+    <span class="kw">for</span> (index, num) <span class="kw">in</span> nums.enumerated().reversed() {
+        result[index] *= runningSuffix
+        runningSuffix *= num
+    }
+
+    <span class="kw">return</span> result
+}</pre>
+      </div>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 10. Code dry run -->
+  <section id="code-dry-run" data-toc-label="Code Dry Run">
+    <h2>10 &nbsp; Code Dry Run — Swift solution, traced</h2>
+    <p>Full debugger-style execution trace on <code>[-1, 1, 0, -3, 3]</code>, expected output <code>[0, 0, 9, 0, 0]</code>. Chosen because it has a zero — the most common failure mode — and negative values.</p>
+
+    <div class="code-label"><span class="code-lang lang-trace">Trace</span><span class="code-desc">full execution trace — /code-dry-run format</span></div>
+    <pre class="dry">────────────────────────────────
+/code-dry-run
+Problem: LC 238 — Product of Array Except Self
+Input:   nums = [-1, 1, 0, -3, 3]
+────────────────────────────────
+
+productExceptSelf([-1, 1, 0, -3, 3])
+  count          = 5
+  result         = [1, 1, 1, 1, 1]
+  runningPrefix  = 1
+
+────────────────────────────────
+LEFT PASS — building prefix products into result
+────────────────────────────────
+
+  index=0:
+    result[0] = runningPrefix(1) = 1
+    runningPrefix = 1 * nums[0](−1) = −1
+    result = [1, 1, 1, 1, 1]
+
+  index=1:
+    result[1] = runningPrefix(−1) = −1
+    runningPrefix = −1 * nums[1](1) = −1
+    result = [1, −1, 1, 1, 1]
+
+  index=2:
+    result[2] = runningPrefix(−1) = −1
+    runningPrefix = −1 * nums[2](0) = 0
+    result = [1, −1, −1, 1, 1]
+
+  index=3:
+    result[3] = runningPrefix(0) = 0
+    runningPrefix = 0 * nums[3](−3) = 0
+    result = [1, −1, −1, 0, 1]
+
+  index=4:
+    result[4] = runningPrefix(0) = 0
+    runningPrefix = 0 * nums[4](3) = 0
+    result = [1, −1, −1, 0, 0]
+
+  ↑ After left pass: result[i] = product of nums[0..i−1].
+    result[0]=1 (nothing left of index 0).
+    result[2]=−1×1=−1 (product of nums[0..1]).
+    result[3]=0 because the zero at index 2 zeroed out the running product.
+
+────────────────────────────────
+RIGHT PASS — multiplying suffix products into result
+────────────────────────────────
+
+  runningSuffix = 1
+
+  index=4:
+    result[4] = 0 * runningSuffix(1) = 0
+    runningSuffix = 1 * nums[4](3) = 3
+    result = [1, −1, −1, 0, 0]
+
+  index=3:
+    result[3] = 0 * runningSuffix(3) = 0
+    runningSuffix = 3 * nums[3](−3) = −9
+    result = [1, −1, −1, 0, 0]
+
+  index=2:
+    result[2] = −1 * runningSuffix(−9) = 9
+    runningSuffix = −9 * nums[2](0) = 0
+    result = [1, −1, 9, 0, 0]
+
+    ↑ THE KEY STEP: result[2] was −1 (product of nums[0..1] = −1×1).
+      runningSuffix is −9 = nums[3]×nums[4] = −3×3.
+      −1 × −9 = 9 = product of all elements except nums[2](0). ✓
+
+  index=1:
+    result[1] = −1 * runningSuffix(0) = 0
+    runningSuffix = 0 * nums[1](1) = 0
+    result = [1, 0, 9, 0, 0]
+
+  index=0:
+    result[0] = 1 * runningSuffix(0) = 0
+    runningSuffix = 0 * nums[0](−1) = 0   ↑ not used after this
+    result = [0, 0, 9, 0, 0]
+
+────────────────────────────────
+RESULT
+────────────────────────────────
+
+  result = [0, 0, 9, 0, 0]
+  return [0, 0, 9, 0, 0]  ✓
+
+  Verify:
+    result[0] = 1×0×(−3)×3 = 0 ✓
+    result[1] = (−1)×0×(−3)×3 = 0 ✓
+    result[2] = (−1)×1×(−3)×3 = 9 ✓
+    result[3] = (−1)×1×0×3 = 0 ✓
+    result[4] = (−1)×1×0×(−3) = 0 ✓</pre>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 11. Question → Code Map -->
+  <section id="qmap" data-toc-label="Question → Code Map">
+    <h2>11 &nbsp; Question → Code Map</h2>
+    <table class="t-qmap">
+      <thead><tr><th>Question / decision</th><th>Code it became</th></tr></thead>
+      <tbody>
+        <tr><td>"Why can't I just divide the total product by nums[i]?"</td><td>No code — division is explicitly forbidden and breaks on zeros. The entire two-pass structure exists because of this constraint.</td></tr>
+        <tr><td>"What is result[i] before the right pass?"</td><td>After left pass: <code>result[index] = runningPrefix</code> — the product of nums[0..index−1]</td></tr>
+        <tr><td>"What does result[i] hold after both passes?"</td><td><code>result[index] *= runningSuffix</code> completes it: result[i] = leftProduct × rightProduct = product except self</td></tr>
+        <tr><td>"What sentinel does the prefix pass use?"</td><td><code>var runningPrefix = 1</code> — the multiplicative identity; result[0] = 1 because nothing is to the left</td></tr>
+        <tr><td>"What sentinel does the suffix pass use?"</td><td><code>var runningSuffix = 1</code> — same reasoning; result[n−1] after left pass holds 1×runningSuffix(1) initially</td></tr>
+        <tr><td>"Why multiply result[i] BEFORE updating runningSuffix?"</td><td>The order <code>result[index] *= runningSuffix</code> then <code>runningSuffix *= nums[index]</code> ensures nums[index] is never included in result[index]</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 12. Complexity -->
+  <section id="complexity" data-toc-label="Complexity">
+    <h2>12 &nbsp; Complexity</h2>
+    <table class="t-cmx">
+      <thead><tr><th>Solution</th><th>Time</th><th>Space</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td>Brute force (multiply all others per index)</td><td>O(n²)</td><td>O(1) extra</td><td>For each of n indices, one loop of up to n−1 multiplications</td></tr>
+        <tr><td>Division (total product ÷ nums[i])</td><td>O(n)</td><td>O(1) extra</td><td>One pass for total product, one pass for results — but invalid: forbidden by the problem, fails on zeros</td></tr>
+        <tr><td>Two explicit arrays (prefix + suffix)</td><td>O(n)</td><td>O(n) extra</td><td>Two arrays of size n; three linear passes (build left, build right, combine)</td></tr>
+        <tr><td><strong>Prefix pass + rolling suffix (this solution)</strong></td><td><strong>O(n)</strong></td><td><strong>O(1) extra</strong></td><td>Two linear passes; one integer variable for the suffix; output array not counted</td></tr>
+      </tbody>
+    </table>
+    <div class="co-note"><strong>Bottleneck:</strong> you must read every element at least once to compute any result — O(n) is optimal. The O(1) extra space bound is tight: you need at minimum one rolling variable to carry the suffix product without materializing an array.</div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 13. Follow-up bank -->
+  <section id="followups" data-toc-label="Follow-Up Bank">
+    <h2>13 &nbsp; Follow-Up Bank</h2>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Before you push this to production — can you see any improvements you'd make?"</div>
+      <p>The solution is already optimal: O(n) time, O(1) extra space, zero-safe, division-free. A minor readability note: the comment "Multiply BEFORE updating runningSuffix" is load-bearing — the order of the two lines in the right pass is a correctness constraint, not a style choice. I'd keep that comment in a production codebase. No algorithmic improvement is possible.</p>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "What if the problem allowed division — would you use it?"</div>
+      <p>Only with caution. The division-based approach (total product / nums[i]) is O(n) and O(1) extra space — same complexity. But it fails when any nums[i] is zero, requiring special-casing: zero count = 0 → all zeros; zero count = 1 → only the position with the zero gets a non-zero result. The two-pass version handles zeros automatically with no branching, so it's strictly simpler and more robust even when division is permitted.</p>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "Can you do this with only one pass?"</div>
+      <p>No — not for the general case. To compute result[i] you need both the product of all elements to its left and the product of all elements to its right. With only one pass in one direction, you have one piece but not the other. Two passes is the theoretical minimum for this two-sided dependency (same reasoning as LC 42's need for both a prefix-max and a suffix-max).</p>
+    </div>
+
+    <div class="followup">
+      <div class="followup-q">Follow-up: "What if instead of product you needed the sum — how would the code change?"</div>
+      <p>Almost nothing changes structurally. Replace the multiplicative identity sentinel (1) with the additive identity (0), replace <code>*=</code> with <code>+=</code> in both passes, and replace <code>result[i] *= runningSuffix</code> with <code>result[i] += runningSuffix</code> in the combine step. But for sum-except-self you'd usually just compute total − nums[i] in one pass, which is simpler and works with no special cases. The prefix/suffix structure is only necessary for "product except self" because products have no easy inversion when zeros are present.</p>
+    </div>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 14. Theory decoder -->
+  <section id="decoder" data-toc-label="Theory Decoder">
+    <h2>14 &nbsp; Theory Decoder — concepts used here</h2>
+    <table class="t-decoder">
+      <thead><tr><th>Concept</th><th>How it appears in LC 238</th></tr></thead>
+      <tbody>
+        <tr><td>Prefix × suffix product (Variant 8.2)</td><td>Two passes over nums. Left pass: <code>result[i]</code> = product of nums[0..i−1]. Right pass: multiply result[i] by product of nums[i+1..n−1]. Both passes together give "product except self."</td></tr>
+        <tr><td>Multiplicative identity sentinel (1)</td><td><code>runningPrefix</code> and <code>runningSuffix</code> both start at 1. At index 0, the "product of nothing to the left" is 1 — correct because 1 is the identity for multiplication. Without the sentinel, the first and last elements would require special cases.</td></tr>
+        <tr><td>Structural exclusion of position i</td><td>nums[i] is never multiplied into result[i]: the left pass stops before updating runningSuffix at i (uses the old value), and the right pass multiplies result[i] by runningSuffix before incorporating nums[i]. The gap is structural, not a skip condition.</td></tr>
+        <tr><td>Rolling variable as space optimization</td><td><code>runningSuffix</code> is the O(1)-space replacement for a full suffix product array. At each step it holds exactly what <code>suffixProduct[index]</code> would in the two-array version. Compare to LC 42's two-pointer solution replacing prefix-max arrays with two running scalars.</td></tr>
+        <tr><td>Zero-safety</td><td>The prefix and suffix products accumulate zeros naturally. No branching is needed — zeros propagate through multiplication exactly like any other value. The division-based approach requires explicit zero-count logic; this approach does not.</td></tr>
+      </tbody>
+    </table>
+    <p>For the general theory of prefix/suffix precomputation — Variant 8.2, the sentinel, why the gap at position i is structural, and the full cheat sheet — see the parent theory page linked below.</p>
+  </section>
+
+  <hr class="wiki-hr">
+
+  <!-- 15. Parent theory -->
+  <section id="parent" data-toc-label="Parent Theory">
+    <h2>15 &nbsp; Parent Theory</h2>
+    <div class="ref-grid">
+      <a class="backref-card" href="../theory/arrays/prefix_suffix_master.html">
+        <span class="ref-file">leetcode_theory/arrays/prefix_suffix_master.html</span>
+        <span class="ref-title">Prefix &amp; Suffix Precomputation</span>
+        <span class="ref-desc">The canonical prefix/suffix reference. §8.2 covers Variant 8.2 (prefix × suffix product — exactly this problem's pattern), §3 decodes the sentinel and monoid terminology, §5 gives the canonical two-pass pseudocode, §10 lists the "multiply before update" pitfall and the sentinel gotcha. §13 links back to this walkthrough.</span>
+      </a>
+    </div>
+  </section>
+
+  <div class="page-footer">
+    LC 238 — Product of Array Except Self · Walkthrough Masterfile ·
+    Parent theory: <a href="../theory/arrays/prefix_suffix_master.html">prefix_suffix_master.html</a> ·
+    Structure per <code>.claude/skills/wiki/references/walkthrough-format.md</code>
+  </div>
+
+</main>
+</div>
+
+<script src="../../static/generated/manifest.js"></script>
+<script src="../../static/generated/nav.js"></script>
+<script src="../../static/generated/toc.js"></script>
+</body>
+</html>
