@@ -119,7 +119,7 @@ Wiki-wide:
 `wiki/wiki.config.ts` is the only file naming **page types, domains, categories, and sections** — the engine (`lib/`, `browser/`) knows none of these names, it iterates the config:
 
 - **New study domain** (e.g. system design) = one `domains[]` entry with its own `folder` + a folder under `content/`. Nav, hubs, and validation adapt automatically.
-- **New page type** = one `pageTypes[]` entry declaring its `layout` + section skeleton, then point a category at it via `pageType: "…"`. No engine code changes — the scaffolder reads the skeleton from config.
+- **New page type** = one `pageTypes[]` entry declaring its `layout` + section skeleton, plus optional `tocTitle` / `tocAccent` (palette entry name — `insight`, `info`, `tip`, `caution`; omit for a neutral heading), then point a category at it via `pageType: "…"`. No engine code changes, and no CSS unless you want a hue that has no `.toc-accent-*` rule yet.
 - **Nesting**: every `folder` is ONE path segment, never a path. The full folder path is built by walking `domain.folder → category.folder → [children…] → section`, so a category nests arbitrarily deep via `children: [...]` (e.g. `ios/swiftui/theory/fundamentals/`). A category holds either pages or `children`, not both.
 
 **Renaming a folder** = change that one `folder` string, move the directory, `npm run build`. Every link follows. Never hand-edit paths in content.

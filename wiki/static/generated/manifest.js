@@ -1510,5 +1510,23 @@ const WIKI_MANIFEST = {
       "problemNumber": 986,
       "order": null
     }
+  },
+  "tocStyles": {
+    "theory": {
+      "title": "Theory · Contents",
+      "accent": "insight"
+    },
+    "walkthrough": {
+      "title": "Walkthrough · Contents",
+      "accent": "info"
+    },
+    "reference": {
+      "title": "Reference · Contents",
+      "accent": null
+    },
+    "ios-topic": {
+      "title": "iOS Topic · Contents",
+      "accent": "tip"
+    }
   }
 };

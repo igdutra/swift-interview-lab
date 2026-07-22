@@ -24,6 +24,8 @@ export const wikiConfiguration: WikiConfiguration = {
       identifier: "theory",
       layout: "sections",
       metaLabel: "Theory Masterfile",
+      tocTitle: "Theory · Contents",
+      tocAccent: "insight",
       sections: [
         { id: "lead", tocLabel: "Definition", heading: null },
         { id: "signals", tocLabel: "Recognition Signals", heading: "Recognition Signals — when to reach for it" },
@@ -45,6 +47,8 @@ export const wikiConfiguration: WikiConfiguration = {
       identifier: "walkthrough",
       layout: "sections",
       metaLabel: "Walkthrough Masterfile",
+      tocTitle: "Walkthrough · Contents",
+      tocAccent: "info",
       sections: [
         { id: "lead", tocLabel: "The Problem", heading: null },
         { id: "reading", tocLabel: "Reading the Problem", heading: "Reading the Problem — insights from the statement" },
@@ -67,6 +71,7 @@ export const wikiConfiguration: WikiConfiguration = {
       identifier: "reference",
       layout: "flat",
       metaLabel: "Reference",
+      tocTitle: "Reference · Contents",
       sections: [
         { id: "lead", tocLabel: "Overview", heading: null },
         { id: "topic-1", tocLabel: "First Topic", heading: "TODO First Topic" },
@@ -80,6 +85,8 @@ export const wikiConfiguration: WikiConfiguration = {
       identifier: "ios-topic",
       layout: "sections",
       metaLabel: "iOS Topic",
+      tocTitle: "iOS Topic · Contents",
+      tocAccent: "tip",
       sections: [
         { id: "lead", tocLabel: "Definition", heading: null },
         { id: "mental-model", tocLabel: "Mental Model", heading: "Mental Model — how to think about it" },

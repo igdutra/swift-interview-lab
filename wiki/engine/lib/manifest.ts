@@ -8,6 +8,7 @@ import type {
   CategoryConfiguration,
   Difficulty,
   ManifestCategory,
+  ManifestTocStyle,
   ManifestDomain,
   ManifestSection,
   PageMeta,
@@ -249,7 +250,23 @@ export function buildManifest(configuration: WikiConfiguration, records: PageRec
     pages[record.path] = record;
   }
 
-  return { siteTitle: configuration.siteTitle, domains, pages };
+  // Map each body category to its page type's TOC presentation. Built here
+  // so browser/toc.ts can look it up instead of hardcoding content names.
+  const tocStyles: Record<string, ManifestTocStyle> = {};
+  for (const { category } of listCategories(configuration)) {
+    const pageType = configuration.pageTypes.find(
+      (candidate) => candidate.identifier === category.pageType,
+    );
+    if (pageType === undefined) {
+      continue;
+    }
+    tocStyles[category.pageBodyCategory] = {
+      title: pageType.tocTitle ?? "Contents",
+      accent: pageType.tocAccent ?? null,
+    };
+  }
+
+  return { siteTitle: configuration.siteTitle, domains, pages, tocStyles };
 }
 
 /** Render the committed static/generated/manifest.js file contents. */

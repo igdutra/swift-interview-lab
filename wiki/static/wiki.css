@@ -202,9 +202,13 @@ hr.wiki-hr { border: none; border-top: 1px solid var(--border-xlt); margin: 48px
   margin-bottom: 8px; padding-bottom: 6px;
   border-bottom: 1px solid var(--border-xlt);
 }
-.toc-cat-theory      { color: var(--insight); }
-.toc-cat-walkthrough { color: var(--info); }
-.toc-cat-ios-topic   { color: var(--tip); }
+/* TOC heading accents — named after the palette entry, not the page type,
+   so a new page type picks one via `tocAccent` in wiki.config.ts instead
+   of needing a new rule here. */
+.toc-accent-insight { color: var(--insight); }
+.toc-accent-info    { color: var(--info); }
+.toc-accent-tip     { color: var(--tip); }
+.toc-accent-caution { color: var(--caution); }
 .toc-link { display: block; padding: 2px 0; color: var(--link); text-decoration: none; font-weight: 600; }
 .toc-link:hover { text-decoration: underline; }
 .toc-sub { padding-left: 12px; }

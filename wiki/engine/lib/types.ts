@@ -46,6 +46,19 @@ export interface PageTypeConfiguration {
   sections?: SectionSkeleton[];
   /** Short label used in the page's meta line, e.g. "Theory Masterfile". */
   metaLabel: string;
+  /**
+   * Heading above the generated table of contents, e.g. "Theory · Contents".
+   * Defaults to "Contents" when omitted, so a new page type needs no
+   * engine edit — this is the field that keeps toc.ts content-agnostic.
+   */
+  tocTitle?: string;
+  /**
+   * Palette entry tinting that heading — one of the `--{name}` semantic
+   * accents in wiki.css (e.g. "insight", "info", "tip"). Omit for the
+   * neutral default. Deliberate rather than derived: the palette's rule is
+   * "one hue = one meaning", which a hash of the name could not honour.
+   */
+  tocAccent?: string;
 }
 
 export interface SectionConfiguration {
@@ -169,10 +182,22 @@ export interface ManifestDomain {
   categories: ManifestCategory[];
 }
 
+/** TOC presentation for one body category, resolved from its page type. */
+export interface ManifestTocStyle {
+  title: string;
+  /** Palette entry name, or null for the neutral default. */
+  accent: string | null;
+}
+
 export interface WikiManifest {
   siteTitle: string;
   domains: ManifestDomain[];
   pages: Record<string, PageRecord>;
+  /**
+   * Keyed by `data-category` (a category's `pageBodyCategory`), so the
+   * browser can style a TOC without the engine knowing any content names.
+   */
+  tocStyles: Record<string, ManifestTocStyle>;
 }
 
 // ---------- scan/extract output ----------

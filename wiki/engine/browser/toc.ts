@@ -87,18 +87,13 @@
       .replace(/"/g, "&quot;");
   }
 
-  // TODO: these labels are content names living in the engine, which breaks
-  // the "engine knows no content names" rule. Move to wiki.config.ts
-  // (a `tocTitle` on each page type) when the config schema next changes.
-  const categoryTitles: Record<string, string> = {
-    theory: "Theory · Contents",
-    walkthrough: "Walkthrough · Contents",
-    reference: "Reference · Contents",
-    "ios-topic": "iOS Topic · Contents",
-  };
-  const tocTitle = categoryTitles[bodyCategory] ?? "Contents";
-  const coloredTocCategories = ["theory", "walkthrough", "ios-topic"];
-  const tocTitleClass = coloredTocCategories.includes(bodyCategory) ? ` toc-cat-${bodyCategory}` : "";
+  // Title and accent come from the manifest (built from each page type's
+  // `tocTitle` / `tocAccent` in wiki.config.ts), so this file knows no
+  // content names. A new page type needs no edit here.
+  const tocStyle =
+    typeof WIKI_MANIFEST !== "undefined" ? WIKI_MANIFEST.tocStyles[bodyCategory] : undefined;
+  const tocTitle = tocStyle?.title ?? "Contents";
+  const tocTitleClass = tocStyle?.accent != null ? ` toc-accent-${tocStyle.accent}` : "";
 
   const linkParts: string[] = [];
   entries.forEach((entry, entryIndex) => {

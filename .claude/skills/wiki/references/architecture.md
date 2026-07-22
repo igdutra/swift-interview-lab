@@ -53,6 +53,8 @@ Warnings: classes not in wiki.css; close-the-loop reciprocity (a card A→B need
 
 To reuse the whole kit in another repo: copy `engine/` + `static/wiki.css`, rewrite `wiki.config.ts`, create `content/`, run build. Done.
 
-## Known wart
+## TOC presentation
 
-`browser/toc.ts` hardcodes content category names (`theory`, `walkthrough`, `reference`, `ios-topic`) for TOC titles and colours — the one place the engine still knows content names. Adding a page type means adding a line there plus a `.toc-cat-{name}` rule in `wiki.css`. Proper fix: a `tocTitle` field on each `pageTypes[]` entry, next time the config schema changes. Marked with a TODO in the source.
+Each `pageTypes[]` entry may declare `tocTitle` (heading above the generated TOC; defaults to `"Contents"`) and `tocAccent` (a palette entry name — `insight`, `info`, `tip`, `caution` — omit for neutral). `buildManifest` resolves these into `manifest.tocStyles`, keyed by `pageBodyCategory`, and `browser/toc.ts` looks the page's `data-category` up there. The engine names no content categories: adding a page type is still a config-only change.
+
+Accent classes in `wiki.css` are named after the **palette entry** (`.toc-accent-tip`), not the page type, so a new type reuses an existing rule. Only a brand-new hue needs a new class — deliberately not derived from a hash of the name, since the palette's rule is "one hue = one meaning".

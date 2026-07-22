@@ -42,10 +42,17 @@ interface WikiManifestDomain {
   categories: WikiManifestCategory[];
 }
 
+interface WikiManifestTocStyle {
+  title: string;
+  accent: string | null;
+}
+
 interface WikiManifestData {
   siteTitle: string;
   domains: WikiManifestDomain[];
   pages: Record<string, WikiManifestPageRecord>;
+  /** Keyed by the page's data-category. */
+  tocStyles: Record<string, WikiManifestTocStyle>;
 }
 
 declare const WIKI_MANIFEST: WikiManifestData;
