@@ -546,7 +546,7 @@ const WIKI_MANIFEST = {
         "Navigation",
         "Layout"
       ],
-      "blurb": "The SwiftUI landing page — how the framework thinks, who owns state and how it moves, and the screen-level toolkit. Three sections, read in order.",
+      "blurb": "The SwiftUI landing page and cheat sheet — how the framework thinks, who owns state and how it moves, and the screen-level toolkit. Twelve pages summarized in three tables for the night-before skim.",
       "difficulty": null,
       "problemNumber": null,
       "order": null

@@ -15,7 +15,7 @@
     "Navigation",
     "Layout"
   ],
-  "blurb": "The SwiftUI landing page — how the framework thinks, who owns state and how it moves, and the screen-level toolkit. Three sections, read in order."
+  "blurb": "The SwiftUI landing page and cheat sheet — how the framework thinks, who owns state and how it moves, and the screen-level toolkit. Twelve pages summarized in three tables for the night-before skim."
 }
 </script>
 <link rel="stylesheet" href="../../../static/wiki.css">
@@ -39,7 +39,7 @@
 
     <div class="lead">
       <p>SwiftUI is declarative: you describe what the UI <em>is</em> for a given state, and the framework decides what to change on screen. That inversion is what makes it productive, and it is also why its failure modes are unfamiliar — the bugs are rarely rendering bugs. They are <strong>identity</strong> bugs (the framework thought two views were the same, or thought they were different) and <strong>ownership</strong> bugs (state lives in the wrong place, so it resets at the wrong moment or fails to propagate).</p>
-      <p>These pages are organized by how the knowledge is used rather than by API surface. Read <strong>Fundamentals</strong> once — it establishes the vocabulary the other two sections lean on constantly.</p>
+      <p>These pages are organized by how the knowledge is used rather than by API surface. Read <strong>Fundamentals</strong> once — it establishes the vocabulary the other two sections lean on constantly. Everything below the section cards is the <strong>recall layer</strong>: one line per page, the symptom-to-page router, and the rules that are pure memorization. Skim it the night before; open a page only where the one-liner does not already bring the whole thing back.</p>
     </div>
 
     <div class="co co-when u-measure">
@@ -65,8 +65,320 @@
       </a>
     </div>
 
+    <hr class="wiki-hr">
+
+    <div class="hub-section-title">The twelve pages at a glance</div>
+    <p class="hub-prose">One row per page — the single idea it exists to teach and the thing worth having memorized — then a full-width row with the canonical snippet you can read top-to-bottom. If the snippet does not bring the page back, that is the page to reopen.</p>
+
+    <table class="t-versus">
+      <thead><tr><th>Page</th><th>The one idea</th><th>The thing to remember</th></tr></thead>
+      <tbody>
+        <tr><td colspan="3"><strong>Fundamentals</strong> — how SwiftUI itself thinks</td></tr>
+
+        <tr>
+          <td><a href="fundamentals/view_identity_master.html">View Identity</a></td>
+          <td>Identity is a <em>path</em>: <code>(type, position)</code>, computed per slot in the view tree</td>
+          <td>An <code>if/else</code> compiles to <code>_ConditionalContent&lt;A, B&gt;</code> — a <em>type-level</em> choice, so flipping it destroys <code>@State</code>. Push the condition into a <em>value</em>, not the structure.</td>
+        </tr>
+        <tr><td colspan="3"><pre class="swift"><span class="cm">// WRONG: two concrete types in one slot — @State inside resets on every flip.</span>
+<span class="kw">if</span> isEditing { <span class="tp">EditorView</span>() } <span class="kw">else</span> { <span class="tp">SummaryView</span>() }
+
+<span class="cm">// RIGHT (same view, different value): one Text, one identity, animates for free.</span>
+<span class="tp">Text</span>(<span class="st">"Hi"</span>).foregroundStyle(isHighlighted ? .red : .blue)
+
+<span class="cm">// .id() DISCARDS identity on purpose — the intended use:</span>
+<span class="tp">EditorView</span>(record: selectedRecord).id(selectedRecord.id)   <span class="cm">// new record → fresh state</span>
+
+<span class="cm">// …and the rarer direction: the SAME .id() on both branches unifies them.</span>
+<span class="tp">Group</span> { <span class="kw">if</span> isEditing { <span class="tp">EditorView</span>() } <span class="kw">else</span> { <span class="tp">SummaryView</span>() } }.id(<span class="st">"record-detail"</span>)</pre></td></tr>
+
+        <tr>
+          <td><a href="fundamentals/view_construction_master.html">View Construction</a></td>
+          <td><code>@ViewBuilder</code> is a compile-time transform, not a runtime feature</td>
+          <td>Needed in exactly one case: the body branches or has more than one top-level view. Costs nothing at runtime — a helper function is <em>not</em> slower than extracting a struct.</td>
+        </tr>
+        <tr><td colspan="3"><pre class="swift"><span class="cm">// No @ViewBuilder needed — a single expression is already one type.</span>
+<span class="kw">private</span> <span class="kw">func</span> <span class="fn">title</span>(text: <span class="tp">String</span>) -&gt; <span class="kw">some</span> <span class="tp">View</span> { <span class="tp">Text</span>(text).font(.title) }
+
+<span class="cm">// @ViewBuilder needed — the branches produce different types.</span>
+<span class="kw">@ViewBuilder</span>
+<span class="kw">private</span> <span class="kw">func</span> <span class="fn">badge</span>(isActive: <span class="tp">Bool</span>) -&gt; <span class="kw">some</span> <span class="tp">View</span> {
+    <span class="kw">if</span> isActive { <span class="tp">Text</span>(<span class="st">"Active"</span>) } <span class="kw">else</span> { <span class="tp">Text</span>(<span class="st">"Inactive"</span>) }
+}
+<span class="cm">// The ONE case a func genuinely fails: a func has no identity slot, so it</span>
+<span class="cm">// cannot hold @State. That is a correctness issue, not a performance one.</span></pre></td></tr>
+
+        <tr>
+          <td><a href="fundamentals/layout_system_master.html">The Layout System</a></td>
+          <td>Parent proposes · child chooses · parent positions</td>
+          <td>A parent can never <em>force</em> a size. Modifier order matters: <code>.frame</code> then <code>.border</code> draws around the frame, not the content. <code>GeometryReader</code> swallows the full proposal and is top-leading, not centred.</td>
+        </tr>
+        <tr><td colspan="3"><pre class="swift"><span class="cm">// Ignore the proposal, take the ideal size — the fix for surprise truncation.</span>
+<span class="tp">Text</span>(longTitle).fixedSize(horizontal: <span class="kw">true</span>, vertical: <span class="kw">false</span>)
+
+<span class="cm">// Choose what survives compression — higher priority is compressed LAST.</span>
+<span class="tp">HStack</span> {
+    <span class="tp">Text</span>(veryLongTitle).layoutPriority(<span class="nm">1</span>)   <span class="cm">// gets its space first</span>
+    <span class="tp">Text</span>(subtitle)                          <span class="cm">// default 0 — compressed first</span>
+}
+
+<span class="cm">// Responsive without measuring: first child that fits wins.</span>
+<span class="tp">ViewThatFits</span> { <span class="tp">HStack</span> { rowContent } ; <span class="tp">VStack</span>(alignment: .leading) { rowContent } }</pre></td></tr>
+
+        <tr><td colspan="3"><strong>State &amp; Data Flow</strong> — who owns a value and how it travels</td></tr>
+
+        <tr>
+          <td><a href="state/state_ownership_master.html">State Ownership</a></td>
+          <td><code>@StateObject</code> owns and outlives redraws; <code>@ObservedObject</code> only borrows</td>
+          <td>Views are structs and <code>init</code> re-runs on every parent redraw — so real work belongs in <code>.task</code>, never <code>init</code>. Inject the dependency, build the view model inline (the autoclosure runs once).</td>
+        </tr>
+        <tr><td colspan="3"><pre class="swift"><span class="cm">// Testable AND built exactly once: protocol in, object built in the autoclosure.</span>
+<span class="kw">struct</span> MyView: <span class="tp">View</span> {
+    <span class="kw">@StateObject</span> <span class="kw">private</span> <span class="kw">var</span> viewModel: <span class="tp">MyViewModel</span>
+
+    <span class="kw">init</span>(repository: <span class="tp">ItemRepositoryProtocol</span>) {
+        _viewModel = <span class="tp">StateObject</span>(wrappedValue: <span class="tp">MyViewModel</span>(repository: repository))
+    }
+}
+<span class="cm">// WRONG: `@StateObject var viewModel = MyViewModel()` — no seam to inject through.</span>
+<span class="cm">// init stores references only; the real work goes in .task { await viewModel.load() }</span>
+
+<span class="cm">// iOS 16: pass plain VALUES down, or every subview redraws on any change.</span>
+<span class="kw">struct</span> DetailRow: <span class="tp">View</span> { <span class="kw">let</span> title: <span class="tp">String</span> }   <span class="cm">// NOT @ObservedObject → body skipped</span></pre></td></tr>
+
+        <tr>
+          <td><a href="state/data_flow_master.html">Data Flow</a></td>
+          <td>The <em>direction</em> and the <em>kind</em> of thing being moved pick the tool</td>
+          <td>Four directions, four tools: <code>@Binding</code> down (read+write) · closure up (an event) · <code>PreferenceKey</code> up (measured geometry) · <code>@Environment</code> down to any descendant.</td>
+        </tr>
+        <tr><td colspan="3"><pre class="swift"><span class="cm">// 1. DOWN, read+write — parent owns the truth, child mutates it.</span>
+<span class="kw">struct</span> ToggleRow: <span class="tp">View</span> { <span class="kw">@Binding</span> <span class="kw">var</span> isOn: <span class="tp">Bool</span> }        <span class="cm">// parent passes $isOn</span>
+
+<span class="cm">// 2. UP, an event — a closure. State stays derived and read-only in the child.</span>
+<span class="kw">struct</span> PaymentRow: <span class="tp">View</span> {
+    <span class="kw">let</span> isSelected: <span class="tp">Bool</span>         <span class="cm">// derived, read-only</span>
+    <span class="kw">let</span> onSelect: () -&gt; <span class="tp">Void</span>     <span class="cm">// event, not state</span>
+}
+
+<span class="cm">// 3. UP, measured geometry — PreferenceKey (reduce merges sibling reports).</span>
+<span class="kw">struct</span> HeightPreferenceKey: <span class="tp">PreferenceKey</span> {
+    <span class="kw">static</span> <span class="kw">var</span> defaultValue: <span class="tp">CGFloat</span> = <span class="nm">0</span>
+    <span class="kw">static</span> <span class="kw">func</span> <span class="fn">reduce</span>(value: <span class="kw">inout</span> <span class="tp">CGFloat</span>, nextValue: () -&gt; <span class="tp">CGFloat</span>) { value = nextValue() }
+}
+
+<span class="cm">// 4. DOWN to ANY descendant, skipping the middle — @Environment.</span>
+<span class="kw">@Environment</span>(\.dismiss) <span class="kw">private</span> <span class="kw">var</span> dismiss</pre></td></tr>
+
+        <tr>
+          <td><a href="state/view_state_enum_master.html">View State as an Enum</a></td>
+          <td>One enum instead of parallel booleans, so illegal combinations cannot be constructed</td>
+          <td>The in-flight case <em>carries</em> the data it operates on — that is the key move, and it is what keeps rows on screen during a refresh. Store the full list; derive the filtered view.</td>
+        </tr>
+        <tr><td colspan="3"><pre class="swift"><span class="cm">// .searching CARRIES the list — "searching with nothing loaded" cannot be built.</span>
+<span class="kw">enum</span> ViewState {
+    <span class="kw">case</span> loading
+    <span class="kw">case</span> loaded([<span class="tp">Item</span>])
+    <span class="kw">case</span> searching([<span class="tp">Item</span>])    <span class="cm">// ← the key move: a precondition in the type</span>
+    <span class="kw">case</span> error(<span class="tp">Error</span>)
+}
+
+<span class="cm">// Store everything; DERIVE the filtered view — nothing is ever thrown away.</span>
+<span class="kw">var</span> visibleItems: [<span class="tp">Item</span>] {
+    <span class="kw">switch</span> viewState {
+    <span class="kw">case</span> .loaded(<span class="kw">let</span> allItems), .searching(<span class="kw">let</span> allItems): <span class="kw">return</span> allItems
+    <span class="kw">case</span> .loading, .error: <span class="kw">return</span> []
+    }
+}
+<span class="cm">// The body becomes an exhaustive switch — a fifth case breaks the build where it must.</span></pre></td></tr>
+
+        <tr><td colspan="3"><strong>Building Screens</strong> — the applied layer</td></tr>
+
+        <tr>
+          <td><a href="screens/navigation_master.html">Navigation</a></td>
+          <td>The <code>path</code> is what sits <em>on top of</em> the root — never the root itself</td>
+          <td>No amount of mutating the path replaces the root; it is chosen at the call site. A misplaced <code>.navigationDestination</code> fails <em>silently</em>. <code>NavigationView</code> is deprecated.</td>
+        </tr>
+        <tr><td colspan="3"><pre class="swift"><span class="cm">// One owner for the stack — drivable from a view model, a deep link, or a test.</span>
+<span class="kw">final</span> <span class="kw">class</span> Navigator: <span class="tp">ObservableObject</span> {
+    <span class="kw">@Published</span> <span class="kw">var</span> route: [<span class="tp">Screen</span>] = []
+    <span class="kw">func</span> <span class="fn">push</span>(_ screen: <span class="tp">Screen</span>) { route.append(screen) }
+    <span class="kw">func</span> <span class="fn">popToRoot</span>()             { route.removeAll() }   <span class="cm">// root was mounted all along</span>
+}
+
+<span class="cm">// To REPLACE the root, choose it OUTSIDE the stack — path mutation never can.</span>
+<span class="kw">switch</span> navigation.route.last {
+<span class="kw">case</span> .finished:
+    FinishView()                        <span class="cm">// no stack at all → no back button</span>
+<span class="kw">default</span>:
+    <span class="tp">NavigationStack</span>(path: $navigation.route) {
+        ContentView()
+            .navigationDestination(<span class="kw">for</span>: <span class="tp">Screen</span>.<span class="kw">self</span>) { destination(<span class="kw">for</span>: $0) }
+    }                                   <span class="cm">// ↑ misplace this and the push silently does nothing</span>
+}</pre></td></tr>
+
+        <tr>
+          <td><a href="screens/modals_master.html">Modals</a></td>
+          <td>Drive presentation from the <em>data</em> (<code>item:</code>), not a separate boolean</td>
+          <td>One presentation modifier per view — a second one silently wins. A modal is <em>not</em> in the navigation stack: the presenter's <code>NavigationStack</code> does not extend into it. <code>@Environment(\.dismiss)</code> works from the child for all of them.</td>
+        </tr>
+        <tr><td colspan="3"><pre class="swift"><span class="cm">// item: — the data IS the trigger, so a stale/empty sheet is unrepresentable.</span>
+.sheet(item: $selectedItem) { item <span class="kw">in</span> DetailView(item: item) }
+<span class="cm">// vs isPresented: + a separately-assigned item → the two can disagree.</span>
+
+<span class="cm">// The child dismisses itself without knowing who presented it.</span>
+<span class="kw">@Environment</span>(\.dismiss) <span class="kw">private</span> <span class="kw">var</span> dismiss     <span class="cm">// sheets, covers, AND pops</span>
+
+<span class="cm">// Detents for a partial-height sheet (iOS 16+).</span>
+.presentationDetents([.medium, .large])
+
+<span class="cm">// Alert buttons: .destructive renders red, .cancel is bold and always last.</span>
+.alert(<span class="st">"Delete item?"</span>, isPresented: $isConfirming) {
+    <span class="tp">Button</span>(<span class="st">"Delete"</span>, role: .destructive) { delete() }
+    <span class="tp">Button</span>(<span class="st">"Cancel"</span>,  role: .cancel) { }
+}</pre></td></tr>
+
+        <tr>
+          <td><a href="screens/lists_master.html">Lists</a></td>
+          <td>Several <code>List</code> behaviours are <em>row-count dependent</em>, so empty looks different from populated</td>
+          <td>The pull-to-refresh "background flash" is the list correctly rendering an empty state you did not mean to enter — separate initial load from refresh. Fix the background with <code>.scrollContentBackground(.hidden)</code> plus your own <code>.background</code>.</td>
+        </tr>
+        <tr><td colspan="3"><pre class="swift"><span class="cm">// Two entry points, ONE shared tail — only the first load resets to .loading.</span>
+<span class="kw">private</span> <span class="kw">func</span> <span class="fn">loadItems</span>() <span class="kw">async</span> {
+    viewState = .loading          <span class="cm">// fine: the list is empty anyway</span>
+    <span class="kw">await</span> applyFetchResult()
+}
+<span class="kw">private</span> <span class="kw">func</span> <span class="fn">refreshItems</span>() <span class="kw">async</span> {
+    <span class="cm">// NO .loading here — rows and their background stay on screen.</span>
+    <span class="kw">await</span> applyFetchResult()
+}
+<span class="cm">// .task { await loadItems() }  /  .refreshable { await refreshItems() }</span>
+
+<span class="cm">// A background that does not depend on the row count:</span>
+.scrollContentBackground(.hidden).background(<span class="tp">Color</span>.groupedBackground)
+
+<span class="cm">// Full-width separators — the guide goes on the ROW, never on the List.</span>
+<span class="tp">List</span>(restaurants) { <span class="tp">RestaurantRowView</span>(restaurant: $0).alignmentGuide(.listRowSeparatorLeading) { _ <span class="kw">in</span> <span class="nm">0</span> } }</pre></td></tr>
+
+        <tr>
+          <td><a href="screens/search_master.html">Search</a></td>
+          <td><code>.task(id:)</code> cancels the previous run before starting a new one — that <em>is</em> the debounce</td>
+          <td><code>.searchable</code> must be inside a <code>NavigationStack</code> or nothing appears, with no warning. Cancellation is the mechanism, not an error path — hence <code>try?</code> on the sleep. A whole Combine pipeline replaced by two lines.</td>
+        </tr>
+        <tr><td colspan="3"><pre class="swift"><span class="cm">// TWO pieces of state. Filtering reads only the debounced one — never the field.</span>
+<span class="kw">@State</span> <span class="kw">private</span> <span class="kw">var</span> searchText = <span class="st">""</span>
+<span class="kw">@State</span> <span class="kw">private</span> <span class="kw">var</span> debouncedSearchText = <span class="st">""</span>
+
+<span class="tp">List</span>(filteredItems) { item <span class="kw">in</span> <span class="tp">Text</span>(item.name) }
+    .searchable(text: $searchText)           <span class="cm">// must be inside a NavigationStack</span>
+    .task(id: searchText) {                  <span class="cm">// id changes → previous run is CANCELLED</span>
+        <span class="kw">try</span>? <span class="kw">await</span> <span class="tp">Task</span>.sleep(<span class="kw">for</span>: .milliseconds(<span class="nm">300</span>))   <span class="cm">// try? — cancelling is expected</span>
+        <span class="kw">guard</span> !<span class="tp">Task</span>.isCancelled <span class="kw">else</span> { <span class="kw">return</span> }
+        debouncedSearchText = searchText
+    }
+
+<span class="cm">// Filter with localizedCaseInsensitiveContains — one call, and locale-correct.</span>
+items.filter { $0.name.localizedCaseInsensitiveContains(debouncedSearchText) }</pre></td></tr>
+
+        <tr>
+          <td><a href="screens/lifecycle_master.html">Lifecycle</a></td>
+          <td>Three nested lifecycles — process (<code>AppDelegate</code>), scene (<code>scenePhase</code>), view (<code>.task</code>/<code>onAppear</code>)</td>
+          <td>Persist on <code>.inactive</code>, the last phase you are <em>guaranteed</em> to see — so the save must be cheap and idempotent. <code>onDisappear</code> is not a termination hook and may never run. <code>scenePhase</code> carries no history.</td>
+        </tr>
+        <tr><td colspan="3"><pre class="swift"><span class="cm">// Persist on .inactive — it fires on EVERY exit path. Keep it cheap + idempotent.</span>
+<span class="kw">@Environment</span>(\.scenePhase) <span class="kw">private</span> <span class="kw">var</span> scenePhase
+
+.onChange(of: scenePhase) { newPhase <span class="kw">in</span>
+    <span class="kw">if</span> newPhase == .inactive { viewModel.persistDraft() }
+}
+
+<span class="cm">// scenePhase is a SNAPSHOT, not a transition log — cold launch and resume both</span>
+<span class="cm">// surface as ".active". Keep your own flag to tell them apart.</span>
+<span class="kw">@State</span> <span class="kw">private</span> <span class="kw">var</span> hasLaunched = <span class="kw">false</span>
+
+.onChange(of: scenePhase) { newPhase <span class="kw">in</span>
+    <span class="kw">guard</span> newPhase == .active <span class="kw">else</span> { <span class="kw">return</span> }
+    <span class="kw">if</span> hasLaunched { <span class="cm">/* returning — refresh stale data */</span> }
+    <span class="kw">else</span> { hasLaunched = <span class="kw">true</span> <span class="cm">/* cold launch — one-time setup */</span> }
+}</pre></td></tr>
+
+        <tr>
+          <td><a href="screens/formatting_images_master.html">Formatting &amp; Images</a></td>
+          <td>Each of these has one non-obvious form that is the correct one</td>
+          <td><code>.resizable()</code> must go <em>inside</em> the <code>AsyncImage</code> closure — the outer view is not an <code>Image</code> yet. Size outside the closure or the row jumps when loading completes. "Centred" multiline text centres per <em>line</em>.</td>
+        </tr>
+        <tr><td colspan="3"><pre class="swift"><span class="cm">// .resizable INSIDE the closure (only there do you hold a real Image);</span>
+<span class="cm">// .frame OUTSIDE it, so the placeholder shares the size and the row never jumps.</span>
+<span class="tp">AsyncImage</span>(url: viewData.imageURL) { image <span class="kw">in</span>
+    image.resizable().aspectRatio(contentMode: .fill)
+} placeholder: {
+    <span class="tp">ProgressView</span>()
+}
+.frame(width: <span class="nm">100</span>, height: <span class="nm">100</span>)   <span class="cm">// applies to the placeholder too</span>
+.clipped()                          <span class="cm">// required with .fill</span>
+
+<span class="cm">// "Centred" multiline centres each line on ITS OWN width → looks staggered.</span>
+<span class="cm">// Fix by left-aligning, or by pinning one shared width:</span>
+<span class="tp">Text</span>(viewData.name).lineLimit(<span class="nm">2</span>).multilineTextAlignment(.center).frame(maxWidth: .infinity)
+
+<span class="cm">// .locale takes a Locale, NOT a String — a raw string silently follows the device.</span>
+<span class="tp">Text</span>(price, format: .currency(code: <span class="st">"BRL"</span>).locale(<span class="tp">Locale</span>(identifier: <span class="st">"pt_BR"</span>)))</pre></td></tr>
+      </tbody>
+    </table>
+
+    <hr class="wiki-hr">
+
+    <div class="hub-section-title">Symptom → page</div>
+    <p class="hub-prose">The reverse index. What you actually notice in the simulator, and the page that explains it.</p>
+
+    <table class="t-versus">
+      <thead><tr><th>You see…</th><th>Go to…</th><th>Because…</th></tr></thead>
+      <tbody>
+        <tr><td>"my <code>@State</code> keeps resetting"</td><td><a href="fundamentals/view_identity_master.html">View Identity</a></td><td>a branch or an <code>.id()</code> changed the slot's identity, so the storage was discarded</td></tr>
+        <tr><td>"my view model keeps resetting" / "can't inject a mock"</td><td><a href="state/state_ownership_master.html">State Ownership</a></td><td><code>@ObservedObject</code> borrows — it is rebuilt on every parent redraw</td></tr>
+        <tr><td>"the transition never animates"</td><td><a href="fundamentals/view_identity_master.html">View Identity</a></td><td>no animation means no transition, and the view must genuinely be inserted or removed</td></tr>
+        <tr><td>"the border is too big" / "my text is truncated"</td><td><a href="fundamentals/layout_system_master.html">The Layout System</a></td><td>modifier order — the decoration wraps the frame, not the content</td></tr>
+        <tr><td>"<code>GeometryReader</code> broke my layout"</td><td><a href="fundamentals/layout_system_master.html">The Layout System</a></td><td>it accepts the full proposal on both axes and aligns top-leading</td></tr>
+        <tr><td>"which flag wins?" / spinner over an empty screen</td><td><a href="state/view_state_enum_master.html">View State as an Enum</a></td><td>parallel booleans can represent states that make no sense</td></tr>
+        <tr><td>"everything redraws when one property changes"</td><td><a href="state/state_ownership_master.html">State Ownership</a></td><td>observing the whole object instead of passing plain values down (iOS 16)</td></tr>
+        <tr><td>"a back button nobody asked for" / "the push does nothing"</td><td><a href="screens/navigation_master.html">Navigation</a></td><td>root-versus-path confusion, or <code>.navigationDestination</code> in the wrong place</td></tr>
+        <tr><td>"the sheet shows stale content" / "my second sheet never appears"</td><td><a href="screens/modals_master.html">Modals</a></td><td><code>isPresented:</code> instead of <code>item:</code>, or two presentation modifiers on one view</td></tr>
+        <tr><td>"the background flashes white on pull-to-refresh"</td><td><a href="screens/lists_master.html">Lists</a></td><td>the refresh routed through <code>.loading</code> and momentarily emptied the list</td></tr>
+        <tr><td>"the search field doesn't show"</td><td><a href="screens/search_master.html">Search</a></td><td><code>.searchable</code> is rendered by navigation chrome that is not there</td></tr>
+        <tr><td>"it refilters on every keystroke"</td><td><a href="screens/search_master.html">Search</a></td><td>no debounce — <code>.task(id:)</code> plus a sleep is the whole fix</td></tr>
+        <tr><td>"my save didn't run when the app was killed"</td><td><a href="screens/lifecycle_master.html">Lifecycle</a></td><td>you saved on <code>.background</code> or <code>onDisappear</code> instead of <code>.inactive</code></td></tr>
+        <tr><td>"<code>.resizable</code> doesn't exist" / "the image overflows"</td><td><a href="screens/formatting_images_master.html">Formatting &amp; Images</a></td><td>the modifier landed on <code>AsyncImage</code> rather than inside its closure</td></tr>
+        <tr><td>"do I need <code>@ViewBuilder</code> here?"</td><td><a href="fundamentals/view_construction_master.html">View Construction</a></td><td>only if the body branches or returns more than one top-level view</td></tr>
+      </tbody>
+    </table>
+
+    <hr class="wiki-hr">
+
+    <div class="hub-section-title">Hard rules — pure memorization</div>
+    <p class="hub-prose">The facts with no mental model behind them. These are the ones to reread on the way in.</p>
+
+    <div class="co co-pitfall">
+      <div class="co-pitfall-title">Silent failures — no crash, no warning, nothing on screen</div>
+      <div class="pitfall"><span class="pitfall-bullet">1.</span><span><strong><code>.searchable</code> outside a <code>NavigationStack</code>.</strong> The field simply does not appear, and nothing tells you why.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">2.</span><span><strong>A misplaced <code>.navigationDestination</code>.</strong> The push lands nowhere. Check placement first when a push "does nothing".</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">3.</span><span><strong>A second presentation modifier on the same view.</strong> One silently wins; the other never fires.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">4.</span><span><strong>A transition with no animation attached.</strong> No animation, no transition — and the view must genuinely be inserted or removed, not just hidden.</span></div>
+      <div class="pitfall"><span class="pitfall-bullet">5.</span><span><strong><code>.locale</code> given a raw <code>String</code>.</strong> It expects a <code>Locale</code>; the currency symbol quietly follows the device instead.</span></div>
+    </div>
+
+    <div class="co co-note"><strong>Placement rules that are not negotiable:</strong> <code>.resizable()</code> goes <em>inside</em> the <code>AsyncImage</code> closure and the <code>.frame</code> goes <em>outside</em> it · <code>.navigationDestination</code> goes inside the <code>NavigationStack</code> · <code>.searchable</code> goes inside the navigation chrome · the separator alignment guide goes on the <em>row content</em>, not the <code>List</code>.</div>
+
+    <div class="co co-when"><strong>The three "never" rules:</strong> never do real work in a view's <code>init</code> (it re-runs on every parent redraw — use <code>.task</code>) · never treat <code>onDisappear</code> as a termination hook (it may never run — use <code>.inactive</code>) · never add a boolean beside a state enum (it reintroduces exactly the combinatorial problem the enum removed).</div>
+
+    <div class="co-idea">
+      <div class="co-idea-title">Nearly every SwiftUI bug is an identity bug or an ownership bug</div>
+      When something misbehaves, ask the two questions in order. <strong>(1) Did the identity change?</strong> A branch, an <code>.id()</code>, or a reordered <code>ForEach</code> makes SwiftUI treat a slot as a different view — state is discarded, animations restart, transitions fire or fail. <strong>(2) Who owns the storage?</strong> <code>@StateObject</code> outlives redraws, <code>@ObservedObject</code> does not; a view's <code>init</code> re-runs constantly, so anything durable must live in a slot SwiftUI keeps against the identity. Rendering is almost never the culprit — it is a faithful function of state you did not model the way you thought.
+    </div>
+
     <div class="page-footer">
-      Study Wiki · SwiftUI Theory · iOS
+      Study Wiki · SwiftUI Theory · iOS ·
+      <a href="fundamentals/index.html">Fundamentals</a> ·
+      <a href="state/index.html">State &amp; Data Flow</a> ·
+      <a href="screens/index.html">Building Screens</a>
     </div>
 
   </main>
